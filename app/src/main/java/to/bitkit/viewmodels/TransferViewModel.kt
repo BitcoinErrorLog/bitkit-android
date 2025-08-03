@@ -120,6 +120,20 @@ class TransferViewModel @Inject constructor(
             return
         }
 
+
+        if (_spendingUiState.value.satsAmount < 1000L) { //TODO GET MIN VALUE TO TRANSFER
+            setTransferEffect(
+                TransferEffect.ToastError(
+                    title = context.getString(R.string.lightning__spending_amount__error_min__title),
+                    description = context.getString(
+                        R.string.lightning__spending_amount__error_min__description
+                    ).replace("{amount}", "1000"),
+                )
+            )
+            _spendingUiState.update { it.copy(overrideSats = 1000L) } //TODO GET MIN VALUE TO TRANSFER
+            return
+        }
+
         _spendingUiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
