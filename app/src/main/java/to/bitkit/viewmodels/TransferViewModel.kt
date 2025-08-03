@@ -27,6 +27,7 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.env.Env
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
@@ -121,7 +122,7 @@ class TransferViewModel @Inject constructor(
         }
 
 
-        if (_spendingUiState.value.satsAmount < 1000L) { //TODO GET MIN VALUE TO TRANSFER
+        if (_spendingUiState.value.satsAmount < getMinOnchainTx().toLong()) {
             setTransferEffect(
                 TransferEffect.ToastError(
                     title = context.getString(R.string.lightning__spending_amount__error_min__title),
@@ -130,7 +131,7 @@ class TransferViewModel @Inject constructor(
                     ).replace("{amount}", "1000"),
                 )
             )
-            _spendingUiState.update { it.copy(overrideSats = 1000L) } //TODO GET MIN VALUE TO TRANSFER
+            _spendingUiState.update { it.copy(overrideSats = getMinOnchainTx().toLong()) }
             return
         }
 
@@ -240,6 +241,10 @@ class TransferViewModel @Inject constructor(
             }
             Logger.debug("Stopped watching order '$orderId'", context = TAG)
         }
+    }
+
+    private fun getMinOnchainTx(): ULong {
+        return Env.TransactionDefaults.dustLimit.toULong()
     }
 
     private fun onOrderCreated(order: IBtOrder) {
