@@ -1,8 +1,10 @@
 package to.bitkit.ui.components
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -18,10 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.fillScreenHeight
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppShapes
+import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.ModalSheetTopPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,4 +85,23 @@ fun BottomSheetPreview(
         modifier = modifier,
         content = content,
     )
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun Preview() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Column(
+                modifier = Modifier
+                    .fillScreenHeight(ModalSheetTopPadding)
+                    .gradientBackground()
+                    .padding(horizontal = 16.dp)
+            ) {
+                SheetTopBar("Sheet Title")
+                FillHeight()
+                PrimaryButton(text = "Primary Button", onClick = {})
+            }
+        }
+    }
 }
