@@ -322,19 +322,6 @@ class BoostTransactionViewModel @Inject constructor(
     }
 
     /**
-     * Creates a boosted version of the given activity with current fee data
-     */
-    private fun createBoostedActivity(currentActivity: OnchainActivity): Activity.Onchain {
-        return Activity.Onchain(
-            v1 = currentActivity.copy(
-                isBoosted = true,
-                feeRate = _uiState.value.feeRate,
-                updatedAt = nowTimestamp().toEpochMilli().toULong()
-            )
-        )
-    }
-
-    /**
      * Finds the new activity and replaces the old one, handling failures gracefully
      */
     private suspend fun findAndReplaceWithNewActivity(
