@@ -1,5 +1,6 @@
 package to.bitkit.ui.theme
 
+import androidx.compose.animation.core.AnimationConstants
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
 object AppTextFieldDefaults {
@@ -115,3 +117,5 @@ object AppSwitchDefaults {
 }
 
 val ModalSheetTopPadding = 125.dp
+
+val ScreenTransitionMs = AnimationConstants.DefaultDurationMillis.milliseconds // 300ms

@@ -16,6 +16,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import to.bitkit.R
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.PrimaryButton
@@ -26,6 +27,7 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.ScreenTransitionMs
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendUiState
 
@@ -35,6 +37,11 @@ fun SendAddressScreen(
     onBack: () -> Unit,
     onEvent: (SendEvent) -> Unit,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(ScreenTransitionMs)
+        focusRequester.requestFocus()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,9 +55,6 @@ fun SendAddressScreen(
         Column(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            val focusRequester = remember { FocusRequester() }
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
             VerticalSpacer(16.dp)
             Caption13Up(stringResource(R.string.wallet__send_to), color = Colors.White64)
             VerticalSpacer(8.dp)
