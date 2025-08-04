@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.Clock
 import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
@@ -32,6 +33,7 @@ import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import kotlin.time.Duration.Companion.days
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +73,7 @@ private fun Content(
     onClearClick: () -> Unit = {},
     onApplyClick: () -> Unit = {},
 ) {
+    val hasSelection = dateRangeState.selectedStartDateMillis != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -99,11 +102,13 @@ private fun Content(
             SecondaryButton(
                 onClick = onClearClick,
                 text = stringResource(R.string.wallet__filter_clear),
+                enabled = hasSelection,
                 modifier = Modifier.weight(1f),
             )
             PrimaryButton(
                 onClick = onApplyClick,
                 text = stringResource(R.string.wallet__filter_apply),
+                enabled = hasSelection,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -119,6 +124,22 @@ private fun Preview() {
         BottomSheetPreview {
             Content(
                 dateRangeState = rememberDateRangePickerState(),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showSystemUi = true)
+@Composable
+private fun Preview2() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                dateRangeState = rememberDateRangePickerState(
+                    initialSelectedStartDateMillis = Clock.System.now().minus(2.days).toEpochMilliseconds(),
+                    initialSelectedEndDateMillis = Clock.System.now().toEpochMilliseconds(),
+                ),
             )
         }
     }
