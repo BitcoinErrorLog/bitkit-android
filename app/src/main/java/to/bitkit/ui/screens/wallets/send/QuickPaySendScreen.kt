@@ -75,8 +75,8 @@ fun QuickPaySendScreen(
 @Composable
 private fun Content(
     amount: ULong,
-    nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
     modifier: Modifier = Modifier,
+    nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
 ) {
     Column(
         modifier = modifier

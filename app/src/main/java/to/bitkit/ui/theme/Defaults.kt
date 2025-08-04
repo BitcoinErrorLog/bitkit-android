@@ -136,4 +136,6 @@ object Insets {
         get() = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 }
 
-val TopBarHeight: Dp @OptIn(ExperimentalMaterial3Api::class) get() = TopAppBarDefaults.TopAppBarExpandedHeight
+val TopBarHeight: Dp
+    @OptIn(ExperimentalMaterial3Api::class)
+    get() = TopAppBarDefaults.TopAppBarExpandedHeight
