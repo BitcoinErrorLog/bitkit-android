@@ -14,15 +14,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,25 +39,23 @@ import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheet
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.HorizontalSpacer
-import to.bitkit.ui.components.ModalBottomSheetHandle
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.util.gradientBackground
-import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.ModalSheetTopPadding
 import to.bitkit.ui.utils.withAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoostTransactionSheet(
-    modifier: Modifier = Modifier,
     viewModel: BoostTransactionViewModel = hiltViewModel(),
     onSuccess: () -> Unit,
     onFailure: () -> Unit,
@@ -107,25 +99,14 @@ fun BoostTransactionSheet(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    val sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = AppShapes.sheet,
-        containerColor = Colors.Black,
-        dragHandle = { ModalBottomSheetHandle() },
-        modifier = Modifier
-            .padding(top = ModalSheetTopPadding)
-            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_SHEET)
-    ) {
+    BottomSheet(onDismissRequest = onDismiss) {
         BoostTransactionContent(
-            modifier = modifier,
+            uiState = uiState,
             onClickEdit = viewModel::onClickEdit,
             onClickUseSuggestedFee = viewModel::onClickUseSuggestedFee,
             onChangeAmount = viewModel::onChangeAmount,
             onSwipe = viewModel::onConfirmBoost,
-            uiState = uiState
         )
     }
 }
@@ -213,7 +194,7 @@ private fun LoadingState() {
 private fun DefaultModeContent(
     uiState: BoostTransactionUiState,
     onClickEdit: () -> Unit,
-    onSwipe: () -> Unit
+    onSwipe: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -310,7 +291,7 @@ private fun CustomModeContent(
     uiState: BoostTransactionUiState,
     onChangeAmount: (Boolean) -> Unit,
     onClickUseSuggestedFee: () -> Unit,
-    onSwipe: () -> Unit
+    onSwipe: () -> Unit,
 ) {
     Column(
         modifier = Modifier.testTag(BoostTransactionTestTags.CUSTOM_MODE_CONTENT),
@@ -446,12 +427,10 @@ fun QuantityButton(
 }
 
 object BoostTransactionTestTags {
-    const val BOOST_TRANSACTION_SHEET = "boost_transaction_sheet"
     const val BOOST_TRANSACTION_CONTENT = "boost_transaction_content"
     const val SHEET_TOP_BAR = "sheet_top_bar"
     const val DESCRIPTION_TEXT = "description_text"
     const val LOADING_INDICATOR = "loading_indicator"
-    const val DEFAULT_MODE_CONTENT = "default_mode_content"
     const val CUSTOM_MODE_CONTENT = "custom_mode_content"
     const val EDIT_FEE_ROW = "edit_fee_row"
     const val EDIT_FEE_ICON = "edit_fee_icon"
@@ -467,24 +446,25 @@ object BoostTransactionTestTags {
     const val USE_SUGGESTED_FEE_BUTTON = "use_suggested_fee_button"
 }
 
-// Preview Composables
-@Preview(showBackground = true, name = "Default mode")
+@Preview(showSystemUi = true, name = "Default mode")
 @Composable
-private fun PreviewDefaultMode() {
+private fun Preview() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = false,
-                isDefaultMode = true,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = false,
+                    isDefaultMode = true,
+                    feeRate = 4UL,
+                )
             )
-        )
+        }
     }
 }
 
