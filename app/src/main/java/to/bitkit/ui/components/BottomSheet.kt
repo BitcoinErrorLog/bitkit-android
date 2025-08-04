@@ -106,7 +106,7 @@ private fun Preview() {
         BottomSheetPreview {
             Column(
                 modifier = Modifier
-                    .sheetHeight()
+                    .sheetHeight(isModal = true)
                     .gradientBackground()
                     .padding(horizontal = 16.dp)
             ) {
