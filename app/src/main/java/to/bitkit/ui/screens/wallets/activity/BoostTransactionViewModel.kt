@@ -81,9 +81,13 @@ class BoostTransactionViewModel @Inject constructor(
                     PaymentType.RECEIVED -> lightningRepo.calculateCpfpFeeRate(activityContent.txId)
                 }
 
-                // TODO ideally include utxos for a better fee estimate
+                val sortedUtxos = lightningRepo.listSpendableOutputs()
+                    .getOrDefault(emptyList())
+                    .sortedByDescending { it.valueSats }
+
                 val totalFeeResult = lightningRepo.calculateTotalFee(
                     amountSats = activityContent.value,
+                    utxosToSpend = sortedUtxos,
                     speed = TransactionSpeed.Custom(feeRateResult.getOrDefault(0u).toUInt()),
                 )
 
