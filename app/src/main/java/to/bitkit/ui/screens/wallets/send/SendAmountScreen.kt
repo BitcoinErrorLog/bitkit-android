@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.wallets.send
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,12 +39,12 @@ import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.NumberPadActionButton
 import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -310,7 +309,7 @@ private fun PreviewRunningLightning() {
                 primaryDisplay = PrimaryDisplay.FIAT,
                 currencyUiState = CurrencyUiState(),
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -337,7 +336,7 @@ private fun PreviewRunningUnified() {
                 primaryDisplay = PrimaryDisplay.FIAT,
                 currencyUiState = CurrencyUiState(),
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -364,7 +363,7 @@ private fun PreviewRunningOnchain() {
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 primaryDisplay = PrimaryDisplay.BITCOIN,
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -389,7 +388,7 @@ private fun PreviewInitializing() {
                 input = "100",
                 currencyUiState = CurrencyUiState(),
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -425,7 +424,7 @@ private fun PreviewWithdraw() {
                 input = "100",
                 currencyUiState = CurrencyUiState(),
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -462,7 +461,7 @@ private fun PreviewLnurlPay() {
                 input = "100",
                 currencyUiState = CurrencyUiState(),
                 onInputChanged = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

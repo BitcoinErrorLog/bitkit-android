@@ -22,10 +22,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -33,12 +36,13 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun PinPromptScreen(
+    modifier: Modifier = Modifier,
     showLaterButton: Boolean = true,
     onContinue: () -> Unit,
     onLater: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .padding(horizontal = 16.dp)
@@ -103,26 +107,32 @@ fun PinPromptScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        PinPromptScreen(
-            showLaterButton = false,
-            onContinue = {},
-            onLater = {},
-        )
+        BottomSheetPreview {
+            PinPromptScreen(
+                showLaterButton = false,
+                onContinue = {},
+                onLater = {},
+                modifier = Modifier.sheetHeight(SheetSize.MEDIUM)
+            )
+        }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewWithLater() {
     AppThemeSurface {
-        PinPromptScreen(
-            showLaterButton = true,
-            onContinue = {},
-            onLater = {},
-        )
+        BottomSheetPreview {
+            PinPromptScreen(
+                showLaterButton = true,
+                onContinue = {},
+                onLater = {},
+                modifier = Modifier.sheetHeight(SheetSize.MEDIUM)
+            )
+        }
     }
 }

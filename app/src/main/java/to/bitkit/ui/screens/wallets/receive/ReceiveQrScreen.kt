@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -67,10 +66,10 @@ import to.bitkit.ui.components.Headline
 import to.bitkit.ui.components.PagerWithIndicator
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
-import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
@@ -126,7 +125,7 @@ fun ReceiveQrSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight(SheetSize.LARGE)
+            .sheetHeight()
             .imePadding()
     ) {
         NavHost(
@@ -434,7 +433,7 @@ private fun ReceiveQrSlide(
     uri: String,
     qrLogoPainter: Painter,
     modifier: Modifier,
-    onClickEditInvoice: () -> Unit
+    onClickEditInvoice: () -> Unit,
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -530,7 +529,7 @@ private fun CopyValuesSlide(
     onchainAddress: String,
     bolt11: String,
     cjitInvoice: String?,
-    receiveOnSpendingBalance: Boolean
+    receiveOnSpendingBalance: Boolean,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Colors.White10),

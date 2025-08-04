@@ -55,7 +55,6 @@ import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.TextInput
@@ -63,6 +62,7 @@ import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.settingsViewModel
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
@@ -502,7 +502,7 @@ private fun Preview() {
                 onSwipeToConfirm = {},
                 onBiometricsSuccess = {},
                 onBiometricsFailure = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -552,7 +552,7 @@ private fun PreviewLnurl() {
                 onSwipeToConfirm = {},
                 onBiometricsSuccess = {},
                 onBiometricsFailure = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -581,7 +581,7 @@ private fun PreviewOnChain() {
                 onSwipeToConfirm = {},
                 onBiometricsSuccess = {},
                 onBiometricsFailure = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -610,7 +610,7 @@ private fun PreviewBio() {
                 onSwipeToConfirm = {},
                 onBiometricsSuccess = {},
                 onBiometricsFailure = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -641,7 +641,7 @@ private fun PreviewDialog() {
                     onSwipeToConfirm = {},
                     onBiometricsSuccess = {},
                     onBiometricsFailure = {},
-                    modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                    modifier = Modifier.sheetHeight(),
                 )
             }
         }

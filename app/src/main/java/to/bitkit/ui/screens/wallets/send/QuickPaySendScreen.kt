@@ -2,7 +2,6 @@ package to.bitkit.ui.screens.wallets.send
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,10 +23,10 @@ import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
-import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -129,7 +128,7 @@ private fun Preview() {
             Content(
                 amount = 50_000u,
                 nodeLifecycleState = NodeLifecycleState.Running,
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -143,7 +142,7 @@ private fun PreviewNodeInit() {
             Content(
                 amount = 50_000u,
                 nodeLifecycleState = NodeLifecycleState.Initializing,
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

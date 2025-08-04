@@ -20,10 +20,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -35,9 +37,10 @@ fun BackupIntroScreen(
     hasFunds: Boolean,
     onClose: () -> Unit,
     onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -105,26 +108,32 @@ fun BackupIntroScreen(
     }
 }
 
-@Preview(showBackground = true, name = "has funds")
+@Preview(showSystemUi = true, name = "has funds")
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        BackupIntroScreen(
-            onClose = {},
-            onConfirm = {},
-            hasFunds = true
-        )
+        BottomSheetPreview {
+            BackupIntroScreen(
+                onClose = {},
+                onConfirm = {},
+                hasFunds = true,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview(showBackground = true, name = "no funds")
+@Preview(showSystemUi = true, name = "no funds")
 @Composable
 private fun Preview2() {
     AppThemeSurface {
-        BackupIntroScreen(
-            onClose = {},
-            onConfirm = {},
-            hasFunds = false
-        )
+        BottomSheetPreview {
+            BackupIntroScreen(
+                onClose = {},
+                onConfirm = {},
+                hasFunds = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

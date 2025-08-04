@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -30,8 +29,8 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.KEY_DELETE
 import to.bitkit.ui.components.NumberPadSimple
 import to.bitkit.ui.components.PinDots
-import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
@@ -157,8 +156,8 @@ private fun Preview() {
                 onKeyPress = {},
                 onBack = {},
                 onClickForgotPin = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
-                )
+                modifier = Modifier.sheetHeight(),
+            )
         }
     }
 }
@@ -174,7 +173,7 @@ private fun PreviewAttemptsLeft() {
                 onKeyPress = {},
                 onBack = {},
                 onClickForgotPin = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -191,7 +190,7 @@ private fun PreviewAttemptsLast() {
                 onKeyPress = {},
                 onBack = {},
                 onClickForgotPin = {},
-                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

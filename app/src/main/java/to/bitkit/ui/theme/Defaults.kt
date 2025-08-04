@@ -1,18 +1,24 @@
 package to.bitkit.ui.theme
 
 import androidx.compose.animation.core.AnimationConstants
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
@@ -24,6 +30,7 @@ object AppTextFieldDefaults {
             unfocusedIndicatorColor = Color.Transparent,
             focusedIndicatorColor = Color.Transparent,
         )
+
     @Stable
     val transparent: TextFieldColors
         @Composable
@@ -35,6 +42,7 @@ object AppTextFieldDefaults {
             focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
+
     @Stable
     val semiTransparent: TextFieldColors
         @Composable
@@ -116,6 +124,16 @@ object AppSwitchDefaults {
         )
 }
 
-val ModalSheetTopPadding = 125.dp
-
 val ScreenTransitionMs = AnimationConstants.DefaultDurationMillis.milliseconds // 300ms
+
+object Insets {
+    val Top: Dp
+        @Composable
+        get() = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    val Bottom: Dp
+        @Composable
+        get() = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+}
+
+val TopBarHeight: Dp @OptIn(ExperimentalMaterial3Api::class) get() = TopAppBarDefaults.TopAppBarExpandedHeight

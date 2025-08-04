@@ -1,7 +1,6 @@
 package to.bitkit.ui.settings.pin
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import to.bitkit.ui.components.SheetSize
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 
 @Composable
@@ -22,7 +22,7 @@ fun PinNavigationSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(SheetSize.MEDIUM)
+            .sheetHeight(SheetSize.MEDIUM)
     ) {
         NavHost(
             navController = navController,

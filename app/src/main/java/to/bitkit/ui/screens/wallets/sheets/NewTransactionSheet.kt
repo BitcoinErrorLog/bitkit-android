@@ -38,11 +38,10 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.modifiers.fillScreenHeight
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.theme.ModalSheetTopPadding
 import to.bitkit.ui.utils.localizedRandom
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.CurrencyViewModel
@@ -82,7 +81,7 @@ fun NewTransactionSheetView(
 ) {
     Box(
         modifier = Modifier
-            .fillScreenHeight(ModalSheetTopPadding)
+            .sheetHeight()
             .gradientBackground()
             .testTag("new_transaction_sheet")
     ) {

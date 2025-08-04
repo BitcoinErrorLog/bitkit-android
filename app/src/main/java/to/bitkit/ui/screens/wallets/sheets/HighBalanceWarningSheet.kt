@@ -25,12 +25,11 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.modifiers.fillScreenHeight
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.ModalSheetTopPadding
 import to.bitkit.ui.utils.withAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +55,7 @@ fun HighBalanceWarningContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillScreenHeight(ModalSheetTopPadding)
+            .sheetHeight()
             .gradientBackground()
             .navigationBarsPadding()
             .testTag("high_balance_intro_screen")
