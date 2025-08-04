@@ -452,8 +452,6 @@ class ActivityRepoTest : BaseUnitTest() {
     fun `addActivityToPendingBoost adds to cache`() = test {
         val pendingBoost = PendingBoostActivity(
             txId = "tx123",
-            feeRate = 20u,
-            fee = 2000u,
             updatedAt = 2000u,
             activityToDelete = null
         )
