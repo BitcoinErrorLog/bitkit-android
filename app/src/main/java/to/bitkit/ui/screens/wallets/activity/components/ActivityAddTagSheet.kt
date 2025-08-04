@@ -69,6 +69,7 @@ fun ActivityAddTagSheet(
             },
             onInputUpdated = { newText -> tagsViewModel.onInputUpdated(newText) },
             onBack = onDismiss,
+            focusOnShow = true,
             modifier = Modifier
                 .height(400.dp)
                 .gradientBackground()

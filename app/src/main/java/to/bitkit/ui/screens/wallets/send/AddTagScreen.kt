@@ -2,7 +2,6 @@ package to.bitkit.ui.screens.wallets.send
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,30 +11,32 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import to.bitkit.R
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TagButton
+import to.bitkit.ui.components.TextInput
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.theme.AppShapes
-import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.ScreenTransitionMs
 import to.bitkit.viewmodels.AddTagUiState
 import to.bitkit.viewmodels.TagsViewModel
-
 
 @Composable
 fun AddTagScreen(
@@ -52,16 +53,13 @@ fun AddTagScreen(
     AddTagContent(
         uiState = uiState,
         onTagSelected = onTagSelected,
-        onTagConfirmed = { tag ->
-            onTagSelected(tag)
-        },
+        onTagConfirmed = { tag -> onTagSelected(tag) },
         onInputUpdated = { newText -> viewModel.onInputUpdated(newText) },
         onBack = onBack,
         modifier = Modifier.fillMaxSize()
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddTagContent(
     uiState: AddTagUiState,
@@ -70,21 +68,23 @@ fun AddTagContent(
     onInputUpdated: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    focusOnShow: Boolean = false,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(focusOnShow) {
+        if (focusOnShow) {
+            delay(ScreenTransitionMs)
+            focusRequester.requestFocus()
+        }
+    }
     Column(
         modifier = modifier.navigationBarsPadding()
     ) {
-
-        SheetTopBar(stringResource(R.string.wallet__tags_add)) {
-            onBack()
-        }
-        Spacer(Modifier.height(16.dp))
-
+        SheetTopBar(stringResource(R.string.wallet__tags_add), onBack = onBack)
         Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.padding(horizontal = 16.dp)
         ) {
+            VerticalSpacer(16.dp)
             if (uiState.tagsSuggestions.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Caption13Up(text = stringResource(R.string.wallet__tags_previously), color = Colors.White64)
@@ -107,21 +107,21 @@ fun AddTagContent(
             Spacer(modifier = Modifier.height(16.dp))
             Caption13Up(text = stringResource(R.string.wallet__tags_new), color = Colors.White64)
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(
-                placeholder = { Text(stringResource(R.string.wallet__tags_new_enter)) },
+            TextInput(
+                placeholder = stringResource(R.string.wallet__tags_new_enter),
                 value = uiState.tagInput,
                 onValueChange = onInputUpdated,
                 maxLines = 1,
                 singleLine = true,
-                colors = AppTextFieldDefaults.semiTransparent,
-                shape = AppShapes.small,
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     onTagConfirmed(uiState.tagInput)
                 }),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .focusRequester(focusRequester)
+                    .fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
