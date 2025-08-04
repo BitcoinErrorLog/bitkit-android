@@ -1,6 +1,7 @@
 package to.bitkit.ext
 
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 
 fun Activity.rawId(): String = when (this) {
@@ -19,7 +20,7 @@ fun Activity.rawId(): String = when (this) {
  *
  * @return The total value as an `ULong`.
  */
-fun Activity.totalValue() = when(this) {
+fun Activity.totalValue() = when (this) {
     is Activity.Lightning -> v1.value + (v1.fee ?: 0u)
     is Activity.Onchain -> when (v1.txType) {
         PaymentType.SENT -> v1.value + v1.fee
@@ -35,6 +36,11 @@ fun Activity.canBeBoosted() = when (this) {
 fun Activity.isBoosted() = when (this) {
     is Activity.Onchain -> v1.isBoosted
     else -> false
+}
+
+fun Activity.isFinished() = when (this) {
+    is Activity.Onchain -> v1.confirmed
+    is Activity.Lightning -> v1.status != PaymentState.PENDING
 }
 
 fun Activity.matchesPaymentId(paymentHashOrTxId: String): Boolean = when (this) {
