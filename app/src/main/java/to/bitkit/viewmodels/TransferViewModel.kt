@@ -27,6 +27,7 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.env.Env
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
@@ -123,17 +124,17 @@ class TransferViewModel @Inject constructor(
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
 
-            val fee = getMintTxValue().toLong()
-            if (fee > _spendingUiState.value.maxAllowedToSend) {
+            val minAmount = getMinnAmountToPurchase()
+            if (_spendingUiState.value.satsAmount < minAmount) {
                 setTransferEffect(
                     TransferEffect.ToastError(
                         title = context.getString(R.string.lightning__spending_amount__error_min__title),
                         description = context.getString(
                             R.string.lightning__spending_amount__error_min__description
-                        ).replace("{amount}", "$fee"),
+                        ).replace("{amount}", "$minAmount"),
                     )
                 )
-                _spendingUiState.update { it.copy(overrideSats = fee, isLoading = false) }
+                _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
                 return@launch
             }
 
@@ -242,9 +243,9 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getMintTxValue(): ULong {
+    private suspend fun getMinnAmountToPurchase(): Long {
         val fee = lightningRepo.calculateTotalFee(_spendingUiState.value.satsAmount.toULong()).getOrNull() ?: 0u
-        return fee + maxLspFee
+        return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
     }
 
     private fun onOrderCreated(order: IBtOrder) {
