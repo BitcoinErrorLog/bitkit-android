@@ -124,7 +124,7 @@ class TransferViewModel @Inject constructor(
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
 
-            val minAmount = getMinnAmountToPurchase()
+            val minAmount = getMinAmountToPurchase()
             if (_spendingUiState.value.satsAmount < minAmount) {
                 setTransferEffect(
                     TransferEffect.ToastError(
@@ -243,7 +243,7 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getMinnAmountToPurchase(): Long {
+    private suspend fun getMinAmountToPurchase(): Long {
         val fee = lightningRepo.calculateTotalFee(_spendingUiState.value.satsAmount.toULong()).getOrNull() ?: 0u
         return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
     }
