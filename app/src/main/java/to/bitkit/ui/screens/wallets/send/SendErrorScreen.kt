@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,8 +19,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
@@ -41,13 +44,13 @@ fun SendErrorScreen(
 @Composable
 private fun Content(
     errorMessage: String,
+    modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
     onClose: () -> Unit = {},
 ) {
     val errorText = errorMessage.ifEmpty { "Unknown error." }
-
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -67,7 +70,9 @@ private fun Content(
             Image(
                 painter = painterResource(R.drawable.cross),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(256.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(256.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
 
@@ -92,22 +97,28 @@ private fun Content(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Content(
-            errorMessage = stringResource(R.string.wallet__send_error_create_tx),
-        )
+        BottomSheetPreview {
+            Content(
+                errorMessage = stringResource(R.string.wallet__send_error_create_tx),
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewUnknown() {
     AppThemeSurface {
-        Content(
-            errorMessage = "",
-        )
+        BottomSheetPreview {
+            Content(
+                errorMessage = "",
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }

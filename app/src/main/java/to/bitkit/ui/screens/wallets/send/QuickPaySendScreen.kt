@@ -2,6 +2,7 @@ package to.bitkit.ui.screens.wallets.send
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,7 +22,9 @@ import to.bitkit.R
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BalanceHeaderView
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
@@ -64,19 +67,20 @@ fun QuickPaySendScreen(
         }
     }
 
-    QuickPaySendScreenContent(
+    Content(
         amount = quickPayData.sats,
         nodeLifecycleState = lightningState.nodeLifecycleState,
     )
 }
 
 @Composable
-private fun QuickPaySendScreenContent(
+private fun Content(
     amount: ULong,
     nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -117,24 +121,30 @@ private fun QuickPaySendScreenContent(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        QuickPaySendScreenContent(
-            amount = 50_000u,
-            nodeLifecycleState = NodeLifecycleState.Running,
-        )
+        BottomSheetPreview {
+            Content(
+                amount = 50_000u,
+                nodeLifecycleState = NodeLifecycleState.Running,
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewNodeInit() {
     AppThemeSurface {
-        QuickPaySendScreenContent(
-            amount = 50_000u,
-            nodeLifecycleState = NodeLifecycleState.Initializing,
-        )
+        BottomSheetPreview {
+            Content(
+                amount = 50_000u,
+                nodeLifecycleState = NodeLifecycleState.Initializing,
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }

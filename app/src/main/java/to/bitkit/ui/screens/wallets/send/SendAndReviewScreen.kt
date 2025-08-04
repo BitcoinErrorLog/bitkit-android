@@ -50,10 +50,12 @@ import to.bitkit.ext.formatted
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BiometricsView
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.TextInput
@@ -120,7 +122,7 @@ fun SendAndReviewScreen(
         }
     }
 
-    SendAndReviewContent(
+    Content(
         uiState = uiState,
         isLoading = isLoading,
         showBiometrics = showBiometrics,
@@ -149,7 +151,7 @@ fun SendAndReviewScreen(
 }
 
 @Composable
-private fun SendAndReviewContent(
+private fun Content(
     uiState: SendUiState,
     isLoading: Boolean,
     showBiometrics: Boolean,
@@ -160,8 +162,9 @@ private fun SendAndReviewContent(
     onSwipeToConfirm: () -> Unit,
     onBiometricsSuccess: () -> Unit,
     onBiometricsFailure: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Box {
+    Box(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -472,33 +475,36 @@ private fun LightningDescription(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        SendAndReviewContent(
-            uiState = SendUiState(
-                amount = 1234u,
-                address = "",
-                payMethod = SendMethod.LIGHTNING,
-                decodedInvoice = LightningInvoice(
-                    bolt11 = "bolt11_invoice_string",
-                    paymentHash = ByteArray(0),
-                    amountSatoshis = 100_000u,
-                    timestampSeconds = 0u,
-                    expirySeconds = 3600u,
-                    isExpired = false,
-                    networkType = NetworkType.REGTEST,
-                    payeeNodeId = null,
-                    description = "Some invoice description",
+        BottomSheetPreview {
+            Content(
+                uiState = SendUiState(
+                    amount = 1234u,
+                    address = "",
+                    payMethod = SendMethod.LIGHTNING,
+                    decodedInvoice = LightningInvoice(
+                        bolt11 = "bolt11_invoice_string",
+                        paymentHash = ByteArray(0),
+                        amountSatoshis = 100_000u,
+                        timestampSeconds = 0u,
+                        expirySeconds = 3600u,
+                        isExpired = false,
+                        networkType = NetworkType.REGTEST,
+                        payeeNodeId = null,
+                        description = "Some invoice description",
+                    ),
                 ),
-            ),
-            isLoading = false,
-            showBiometrics = false,
-            onBack = {},
-            onEvent = {},
-            onClickAddTag = {},
-            onClickTag = {},
-            onSwipeToConfirm = {},
-            onBiometricsSuccess = {},
-            onBiometricsFailure = {},
-        )
+                isLoading = false,
+                showBiometrics = false,
+                onBack = {},
+                onEvent = {},
+                onClickAddTag = {},
+                onClickTag = {},
+                onSwipeToConfirm = {},
+                onBiometricsSuccess = {},
+                onBiometricsFailure = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
@@ -507,45 +513,48 @@ private fun Preview() {
 @Composable
 private fun PreviewLnurl() {
     AppThemeSurface {
-        SendAndReviewContent(
-            uiState = SendUiState(
-                amount = 1234u,
-                address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                payMethod = SendMethod.LIGHTNING,
-                lnurl = LnurlParams.LnurlPay(
-                    data = LnurlPayData(
-                        uri = "veryLongLnurlPayUri12345677890123456789012345678901234567890",
-                        callback = "",
-                        metadataStr = "",
-                        commentAllowed = 255u,
-                        minSendable = 1000u,
-                        maxSendable = 1000_000u,
-                        allowsNostr = false,
-                        nostrPubkey = null,
+        BottomSheetPreview {
+            Content(
+                uiState = SendUiState(
+                    amount = 1234u,
+                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+                    payMethod = SendMethod.LIGHTNING,
+                    lnurl = LnurlParams.LnurlPay(
+                        data = LnurlPayData(
+                            uri = "veryLongLnurlPayUri12345677890123456789012345678901234567890",
+                            callback = "",
+                            metadataStr = "",
+                            commentAllowed = 255u,
+                            minSendable = 1000u,
+                            maxSendable = 1000_000u,
+                            allowsNostr = false,
+                            nostrPubkey = null,
+                        ),
+                    ),
+                    decodedInvoice = LightningInvoice(
+                        bolt11 = "bcrt123",
+                        paymentHash = ByteArray(0),
+                        amountSatoshis = 100_000u,
+                        timestampSeconds = 0u,
+                        expirySeconds = 3600u,
+                        isExpired = false,
+                        networkType = NetworkType.REGTEST,
+                        payeeNodeId = null,
+                        description = "Some invoice description",
                     ),
                 ),
-                decodedInvoice = LightningInvoice(
-                    bolt11 = "bcrt123",
-                    paymentHash = ByteArray(0),
-                    amountSatoshis = 100_000u,
-                    timestampSeconds = 0u,
-                    expirySeconds = 3600u,
-                    isExpired = false,
-                    networkType = NetworkType.REGTEST,
-                    payeeNodeId = null,
-                    description = "Some invoice description",
-                ),
-            ),
-            isLoading = false,
-            showBiometrics = false,
-            onBack = {},
-            onEvent = {},
-            onClickAddTag = {},
-            onClickTag = {},
-            onSwipeToConfirm = {},
-            onBiometricsSuccess = {},
-            onBiometricsFailure = {},
-        )
+                isLoading = false,
+                showBiometrics = false,
+                onBack = {},
+                onEvent = {},
+                onClickAddTag = {},
+                onClickTag = {},
+                onSwipeToConfirm = {},
+                onBiometricsSuccess = {},
+                onBiometricsFailure = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
@@ -554,24 +563,27 @@ private fun PreviewLnurl() {
 @Composable
 private fun PreviewOnChain() {
     AppThemeSurface {
-        SendAndReviewContent(
-            uiState = SendUiState(
-                amount = 1234u,
-                address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                payMethod = SendMethod.ONCHAIN,
-                selectedTags = listOf("car", "house", "uber"),
-                decodedInvoice = null,
-            ),
-            isLoading = false,
-            showBiometrics = false,
-            onBack = {},
-            onEvent = {},
-            onClickAddTag = {},
-            onClickTag = {},
-            onSwipeToConfirm = {},
-            onBiometricsSuccess = {},
-            onBiometricsFailure = {},
-        )
+        BottomSheetPreview {
+            Content(
+                uiState = SendUiState(
+                    amount = 1234u,
+                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+                    payMethod = SendMethod.ONCHAIN,
+                    selectedTags = listOf("car", "house", "uber"),
+                    decodedInvoice = null,
+                ),
+                isLoading = false,
+                showBiometrics = false,
+                onBack = {},
+                onEvent = {},
+                onClickAddTag = {},
+                onClickTag = {},
+                onSwipeToConfirm = {},
+                onBiometricsSuccess = {},
+                onBiometricsFailure = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
@@ -580,24 +592,27 @@ private fun PreviewOnChain() {
 @Composable
 private fun PreviewBio() {
     AppThemeSurface {
-        SendAndReviewContent(
-            uiState = SendUiState(
-                amount = 1234u,
-                address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                payMethod = SendMethod.ONCHAIN,
-                selectedTags = listOf("car", "house", "uber"),
-                decodedInvoice = null,
-            ),
-            isLoading = false,
-            showBiometrics = true,
-            onBack = {},
-            onEvent = {},
-            onClickAddTag = {},
-            onClickTag = {},
-            onSwipeToConfirm = {},
-            onBiometricsSuccess = {},
-            onBiometricsFailure = {},
-        )
+        BottomSheetPreview {
+            Content(
+                uiState = SendUiState(
+                    amount = 1234u,
+                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+                    payMethod = SendMethod.ONCHAIN,
+                    selectedTags = listOf("car", "house", "uber"),
+                    decodedInvoice = null,
+                ),
+                isLoading = false,
+                showBiometrics = true,
+                onBack = {},
+                onEvent = {},
+                onClickAddTag = {},
+                onClickTag = {},
+                onSwipeToConfirm = {},
+                onBiometricsSuccess = {},
+                onBiometricsFailure = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
@@ -606,24 +621,29 @@ private fun PreviewBio() {
 @Composable
 private fun PreviewDialog() {
     AppThemeSurface {
-        SendAndReviewContent(
-            uiState = SendUiState(
-                amount = 1234u,
-                address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                payMethod = SendMethod.ONCHAIN,
-                selectedTags = listOf("car", "house", "uber"),
-                decodedInvoice = null,
-                showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD,
-            ),
-            isLoading = false,
-            showBiometrics = true,
-            onBack = {},
-            onEvent = {},
-            onClickAddTag = {},
-            onClickTag = {},
-            onSwipeToConfirm = {},
-            onBiometricsSuccess = {},
-            onBiometricsFailure = {},
-        )
+        BottomSheetPreview {
+            BottomSheetPreview {
+                Content(
+                    uiState = SendUiState(
+                        amount = 1234u,
+                        address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+                        payMethod = SendMethod.ONCHAIN,
+                        selectedTags = listOf("car", "house", "uber"),
+                        decodedInvoice = null,
+                        showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD,
+                    ),
+                    isLoading = false,
+                    showBiometrics = true,
+                    onBack = {},
+                    onEvent = {},
+                    onClickAddTag = {},
+                    onClickTag = {},
+                    onSwipeToConfirm = {},
+                    onBiometricsSuccess = {},
+                    onBiometricsFailure = {},
+                    modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+                )
+            }
+        }
     }
 }

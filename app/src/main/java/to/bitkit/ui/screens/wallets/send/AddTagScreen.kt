@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -26,12 +26,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import to.bitkit.R
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.ScreenTransitionMs
@@ -56,7 +59,6 @@ fun AddTagScreen(
         onTagConfirmed = { tag -> onTagSelected(tag) },
         onInputUpdated = { newText -> viewModel.onInputUpdated(newText) },
         onBack = onBack,
-        modifier = Modifier.fillMaxSize()
     )
 }
 
@@ -78,7 +80,9 @@ fun AddTagContent(
         }
     }
     Column(
-        modifier = modifier.navigationBarsPadding()
+        modifier = modifier
+            .gradientBackground()
+            .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__tags_add), onBack = onBack)
         Column(
@@ -136,32 +140,38 @@ fun AddTagContent(
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        AddTagContent(
-            uiState = AddTagUiState(
-                tagsSuggestions = listOf("Lunch", "Mom", "Dad", "Dinner", "Tip", "Gift")
-            ),
-            onTagSelected = {},
-            onInputUpdated = {},
-            onTagConfirmed = {},
-            onBack = {}
-        )
+        BottomSheetPreview {
+            AddTagContent(
+                uiState = AddTagUiState(
+                    tagsSuggestions = listOf("Lunch", "Mom", "Dad", "Dinner", "Tip", "Gift")
+                ),
+                onTagSelected = {},
+                onInputUpdated = {},
+                onTagConfirmed = {},
+                onBack = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true, name = "No tags")
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewEmpty() {
     AppThemeSurface {
-        AddTagContent(
-            uiState = AddTagUiState(tagInput = "Lunch"),
-            onTagSelected = {},
-            onInputUpdated = {},
-            onTagConfirmed = {},
-            onBack = {}
-        )
+        BottomSheetPreview {
+            AddTagContent(
+                uiState = AddTagUiState(tagInput = "Lunch"),
+                onTagSelected = {},
+                onInputUpdated = {},
+                onTagConfirmed = {},
+                onBack = {},
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }

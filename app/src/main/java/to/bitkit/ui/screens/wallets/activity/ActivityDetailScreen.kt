@@ -134,7 +134,6 @@ fun ActivityDetailScreen(
         if (boostSheetVisible) {
             (item as? Activity.Onchain)?.let {
                 BoostTransactionSheet(
-                    modifier = Modifier.fillMaxWidth(),
                     onDismiss = detailViewModel::onDismissBoostSheet,
                     item = it,
                     onSuccess = {

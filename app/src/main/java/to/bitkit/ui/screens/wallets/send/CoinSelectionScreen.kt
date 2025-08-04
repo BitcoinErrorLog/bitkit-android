@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,9 +36,11 @@ import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.Subtitle
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.VerticalSpacer
@@ -89,6 +92,7 @@ fun CoinSelectionScreen(
 @Composable
 private fun Content(
     uiState: CoinSelectionUiState,
+    modifier: Modifier = Modifier,
     tagsByTxId: Map<String, List<String>> = emptyMap(),
     onBack: () -> Unit = {},
     onContinue: () -> Unit = {},
@@ -97,7 +101,7 @@ private fun Content(
     onRenderUtxo: (String) -> Unit = {},
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -244,46 +248,52 @@ private fun UtxoRow(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Content(
-            uiState = CoinSelectionUiState(
-                availableUtxos = listOf(
-                    SpendableUtxo(outpoint = OutPoint(txid = "abc123", vout = 0u), valueSats = 50000uL),
-                    SpendableUtxo(outpoint = OutPoint(txid = "def456", vout = 1u), valueSats = 25000uL),
-                    SpendableUtxo(outpoint = OutPoint(txid = "ghi789", vout = 0u), valueSats = 10000uL)
+        BottomSheetPreview {
+            Content(
+                uiState = CoinSelectionUiState(
+                    availableUtxos = listOf(
+                        SpendableUtxo(outpoint = OutPoint(txid = "abc123", vout = 0u), valueSats = 50000uL),
+                        SpendableUtxo(outpoint = OutPoint(txid = "def456", vout = 1u), valueSats = 25000uL),
+                        SpendableUtxo(outpoint = OutPoint(txid = "ghi789", vout = 0u), valueSats = 10000uL)
+                    ),
+                    selectedUtxos = listOf(
+                        SpendableUtxo(outpoint = OutPoint(txid = "abc123", vout = 0u), valueSats = 50000uL),
+                    ),
+                    autoSelectCoinsOn = false,
+                    totalRequiredSat = 30000uL,
+                    totalSelectedSat = 50000uL,
+                    isSelectionValid = true,
                 ),
-                selectedUtxos = listOf(
-                    SpendableUtxo(outpoint = OutPoint(txid = "abc123", vout = 0u), valueSats = 50000uL),
+                tagsByTxId = mapOf(
+                    "abc123" to listOf("coffee", "work"),
+                    "def456" to listOf("shopping", "groceries", "food"),
                 ),
-                autoSelectCoinsOn = false,
-                totalRequiredSat = 30000uL,
-                totalSelectedSat = 50000uL,
-                isSelectionValid = true,
-            ),
-            tagsByTxId = mapOf(
-                "abc123" to listOf("coffee", "work"),
-                "def456" to listOf("shopping", "groceries", "food"),
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
             )
-        )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewAuto() {
     AppThemeSurface {
-        Content(
-            uiState = CoinSelectionUiState(
-                availableUtxos = emptyList(),
-                autoSelectCoinsOn = true,
-                totalRequiredSat = 1000uL,
-                totalSelectedSat = 0uL,
-                isSelectionValid = false
-            ),
-            tagsByTxId = emptyMap()
-        )
+        BottomSheetPreview {
+            Content(
+                uiState = CoinSelectionUiState(
+                    availableUtxos = emptyList(),
+                    autoSelectCoinsOn = true,
+                    totalRequiredSat = 1000uL,
+                    totalSelectedSat = 0uL,
+                    isSelectionValid = false
+                ),
+                tagsByTxId = emptyMap(),
+                modifier = Modifier.fillMaxHeight(SheetSize.LARGE),
+            )
+        }
     }
 }
