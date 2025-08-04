@@ -256,32 +256,53 @@ class BoostTransactionViewModel @Inject constructor(
         }
     }
 
+    /**RBF: Update the current activity with boost data -> when the new transaction is created, se it as boosting and
+     * delete the old one
+     * CPFP: Just update the current activity*/
     private suspend fun updateActivity(newTxId: Txid, isRBF: Boolean): Result<Unit> {
         Logger.debug("Updating activity for txId: $newTxId. isRBF:$isRBF", context = TAG)
 
-        return activityRepo.findActivityByPaymentId(
-            paymentHashOrTxId = newTxId,
-            type = ActivityFilter.ONCHAIN,
-            txType = PaymentType.SENT
-        ).fold(
-            onSuccess = { newActivity ->
-                Logger.debug("Activity found: $newActivity", context = TAG)
+        val currentActivity = activity?.v1 ?: return Result.failure(Exception("Activity required"))
 
-                val newOnChainActivity = newActivity as? Activity.Onchain
-                    ?: return Result.failure(Exception("Activity is not onchain type"))
+        // For CPFP, just update the activity
+        val updatedActivity = Activity.Onchain(
+            v1 = currentActivity.copy(
+                isBoosted = true,
+                feeRate = _uiState.value.feeRate,
+                fee = _uiState.value.totalFeeSats,
+                updatedAt = nowTimestamp().toEpochMilli().toULong()
+            )
+        )
 
-                val updatedActivity = Activity.Onchain(
-                    v1 = newOnChainActivity.v1.copy(
-                        isBoosted = true,
-                        txId = newTxId,
-                        feeRate = _uiState.value.feeRate,
-                        fee = _uiState.value.totalFeeSats,
-                        updatedAt = nowTimestamp().toEpochMilli().toULong()
+        val updateResult = activityRepo.updateActivity(
+            id = updatedActivity.v1.id,
+            activity = updatedActivity
+        )
+
+        return if (!isRBF) {
+            updateResult
+        } else {
+            // For RBF, update new activity and delete old one
+            activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = newTxId,
+                type = ActivityFilter.ONCHAIN,
+                txType = PaymentType.SENT
+            ).fold(
+                onSuccess = { newActivity ->
+                    Logger.debug("Activity found: $newActivity", context = TAG)
+
+                    val newOnChainActivity = newActivity as? Activity.Onchain
+                        ?: return Result.failure(Exception("Activity is not onchain type"))
+
+                    val updatedActivity = Activity.Onchain(
+                        v1 = newOnChainActivity.v1.copy(
+                            isBoosted = true,
+                            feeRate = _uiState.value.feeRate,
+                            fee = _uiState.value.totalFeeSats,
+                            updatedAt = nowTimestamp().toEpochMilli().toULong()
+                        )
                     )
-                )
 
-                if (isRBF) {
-                    // For RBF, update new activity and delete old one
                     activityRepo.replaceActivity(
                         id = updatedActivity.v1.id,
                         activityIdToDelete = activity?.v1?.id.orEmpty(),
@@ -297,38 +318,26 @@ class BoostTransactionViewModel @Inject constructor(
                             )
                         )
                     }
-                } else {
-                    // For CPFP, just update the activity
-                    activityRepo.updateActivity(
-                        id = updatedActivity.v1.id,
-                        activity = updatedActivity
-                    ).onFailure {
-                        activityRepo.addActivityToPendingBoost(
-                            PendingBoostActivity(
-                                txId = newTxId,
-                                feeRate = _uiState.value.feeRate,
-                                fee = _uiState.value.totalFeeSats,
-                                updatedAt = nowTimestamp().toEpochMilli().toULong(),
-                                activityToDelete = null
-                            )
-                        )
-                    }
-                }
-            },
-            onFailure = { error ->
-                Logger.error("Activity $newTxId not found. Caching data to try again on next sync", e = error, context = TAG)
-                activityRepo.addActivityToPendingBoost(
-                    PendingBoostActivity(
-                        txId = newTxId,
-                        feeRate = _uiState.value.feeRate,
-                        fee = _uiState.value.totalFeeSats,
-                        updatedAt = nowTimestamp().toEpochMilli().toULong(),
-                        activityToDelete = activity?.v1?.id.takeIf { isRBF }
+                },
+                onFailure = { error ->
+                    Logger.error(
+                        "Activity $newTxId not found. Caching data to try again on next sync",
+                        e = error,
+                        context = TAG
                     )
-                )
-                Result.failure(error)
-            }
-        )
+                    activityRepo.addActivityToPendingBoost(
+                        PendingBoostActivity(
+                            txId = newTxId,
+                            feeRate = _uiState.value.feeRate,
+                            fee = _uiState.value.totalFeeSats,
+                            updatedAt = nowTimestamp().toEpochMilli().toULong(),
+                            activityToDelete = activity?.v1?.id.takeIf { isRBF }
+                        )
+                    )
+                    Result.failure(error)
+                }
+            )
+        }
     }
 
     private fun handleError(message: String, error: Throwable? = null) {
