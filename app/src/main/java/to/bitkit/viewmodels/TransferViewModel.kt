@@ -27,6 +27,7 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.env.Env
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
@@ -71,6 +72,7 @@ class TransferViewModel @Inject constructor(
     val transferEffects = MutableSharedFlow<TransferEffect>()
     fun setTransferEffect(effect: TransferEffect) = viewModelScope.launch { transferEffects.emit(effect) }
     var retryTimes = 0
+    var maxLspFee = 0uL
 
     // region Spending
 
@@ -119,10 +121,23 @@ class TransferViewModel @Inject constructor(
             )
             return
         }
-
-        _spendingUiState.update { it.copy(isLoading = true) }
-
         viewModelScope.launch {
+            _spendingUiState.update { it.copy(isLoading = true) }
+
+            val minAmount = getMinAmountToPurchase()
+            if (_spendingUiState.value.satsAmount < minAmount) {
+                setTransferEffect(
+                    TransferEffect.ToastError(
+                        title = context.getString(R.string.lightning__spending_amount__error_min__title),
+                        description = context.getString(
+                            R.string.lightning__spending_amount__error_min__description
+                        ).replace("{amount}", "$minAmount"),
+                    )
+                )
+                _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
+                return@launch
+            }
+
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
                     onOrderCreated(order)
@@ -228,6 +243,11 @@ class TransferViewModel @Inject constructor(
         }
     }
 
+    private suspend fun getMinAmountToPurchase(): Long {
+        val fee = lightningRepo.calculateTotalFee(_spendingUiState.value.satsAmount.toULong()).getOrNull() ?: 0u
+        return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
+    }
+
     private fun onOrderCreated(order: IBtOrder) {
         _spendingUiState.update { it.copy(order = order, isAdvanced = false, defaultOrder = null) }
         setTransferEffect(TransferEffect.OnOrderCreated)
@@ -246,7 +266,7 @@ class TransferViewModel @Inject constructor(
                 receivingBalanceSats = _transferValues.value.maxLspBalance
             ).onSuccess { estimate ->
                 retryTimes = 0
-                val maxLspFee = estimate.feeSat
+                maxLspFee = estimate.feeSat
 
                 // Calculate the available balance to send after LSP fee
                 val balanceAfterLspFee = availableAmount - maxLspFee
