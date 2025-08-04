@@ -128,7 +128,7 @@ class TransferViewModel @Inject constructor(
                         title = context.getString(R.string.lightning__spending_amount__error_min__title),
                         description = context.getString(
                             R.string.lightning__spending_amount__error_min__description
-                        ).replace("{amount}", "1000"),
+                        ).replace("{amount}", "$fee"),
                     )
                 )
                 _spendingUiState.update { it.copy(overrideSats = fee) }
