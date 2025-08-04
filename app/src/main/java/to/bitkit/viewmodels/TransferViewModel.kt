@@ -121,6 +121,8 @@ class TransferViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            _spendingUiState.update { it.copy(isLoading = true) }
+
             val fee = getMintTxValue().toLong()
             if (fee > _spendingUiState.value.maxAllowedToSend) {
                 setTransferEffect(
@@ -131,11 +133,9 @@ class TransferViewModel @Inject constructor(
                         ).replace("{amount}", "$fee"),
                     )
                 )
-                _spendingUiState.update { it.copy(overrideSats = fee) }
+                _spendingUiState.update { it.copy(overrideSats = fee, isLoading = false) }
                 return@launch
             }
-
-            _spendingUiState.update { it.copy(isLoading = true) }
 
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
