@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -218,6 +221,7 @@ fun SendOptionsView(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SendOptionsContent(
     onEvent: (SendEvent) -> Unit,
@@ -226,6 +230,7 @@ private fun SendOptionsContent(
     val app = appViewModel
     Column(
         modifier = Modifier
+            .windowInsetsPadding(BottomSheetDefaults.windowInsets)
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -235,7 +240,7 @@ private fun SendOptionsContent(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             VerticalSpacer(32.dp)
-            Caption13Up(text = stringResource(R.string.wallet__send_to))
+            Caption13Up(text = stringResource(R.string.wallet__send_to), color = Colors.White64)
             VerticalSpacer(16.dp)
 
             RectangleButton(
@@ -353,6 +358,12 @@ sealed interface SendRoute {
 
     @Serializable
     data object CoinSelection : SendRoute
+
+    @Serializable
+    data object FeeRate : SendRoute
+
+    @Serializable
+    data object FeeCustom : SendRoute
 
     @Serializable
     data object QuickPay : SendRoute

@@ -63,7 +63,7 @@ fun ActivityAddTagSheet(
             onBack = onDismiss,
             focusOnShow = true,
             modifier = Modifier
-                .sheetHeight(SheetSize.SMALL)
+                .sheetHeight(SheetSize.SMALL, isModal = true)
                 .gradientBackground()
         )
     }
@@ -83,7 +83,7 @@ private fun Preview() {
                 onInputUpdated = {},
                 onBack = {},
                 modifier = Modifier
-                    .sheetHeight(SheetSize.SMALL)
+                    .sheetHeight(SheetSize.SMALL, isModal = true)
                     .gradientBackground()
             )
         }

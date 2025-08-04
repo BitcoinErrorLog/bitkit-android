@@ -16,8 +16,10 @@ import to.bitkit.ui.theme.TopBarHeight
 
 fun Modifier.sheetHeight(
     size: SheetSize = SheetSize.LARGE,
+    isModal: Boolean = false,
 ): Modifier = composed {
-    val topPadding = Insets.Top + Insets.Bottom + TopBarHeight - 6.dp
+    val offset = if (isModal) Insets.Bottom else 0.dp
+    val topPadding = Insets.Top + Insets.Bottom + offset + TopBarHeight - 6.dp
 
     val height = when (size) {
         SheetSize.LARGE -> screenHeight(minus = topPadding) // topbar visible

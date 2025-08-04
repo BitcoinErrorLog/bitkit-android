@@ -55,7 +55,7 @@ fun HighBalanceWarningContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .sheetHeight()
+            .sheetHeight(isModal = true)
             .gradientBackground()
             .navigationBarsPadding()
             .testTag("high_balance_intro_screen")

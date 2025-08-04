@@ -81,7 +81,7 @@ fun NewTransactionSheetView(
 ) {
     Box(
         modifier = Modifier
-            .sheetHeight()
+            .sheetHeight(isModal = true)
             .gradientBackground()
             .testTag("new_transaction_sheet")
     ) {

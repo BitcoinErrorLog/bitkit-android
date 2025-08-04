@@ -45,7 +45,7 @@ private fun Content(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
-            .sheetHeight()
+            .sheetHeight(isModal = true)
             .gradientBackground()
             .padding(horizontal = 16.dp)
     ) {
