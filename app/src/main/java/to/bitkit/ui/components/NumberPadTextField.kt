@@ -46,7 +46,7 @@ fun NumberPadTextField(
     if (isPreview) {
         return MoneyAmount(
             modifier = modifier,
-            value = input,
+            value = input.toLongOrNull()?.formatToModernDisplay() ?: input,
             unit = primaryDisplay,
             placeholder = "",
             showPlaceholder = true,
@@ -216,7 +216,7 @@ fun MoneyAmount(
         horizontalAlignment = Alignment.Start
     ) {
 
-        MoneySSB(sats = satoshis, reversed = true)
+        MoneySSB(sats = satoshis, unit = unit.not())
 
         Spacer(modifier = Modifier.height(12.dp))
 

@@ -40,12 +40,26 @@ data class FxRate(
 
 /** aka. Unit */
 enum class PrimaryDisplay {
-    BITCOIN, FIAT
+    BITCOIN, FIAT;
+
+    operator fun not(): PrimaryDisplay {
+        return when (this) {
+            BITCOIN -> FIAT
+            FIAT -> BITCOIN
+        }
+    }
 }
 
 /** aka. Denomination */
 enum class BitcoinDisplayUnit {
-    MODERN, CLASSIC
+    MODERN, CLASSIC;
+
+    operator fun not(): BitcoinDisplayUnit {
+        return when (this) {
+            MODERN -> CLASSIC
+            CLASSIC -> MODERN
+        }
+    }
 }
 
 data class ConvertedAmount(
@@ -64,7 +78,6 @@ data class ConvertedAmount(
     )
 
     fun bitcoinDisplay(unit: BitcoinDisplayUnit): BitcoinDisplayComponents {
-        val symbol = BITCOIN_SYMBOL
         val spaceSeparator = ' '
         val formattedValue = when (unit) {
             BitcoinDisplayUnit.MODERN -> {
@@ -80,7 +93,7 @@ data class ConvertedAmount(
             }
         }
         return BitcoinDisplayComponents(
-            symbol = symbol,
+            symbol = BITCOIN_SYMBOL,
             value = formattedValue,
         )
     }
