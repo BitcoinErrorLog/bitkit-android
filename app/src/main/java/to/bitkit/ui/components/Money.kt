@@ -33,9 +33,13 @@ fun MoneyDisplay(
 fun MoneySSB(
     sats: Long,
     unit: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
+    color: Color = MaterialTheme.colorScheme.primary,
 ) {
     rememberMoneyText(sats = sats, unit = unit)?.let { text ->
-        BodySSB(text = text.withAccent(accentColor = Colors.White64))
+        BodySSB(
+            text = text.withAccent(accentColor = Colors.White64),
+            color = color,
+        )
     }
 }
 
