@@ -75,7 +75,7 @@ import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
-import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
+import to.bitkit.ui.screens.wallets.receive.ReceiveSheet
 import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
@@ -336,7 +336,7 @@ fun ContentView(
 
                         is Sheet.Receive -> {
                             val walletUiState by walletViewModel.uiState.collectAsState()
-                            ReceiveQrSheet(
+                            ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
                                     navController.navigate(Routes.ExternalConnection)

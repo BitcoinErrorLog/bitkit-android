@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +24,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,29 +35,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.tooling.preview.Devices.PIXEL_TABLET
+import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.models.NodeLifecycleState.Running
-import to.bitkit.repositories.LightningState
-import to.bitkit.ui.appViewModel
-import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Headline
@@ -68,8 +57,6 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.screens.wallets.send.AddTagScreen
-import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
@@ -78,203 +65,10 @@ import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.ui.walletViewModel
 import to.bitkit.viewmodels.MainUiState
-import to.bitkit.viewmodels.WalletViewModelEffects
-
-private object ReceiveRoutes {
-    const val QR = "qr"
-    const val AMOUNT = "amount"
-    const val CONFIRM = "confirm"
-    const val CONFIRM_INCREASE_INBOUND = "confirm_increase_inbound"
-    const val LIQUIDITY = "liquidity"
-    const val LIQUIDITY_ADDITIONAL = "liquidity_additional"
-    const val EDIT_INVOICE = "edit_invoice"
-    const val ADD_TAG = "add_tag"
-    const val LOCATION_BLOCK = "location_block"
-}
 
 @Composable
-fun ReceiveQrSheet(
-    navigateToExternalConnection: () -> Unit,
-    walletState: MainUiState,
-    modifier: Modifier = Modifier,
-) {
-    val app = appViewModel ?: return
-    val wallet = walletViewModel ?: return
-    val blocktank = blocktankViewModel ?: return
-
-    val navController = rememberNavController()
-
-    val cjitInvoice = remember { mutableStateOf<String?>(null) }
-    val showCreateCjit = remember { mutableStateOf(false) }
-    val cjitEntryDetails = remember { mutableStateOf<CjitEntryDetails?>(null) }
-    val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        try {
-            coroutineScope {
-                launch { wallet.refreshBip21() }
-                launch { blocktank.refreshInfo() }
-            }
-        } catch (e: Exception) {
-            app.toast(e)
-        }
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .sheetHeight()
-            .imePadding()
-    ) {
-        NavHost(
-            navController = navController,
-            startDestination = ReceiveRoutes.QR,
-        ) {
-            composable(ReceiveRoutes.QR) {
-                LaunchedEffect(cjitInvoice.value) {
-                    showCreateCjit.value = !cjitInvoice.value.isNullOrBlank()
-                }
-
-                LaunchedEffect(Unit) {
-                    wallet.walletEffect.collect { effect ->
-                        when (effect) {
-                            WalletViewModelEffects.NavigateGeoBlockScreen -> {
-                                navController.navigate(ReceiveRoutes.LOCATION_BLOCK)
-                            }
-                        }
-                    }
-                }
-
-                ReceiveQrScreen(
-                    cjitInvoice = cjitInvoice,
-                    cjitActive = showCreateCjit,
-                    walletState = walletState,
-                    onCjitToggle = { active ->
-                        when {
-                            active && lightningState.shouldBlockLightning -> navController.navigate(ReceiveRoutes.LOCATION_BLOCK)
-
-                            !active -> {
-                                showCreateCjit.value = false
-                                cjitInvoice.value = null
-                            }
-
-                            active && cjitInvoice.value == null -> {
-                                showCreateCjit.value = true
-                                navController.navigate(ReceiveRoutes.AMOUNT)
-                            }
-                        }
-                    },
-                    onClickEditInvoice = { navController.navigate(ReceiveRoutes.EDIT_INVOICE) },
-                    onClickReceiveOnSpending = { wallet.toggleReceiveOnSpending() }
-                )
-            }
-            composable(ReceiveRoutes.AMOUNT) {
-                ReceiveAmountScreen(
-                    onCjitCreated = { entry ->
-                        cjitEntryDetails.value = entry
-                        navController.navigate(ReceiveRoutes.CONFIRM)
-                    },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable(ReceiveRoutes.LOCATION_BLOCK) {
-                LocationBlockScreen(
-                    onBackPressed = { navController.popBackStack() },
-                    navigateAdvancedSetup = navigateToExternalConnection
-                )
-            }
-            composable(ReceiveRoutes.CONFIRM) {
-                cjitEntryDetails.value?.let { entryDetails ->
-                    ReceiveConfirmScreen(
-                        entry = entryDetails,
-                        onLearnMore = { navController.navigate(ReceiveRoutes.LIQUIDITY) },
-                        onContinue = { invoice ->
-                            cjitInvoice.value = invoice
-                            navController.navigate(ReceiveRoutes.QR) { popUpTo(ReceiveRoutes.QR) { inclusive = true } }
-                        },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-            }
-            composable(ReceiveRoutes.CONFIRM_INCREASE_INBOUND) {
-                cjitEntryDetails.value?.let { entryDetails ->
-                    ReceiveConfirmScreen(
-                        entry = entryDetails,
-                        onLearnMore = { navController.navigate(ReceiveRoutes.LIQUIDITY_ADDITIONAL) },
-                        onContinue = { invoice ->
-                            cjitInvoice.value = invoice
-                            navController.navigate(ReceiveRoutes.QR) { popUpTo(ReceiveRoutes.QR) { inclusive = true } }
-                        },
-                        isAdditional = true,
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-            }
-            composable(ReceiveRoutes.LIQUIDITY) {
-                cjitEntryDetails.value?.let { entryDetails ->
-                    ReceiveLiquidityScreen(
-                        entry = entryDetails,
-                        onContinue = { navController.popBackStack() },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-            }
-            composable(ReceiveRoutes.LIQUIDITY_ADDITIONAL) {
-                cjitEntryDetails.value?.let { entryDetails ->
-                    ReceiveLiquidityScreen(
-                        entry = entryDetails,
-                        onContinue = { navController.popBackStack() },
-                        isAdditional = true,
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-            }
-            composable(ReceiveRoutes.EDIT_INVOICE) {
-                val walletUiState by wallet.walletState.collectAsStateWithLifecycle()
-                EditInvoiceScreen(
-                    walletUiState = walletUiState,
-                    onBack = { navController.popBackStack() },
-                    updateInvoice = { sats ->
-                        wallet.updateBip21Invoice(amountSats = sats)
-                    },
-                    onClickAddTag = {
-                        navController.navigate(ReceiveRoutes.ADD_TAG)
-                    },
-                    onClickTag = { tagToRemove ->
-                        wallet.removeTag(tagToRemove)
-                    },
-                    onDescriptionUpdate = { newText ->
-                        wallet.updateBip21Description(newText = newText)
-                    },
-                    onInputUpdated = { newText ->
-                        wallet.updateBalanceInput(newText)
-                    },
-                    navigateReceiveConfirm = { entry ->
-                        cjitEntryDetails.value = entry
-                        navController.navigate(ReceiveRoutes.CONFIRM_INCREASE_INBOUND)
-                    }
-                )
-            }
-            composable(ReceiveRoutes.ADD_TAG) {
-                AddTagScreen(
-                    onBack = {
-                        navController.popBackStack()
-                    },
-                    onTagSelected = { tag ->
-                        wallet.addTagToSelected(tag)
-                        navController.popBackStack()
-                    }
-                )
-
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReceiveQrScreen(
+fun ReceiveQrScreen(
     cjitInvoice: MutableState<String?>,
     cjitActive: MutableState<Boolean>,
     walletState: MainUiState,
@@ -436,7 +230,6 @@ private fun ReceiveQrSlide(
     onClickEditInvoice: () -> Unit,
 ) {
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
 
     val qrButtonTooltipState = rememberTooltipState()
     val coroutineScope = rememberCoroutineScope()
@@ -485,7 +278,7 @@ private fun ReceiveQrSlide(
                     text = stringResource(R.string.common__copy),
                     size = ButtonSize.Small,
                     onClick = {
-                        clipboard.setText(AnnotatedString(uri))
+                        context.setClipboardText(uri)
                         coroutineScope.launch { qrButtonTooltipState.show() }
                     },
                     fullWidth = false,
@@ -569,7 +362,6 @@ private fun CopyAddressCard(
     address: String,
     type: CopyAddressType,
 ) {
-    val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
 
     val tooltipState = rememberTooltipState()
@@ -603,7 +395,7 @@ private fun CopyAddressCard(
                     text = stringResource(R.string.common__copy),
                     size = ButtonSize.Small,
                     onClick = {
-                        clipboard.setText(AnnotatedString(address))
+                        context.setClipboardText(address)
                         coroutineScope.launch { tooltipState.show() }
                     },
                     fullWidth = false,
@@ -641,16 +433,18 @@ private fun CopyAddressCard(
 @Composable
 private fun ReceiveQrScreenPreview() {
     AppThemeSurface {
-        ReceiveQrScreen(
-            cjitInvoice = remember { mutableStateOf(null) },
-            cjitActive = remember { mutableStateOf(false) },
-            walletState = MainUiState(
-                nodeLifecycleState = Running,
-            ),
-            onCjitToggle = { },
-            onClickEditInvoice = {},
-            onClickReceiveOnSpending = {},
-        )
+        BottomSheetPreview {
+            ReceiveQrScreen(
+                cjitInvoice = remember { mutableStateOf(null) },
+                cjitActive = remember { mutableStateOf(false) },
+                walletState = MainUiState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                ),
+                onCjitToggle = { },
+                onClickEditInvoice = {},
+                onClickReceiveOnSpending = {},
+            )
+        }
     }
 }
 
@@ -658,33 +452,37 @@ private fun ReceiveQrScreenPreview() {
 @Composable
 private fun ReceiveQrScreenPreviewSmallScreen() {
     AppThemeSurface {
-        ReceiveQrScreen(
-            cjitInvoice = remember { mutableStateOf(null) },
-            cjitActive = remember { mutableStateOf(false) },
-            walletState = MainUiState(
-                nodeLifecycleState = Running,
-            ),
-            onCjitToggle = { },
-            onClickEditInvoice = {},
-            onClickReceiveOnSpending = {},
-        )
+        BottomSheetPreview {
+            ReceiveQrScreen(
+                cjitInvoice = remember { mutableStateOf(null) },
+                cjitActive = remember { mutableStateOf(false) },
+                walletState = MainUiState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                ),
+                onCjitToggle = { },
+                onClickEditInvoice = {},
+                onClickReceiveOnSpending = {},
+            )
+        }
     }
 }
 
-@Preview(showSystemUi = true, device = PIXEL_TABLET)
+@Preview(showSystemUi = true, device = Devices.PIXEL_TABLET)
 @Composable
 private fun ReceiveQrScreenPreviewTablet() {
     AppThemeSurface {
-        ReceiveQrScreen(
-            cjitInvoice = remember { mutableStateOf(null) },
-            cjitActive = remember { mutableStateOf(false) },
-            walletState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Starting,
-            ),
-            onCjitToggle = { },
-            onClickEditInvoice = {},
-            onClickReceiveOnSpending = {},
-        )
+        BottomSheetPreview {
+            ReceiveQrScreen(
+                cjitInvoice = remember { mutableStateOf(null) },
+                cjitActive = remember { mutableStateOf(false) },
+                walletState = MainUiState(
+                    nodeLifecycleState = NodeLifecycleState.Starting,
+                ),
+                onCjitToggle = { },
+                onClickEditInvoice = {},
+                onClickReceiveOnSpending = {},
+            )
+        }
     }
 }
 
