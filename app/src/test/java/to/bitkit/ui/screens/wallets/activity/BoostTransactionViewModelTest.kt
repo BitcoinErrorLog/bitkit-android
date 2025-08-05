@@ -14,6 +14,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.LightningRepo
@@ -23,7 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class BoostTransactionViewModelSimplifiedTest : BaseUnitTest() {
+class BoostTransactionViewModelTest : BaseUnitTest() {
 
     private lateinit var sut: BoostTransactionViewModel
     private val lightningRepo: LightningRepo = mock()
@@ -68,6 +69,7 @@ class BoostTransactionViewModelSimplifiedTest : BaseUnitTest() {
             walletRepo = walletRepo,
             activityRepo = activityRepo
         )
+        wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
     }
 
     @Test

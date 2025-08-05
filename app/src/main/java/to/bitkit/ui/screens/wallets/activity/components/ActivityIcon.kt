@@ -23,6 +23,8 @@ import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import to.bitkit.R
+import to.bitkit.ext.isBoosted
+import to.bitkit.ext.isFinished
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -43,49 +45,63 @@ fun ActivityIcon(
     }
     val arrowIcon = painterResource(if (txType == PaymentType.SENT) R.drawable.ic_sent else R.drawable.ic_received)
 
-    if (isLightning) {
-        when (status) {
-            PaymentState.FAILED -> {
-                CircularIcon(
-                    icon = painterResource(R.drawable.ic_x),
-                    iconColor = Colors.Purple,
-                    backgroundColor = Colors.Purple16,
-                    size = size,
-                    modifier = modifier,
-                )
-            }
+    when {
+        activity.isBoosted() && !activity.isFinished() -> {
+            CircularIcon(
+                icon = painterResource(R.drawable.ic_timer_alt),
+                iconColor = Colors.Yellow,
+                backgroundColor = Colors.Yellow16,
+                size = size,
+                modifier = modifier,
+            )
+        }
 
-            PaymentState.PENDING -> {
-                CircularIcon(
-                    icon = painterResource(R.drawable.ic_hourglass_simple),
-                    iconColor = Colors.Purple,
-                    backgroundColor = Colors.Purple16,
-                    size = size,
-                    modifier = modifier,
-                )
-            }
+        isLightning -> {
+            when (status) {
+                PaymentState.FAILED -> {
+                    CircularIcon(
+                        icon = painterResource(R.drawable.ic_x),
+                        iconColor = Colors.Purple,
+                        backgroundColor = Colors.Purple16,
+                        size = size,
+                        modifier = modifier,
+                    )
+                }
 
-            else -> {
-                CircularIcon(
-                    icon = arrowIcon,
-                    iconColor = Colors.Purple,
-                    backgroundColor = Colors.Purple16,
-                    size = size,
-                    modifier = modifier,
-                )
+                PaymentState.PENDING -> {
+                    CircularIcon(
+                        icon = painterResource(R.drawable.ic_hourglass_simple),
+                        iconColor = Colors.Purple,
+                        backgroundColor = Colors.Purple16,
+                        size = size,
+                        modifier = modifier,
+                    )
+                }
+
+                else -> {
+                    CircularIcon(
+                        icon = arrowIcon,
+                        iconColor = Colors.Purple,
+                        backgroundColor = Colors.Purple16,
+                        size = size,
+                        modifier = modifier,
+                    )
+                }
             }
         }
-    } else {
-        val isTransfer = (activity as? Activity.Onchain)?.v1?.isTransfer == true
-        val onChainIcon = if (isTransfer) painterResource(R.drawable.ic_transfer) else arrowIcon
 
-        CircularIcon(
-            icon = onChainIcon,
-            iconColor = Colors.Brand,
-            backgroundColor = Colors.Brand16,
-            size = size,
-            modifier = modifier,
-        )
+        else -> {
+            val isTransfer = (activity as? Activity.Onchain)?.v1?.isTransfer == true
+            val onChainIcon = if (isTransfer) painterResource(R.drawable.ic_transfer) else arrowIcon
+
+            CircularIcon(
+                icon = onChainIcon,
+                iconColor = Colors.Brand,
+                backgroundColor = Colors.Brand16,
+                size = size,
+                modifier = modifier,
+            )
+        }
     }
 }
 
@@ -191,6 +207,56 @@ private fun Preview() {
                         confirmed = true,
                         timestamp = (System.currentTimeMillis() / 1000).toULong(),
                         isBoosted = false,
+                        isTransfer = false,
+                        doesExist = true,
+                        confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        channelId = null,
+                        transferTxId = null,
+                        createdAt = null,
+                        updatedAt = null,
+                    )
+                )
+            )
+
+            // Onchain BOOST CPFP
+            ActivityIcon(
+                activity = Activity.Onchain(
+                    v1 = OnchainActivity(
+                        id = "test-onchain-1",
+                        txType = PaymentType.RECEIVED,
+                        txId = "abc123",
+                        value = 100000uL,
+                        fee = 500uL,
+                        feeRate = 8uL,
+                        address = "bc1...",
+                        confirmed = false,
+                        timestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        isBoosted = true,
+                        isTransfer = false,
+                        doesExist = true,
+                        confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        channelId = null,
+                        transferTxId = null,
+                        createdAt = null,
+                        updatedAt = null,
+                    )
+                )
+            )
+
+            // Onchain BOOST RBF
+            ActivityIcon(
+                activity = Activity.Onchain(
+                    v1 = OnchainActivity(
+                        id = "test-onchain-1",
+                        txType = PaymentType.SENT,
+                        txId = "abc123",
+                        value = 100000uL,
+                        fee = 500uL,
+                        feeRate = 8uL,
+                        address = "bc1...",
+                        confirmed = false,
+                        timestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        isBoosted = true,
                         isTransfer = false,
                         doesExist = true,
                         confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
