@@ -95,6 +95,7 @@ import to.bitkit.ui.screens.wallets.activity.components.ActivityListSimple
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
 import to.bitkit.ui.screens.wallets.sheets.BackupRoute
 import to.bitkit.ui.screens.wallets.sheets.HighBalanceWarningSheet
+import to.bitkit.ui.screens.wallets.sheets.PinRoute
 import to.bitkit.ui.screens.widgets.DragAndDropWidget
 import to.bitkit.ui.screens.widgets.DragDropColumn
 import to.bitkit.ui.screens.widgets.blocks.BlockCard
@@ -181,7 +182,7 @@ fun HomeScreen(
                 }
 
                 Suggestion.SECURE -> {
-                    appViewModel.showSheet(BottomSheetType.PinSetup)
+                    appViewModel.showSheet(BottomSheetType.Pin(PinRoute.Prompt(showLaterButton = true)))
                 }
 
                 Suggestion.SUPPORT -> {

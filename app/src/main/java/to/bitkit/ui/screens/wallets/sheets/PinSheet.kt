@@ -1,4 +1,4 @@
-package to.bitkit.ui.settings.pin
+package to.bitkit.ui.screens.wallets.sheets
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,16 +8,24 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
+import to.bitkit.ui.components.BottomSheetType
 import to.bitkit.ui.components.SheetSize
+import to.bitkit.ui.settings.pin.PinBiometricsScreen
+import to.bitkit.ui.settings.pin.PinChooseScreen
+import to.bitkit.ui.settings.pin.PinConfirmScreen
+import to.bitkit.ui.settings.pin.PinPromptScreen
+import to.bitkit.ui.settings.pin.PinResultScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
+import to.bitkit.viewmodels.AppViewModel
 
 @Composable
-fun PinNavigationSheet(
-    showLaterButton: Boolean = true,
-    onDismiss: () -> Unit,
+fun PinSheet(
+    sheet: BottomSheetType.Pin,
+    app: AppViewModel,
 ) {
     val navController = rememberNavController()
+    val onDismiss = app::hideSheet
 
     Column(
         modifier = Modifier
@@ -26,33 +34,32 @@ fun PinNavigationSheet(
     ) {
         NavHost(
             navController = navController,
-            startDestination = PinRoute.PinPrompt,
+            startDestination = sheet.route,
         ) {
-            composableWithDefaultTransitions<PinRoute.PinPrompt> {
+            composableWithDefaultTransitions<PinRoute.Prompt> {
                 PinPromptScreen(
-                    showLaterButton = showLaterButton,
-                    onContinue = { navController.navigate(PinRoute.ChoosePin) },
+                    showLaterButton = it.toRoute<PinRoute.Prompt>().showLaterButton,
+                    onContinue = { navController.navigate(PinRoute.Choose) },
                     onLater = onDismiss,
                 )
             }
-            composableWithDefaultTransitions<PinRoute.ChoosePin> {
-                ChoosePinScreen(
+            composableWithDefaultTransitions<PinRoute.Choose> {
+                PinChooseScreen(
                     onPinChosen = { pin ->
-                        navController.navigate(PinRoute.ConfirmPin(pin))
+                        navController.navigate(PinRoute.Confirm(pin))
                     },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composableWithDefaultTransitions<PinRoute.ConfirmPin> {
-                val route = it.toRoute<PinRoute.ConfirmPin>()
-                ConfirmPinScreen(
-                    originalPin = route.pin,
-                    onPinConfirmed = { navController.navigate(PinRoute.AskForBiometrics) },
+            composableWithDefaultTransitions<PinRoute.Confirm> {
+                PinConfirmScreen(
+                    originalPin = it.toRoute<PinRoute.Confirm>().pin,
+                    onPinConfirmed = { navController.navigate(PinRoute.Biometrics) },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composableWithDefaultTransitions<PinRoute.AskForBiometrics> {
-                AskForBiometricsScreen(
+            composableWithDefaultTransitions<PinRoute.Biometrics> {
+                PinBiometricsScreen(
                     onContinue = { isBioOn ->
                         navController.navigate(PinRoute.Result(isBioOn))
                     },
@@ -61,9 +68,8 @@ fun PinNavigationSheet(
                 )
             }
             composableWithDefaultTransitions<PinRoute.Result> {
-                val route = it.toRoute<PinRoute.Result>()
                 PinResultScreen(
-                    isBioOn = route.isBioOn,
+                    isBioOn = it.toRoute<PinRoute.Result>().isBioOn,
                     onDismiss = onDismiss,
                     onBack = onDismiss,
                 )
@@ -72,19 +78,19 @@ fun PinNavigationSheet(
     }
 }
 
-object PinRoute {
+sealed interface PinRoute {
     @Serializable
-    data object PinPrompt
+    data class Prompt(val showLaterButton: Boolean = false) : PinRoute
 
     @Serializable
-    data object ChoosePin
+    data object Choose : PinRoute
 
     @Serializable
-    data class ConfirmPin(val pin: String)
+    data class Confirm(val pin: String) : PinRoute
 
     @Serializable
-    data object AskForBiometrics
+    data object Biometrics : PinRoute
 
     @Serializable
-    data class Result(val isBioOn: Boolean)
+    data class Result(val isBioOn: Boolean) : PinRoute
 }

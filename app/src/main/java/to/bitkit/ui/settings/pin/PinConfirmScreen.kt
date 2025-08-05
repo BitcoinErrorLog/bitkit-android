@@ -34,7 +34,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
 @Composable
-fun ConfirmPinScreen(
+fun PinConfirmScreen(
     originalPin: String,
     onPinConfirmed: () -> Unit,
     onBack: () -> Unit,

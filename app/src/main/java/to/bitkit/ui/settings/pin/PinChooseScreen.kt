@@ -28,7 +28,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
 @Composable
-fun ChoosePinScreen(
+fun PinChooseScreen(
     onPinChosen: (String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -82,7 +82,7 @@ fun ChoosePinScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ChoosePinScreen(
+        PinChooseScreen(
             onPinChosen = {},
             onBack = {},
         )

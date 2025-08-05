@@ -124,7 +124,7 @@ private fun Preview() {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun PreviewWithLater() {
+private fun PreviewShowLater() {
     AppThemeSurface {
         BottomSheetPreview {
             PinPromptScreen(

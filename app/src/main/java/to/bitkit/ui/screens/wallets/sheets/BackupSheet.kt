@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import to.bitkit.ui.LocalBalances
+import to.bitkit.ui.components.BottomSheetType
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.settings.backups.BackupContract
 import to.bitkit.ui.settings.backups.BackupIntroScreen
@@ -33,8 +34,8 @@ import to.bitkit.viewmodels.AppViewModel
 
 @Composable
 fun BackupSheet(
+    sheet: BottomSheetType.Backup,
     app: AppViewModel,
-    startDestination: BackupRoute = BackupRoute.ShowMnemonic,
     viewModel: BackupNavSheetViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
@@ -74,7 +75,7 @@ fun BackupSheet(
     ) {
         NavHost(
             navController = navController,
-            startDestination = startDestination,
+            startDestination = sheet.route,
         ) {
             composableWithDefaultTransitions<BackupRoute.Intro> {
                 BackupIntroScreen(

@@ -79,6 +79,7 @@ import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
 import to.bitkit.ui.screens.wallets.send.SendSheet
 import to.bitkit.ui.screens.wallets.sheets.BackupSheet
 import to.bitkit.ui.screens.wallets.sheets.LnurlAuthSheet
+import to.bitkit.ui.screens.wallets.sheets.PinSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
 import to.bitkit.ui.screens.widgets.WidgetsIntroScreen
@@ -129,7 +130,6 @@ import to.bitkit.ui.settings.pin.ChangePinNewScreen
 import to.bitkit.ui.settings.pin.ChangePinResultScreen
 import to.bitkit.ui.settings.pin.ChangePinScreen
 import to.bitkit.ui.settings.pin.DisablePinScreen
-import to.bitkit.ui.settings.pin.PinNavigationSheet
 import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen
 import to.bitkit.ui.settings.quickPay.QuickPaySettingsScreen
 import to.bitkit.ui.settings.support.ReportIssueResultScreen
@@ -346,14 +346,9 @@ fun ContentView(
 
                         is BottomSheetType.ActivityDateRangeSelector -> DateRangeSelectorSheet()
                         is BottomSheetType.ActivityTagSelector -> TagSelectorSheet()
-
-                        is BottomSheetType.PinSetup -> PinNavigationSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                        )
-
-                        is BottomSheetType.Backup -> BackupSheet(appViewModel, sheet.route)
+                        is BottomSheetType.Pin -> PinSheet(sheet, appViewModel)
+                        is BottomSheetType.Backup -> BackupSheet(sheet, appViewModel)
                         is BottomSheetType.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-
                         null -> Unit
                     }
                 }
