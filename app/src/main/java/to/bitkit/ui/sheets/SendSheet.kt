@@ -51,6 +51,8 @@ fun SendSheet(
         }
     }
 
+
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -123,9 +125,10 @@ fun SendSheet(
             composableWithDefaultTransitions<SendRoute.FeeRate> {
                 val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
                 SendFeeRateScreen(
-                    uiState = sendUiState,
+                    sendUiState = sendUiState,
                     onBack = { navController.popBackStack() },
-                    onContinue = {}, // TODO
+                    onContinue = { navController.popBackStack() },
+                    onSelect = { appViewModel.setSendEvent(SendEvent.SpeedChange(it)) },
                 )
             }
             composableWithDefaultTransitions<SendRoute.FeeCustom> {

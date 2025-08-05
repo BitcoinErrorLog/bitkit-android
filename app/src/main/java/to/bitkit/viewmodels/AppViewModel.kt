@@ -73,8 +73,8 @@ import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.shared.toast.ToastEventBus
+import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -289,6 +289,7 @@ class AppViewModel @Inject constructor(
                     is SendEvent.CoinSelectionContinue -> onCoinSelectionContinue(it.utxos)
 
                     is SendEvent.CommentChange -> onCommentChange(it.value)
+                    is SendEvent.SpeedChange -> onSpeedChange(it.speed)
 
                     SendEvent.SpeedAndFee -> setSendEffect(SendEffect.NavigateToFee)
                     SendEvent.SwipeToPay -> onSwipeToPay()
@@ -352,6 +353,14 @@ class AppViewModel @Inject constructor(
             it.copy(comment = trimmed)
         }
     }
+
+    private fun onSpeedChange(speed: TransactionSpeed) {
+        _sendUiState.update {
+            it.copy(speed = speed)
+        }
+        setSendEffect(SendEffect.NavigateToReview)
+    }
+
 
     private fun onPaymentMethodSwitch() {
         val nextPaymentMethod = when (_sendUiState.value.payMethod) {
@@ -992,12 +1001,12 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun sendOnchain(address: String, amount: ULong): Result<Txid> {
-        val utxos = _sendUiState.value.selectedUtxos
+    private suspend fun sendOnchain(address: String, amount: ULong, speed: TransactionSpeed? = null): Result<Txid> {
         return lightningRepo.sendOnChain(
             address = address,
             sats = amount,
-            utxosToSpend = utxos,
+            speed = _sendUiState.value.speed,
+            utxosToSpend = _sendUiState.value.selectedUtxos,
         )
     }
 
@@ -1307,6 +1316,7 @@ sealed class SendEvent {
     data object ConfirmAmountWarning : SendEvent()
     data object DismissAmountWarning : SendEvent()
     data object PayConfirmed : SendEvent()
+    data class SpeedChange(val speed: TransactionSpeed) : SendEvent()
 }
 
 sealed interface LnurlParams {

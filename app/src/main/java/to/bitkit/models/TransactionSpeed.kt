@@ -1,6 +1,9 @@
 package to.bitkit.models
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -12,6 +15,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import to.bitkit.R
+import to.bitkit.ui.theme.Colors
 
 @Serializable(with = TransactionSpeedSerializer::class)
 sealed class TransactionSpeed {
@@ -28,6 +32,8 @@ sealed class TransactionSpeed {
     }
 
     companion object {
+        fun entries() = listOf(Fast, Medium, Slow, Custom(0u))
+
         fun fromString(value: String): TransactionSpeed = when {
             value == "fast" -> Fast
             value == "medium" -> Medium
@@ -67,36 +73,54 @@ fun TransactionSpeed.transactionSpeedUiText(): String {
     }
 }
 
-enum class FeeRate {
-    FAST, NORMAL, SLOW, CUSTOM;
+enum class FeeRate(
+    @StringRes val title: Int,
+    @StringRes val description: Int,
+    @DrawableRes val icon: Int,
+    val color: Color,
+) {
+    FAST(
+        title = R.string.fee__fast__title,
+        description = R.string.fee__fast__description,
+        color = Colors.Brand,
+        icon = R.drawable.ic_speed_fast,
+    ),
+    NORMAL(
+        title = R.string.fee__normal__title,
+        description = R.string.fee__normal__description,
+        color = Colors.Brand,
+        icon = R.drawable.ic_speed_normal,
+    ),
+    SLOW(
+        title = R.string.fee__slow__title,
+        description = R.string.fee__slow__description,
+        color = Colors.Brand,
+        icon = R.drawable.ic_speed_slow,
+    ),
+    CUSTOM(
+        title = R.string.fee__custom__title,
+        description = R.string.fee__custom__description,
+        color = Colors.White64,
+        icon = R.drawable.ic_settings,
+    );
 
-    @Composable
-    fun uiTitle(): String {
+    fun toSpeed(): TransactionSpeed {
         return when (this) {
-            FAST -> stringResource(R.string.fee__fast__title)
-            NORMAL -> stringResource(R.string.fee__normal__title)
-            SLOW -> stringResource(R.string.fee__slow__title)
-            CUSTOM -> stringResource(R.string.fee__custom__title)
+            FAST -> TransactionSpeed.Fast
+            NORMAL -> TransactionSpeed.Medium
+            SLOW -> TransactionSpeed.Slow
+            CUSTOM -> TransactionSpeed.Custom(0u)
         }
     }
 
-    @Composable
-    fun uiDescription(): String {
-        return when (this) {
-            FAST -> stringResource(R.string.fee__fast__description)
-            NORMAL -> stringResource(R.string.fee__normal__description)
-            SLOW -> stringResource(R.string.fee__slow__description)
-            CUSTOM -> stringResource(R.string.fee__custom__description)
-        }
-    }
-
-    @Composable
-    fun uiIcon(): Painter {
-        return when (this) {
-            FAST -> painterResource(R.drawable.ic_speed_fast)
-            NORMAL -> painterResource(R.drawable.ic_speed_normal)
-            SLOW -> painterResource(R.drawable.ic_speed_slow)
-            CUSTOM -> painterResource(R.drawable.ic_settings)
+    companion object {
+        fun fromSpeed(speed: TransactionSpeed): FeeRate {
+            return when (speed) {
+                is TransactionSpeed.Fast -> FAST
+                is TransactionSpeed.Medium -> NORMAL
+                is TransactionSpeed.Slow -> SLOW
+                is TransactionSpeed.Custom -> CUSTOM
+            }
         }
     }
 }

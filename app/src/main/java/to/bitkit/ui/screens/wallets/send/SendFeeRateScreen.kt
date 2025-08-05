@@ -1,6 +1,7 @@
 package to.bitkit.ui.screens.wallets.send
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,20 +9,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.models.FeeRate
 import to.bitkit.models.PrimaryDisplay
+import to.bitkit.models.TransactionSpeed
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodySSB
@@ -44,23 +52,33 @@ import to.bitkit.viewmodels.SendUiState
 
 @Composable
 fun SendFeeRateScreen(
-    uiState: SendUiState,
+    sendUiState: SendUiState,
     onBack: () -> Unit,
     onContinue: () -> Unit,
+    onSelect: (TransactionSpeed) -> Unit,
+    viewModel: SendFeeViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.load(sendUiState.speed)
+    }
+
     Content(
         uiState = uiState,
         onBack = onBack,
         onContinue = onContinue,
+        onSelect = { onSelect(it.toSpeed()) },
     )
 }
 
 @Composable
 private fun Content(
-    uiState: SendUiState,
+    uiState: SendFeeUiState,
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
     onContinue: () -> Unit = {},
+    onSelect: (FeeRate) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -70,38 +88,31 @@ private fun Content(
             .testTag("speed_screen")
     ) {
         SheetTopBar(stringResource(R.string.wallet__send_fee_speed), onBack = onBack)
+        if (uiState.items.isEmpty()) {
+            Box(Modifier.fillMaxSize()) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    color = Colors.White32,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.Center)
+                )
+            }
+            return
+        }
         SectionHeader(
             title = stringResource(R.string.wallet__send_fee_and_speed),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        FeeItem(
-            feeRate = FeeRate.FAST,
-            sats = 1790,
-            isSelected = false,
-            isDisabled = false,
-            onClick = {},
-        )
-        FeeItem(
-            feeRate = FeeRate.NORMAL,
-            sats = 1350,
-            isSelected = true,
-            isDisabled = false,
-            onClick = {},
-        )
-        FeeItem(
-            feeRate = FeeRate.SLOW,
-            sats = 850,
-            isSelected = false,
-            isDisabled = true,
-            onClick = {},
-        )
-        FeeItem(
-            feeRate = FeeRate.CUSTOM,
-            sats = 10,
-            isSelected = false,
-            isDisabled = false,
-            onClick = {},
-        )
+        uiState.items.map { (feeRate, sats) ->
+            FeeItem(
+                feeRate = feeRate,
+                sats = sats,
+                isSelected = uiState.selected == feeRate,
+                isDisabled = false, // TODO
+                onClick = { onSelect(feeRate) },
+            )
+        }
 
         FillHeight(min = 16.dp)
 
@@ -143,19 +154,18 @@ private fun FeeItem(
                 .height(90.dp)
         ) {
             Icon(
-                painter = feeRate.uiIcon(),
+                painter = painterResource(feeRate.icon),
                 contentDescription = null,
                 tint = when {
                     isDisabled -> Colors.Gray3
-                    feeRate != FeeRate.CUSTOM -> Colors.Brand
-                    else -> Color.Unspecified
+                    else -> feeRate.color
                 },
                 modifier = Modifier.size(32.dp),
             )
             HorizontalSpacer(16.dp)
             Column {
-                BodyMSB(feeRate.uiTitle(), color = color)
-                BodySSB(feeRate.uiDescription(), color = accent)
+                BodyMSB(stringResource(feeRate.title), color = color)
+                BodySSB(stringResource(feeRate.description), color = accent)
             }
             FillWidth()
             if (sats != 0L) {
@@ -176,7 +186,31 @@ private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                uiState = SendUiState(),
+                uiState = SendFeeUiState(
+                    items = mapOf(
+                        FeeRate.FAST to 4000L,
+                        FeeRate.NORMAL to 3000L,
+                        FeeRate.SLOW to 2000L,
+                        FeeRate.CUSTOM to 0L,
+                    ),
+                    selected = FeeRate.NORMAL,
+                ),
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewEmpty() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = SendFeeUiState(
+                    items = mapOf(),
+                    selected = FeeRate.NORMAL,
+                ),
                 modifier = Modifier.sheetHeight(),
             )
         }
