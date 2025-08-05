@@ -1,38 +1,18 @@
 package to.bitkit.ui.sheets
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import to.bitkit.R
 import to.bitkit.models.NewTransactionSheetDetails
-import to.bitkit.ui.appViewModel
-import to.bitkit.ui.components.Caption13Up
-import to.bitkit.ui.components.RectangleButton
-import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
@@ -43,13 +23,11 @@ import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
 import to.bitkit.ui.screens.wallets.send.SendErrorScreen
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
+import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithDrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
-import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.SendEffect
@@ -224,108 +202,6 @@ fun SendSheet(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun SendRecipientScreen(
-    onEvent: (SendEvent) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    val app = appViewModel
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .gradientBackground()
-            .navigationBarsPadding()
-    ) {
-        SheetTopBar(titleText = stringResource(R.string.wallet__send_bitcoin))
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            VerticalSpacer(32.dp)
-            Caption13Up(text = stringResource(R.string.wallet__send_to), color = Colors.White64)
-            VerticalSpacer(16.dp)
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_contact),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_users),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                scope.launch {
-                    app?.toast(Exception("Coming soon: Contact"))
-                }
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_invoice),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_clipboard_text),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                onEvent(SendEvent.Paste)
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_manual),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_pencil_simple),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                onEvent(SendEvent.EnterManually)
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_scan),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_scan),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-            ) {
-                onEvent(SendEvent.Scan)
-            }
-            Spacer(modifier = Modifier.weight(1f))
-
-            Image(
-                painter = painterResource(R.drawable.coin_stack_logo),
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun Preview() {
-    AppThemeSurface {
-        SendRecipientScreen(
-            onEvent = {},
-        )
     }
 }
 
