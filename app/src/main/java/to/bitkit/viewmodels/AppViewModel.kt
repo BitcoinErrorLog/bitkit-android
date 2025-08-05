@@ -358,7 +358,7 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(speed = speed)
         }
-        setSendEffect(SendEffect.NavigateToReview)
+        setSendEffect(SendEffect.PopBack)
     }
 
     private fun onPaymentMethodSwitch() {
@@ -1277,6 +1277,7 @@ sealed class SendEffect {
     data object NavigateToAmount : SendEffect()
     data object NavigateToScan : SendEffect()
     data object NavigateToReview : SendEffect()
+    data object PopBack : SendEffect()
     data object NavigateToWithdrawConfirm : SendEffect()
     data object NavigateToWithdrawError : SendEffect()
     data object NavigateToCoinSelection : SendEffect()
