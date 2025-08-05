@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
@@ -75,6 +77,7 @@ fun ReceiveQrScreen(
     onCjitToggle: (Boolean) -> Unit,
     onClickEditInvoice: () -> Unit,
     onClickReceiveOnSpending: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val window = remember(context) { (context as? Activity)?.window }
@@ -110,7 +113,7 @@ fun ReceiveQrScreen(
     val uri = cjitInvoice.value ?: walletState.bip21
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -389,7 +392,7 @@ private fun CopyAddressCard(
 
             Tooltip(
                 text = stringResource(R.string.wallet__receive_copied),
-                tooltipState = tooltipState
+                tooltipState = tooltipState,
             ) {
                 PrimaryButton(
                     text = stringResource(R.string.common__copy),
@@ -431,7 +434,7 @@ private fun CopyAddressCard(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun ReceiveQrScreenPreview() {
+private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
@@ -440,17 +443,18 @@ private fun ReceiveQrScreenPreview() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
-                onCjitToggle = { },
+                onCjitToggle = {},
                 onClickEditInvoice = {},
                 onClickReceiveOnSpending = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
 }
 
-@Preview(showSystemUi = true, heightDp = 600)
+@Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
-private fun ReceiveQrScreenPreviewSmallScreen() {
+private fun PreviewSmall() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
@@ -459,9 +463,10 @@ private fun ReceiveQrScreenPreviewSmallScreen() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
-                onCjitToggle = { },
+                onCjitToggle = {},
                 onClickEditInvoice = {},
                 onClickReceiveOnSpending = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -469,7 +474,7 @@ private fun ReceiveQrScreenPreviewSmallScreen() {
 
 @Preview(showSystemUi = true, device = Devices.PIXEL_TABLET)
 @Composable
-private fun ReceiveQrScreenPreviewTablet() {
+private fun PreviewTablet() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
@@ -478,9 +483,10 @@ private fun ReceiveQrScreenPreviewTablet() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
-                onCjitToggle = { },
+                onCjitToggle = {},
                 onClickEditInvoice = {},
                 onClickReceiveOnSpending = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -489,12 +495,12 @@ private fun ReceiveQrScreenPreviewTablet() {
 @Suppress("SpellCheckingInspection")
 @Preview(showBackground = true)
 @Composable
-private fun CopyValuesSlidePreview() {
+private fun PreviewSlide2() {
     AppThemeSurface {
         Column(
             modifier = Modifier
                 .gradientBackground()
-                .padding(16.dp),
+                .padding(16.dp)
         ) {
             CopyValuesSlide(
                 onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",

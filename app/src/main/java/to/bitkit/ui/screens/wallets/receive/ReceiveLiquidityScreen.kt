@@ -15,10 +15,12 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyMB
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ChannelStatusUi
 import to.bitkit.ui.components.LightningChannel
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -27,9 +29,10 @@ import kotlin.math.round
 @Composable
 fun ReceiveLiquidityScreen(
     entry: CjitEntryDetails,
-    isAdditional: Boolean = false,
     onContinue: () -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    isAdditional: Boolean = false,
 ) {
     val channelSize = entry.channelSizeSat
     val localBalance = entry.receiveAmountSats - entry.feeSat
@@ -39,7 +42,7 @@ fun ReceiveLiquidityScreen(
         round(channelSize - localBalance - remoteReserve).toLong()
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .gradientBackground()
             .navigationBarsPadding()
@@ -85,19 +88,22 @@ fun ReceiveLiquidityScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ReceiveLiquidityScreen(
-            entry = CjitEntryDetails(
-                channelSizeSat = 200_000L,
-                receiveAmountSats = 50_000L,
-                feeSat = 10_000L,
-                networkFeeSat = 5_000L,
-                serviceFeeSat = 150_000L,
-                invoice = "",
-            ),
-            isAdditional = false,
-            onContinue = {},
-            onBack = {},
-        )
+        BottomSheetPreview {
+            ReceiveLiquidityScreen(
+                entry = CjitEntryDetails(
+                    channelSizeSat = 200_000L,
+                    receiveAmountSats = 50_000L,
+                    feeSat = 10_000L,
+                    networkFeeSat = 5_000L,
+                    serviceFeeSat = 150_000L,
+                    invoice = "",
+                ),
+                isAdditional = false,
+                onContinue = {},
+                onBack = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -105,18 +111,21 @@ private fun Preview() {
 @Composable
 private fun Preview2() {
     AppThemeSurface {
-        ReceiveLiquidityScreen(
-            entry = CjitEntryDetails(
-                channelSizeSat = 200_000L,
-                receiveAmountSats = 50_000L,
-                feeSat = 10_000L,
-                networkFeeSat = 5_000L,
-                serviceFeeSat = 150_000L,
-                invoice = "",
-            ),
-            isAdditional = true,
-            onContinue = {},
-            onBack = {},
-        )
+        BottomSheetPreview {
+            ReceiveLiquidityScreen(
+                entry = CjitEntryDetails(
+                    channelSizeSat = 200_000L,
+                    receiveAmountSats = 50_000L,
+                    feeSat = 10_000L,
+                    networkFeeSat = 5_000L,
+                    serviceFeeSat = 150_000L,
+                    invoice = "",
+                ),
+                isAdditional = true,
+                onContinue = {},
+                onBack = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

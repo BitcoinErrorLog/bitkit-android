@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Devices.PIXEL_TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,12 +30,15 @@ import to.bitkit.models.PrimaryDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -89,7 +93,7 @@ fun ReceiveConfirmScreen(
         } ?: sats.toString()
     }
 
-    ReceiveConfirmContent(
+    Content(
         receiveSats = entry.receiveAmountSats,
         networkFeeFormatted = networkFeeFormatted,
         serviceFeeFormatted = serviceFeeFormatted,
@@ -102,7 +106,7 @@ fun ReceiveConfirmScreen(
 }
 
 @Composable
-private fun ReceiveConfirmContent(
+private fun Content(
     receiveSats: Long,
     isAdditional: Boolean,
     networkFeeFormatted: String,
@@ -111,9 +115,10 @@ private fun ReceiveConfirmContent(
     onLearnMoreClick: () -> Unit,
     onContinueClick: () -> Unit,
     onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -143,8 +148,12 @@ private fun ReceiveConfirmContent(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(24.dp))
+                val text = when (isAdditional) {
+                    true -> stringResource(R.string.wallet__receive_connect_additional)
+                    else -> stringResource(R.string.wallet__receive_connect_initial)
+                }
                 BodyM(
-                    text = stringResource(if (isAdditional) R.string.wallet__receive_connect_additional else R.string.wallet__receive_connect_initial)
+                    text = text
                         .replace("{networkFee}", networkFeeFormatted)
                         .replace("{serviceFee}", serviceFeeFormatted)
                         .withAccent(
@@ -171,76 +180,88 @@ private fun ReceiveConfirmContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                VerticalSpacer(16.dp)
             }
         }
     }
 }
 
-@Preview(showSystemUi = true, name = "Initial flow")
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ReceiveConfirmContent(
-            receiveSats = 12500L,
-            networkFeeFormatted = "$0.50",
-            serviceFeeFormatted = "$1.00",
-            receiveAmountFormatted = "$100.00",
-            onLearnMoreClick = {},
-            onContinueClick = {},
-            onBackClick = {},
-            isAdditional = false
-        )
+        BottomSheetPreview {
+            Content(
+                receiveSats = 12500L,
+                isAdditional = false,
+                networkFeeFormatted = "$0.50",
+                serviceFeeFormatted = "$1.00",
+                receiveAmountFormatted = "$100.00",
+                onLearnMoreClick = {},
+                onContinueClick = {},
+                onBackClick = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview(showSystemUi = true, name = "Aditional flow")
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewAdditional() {
     AppThemeSurface {
-        ReceiveConfirmContent(
-            receiveSats = 12500L,
-            isAdditional = true,
-            networkFeeFormatted = "$0.50",
-            serviceFeeFormatted = "$1.00",
-            receiveAmountFormatted = "$100.00",
-            onLearnMoreClick = {},
-            onContinueClick = {},
-            onBackClick = {},
-        )
+        BottomSheetPreview {
+            Content(
+                receiveSats = 12500L,
+                isAdditional = true,
+                networkFeeFormatted = "$0.50",
+                serviceFeeFormatted = "$1.00",
+                receiveAmountFormatted = "$100.00",
+                onLearnMoreClick = {},
+                onContinueClick = {},
+                onBackClick = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview(showSystemUi = true, name = "Small device", widthDp = 400, heightDp = 620)
+@Preview(showBackground = true, device = NEXUS_5)
 @Composable
-private fun Preview3() {
+private fun PreviewSmall() {
     AppThemeSurface {
-        ReceiveConfirmContent(
-            receiveSats = 12500L,
-            isAdditional = true,
-            networkFeeFormatted = "$0.50",
-            serviceFeeFormatted = "$1.00",
-            receiveAmountFormatted = "$100.00",
-            onLearnMoreClick = {},
-            onContinueClick = {},
-            onBackClick = {},
-        )
+        BottomSheetPreview {
+            Content(
+                receiveSats = 12500L,
+                isAdditional = true,
+                networkFeeFormatted = "$0.50",
+                serviceFeeFormatted = "$1.00",
+                receiveAmountFormatted = "$100.00",
+                onLearnMoreClick = {},
+                onContinueClick = {},
+                onBackClick = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview(showSystemUi = true, name = "Tablet", device = PIXEL_TABLET)
+@Preview(showSystemUi = true, device = PIXEL_TABLET)
 @Composable
-private fun Preview4() {
+private fun PreviewTablet() {
     AppThemeSurface {
-        ReceiveConfirmContent(
-            receiveSats = 12500L,
-            isAdditional = true,
-            networkFeeFormatted = "$0.50",
-            serviceFeeFormatted = "$1.00",
-            receiveAmountFormatted = "$100.00",
-            onLearnMoreClick = {},
-            onContinueClick = {},
-            onBackClick = {},
-        )
+        BottomSheetPreview {
+            Content(
+                receiveSats = 12500L,
+                isAdditional = true,
+                networkFeeFormatted = "$0.50",
+                serviceFeeFormatted = "$1.00",
+                receiveAmountFormatted = "$100.00",
+                onLearnMoreClick = {},
+                onContinueClick = {},
+                onBackClick = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

@@ -17,8 +17,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -27,9 +29,10 @@ import to.bitkit.ui.theme.Colors
 fun LocationBlockScreen(
     onBackPressed: () -> Unit,
     navigateAdvancedSetup: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -51,7 +54,9 @@ fun LocationBlockScreen(
                 painter = painterResource(R.drawable.globe),
                 contentScale = ContentScale.FillWidth,
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 60.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 60.dp)
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -66,9 +71,12 @@ fun LocationBlockScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        LocationBlockScreen(
-            onBackPressed = {},
-            navigateAdvancedSetup = {}
-        )
+        BottomSheetPreview {
+            LocationBlockScreen(
+                onBackPressed = {},
+                navigateAdvancedSetup = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

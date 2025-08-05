@@ -25,6 +25,7 @@ import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.RectangleButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -33,11 +34,12 @@ import to.bitkit.viewmodels.SendEvent
 @Composable
 fun SendRecipientScreen(
     onEvent: (SendEvent) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val app = appViewModel
     Column(
-        modifier = Modifier.Companion
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -129,6 +131,7 @@ private fun Preview() {
         BottomSheetPreview {
             SendRecipientScreen(
                 onEvent = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
