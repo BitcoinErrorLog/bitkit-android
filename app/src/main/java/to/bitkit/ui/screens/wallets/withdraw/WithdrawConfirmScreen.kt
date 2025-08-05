@@ -17,9 +17,11 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -30,9 +32,10 @@ fun WithdrawConfirmScreen(
     uiState: SendUiState,
     onBack: () -> Unit,
     onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -77,14 +80,12 @@ fun WithdrawConfirmScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Column {
-            VerticalSpacer(100.dp)
+        BottomSheetPreview {
             WithdrawConfirmScreen(
-                uiState = SendUiState(
-                    amount = 250_000u
-                ),
+                uiState = SendUiState(amount = 250_000u),
                 onBack = {},
                 onConfirm = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

@@ -19,7 +19,6 @@ import to.bitkit.models.HealthState
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 class HealthRepoTest : BaseUnitTest() {

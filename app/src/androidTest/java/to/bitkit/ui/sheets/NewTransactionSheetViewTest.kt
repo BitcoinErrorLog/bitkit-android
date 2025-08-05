@@ -1,7 +1,8 @@
-package to.bitkit.ui.screens.wallets.sheets
+package to.bitkit.ui.sheets
 
-import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -59,7 +60,7 @@ class NewTransactionSheetViewTest {
         composeTestRule.mainClock.advanceTimeBy(1000)
         composeTestRule.waitForIdle()
 
-//        composeTestRule.onNodeWithTag("balance_header").assertExists() Doesn't work because of viewmodel instance
+        // composeTestRule.onNodeWithTag("balance_header").assertExists() Doesn't work because of viewmodel instance
         composeTestRule.onNodeWithTag("sent_buttons_row").assertExists()
 
         // Verify buttons exist and click interactions work
@@ -105,7 +106,7 @@ class NewTransactionSheetViewTest {
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("confetti_animation").assertExists()
-//        composeTestRule.onNodeWithTag("balance_header").assertExists()
+        // composeTestRule.onNodeWithTag("balance_header").assertExists()
         composeTestRule.onNodeWithTag("sent_buttons_row").assertDoesNotExist()
 
         // Verify only OK button exists for received transactions

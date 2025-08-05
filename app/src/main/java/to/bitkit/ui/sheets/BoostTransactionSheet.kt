@@ -1,11 +1,11 @@
-package to.bitkit.ui.screens.wallets.activity
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -14,15 +14,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,25 +39,27 @@ import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheet
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.HorizontalSpacer
-import to.bitkit.ui.components.ModalBottomSheetHandle
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
-import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.ModalSheetTopPadding
 import to.bitkit.ui.utils.withAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoostTransactionSheet(
-    modifier: Modifier = Modifier,
     viewModel: BoostTransactionViewModel = hiltViewModel(),
     onSuccess: () -> Unit,
     onFailure: () -> Unit,
@@ -107,51 +103,42 @@ fun BoostTransactionSheet(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    val sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = AppShapes.sheet,
-        containerColor = Colors.Black,
-        dragHandle = { ModalBottomSheetHandle() },
-        modifier = Modifier
-            .padding(top = ModalSheetTopPadding)
-            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_SHEET)
-    ) {
+    BottomSheet(onDismissRequest = onDismiss) {
         BoostTransactionContent(
-            modifier = modifier,
+            uiState = uiState,
             onClickEdit = viewModel::onClickEdit,
             onClickUseSuggestedFee = viewModel::onClickUseSuggestedFee,
             onChangeAmount = viewModel::onChangeAmount,
             onSwipe = viewModel::onConfirmBoost,
-            uiState = uiState
         )
     }
 }
 
 @Composable
 fun BoostTransactionContent(
-    modifier: Modifier = Modifier,
     uiState: BoostTransactionUiState,
     onClickEdit: () -> Unit,
     onClickUseSuggestedFee: () -> Unit,
     onChangeAmount: (Boolean) -> Unit,
     onSwipe: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .gradientBackground()
-            .padding(horizontal = 16.dp)
-            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_CONTENT),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .sheetHeight(SheetSize.SMALL)
+            .gradientBackground()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp)
+            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_CONTENT)
     ) {
         SheetTopBar(
             titleText = stringResource(R.string.wallet__boost_title),
             modifier = Modifier.testTag(BoostTransactionTestTags.SHEET_TOP_BAR)
         )
+        VerticalSpacer(16.dp)
 
         val bodyText = if (uiState.isDefaultMode) {
             R.string.wallet__boost_fee_recomended
@@ -176,7 +163,7 @@ fun BoostTransactionContent(
                 DefaultModeContent(
                     uiState = uiState,
                     onClickEdit = onClickEdit,
-                    onSwipe = onSwipe
+                    onSwipe = onSwipe,
                 )
             }
 
@@ -185,12 +172,11 @@ fun BoostTransactionContent(
                     uiState = uiState,
                     onChangeAmount = onChangeAmount,
                     onClickUseSuggestedFee = onClickUseSuggestedFee,
-                    onSwipe = onSwipe
+                    onSwipe = onSwipe,
                 )
             }
         }
-
-        VerticalSpacer(8.dp)
+        VerticalSpacer(16.dp)
     }
 }
 
@@ -206,6 +192,7 @@ private fun LoadingState() {
                 .size(32.dp)
                 .testTag(BoostTransactionTestTags.LOADING_INDICATOR)
         )
+        FillHeight()
     }
 }
 
@@ -213,96 +200,98 @@ private fun LoadingState() {
 private fun DefaultModeContent(
     uiState: BoostTransactionUiState,
     onClickEdit: () -> Unit,
-    onSwipe: () -> Unit
+    onSwipe: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClickEdit() }
-            .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
-            .semantics {
-                contentDescription = "Edit fee settings"
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_timer_alt_yellow),
-            contentDescription = null,
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .size(24.dp)
-                .testTag(BoostTransactionTestTags.TIMER_ICON)
-        )
-
-        HorizontalSpacer(16.dp)
-
-        Column(modifier = Modifier.weight(1f)) {
-            BodyMSB(
-                text = stringResource(R.string.wallet__boost),
-                color = Colors.White,
-                modifier = Modifier.testTag(BoostTransactionTestTags.BOOST_TITLE)
-            )
-            BodySSB(
-                text = uiState.estimateTime,
-                color = Colors.White64,
-                modifier = Modifier.testTag(BoostTransactionTestTags.ESTIMATE_TIME)
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.End,
+                .fillMaxWidth()
+                .clickableAlpha { onClickEdit() }
+                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
+                .semantics {
+                    contentDescription = "Edit fee settings"
+                },
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
-                    ?.withAccent(defaultColor = Colors.White)
-                    ?.toString()
-                    .orEmpty()
+            Image(
+                painter = painterResource(R.drawable.ic_timer_alt_yellow),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(24.dp)
+                    .testTag(BoostTransactionTestTags.TIMER_ICON)
+            )
 
+            HorizontalSpacer(16.dp)
+
+            Column(modifier = Modifier.weight(1f)) {
                 BodyMSB(
-                    text = feeText,
+                    text = stringResource(R.string.wallet__boost),
                     color = Colors.White,
-                    modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_PRIMARY)
+                    modifier = Modifier.testTag(BoostTransactionTestTags.BOOST_TITLE)
                 )
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_pencil_simple),
-                    tint = Colors.White,
-                    contentDescription = stringResource(R.string.common__edit),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .testTag(BoostTransactionTestTags.EDIT_FEE_ICON)
+                BodySSB(
+                    text = uiState.estimateTime,
+                    color = Colors.White64,
+                    modifier = Modifier.testTag(BoostTransactionTestTags.ESTIMATE_TIME)
                 )
             }
 
-            val feeTextSecondary = rememberMoneyText(
-                sats = uiState.totalFeeSats.toLong(),
-                reversed = true
-            )?.withAccent(defaultColor = Colors.White64)
-                ?.toString()
-                .orEmpty()
+            Column(
+                horizontalAlignment = Alignment.End,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
+                        ?.withAccent(defaultColor = Colors.White)
+                        ?.toString()
+                        .orEmpty()
 
-            BodySSB(
-                text = feeTextSecondary,
-                color = Colors.White64,
-                modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_SECONDARY)
-            )
+                    BodyMSB(
+                        text = feeText,
+                        color = Colors.White,
+                        modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_PRIMARY)
+                    )
+
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pencil_simple),
+                        tint = Colors.White,
+                        contentDescription = stringResource(R.string.common__edit),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .testTag(BoostTransactionTestTags.EDIT_FEE_ICON)
+                    )
+                }
+
+                val feeTextSecondary = rememberMoneyText(
+                    sats = uiState.totalFeeSats.toLong(),
+                    reversed = true
+                )?.withAccent(defaultColor = Colors.White64)
+                    ?.toString()
+                    .orEmpty()
+
+                BodySSB(
+                    text = feeTextSecondary,
+                    color = Colors.White64,
+                    modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_SECONDARY)
+                )
+            }
         }
+
+        FillHeight(min = 16.dp)
+
+        SwipeToConfirm(
+            text = stringResource(R.string.wallet__boost_swipe),
+            color = Colors.Yellow,
+            endIcon = R.drawable.ic_timer_alt_yellow,
+            onConfirm = onSwipe,
+            loading = uiState.boosting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(BoostTransactionTestTags.SWIPE_TO_CONFIRM)
+        )
     }
-
-    VerticalSpacer(68.dp)
-
-    SwipeToConfirm(
-        text = stringResource(R.string.wallet__boost_swipe),
-        color = Colors.Yellow,
-        endIcon = R.drawable.ic_timer_alt_yellow,
-        onConfirm = onSwipe,
-        loading = uiState.boosting,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(BoostTransactionTestTags.SWIPE_TO_CONFIRM)
-    )
 }
 
 @Composable
@@ -310,11 +299,11 @@ private fun CustomModeContent(
     uiState: BoostTransactionUiState,
     onChangeAmount: (Boolean) -> Unit,
     onClickUseSuggestedFee: () -> Unit,
-    onSwipe: () -> Unit
+    onSwipe: () -> Unit,
 ) {
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.testTag(BoostTransactionTestTags.CUSTOM_MODE_CONTENT),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -391,7 +380,7 @@ private fun CustomModeContent(
             modifier = Modifier.testTag(BoostTransactionTestTags.USE_SUGGESTED_FEE_BUTTON)
         )
 
-        VerticalSpacer(16.dp)
+        FillHeight(min = 16.dp)
 
         SwipeToConfirm(
             text = stringResource(R.string.wallet__boost_swipe),
@@ -446,12 +435,10 @@ fun QuantityButton(
 }
 
 object BoostTransactionTestTags {
-    const val BOOST_TRANSACTION_SHEET = "boost_transaction_sheet"
     const val BOOST_TRANSACTION_CONTENT = "boost_transaction_content"
     const val SHEET_TOP_BAR = "sheet_top_bar"
     const val DESCRIPTION_TEXT = "description_text"
     const val LOADING_INDICATOR = "loading_indicator"
-    const val DEFAULT_MODE_CONTENT = "default_mode_content"
     const val CUSTOM_MODE_CONTENT = "custom_mode_content"
     const val EDIT_FEE_ROW = "edit_fee_row"
     const val EDIT_FEE_ICON = "edit_fee_icon"
@@ -467,63 +454,68 @@ object BoostTransactionTestTags {
     const val USE_SUGGESTED_FEE_BUTTON = "use_suggested_fee_button"
 }
 
-// Preview Composables
-@Preview(showBackground = true, name = "Default mode")
+@Preview(showSystemUi = true, name = "Default mode")
 @Composable
-private fun PreviewDefaultMode() {
+private fun Preview() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = false,
-                isDefaultMode = true,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = false,
+                    isDefaultMode = true,
+                    feeRate = 4UL,
+                ),
             )
-        )
+        }
     }
 }
 
-@Preview(showBackground = true, name = "Custom mode")
+@Preview(showSystemUi = true, name = "Custom mode")
 @Composable
 private fun PreviewCustomMode() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = false,
-                isDefaultMode = false,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = false,
+                    isDefaultMode = false,
+                    feeRate = 4UL,
+                ),
             )
-        )
+        }
     }
 }
 
-@Preview(showBackground = true, name = "Loading state")
+@Preview(showSystemUi = true, name = "Loading state")
 @Composable
 private fun PreviewLoading() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = true,
-                isDefaultMode = false,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = true,
+                    isDefaultMode = false,
+                    feeRate = 4UL,
+                ),
             )
-        )
+        }
     }
 }

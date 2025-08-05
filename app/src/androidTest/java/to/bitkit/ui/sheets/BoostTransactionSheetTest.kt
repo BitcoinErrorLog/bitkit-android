@@ -1,6 +1,10 @@
-package to.bitkit.ui.screens.wallets.activity
+package to.bitkit.ui.sheets
 
+import android.R
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -16,6 +20,10 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import to.bitkit.ui.sheets.BoostTransactionContent
+import to.bitkit.ui.sheets.BoostTransactionTestTags
+import to.bitkit.ui.sheets.BoostTransactionUiState
+import to.bitkit.ui.sheets.QuantityButton
 import to.bitkit.ui.theme.AppThemeSurface
 
 @HiltAndroidTest
@@ -308,13 +316,13 @@ class BoostTransactionContentTest {
         composeTestRule.setContent {
             AppThemeSurface {
                 QuantityButton(
-                    icon = androidx.compose.ui.res.painterResource(android.R.drawable.ic_delete),
-                    iconColor = androidx.compose.ui.graphics.Color.Red,
-                    backgroundColor = androidx.compose.ui.graphics.Color.Gray,
+                    icon = painterResource(R.drawable.ic_delete),
+                    iconColor = Color.Red,
+                    backgroundColor = Color.Gray,
                     enabled = true,
                     contentDescription = "Test button",
                     onClick = { onClickCalled = true },
-                    modifier = androidx.compose.ui.Modifier.testTag("test_quantity_button")
+                    modifier = Modifier.testTag("test_quantity_button")
                 )
             }
         }
@@ -332,13 +340,13 @@ class BoostTransactionContentTest {
         composeTestRule.setContent {
             AppThemeSurface {
                 QuantityButton(
-                    icon = androidx.compose.ui.res.painterResource(android.R.drawable.ic_delete),
-                    iconColor = androidx.compose.ui.graphics.Color.Red,
-                    backgroundColor = androidx.compose.ui.graphics.Color.Gray,
+                    icon = painterResource(R.drawable.ic_delete),
+                    iconColor = Color.Red,
+                    backgroundColor = Color.Gray,
                     enabled = false,
                     contentDescription = "Test button",
                     onClick = { onClickCalled = true },
-                    modifier = androidx.compose.ui.Modifier.testTag("test_quantity_button_disabled")
+                    modifier = Modifier.testTag("test_quantity_button_disabled")
                 )
             }
         }

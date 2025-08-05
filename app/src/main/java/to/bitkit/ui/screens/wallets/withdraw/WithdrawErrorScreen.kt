@@ -19,10 +19,12 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -34,9 +36,10 @@ fun WithDrawErrorScreen(
     onBack: () -> Unit,
     onClickScan: () -> Unit,
     onClickSupport: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -52,7 +55,8 @@ fun WithDrawErrorScreen(
 
             VerticalSpacer(46.dp)
 
-            BodyM( // TODO add missing localized text
+            BodyM(
+                // TODO add missing localized text
                 text = "Your withdrawal was unsuccessful. Please scan the QR code again or contact support.",
                 color = Colors.White64,
             )
@@ -97,8 +101,7 @@ fun WithDrawErrorScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Column {
-            VerticalSpacer(100.dp)
+        BottomSheetPreview {
             WithDrawErrorScreen(
                 uiState = SendUiState(
                     amount = 250_000u
@@ -106,6 +109,7 @@ private fun Preview() {
                 onBack = {},
                 onClickScan = {},
                 onClickSupport = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

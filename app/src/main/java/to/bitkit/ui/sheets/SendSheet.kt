@@ -1,47 +1,33 @@
-package to.bitkit.ui.screens.wallets.send
+package to.bitkit.ui.sheets
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import to.bitkit.R
 import to.bitkit.models.NewTransactionSheetDetails
-import to.bitkit.ui.appViewModel
-import to.bitkit.ui.components.Caption13Up
-import to.bitkit.ui.components.RectangleButton
-import to.bitkit.ui.components.SheetSize
-import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.scanner.QrScanningScreen
+import to.bitkit.ui.screens.wallets.send.AddTagScreen
+import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
+import to.bitkit.ui.screens.wallets.send.SendAddressScreen
+import to.bitkit.ui.screens.wallets.send.SendAmountScreen
+import to.bitkit.ui.screens.wallets.send.SendCoinSelectionScreen
+import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
+import to.bitkit.ui.screens.wallets.send.SendErrorScreen
+import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
+import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
+import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithDrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.settings.support.SupportScreen
-import to.bitkit.ui.shared.util.gradientBackground
-import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.SendEffect
@@ -49,15 +35,15 @@ import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
-fun SendOptionsView(
+fun SendSheet(
     appViewModel: AppViewModel,
     walletViewModel: WalletViewModel,
-    startDestination: SendRoute = SendRoute.Options,
+    startDestination: SendRoute = SendRoute.Recipient,
     onComplete: (NewTransactionSheetDetails?) -> Unit,
 ) {
     // Reset on new user-initiated send
     LaunchedEffect(startDestination) {
-        if (startDestination == SendRoute.Options) {
+        if (startDestination == SendRoute.Recipient) {
             appViewModel.resetSendState()
             appViewModel.resetQuickPayData()
         }
@@ -66,7 +52,7 @@ fun SendOptionsView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(SheetSize.LARGE)
+            .sheetHeight()
             .imePadding()
     ) {
         val navController = rememberNavController()
@@ -77,7 +63,7 @@ fun SendOptionsView(
                     is SendEffect.NavigateToAddress -> navController.navigate(SendRoute.Address)
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
-                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.ReviewAndSend)
+                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.Confirm)
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
@@ -90,8 +76,8 @@ fun SendOptionsView(
             navController = navController,
             startDestination = startDestination,
         ) {
-            composableWithDefaultTransitions<SendRoute.Options> {
-                SendOptionsContent(
+            composableWithDefaultTransitions<SendRoute.Recipient> {
+                SendRecipientScreen(
                     onEvent = { appViewModel.setSendEvent(it) }
                 )
             }
@@ -124,16 +110,16 @@ fun SendOptionsView(
             }
             composableWithDefaultTransitions<SendRoute.CoinSelection> {
                 val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                CoinSelectionScreen(
+                SendCoinSelectionScreen(
                     requiredAmount = sendUiState.amount,
                     address = sendUiState.address,
                     onBack = { navController.popBackStack() },
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
                 )
             }
-            composableWithDefaultTransitions<SendRoute.ReviewAndSend> {
+            composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                SendAndReviewScreen(
+                SendConfirmScreen(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
                     onBack = { navController.popBackStack() },
@@ -174,7 +160,7 @@ fun SendOptionsView(
                 )
             }
             composableWithDefaultTransitions<SendRoute.PinCheck> {
-                PinCheckScreen(
+                SendPinCheckScreen(
                     onBack = { navController.popBackStack() },
                     onSuccess = {
                         navController.previousBackStackEntry
@@ -187,7 +173,7 @@ fun SendOptionsView(
             }
             composableWithDefaultTransitions<SendRoute.QuickPay> {
                 val quickPayData by appViewModel.quickPayData.collectAsStateWithLifecycle()
-                QuickPaySendScreen(
+                SendQuickPayScreen(
                     quickPayData = requireNotNull(quickPayData),
                     onPaymentComplete = {
                         onComplete(null)
@@ -202,9 +188,9 @@ fun SendOptionsView(
                 SendErrorScreen(
                     errorMessage = route.errorMessage,
                     onRetry = {
-                        if (startDestination == SendRoute.Options) {
-                            navController.navigate(SendRoute.Options) {
-                                popUpTo<SendRoute.Options> { inclusive = true }
+                        if (startDestination == SendRoute.Recipient) {
+                            navController.navigate(SendRoute.Recipient) {
+                                popUpTo<SendRoute.Recipient> { inclusive = true }
                             }
                         } else {
                             onComplete(null)
@@ -219,111 +205,9 @@ fun SendOptionsView(
     }
 }
 
-@Composable
-private fun SendOptionsContent(
-    onEvent: (SendEvent) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    val app = appViewModel
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .gradientBackground()
-            .navigationBarsPadding()
-    ) {
-        SheetTopBar(titleText = stringResource(R.string.wallet__send_bitcoin))
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            VerticalSpacer(32.dp)
-            Caption13Up(text = stringResource(R.string.wallet__send_to))
-            VerticalSpacer(16.dp)
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_contact),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_users),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                scope.launch {
-                    app?.toast(Exception("Coming soon: Contact"))
-                }
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_invoice),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_clipboard_text),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                onEvent(SendEvent.Paste)
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_manual),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_pencil_simple),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                onEvent(SendEvent.EnterManually)
-            }
-
-            RectangleButton(
-                label = stringResource(R.string.wallet__recipient_scan),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_scan),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(28.dp),
-                    )
-                },
-            ) {
-                onEvent(SendEvent.Scan)
-            }
-            Spacer(modifier = Modifier.weight(1f))
-
-            Image(
-                painter = painterResource(R.drawable.coin_stack_logo),
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun SendOptionsContentPreview() {
-    AppThemeSurface {
-        SendOptionsContent(
-            onEvent = {},
-        )
-    }
-}
-
 sealed interface SendRoute {
     @Serializable
-    data object Options : SendRoute
+    data object Recipient : SendRoute
 
     @Serializable
     data object Address : SendRoute
@@ -333,9 +217,6 @@ sealed interface SendRoute {
 
     @Serializable
     data object QrScanner : SendRoute
-
-    @Serializable
-    data object ReviewAndSend : SendRoute
 
     @Serializable
     data object WithdrawConfirm : SendRoute
@@ -357,6 +238,9 @@ sealed interface SendRoute {
 
     @Serializable
     data object QuickPay : SendRoute
+
+    @Serializable
+    data object Confirm : SendRoute
 
     @Serializable
     data class Error(val errorMessage: String) : SendRoute

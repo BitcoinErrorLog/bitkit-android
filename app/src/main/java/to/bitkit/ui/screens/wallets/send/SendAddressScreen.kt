@@ -16,16 +16,20 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import to.bitkit.R
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.ScreenTransitionMs
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendUiState
 
@@ -34,9 +38,15 @@ fun SendAddressScreen(
     uiState: SendUiState,
     onBack: () -> Unit,
     onEvent: (SendEvent) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(ScreenTransitionMs)
+        focusRequester.requestFocus()
+    }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -48,9 +58,6 @@ fun SendAddressScreen(
         Column(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            val focusRequester = remember { FocusRequester() }
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
             VerticalSpacer(16.dp)
             Caption13Up(stringResource(R.string.wallet__send_to), color = Colors.White64)
             VerticalSpacer(8.dp)
@@ -81,12 +88,12 @@ fun SendAddressScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Column {
-            VerticalSpacer(100.dp)
+        BottomSheetPreview {
             SendAddressScreen(
                 uiState = SendUiState(),
                 onBack = {},
                 onEvent = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }
@@ -96,15 +103,15 @@ private fun Preview() {
 @Composable
 private fun Preview2() {
     AppThemeSurface {
-        Column {
-            VerticalSpacer(100.dp)
+        BottomSheetPreview {
             SendAddressScreen(
                 uiState = SendUiState(
                     addressInput = "bitcoin:bc17tq4mtkq86vte7a26e0za560kgflwqsvxznmer5?lightning=LNBC1PQUVNP8KHGPLNF6REGS3VY5F40AJFUN4S2JUDQQNP4TK9MP6LWWLWTC3XX3UUEVYZ4EVQU3X4NQDX348QPP5WJC9DWNTAFN7FZEZFVDC3MHV67SX2LD2MG602E3LEZDMFT29JLWQSP54QKM4G8A2KD5RGEKACA3CH4XV4M2MQDN62F8S2CCRES9QYYSGQCQPCXQRRSSRZJQWQKZS03MNNHSTKR9DN2XQRC8VW5X6CEWAL8C6RW6QQ3T02T3R",
-                    isAddressInputValid = true
+                    isAddressInputValid = true,
                 ),
                 onBack = {},
                 onEvent = {},
+                modifier = Modifier.sheetHeight(),
             )
         }
     }

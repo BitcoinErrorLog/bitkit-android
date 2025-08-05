@@ -18,7 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.DrawerMenu
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.navigateToActivityItem
@@ -77,8 +77,8 @@ fun HomeNav(
 
         TabBar(
             hazeState = hazeState,
-            onSendClick = { appViewModel.showSheet(BottomSheetType.Send()) },
-            onReceiveClick = { appViewModel.showSheet(BottomSheetType.Receive) },
+            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
             onScanClick = { rootNavController.navigateToScanner() },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -129,7 +129,7 @@ private fun NavContent(
             SavingsWalletScreen(
                 onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
-                onEmptyActivityRowClick = { appViewModel.showSheet(BottomSheetType.Receive) },
+                onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
                 onTransferToSpendingClick = {
                     if (!hasSeenSpendingIntro) {
                         rootNavController.navigateToTransferSpendingIntro()
@@ -149,7 +149,7 @@ private fun NavContent(
                 uiState = mainUiState,
                 onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
-                onEmptyActivityRowClick = { appViewModel.showSheet(BottomSheetType.Receive) },
+                onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
                 onTransferToSavingsClick = {
                     if (!hasSeenSavingsIntro) {
                         rootNavController.navigateToTransferSavingsIntro()

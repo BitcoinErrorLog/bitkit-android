@@ -37,7 +37,7 @@ import to.bitkit.ui.appViewModel
 import to.bitkit.ui.backupsViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyMSB
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsButtonRow
@@ -73,7 +73,7 @@ fun BackupSettingsScreen(
 
     BackupSettingsScreenContent(
         uiState = uiState,
-        onBackupClick = { app.showSheet(BottomSheetType.BackupNavigation) },
+        onBackupClick = { app.showSheet(Sheet.Backup()) },
         onResetAndRestoreClick = {
             if (isPinEnabled) {
                 navController.navigateToAuthCheck(onSuccessActionId = AuthCheckAction.NAV_TO_RESET)

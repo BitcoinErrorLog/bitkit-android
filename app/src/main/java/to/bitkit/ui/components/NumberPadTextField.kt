@@ -19,20 +19,19 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import okhttp3.internal.toLongOrDefault
 import to.bitkit.ext.removeSpaces
+import to.bitkit.ext.toLongOrDefault
 import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.SATS_IN_BTC
-import to.bitkit.models.formatToModernDisplay
 import to.bitkit.models.asBtc
+import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.CurrencyViewModel
 import java.math.BigDecimal
-
 
 @Composable
 fun NumberPadTextField(
@@ -46,7 +45,7 @@ fun NumberPadTextField(
     if (isPreview) {
         return MoneyAmount(
             modifier = modifier,
-            value = input,
+            value = input.toLongOrNull()?.formatToModernDisplay() ?: input,
             unit = primaryDisplay,
             placeholder = "",
             showPlaceholder = true,
@@ -102,7 +101,7 @@ fun NumberPadTextField(
             }
 
             displayUnit == BitcoinDisplayUnit.MODERN && primaryDisplay == PrimaryDisplay.BITCOIN -> {
-                input.toLongOrDefault(0L).formatToModernDisplay()
+                input.toLongOrDefault().formatToModernDisplay()
             }
 
             else -> {
@@ -159,6 +158,7 @@ fun AmountInputHandler(
                         sats.asBtc().toString()
                     }
                 }
+
                 PrimaryDisplay.FIAT -> {
                     currencyVM.convert(sats)?.formatted ?: "0"
                 }
@@ -171,13 +171,13 @@ fun AmountInputHandler(
         if (primaryDisplay == lastDisplay) return@LaunchedEffect
         lastDisplay = primaryDisplay
         val newInput = when (primaryDisplay) {
-            PrimaryDisplay.BITCOIN -> { //Convert fiat to sats
+            PrimaryDisplay.BITCOIN -> { // Convert fiat to sats
                 val amountLong = currencyVM.convertFiatToSats(input.replace(",", "").toDoubleOrNull() ?: 0.0)
                 if (amountLong > 0.0) amountLong.toString() else ""
             }
 
-            PrimaryDisplay.FIAT -> { //Convert sats to fiat
-                val convertedAmount = currencyVM.convert(input.toLongOrDefault(0L))
+            PrimaryDisplay.FIAT -> { // Convert sats to fiat
+                val convertedAmount = currencyVM.convert(input.toLongOrDefault())
                 if ((convertedAmount?.value
                         ?: BigDecimal(0)) > BigDecimal(0)
                 ) convertedAmount?.formatted.toString() else ""
@@ -189,7 +189,11 @@ fun AmountInputHandler(
     LaunchedEffect(input) {
         val sats = when (primaryDisplay) {
             PrimaryDisplay.BITCOIN -> {
-                if (displayUnit == BitcoinDisplayUnit.MODERN) input else (input.toLongOrDefault(0L) * SATS_IN_BTC).toString()
+                if (displayUnit == BitcoinDisplayUnit.MODERN) {
+                    input
+                } else {
+                    (input.toLongOrDefault() * SATS_IN_BTC).toString()
+                }
             }
 
             PrimaryDisplay.FIAT -> {
@@ -216,7 +220,7 @@ fun MoneyAmount(
         horizontalAlignment = Alignment.Start
     ) {
 
-        MoneySSB(sats = satoshis, reversed = true)
+        MoneySSB(sats = satoshis, unit = unit.not())
 
         Spacer(modifier = Modifier.height(12.dp))
 

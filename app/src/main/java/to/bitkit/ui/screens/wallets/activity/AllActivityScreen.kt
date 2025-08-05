@@ -40,7 +40,7 @@ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
 import to.bitkit.ui.appViewModel
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListFilter
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
@@ -80,10 +80,10 @@ fun AllActivityScreen(
         currentTabIndex = currentTabIndex,
         onTabChange = { viewModel.setTab(tabs[it]) },
         onBackClick = onBack,
-        onTagClick = { app.showSheet(BottomSheetType.ActivityTagSelector) },
-        onDateRangeClick = { app.showSheet(BottomSheetType.ActivityDateRangeSelector) },
+        onTagClick = { app.showSheet(Sheet.ActivityTagSelector) },
+        onDateRangeClick = { app.showSheet(Sheet.ActivityDateRangeSelector) },
         onActivityItemClick = onActivityItemClick,
-        onEmptyActivityRowClick = { app.showSheet(BottomSheetType.Receive) },
+        onEmptyActivityRowClick = { app.showSheet(Sheet.Receive) },
     )
 }
 

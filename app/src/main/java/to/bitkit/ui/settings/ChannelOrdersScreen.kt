@@ -27,7 +27,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.BtBolt11InvoiceState
 import com.synonym.bitkitcore.BtOrderState
 import com.synonym.bitkitcore.BtOrderState2
@@ -56,12 +56,13 @@ import com.synonym.bitkitcore.ILspNode
 import com.synonym.bitkitcore.IcJitEntry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import to.bitkit.ext.formatWithDotSeparator
+import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.Routes
 import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
@@ -215,20 +216,17 @@ private fun OrderDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Order Details",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Order Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow("ID", order.id)
                         DetailRow("Onchain txs", order.payment.onchain.transactions.size.toString())
                         DetailRow("State", order.state.toString())
                         DetailRow("State 2", order.state2.toString())
-                        DetailRow("LSP Balance", "${order.lspBalanceSat} sats")
-                        DetailRow("Client Balance", "${order.clientBalanceSat} sats")
-                        DetailRow("Total Fee", "${order.feeSat} sats")
-                        DetailRow("Network Fee", "${order.networkFeeSat} sats")
-                        DetailRow("Service Fee", "${order.serviceFeeSat} sats")
+                        DetailRow("LSP Balance", order.lspBalanceSat.formatToModernDisplay())
+                        DetailRow("Client Balance", order.clientBalanceSat.formatToModernDisplay())
+                        DetailRow("Total Fee", order.feeSat.formatToModernDisplay())
+                        DetailRow("Network Fee", order.networkFeeSat.formatToModernDisplay())
+                        DetailRow("Service Fee", order.serviceFeeSat.formatToModernDisplay())
                     }
                 }
             }
@@ -242,10 +240,7 @@ private fun OrderDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Channel Settings",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Channel Settings", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow("Zero Conf", if (order.zeroConf) "Yes" else "No")
                         DetailRow("Zero Reserve", if (order.zeroReserve) "Yes" else "No")
@@ -268,10 +263,7 @@ private fun OrderDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "LSP Information",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "LSP Information", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow("Alias", order.lspNode.alias)
                         DetailRow("Node ID", order.lspNode.pubkey)
@@ -300,7 +292,7 @@ private fun OrderDetailView(
                             DetailRow("Coupon Code", couponCode)
                             order.discount?.let { discount ->
                                 DetailRow("Discount Type", discount.code)
-                                DetailRow("Value", "${discount.absoluteSat}")
+                                DetailRow("Value", discount.absoluteSat.formatToModernDisplay())
                             }
                         }
                     }
@@ -316,10 +308,7 @@ private fun OrderDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Timestamps",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Timestamps", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow("Created", order.createdAt)
                         DetailRow("Updated", order.updatedAt)
@@ -391,14 +380,11 @@ private fun CJitDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Entry Details",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Entry Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow(label = "ID", value = entry.id)
                         DetailRow(label = "State", value = entry.state.toString())
-                        DetailRow(label = "Channel Size", value = "${entry.channelSizeSat} sats")
+                        DetailRow(label = "Channel Size", value = entry.channelSizeSat.formatToModernDisplay())
                         entry.channelOpenError?.let { error ->
                             DetailRow(label = "Error", value = error, isError = true)
                         }
@@ -415,14 +401,11 @@ private fun CJitDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Fees",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Fees", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "Total Fee", value = "${entry.feeSat} sats")
-                        DetailRow(label = "Network Fee", value = "${entry.networkFeeSat} sats")
-                        DetailRow(label = "Service Fee", value = "${entry.serviceFeeSat} sats")
+                        DetailRow(label = "Total Fee", value = entry.feeSat.formatToModernDisplay())
+                        DetailRow(label = "Network Fee", value = entry.networkFeeSat.formatToModernDisplay())
+                        DetailRow(label = "Service Fee", value = entry.serviceFeeSat.formatToModernDisplay())
                     }
                 }
             }
@@ -436,10 +419,7 @@ private fun CJitDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Channel Settings",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Channel Settings", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow(label = "Node ID", value = entry.nodeId)
                         DetailRow(label = "Expiry Weeks", value = "${entry.channelExpiryWeeks}")
@@ -456,10 +436,7 @@ private fun CJitDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "LSP Information",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "LSP Information", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow(label = "Alias", value = entry.lspNode.alias)
                         DetailRow(label = "Node ID", value = entry.lspNode.pubkey)
@@ -477,10 +454,7 @@ private fun CJitDetailView(
                             .padding(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Discount",
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                            Text(text = "Discount", style = MaterialTheme.typography.titleMedium)
                             Spacer(modifier = Modifier.height(8.dp))
                             DetailRow(label = "Coupon Code", value = entry.couponCode)
                             entry.discount?.let { discount ->
@@ -501,10 +475,7 @@ private fun CJitDetailView(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Timestamps",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Text(text = "Timestamps", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow(label = "Created", value = entry.createdAt)
                         DetailRow(label = "Updated", value = entry.updatedAt)
@@ -543,7 +514,7 @@ private fun CopyableText(text: String) {
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .scale(scale)
-            .clickable {
+            .clickableAlpha {
                 clipboardManager.setText(AnnotatedString(text))
                 coroutineScope.launch {
                     isPressed = true
@@ -557,10 +528,10 @@ private fun CopyableText(text: String) {
 @Composable
 private fun OrderRow(order: IBtOrder) {
     Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -581,23 +552,23 @@ private fun OrderRow(order: IBtOrder) {
         }
 
         Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BalanceInfo(label = "LSP Balance", value = "${order.lspBalanceSat.formatWithDotSeparator()} sats")
-            BalanceInfo(
+            InfoCell(label = "LSP Balance", value = order.lspBalanceSat.formatToModernDisplay())
+            InfoCell(
                 label = "Client Balance",
-                value = "${order.clientBalanceSat.formatWithDotSeparator()} sats",
+                value = order.clientBalanceSat.formatToModernDisplay(),
                 alignment = Alignment.End
             )
         }
 
         Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BalanceInfo(label = "Fees", value = "${order.feeSat.formatWithDotSeparator()} sats")
-            BalanceInfo(
+            InfoCell(label = "Fees", value = order.feeSat.formatToModernDisplay())
+            InfoCell(
                 label = "Expires",
                 value = order.channelExpiresAt.take(10),
                 alignment = Alignment.End
@@ -636,10 +607,10 @@ private fun CJitRow(entry: IcJitEntry) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BalanceInfo(label = "Channel Size", value = "${entry.channelSizeSat.formatWithDotSeparator()} sats")
-            BalanceInfo(
+            InfoCell(label = "Channel Size", value = "${entry.channelSizeSat.formatToModernDisplay()} sats")
+            InfoCell(
                 label = "Fees",
-                value = "${entry.feeSat.formatWithDotSeparator()} sats",
+                value = "${entry.feeSat.formatToModernDisplay()} sats",
                 alignment = Alignment.End
             )
         }
@@ -663,7 +634,7 @@ private fun CJitRow(entry: IcJitEntry) {
 }
 
 @Composable
-private fun BalanceInfo(label: String, value: String, alignment: Alignment.Horizontal = Alignment.Start) {
+private fun InfoCell(label: String, value: String, alignment: Alignment.Horizontal = Alignment.Start) {
     Column(horizontalAlignment = alignment) {
         Text(
             text = label,
@@ -715,7 +686,7 @@ private fun DetailRow(label: String, value: String, isError: Boolean = false) {
             textAlign = TextAlign.End,
             modifier = Modifier
                 .scale(scale)
-                .clickable {
+                .clickableAlpha {
                     clipboardManager.setText(AnnotatedString(value))
                     coroutineScope.launch {
                         isPressed = true

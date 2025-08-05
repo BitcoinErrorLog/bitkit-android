@@ -46,7 +46,7 @@ import to.bitkit.ui.utils.BiometricPrompt
 import to.bitkit.ui.utils.rememberBiometricAuthSupported
 
 @Composable
-fun AskForBiometricsScreen(
+fun PinBiometricsScreen(
     onContinue: (isBioOn: Boolean) -> Unit,
     onSkip: () -> Unit,
     onBack: () -> Unit,

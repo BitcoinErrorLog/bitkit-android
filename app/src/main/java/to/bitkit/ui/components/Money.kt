@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
+import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.LocalCurrencies
@@ -13,6 +14,7 @@ import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.CurrencyUiState
 
 @Composable
 fun MoneyDisplay(
@@ -30,9 +32,9 @@ fun MoneyDisplay(
 @Composable
 fun MoneySSB(
     sats: Long,
-    reversed: Boolean = false,
+    unit: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
 ) {
-    rememberMoneyText(sats = sats, reversed = reversed)?.let { text ->
+    rememberMoneyText(sats = sats, unit = unit)?.let { text ->
         BodySSB(text = text.withAccent(accentColor = Colors.White64))
     }
 }
@@ -75,39 +77,25 @@ fun MoneyCaptionB(
     }
 }
 
-
-/**
- * Generates a formatted representation of a monetary value based on the provided amount in satoshis
- * and the current currency display settings. Can be either in bitcoin or fiat.
- *
- * @param sats The amount in satoshis to be formatted and displayed.
- * @param reversed If true, swaps the primary and secondary display. Defaults to false.
- * @return A formatted string representation of the monetary value, or null if it cannot be generated.
- */
 @Composable
 fun rememberMoneyText(
     sats: Long,
     reversed: Boolean = false,
+    currencies: CurrencyUiState = LocalCurrencies.current,
+    unit: PrimaryDisplay = if (reversed) currencies.primaryDisplay.not() else currencies.primaryDisplay,
 ): String? {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
-        return "<accent>₿</accent> ${sats.formatToModernDisplay()}"
+        val symbol = if (unit == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else "$"
+        return "<accent>$symbol</accent> ${sats.formatToModernDisplay()}"
     }
 
     val currency = currencyViewModel ?: return null
-    val currencies = LocalCurrencies.current
 
     return remember(currencies, sats, reversed) {
         val converted = currency.convert(sats) ?: return@remember null
 
-        val secondaryDisplay = when (currencies.primaryDisplay) {
-            PrimaryDisplay.BITCOIN -> PrimaryDisplay.FIAT
-            PrimaryDisplay.FIAT -> PrimaryDisplay.BITCOIN
-        }
-
-        val primary = if (reversed) secondaryDisplay else currencies.primaryDisplay
-
-        if (primary == PrimaryDisplay.BITCOIN) {
+        if (unit == PrimaryDisplay.BITCOIN) {
             val btcComponents = converted.bitcoinDisplay(currencies.displayUnit)
             "<accent>${btcComponents.symbol}</accent> ${btcComponents.value}"
         } else {

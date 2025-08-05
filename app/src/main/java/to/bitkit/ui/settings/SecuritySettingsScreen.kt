@@ -6,9 +6,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -17,9 +14,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
+import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyS
-import to.bitkit.ui.components.SheetHost
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.components.settings.SettingsSwitchRow
@@ -30,7 +28,6 @@ import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
-import to.bitkit.ui.settings.pin.PinNavigationSheet
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -55,8 +52,8 @@ fun SecuritySettingsScreen(
     navController: NavController,
 ) {
     val settings = settingsViewModel ?: return
+    val app = appViewModel ?: return
 
-    var showPinSheet by remember { mutableStateOf(false) }
     val isPinEnabled by settings.isPinEnabled.collectAsStateWithLifecycle()
     val isPinOnLaunchEnabled by settings.isPinOnLaunchEnabled.collectAsStateWithLifecycle()
     val isBiometricEnabled by settings.isBiometricEnabled.collectAsStateWithLifecycle()
@@ -67,72 +64,67 @@ fun SecuritySettingsScreen(
     val enableAutoReadClipboard by settings.enableAutoReadClipboard.collectAsStateWithLifecycle()
     val enableSendAmountWarning by settings.enableSendAmountWarning.collectAsStateWithLifecycle()
 
-    PinNavigationSheetHost(
-        showSheet = showPinSheet,
-        onDismiss = { showPinSheet = false },
-    ) {
-        SecuritySettingsContent(
-            isPinEnabled = isPinEnabled,
-            isPinOnLaunchEnabled = isPinOnLaunchEnabled,
-            isBiometricEnabled = isBiometricEnabled,
-            isPinOnIdleEnabled = isPinOnIdleEnabled,
-            isPinForPaymentsEnabled = isPinForPaymentsEnabled,
-            enableSwipeToHideBalance = enableSwipeToHideBalance,
-            hideBalanceOnOpen = hideBalanceOnOpen,
-            enableAutoReadClipboard = enableAutoReadClipboard,
-            enableSendAmountWarning = enableSendAmountWarning,
-            isBiometrySupported = rememberBiometricAuthSupported(),
-            onPinClick = {
-                if (!isPinEnabled) {
-                    showPinSheet = true
-                } else {
-                    navController.navigateToDisablePin()
-                }
-            },
-            onChangePinClick = {
-                navController.navigateToChangePin()
-            },
-            onPinOnLaunchClick = {
-                navController.navigateToAuthCheck(
-                    onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_LAUNCH,
-                )
-            },
-            onPinOnIdleClick = {
-                navController.navigateToAuthCheck(
-                    onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_IDLE,
-                )
-            },
-            onPinForPaymentsClick = {
-                navController.navigateToAuthCheck(
-                    onSuccessActionId = AuthCheckAction.TOGGLE_PIN_FOR_PAYMENTS,
-                )
-            },
-            onUseBiometricsClick = {
-                navController.navigateToAuthCheck(
-                    requireBiometrics = true,
-                    onSuccessActionId = AuthCheckAction.TOGGLE_BIOMETRICS,
-                )
-            },
-            onSwipeToHideBalanceClick = {
-                settings.setEnableSwipeToHideBalance(!enableSwipeToHideBalance)
-            },
-            onHideBalanceOnOpenClick = {
-                settings.setHideBalanceOnOpen(!hideBalanceOnOpen)
-            },
-            onAutoReadClipboardClick = {
-                settings.setEnableAutoReadClipboard(!enableAutoReadClipboard)
-            },
-            onSendAmountWarningClick = {
-                settings.setEnableSendAmountWarning(!enableSendAmountWarning)
-            },
-            onBackClick = { navController.popBackStack() },
-            onCloseClick = { navController.navigateToHome() },
-        )
-    }
+    Content(
+        isPinEnabled = isPinEnabled,
+        isPinOnLaunchEnabled = isPinOnLaunchEnabled,
+        isBiometricEnabled = isBiometricEnabled,
+        isPinOnIdleEnabled = isPinOnIdleEnabled,
+        isPinForPaymentsEnabled = isPinForPaymentsEnabled,
+        enableSwipeToHideBalance = enableSwipeToHideBalance,
+        hideBalanceOnOpen = hideBalanceOnOpen,
+        enableAutoReadClipboard = enableAutoReadClipboard,
+        enableSendAmountWarning = enableSendAmountWarning,
+        isBiometrySupported = rememberBiometricAuthSupported(),
+        onPinClick = {
+            if (!isPinEnabled) {
+                app.showSheet(Sheet.Pin())
+            } else {
+                navController.navigateToDisablePin()
+            }
+        },
+        onChangePinClick = {
+            navController.navigateToChangePin()
+        },
+        onPinOnLaunchClick = {
+            navController.navigateToAuthCheck(
+                onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_LAUNCH,
+            )
+        },
+        onPinOnIdleClick = {
+            navController.navigateToAuthCheck(
+                onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_IDLE,
+            )
+        },
+        onPinForPaymentsClick = {
+            navController.navigateToAuthCheck(
+                onSuccessActionId = AuthCheckAction.TOGGLE_PIN_FOR_PAYMENTS,
+            )
+        },
+        onUseBiometricsClick = {
+            navController.navigateToAuthCheck(
+                requireBiometrics = true,
+                onSuccessActionId = AuthCheckAction.TOGGLE_BIOMETRICS,
+            )
+        },
+        onSwipeToHideBalanceClick = {
+            settings.setEnableSwipeToHideBalance(!enableSwipeToHideBalance)
+        },
+        onHideBalanceOnOpenClick = {
+            settings.setHideBalanceOnOpen(!hideBalanceOnOpen)
+        },
+        onAutoReadClipboardClick = {
+            settings.setEnableAutoReadClipboard(!enableAutoReadClipboard)
+        },
+        onSendAmountWarningClick = {
+            settings.setEnableSendAmountWarning(!enableSendAmountWarning)
+        },
+        onBackClick = { navController.popBackStack() },
+        onCloseClick = { navController.navigateToHome() },
+    )
 }
 
 @Composable
-private fun SecuritySettingsContent(
+private fun Content(
     isPinEnabled: Boolean,
     isPinOnLaunchEnabled: Boolean,
     isBiometricEnabled: Boolean,
@@ -259,29 +251,11 @@ private fun SecuritySettingsContent(
     }
 }
 
-@Composable
-private fun PinNavigationSheetHost(
-    showSheet: Boolean,
-    onDismiss: () -> Unit = {},
-    content: @Composable () -> Unit,
-) {
-    SheetHost(
-        shouldExpand = showSheet,
-        onDismiss = onDismiss,
-        sheets = {
-            if (showSheet) {
-                PinNavigationSheet(showLaterButton = false, onDismiss)
-            }
-        },
-        content = content,
-    )
-}
-
 @Preview
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        SecuritySettingsContent(
+        Content(
             isPinEnabled = true,
             isPinOnLaunchEnabled = true,
             isBiometricEnabled = false,

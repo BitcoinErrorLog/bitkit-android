@@ -75,9 +75,9 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
-import to.bitkit.ui.components.BottomSheetType
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.HorizontalSpacer
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.StatusBarSpacer
 import to.bitkit.ui.components.SuggestionCard
 import to.bitkit.ui.components.TertiaryButton
@@ -93,7 +93,6 @@ import to.bitkit.ui.navigateToTransferIntro
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListSimple
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
-import to.bitkit.ui.screens.wallets.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.screens.widgets.DragAndDropWidget
 import to.bitkit.ui.screens.widgets.DragDropColumn
 import to.bitkit.ui.screens.widgets.blocks.BlockCard
@@ -104,6 +103,9 @@ import to.bitkit.ui.screens.widgets.price.PriceCard
 import to.bitkit.ui.screens.widgets.weather.WeatherCard
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
+import to.bitkit.ui.sheets.BackupRoute
+import to.bitkit.ui.sheets.HighBalanceWarningSheet
+import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -176,11 +178,11 @@ fun HomeScreen(
                 }
 
                 Suggestion.BACK_UP -> {
-                    appViewModel.showSheet(BottomSheetType.Backup)
+                    appViewModel.showSheet(Sheet.Backup(BackupRoute.Intro))
                 }
 
                 Suggestion.SECURE -> {
-                    appViewModel.showSheet(BottomSheetType.PinSetup)
+                    appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
                 }
 
                 Suggestion.SUPPORT -> {
@@ -248,7 +250,7 @@ fun HomeScreen(
         },
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         onDismissHighBalanceSheet = homeViewModel::dismissHighBalanceSheet,
-        onClickEmptyActivityRow = { appViewModel.showSheet(BottomSheetType.Receive) },
+        onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
     )
 }
 

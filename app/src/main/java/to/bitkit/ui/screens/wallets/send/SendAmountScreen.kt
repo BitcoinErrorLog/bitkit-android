@@ -24,15 +24,16 @@ import androidx.compose.ui.unit.dp
 import com.synonym.bitkitcore.LnurlPayData
 import com.synonym.bitkitcore.LnurlWithdrawData
 import to.bitkit.R
+import to.bitkit.ext.maxSendableSat
+import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.models.BalanceState
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.PrimaryDisplay
-import to.bitkit.ext.maxSendableSat
-import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.components.AmountInputHandler
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Keyboard
 import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.NumberPadActionButton
@@ -43,6 +44,7 @@ import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -98,6 +100,7 @@ fun SendAmountContent(
     input: String,
     walletUiState: MainUiState,
     uiState: SendUiState,
+    modifier: Modifier = Modifier,
     balances: BalanceState = LocalBalances.current,
     primaryDisplay: PrimaryDisplay,
     displayUnit: BitcoinDisplayUnit,
@@ -108,7 +111,7 @@ fun SendAmountContent(
     onClickMax: (Long) -> Unit = {},
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -289,25 +292,26 @@ private fun PaymentMethodButton(
 @Composable
 private fun PreviewRunningLightning() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.LIGHTNING,
-                amountInput = "100",
-                isAmountInputValid = true,
-                isUnified = false
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Running
-            ),
-            onBack = {},
-            onEvent = {},
-            input = "100",
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.FIAT,
-            currencyUiState = CurrencyUiState(),
-            onInputChanged = {},
-        )
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.LIGHTNING,
+                    amountInput = "100",
+                    isAmountInputValid = true,
+                    isUnified = false
+                ),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
+                onBack = {},
+                onEvent = {},
+                input = "100",
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.FIAT,
+                currencyUiState = CurrencyUiState(),
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -315,25 +319,26 @@ private fun PreviewRunningLightning() {
 @Composable
 private fun PreviewRunningUnified() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.LIGHTNING,
-                amountInput = "100",
-                isAmountInputValid = true,
-                isUnified = true,
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Running
-            ),
-            onBack = {},
-            onEvent = {},
-            input = "100",
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.FIAT,
-            currencyUiState = CurrencyUiState(),
-            onInputChanged = {},
-        )
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.LIGHTNING,
+                    amountInput = "100",
+                    isAmountInputValid = true,
+                    isUnified = true,
+                ),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
+                onBack = {},
+                onEvent = {},
+                input = "100",
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.FIAT,
+                currencyUiState = CurrencyUiState(),
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -341,25 +346,26 @@ private fun PreviewRunningUnified() {
 @Composable
 private fun PreviewRunningOnchain() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.ONCHAIN,
-                amountInput = "5000",
-                isAmountInputValid = true,
-                isUnified = false
-            ),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Running
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-            onBack = {},
-            onEvent = {},
-            input = "5000",
-            currencyUiState = CurrencyUiState(),
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            onInputChanged = {},
-        )
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.ONCHAIN,
+                    amountInput = "5000",
+                    isAmountInputValid = true,
+                    isUnified = false
+                ),
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
+                onBack = {},
+                onEvent = {},
+                input = "5000",
+                currencyUiState = CurrencyUiState(),
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -367,23 +373,24 @@ private fun PreviewRunningOnchain() {
 @Composable
 private fun PreviewInitializing() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.LIGHTNING,
-                amountInput = "100"
-            ),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Initializing
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-            onBack = {},
-            onEvent = {},
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            input = "100",
-            currencyUiState = CurrencyUiState(),
-            onInputChanged = {},
-        )
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.LIGHTNING,
+                    amountInput = "100"
+                ),
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Initializing),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
+                onBack = {},
+                onEvent = {},
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                input = "100",
+                currencyUiState = CurrencyUiState(),
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -391,34 +398,35 @@ private fun PreviewInitializing() {
 @Composable
 private fun PreviewWithdraw() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.LIGHTNING,
-                amountInput = "100",
-                lnurl = LnurlParams.LnurlWithdraw(
-                    data = LnurlWithdrawData(
-                        uri = "",
-                        callback = "",
-                        k1 = "",
-                        defaultDescription = "Test",
-                        minWithdrawable = 1u,
-                        maxWithdrawable = 130u,
-                        tag = ""
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.LIGHTNING,
+                    amountInput = "100",
+                    lnurl = LnurlParams.LnurlWithdraw(
+                        data = LnurlWithdrawData(
+                            uri = "",
+                            callback = "",
+                            k1 = "",
+                            defaultDescription = "Test",
+                            minWithdrawable = 1u,
+                            maxWithdrawable = 130u,
+                            tag = ""
+                        ),
                     ),
                 ),
-            ),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Running
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
-            onBack = {},
-            onEvent = {},
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            input = "100",
-            currencyUiState = CurrencyUiState(),
-            onInputChanged = {},
-        )
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
+                onBack = {},
+                onEvent = {},
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                input = "100",
+                currencyUiState = CurrencyUiState(),
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -426,34 +434,35 @@ private fun PreviewWithdraw() {
 @Composable
 private fun PreviewLnurlPay() {
     AppThemeSurface {
-        SendAmountContent(
-            uiState = SendUiState(
-                payMethod = SendMethod.LIGHTNING,
-                amountInput = "100",
-                lnurl = LnurlParams.LnurlPay(
-                    data = LnurlPayData(
-                        uri = "",
-                        callback = "",
-                        metadataStr = "",
-                        commentAllowed = 255u,
-                        minSendable = 1000u,
-                        maxSendable = 1000_000u,
-                        allowsNostr = false,
-                        nostrPubkey = null,
+        BottomSheetPreview {
+            SendAmountContent(
+                uiState = SendUiState(
+                    payMethod = SendMethod.LIGHTNING,
+                    amountInput = "100",
+                    lnurl = LnurlParams.LnurlPay(
+                        data = LnurlPayData(
+                            uri = "",
+                            callback = "",
+                            metadataStr = "",
+                            commentAllowed = 255u,
+                            minSendable = 1000u,
+                            maxSendable = 1000_000u,
+                            allowsNostr = false,
+                            nostrPubkey = null,
+                        ),
                     ),
                 ),
-            ),
-            walletUiState = MainUiState(
-                nodeLifecycleState = NodeLifecycleState.Running
-            ),
-            balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
-            onBack = {},
-            onEvent = {},
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            input = "100",
-            currencyUiState = CurrencyUiState(),
-            onInputChanged = {},
-        )
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
+                onBack = {},
+                onEvent = {},
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                input = "100",
+                currencyUiState = CurrencyUiState(),
+                onInputChanged = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.activity
+package to.bitkit.ui.sheets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

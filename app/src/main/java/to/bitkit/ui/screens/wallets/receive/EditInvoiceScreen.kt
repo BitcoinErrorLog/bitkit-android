@@ -48,6 +48,7 @@ import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Keyboard
@@ -57,6 +58,7 @@ import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextFieldDefaults
@@ -172,9 +174,10 @@ fun EditInvoiceContent(
     onTextChanged: (String) -> Unit,
     onClickTag: (String) -> Unit,
     onInputChanged: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -365,23 +368,26 @@ fun EditInvoiceContent(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        EditInvoiceContent(
-            input = "123",
-            noteText = "",
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            onBack = {},
-            onTextChanged = {},
-            numericKeyboardVisible = false,
-            onClickBalance = {},
-            onInputChanged = {},
-            onContinueGeneral = {},
-            onContinueKeyboard = {},
-            tags = listOf(),
-            onClickAddTag = {},
-            onClickTag = {},
-            isSoftKeyboardVisible = false,
-        )
+        BottomSheetPreview {
+            EditInvoiceContent(
+                input = "123",
+                noteText = "",
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                onBack = {},
+                onTextChanged = {},
+                numericKeyboardVisible = false,
+                onClickBalance = {},
+                onInputChanged = {},
+                onContinueGeneral = {},
+                onContinueKeyboard = {},
+                tags = listOf(),
+                onClickAddTag = {},
+                onClickTag = {},
+                isSoftKeyboardVisible = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -389,23 +395,26 @@ private fun Preview() {
 @Composable
 private fun Preview2() {
     AppThemeSurface {
-        EditInvoiceContent(
-            input = "123",
-            noteText = "Note text",
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            onBack = {},
-            onTextChanged = {},
-            numericKeyboardVisible = false,
-            onClickBalance = {},
-            onInputChanged = {},
-            onContinueGeneral = {},
-            onContinueKeyboard = {},
-            tags = listOf("Team", "Dinner", "Home", "Work"),
-            onClickAddTag = {},
-            onClickTag = {},
-            isSoftKeyboardVisible = false,
-        )
+        BottomSheetPreview {
+            EditInvoiceContent(
+                input = "123",
+                noteText = "Note text",
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                onBack = {},
+                onTextChanged = {},
+                numericKeyboardVisible = false,
+                onClickBalance = {},
+                onInputChanged = {},
+                onContinueGeneral = {},
+                onContinueKeyboard = {},
+                tags = listOf("Team", "Dinner", "Home", "Work"),
+                onClickAddTag = {},
+                onClickTag = {},
+                isSoftKeyboardVisible = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
@@ -413,22 +422,25 @@ private fun Preview2() {
 @Composable
 private fun Preview3() {
     AppThemeSurface {
-        EditInvoiceContent(
-            input = "123",
-            noteText = "Note text",
-            primaryDisplay = PrimaryDisplay.BITCOIN,
-            displayUnit = BitcoinDisplayUnit.MODERN,
-            onBack = {},
-            onTextChanged = {},
-            numericKeyboardVisible = true,
-            onClickBalance = {},
-            onInputChanged = {},
-            onContinueGeneral = {},
-            onContinueKeyboard = {},
-            tags = listOf("Team", "Dinner", "Home"),
-            onClickAddTag = {},
-            onClickTag = {},
-            isSoftKeyboardVisible = false,
-        )
+        BottomSheetPreview {
+            EditInvoiceContent(
+                input = "123",
+                noteText = "Note text",
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                onBack = {},
+                onTextChanged = {},
+                numericKeyboardVisible = true,
+                onClickBalance = {},
+                onInputChanged = {},
+                onContinueGeneral = {},
+                onContinueKeyboard = {},
+                tags = listOf("Team", "Dinner", "Home"),
+                onClickAddTag = {},
+                onClickTag = {},
+                isSoftKeyboardVisible = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

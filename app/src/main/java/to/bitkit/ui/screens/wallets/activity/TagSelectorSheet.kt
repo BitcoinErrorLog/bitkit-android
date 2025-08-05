@@ -1,13 +1,10 @@
 package to.bitkit.ui.screens.wallets.activity
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -24,11 +21,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 
@@ -64,7 +63,7 @@ private fun Content(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(SheetSize.SMALL)
+            .sheetHeight(SheetSize.SMALL)
             .gradientBackground()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
@@ -115,10 +114,7 @@ private fun Content(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Box(
-            contentAlignment = Alignment.BottomCenter,
-            modifier = Modifier.fillMaxSize()
-        ) {
+        BottomSheetPreview {
             Content(
                 availableTags = listOf("Bitcoin", "Lightning", "Sent", "Received"),
                 selectedTags = setOf("Bitcoin", "Received"),

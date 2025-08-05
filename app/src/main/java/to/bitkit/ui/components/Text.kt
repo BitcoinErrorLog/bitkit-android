@@ -128,6 +128,8 @@ fun Subtitle(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
     textAlign: TextAlign = TextAlign.Start,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = if (maxLines == 1) TextOverflow.Ellipsis else TextOverflow.Clip,
 ) {
     Text(
         text = text,
@@ -135,6 +137,8 @@ fun Subtitle(
             color = color,
             textAlign = textAlign,
         ),
+        maxLines = maxLines,
+        overflow = overflow,
         modifier = modifier,
     )
 }

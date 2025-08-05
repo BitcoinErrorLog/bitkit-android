@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -26,10 +25,12 @@ import to.bitkit.env.Env
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.KEY_DELETE
-import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.components.NumberPadSimple
+import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
@@ -38,7 +39,7 @@ import to.bitkit.ui.theme.Colors
 const val PIN_CHECK_RESULT_KEY = "PIN_CHECK_RESULT_KEY"
 
 @Composable
-fun PinCheckScreen(
+fun SendPinCheckScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
 ) {
@@ -79,12 +80,12 @@ private fun PinCheckContent(
     onKeyPress: (String) -> Unit,
     onBack: () -> Unit,
     onClickForgotPin: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val isLastAttempt = attemptsRemaining == 1
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .gradientBackground()
             .navigationBarsPadding()
     ) {
@@ -144,44 +145,53 @@ private fun PinCheckContent(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        PinCheckContent(
-            pin = "123",
-            attemptsRemaining = 8,
-            onKeyPress = {},
-            onBack = {},
-            onClickForgotPin = {},
-        )
+        BottomSheetPreview {
+            PinCheckContent(
+                pin = "123",
+                attemptsRemaining = 8,
+                onKeyPress = {},
+                onBack = {},
+                onClickForgotPin = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-private fun PreviewAttempts() {
+private fun PreviewAttemptsLeft() {
     AppThemeSurface {
-        PinCheckContent(
-            pin = "123",
-            attemptsRemaining = 3,
-            onKeyPress = {},
-            onBack = {},
-            onClickForgotPin = {},
-        )
+        BottomSheetPreview {
+            PinCheckContent(
+                pin = "123",
+                attemptsRemaining = 3,
+                onKeyPress = {},
+                onBack = {},
+                onClickForgotPin = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewAttemptsLast() {
     AppThemeSurface {
-        PinCheckContent(
-            pin = "123",
-            attemptsRemaining = 1,
-            onKeyPress = {},
-            onBack = {},
-            onClickForgotPin = {},
-        )
+        BottomSheetPreview {
+            PinCheckContent(
+                pin = "123",
+                attemptsRemaining = 1,
+                onKeyPress = {},
+                onBack = {},
+                onClickForgotPin = {},
+                modifier = Modifier.sheetHeight(),
+            )
+        }
     }
 }

@@ -1,43 +1,35 @@
-package to.bitkit.ui.screens.wallets.sheets
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheet
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
-import to.bitkit.ui.components.ModalBottomSheetHandle
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
-import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.InterFontFamily
-import to.bitkit.ui.theme.ModalSheetTopPadding
 import to.bitkit.ui.utils.withAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,18 +39,7 @@ fun HighBalanceWarningSheet(
     understoodClick: () -> Unit,
     learnMoreClick: () -> Unit,
 ) {
-    val sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = AppShapes.sheet,
-        containerColor = Colors.Black,
-        dragHandle = { ModalBottomSheetHandle() },
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = ModalSheetTopPadding)
-    ) {
+    BottomSheet(onDismissRequest = onDismiss) {
         HighBalanceWarningContent(
             understoodClick = understoodClick,
             learnMoreClick = learnMoreClick,
@@ -74,6 +55,7 @@ fun HighBalanceWarningContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .sheetHeight(isModal = true)
             .gradientBackground()
             .navigationBarsPadding()
             .testTag("high_balance_intro_screen")
@@ -146,11 +128,12 @@ fun HighBalanceWarningContent(
 private fun Preview() {
     AppThemeSurface {
         Column {
-            VerticalSpacer(100.dp)
-            HighBalanceWarningContent(
-                understoodClick = {},
-                learnMoreClick = {},
-            )
+            BottomSheetPreview {
+                HighBalanceWarningContent(
+                    understoodClick = {},
+                    learnMoreClick = {},
+                )
+            }
         }
     }
 }

@@ -35,7 +35,7 @@ import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.components.AuthCheckScreen
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
@@ -75,9 +75,8 @@ import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
-import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
-import to.bitkit.ui.screens.wallets.send.SendOptionsView
-import to.bitkit.ui.screens.wallets.sheets.LnurlAuthSheet
+import to.bitkit.ui.screens.wallets.receive.ReceiveSheet
+import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
 import to.bitkit.ui.screens.widgets.WidgetsIntroScreen
@@ -113,8 +112,6 @@ import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen
 import to.bitkit.ui.settings.advanced.ElectrumConfigScreen
 import to.bitkit.ui.settings.advanced.RgsServerScreen
 import to.bitkit.ui.settings.appStatus.AppStatusScreen
-import to.bitkit.ui.settings.backups.BackupNavigationSheet
-import to.bitkit.ui.settings.backups.BackupSheet
 import to.bitkit.ui.settings.backups.ResetAndRestoreScreen
 import to.bitkit.ui.settings.general.DefaultUnitSettingsScreen
 import to.bitkit.ui.settings.general.GeneralSettingsScreen
@@ -130,7 +127,6 @@ import to.bitkit.ui.settings.pin.ChangePinNewScreen
 import to.bitkit.ui.settings.pin.ChangePinResultScreen
 import to.bitkit.ui.settings.pin.ChangePinScreen
 import to.bitkit.ui.settings.pin.DisablePinScreen
-import to.bitkit.ui.settings.pin.PinNavigationSheet
 import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen
 import to.bitkit.ui.settings.quickPay.QuickPaySettingsScreen
 import to.bitkit.ui.settings.support.ReportIssueResultScreen
@@ -138,6 +134,9 @@ import to.bitkit.ui.settings.support.ReportIssueScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.settings.transactionSpeed.CustomFeeSettingsScreen
 import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen
+import to.bitkit.ui.sheets.BackupSheet
+import to.bitkit.ui.sheets.LnurlAuthSheet
+import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.screenSlideIn
@@ -321,8 +320,8 @@ fun ContentView(
                 onDismiss = { appViewModel.hideSheet() },
                 sheets = {
                     when (val sheet = currentSheet) {
-                        is BottomSheetType.Send -> {
-                            SendOptionsView(
+                        is Sheet.Send -> {
+                            SendSheet(
                                 appViewModel = appViewModel,
                                 walletViewModel = walletViewModel,
                                 startDestination = sheet.route,
@@ -335,9 +334,9 @@ fun ContentView(
                             )
                         }
 
-                        is BottomSheetType.Receive -> {
+                        is Sheet.Receive -> {
                             val walletUiState by walletViewModel.uiState.collectAsState()
-                            ReceiveQrSheet(
+                            ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
                                     navController.navigate(Routes.ExternalConnection)
@@ -345,28 +344,11 @@ fun ContentView(
                             )
                         }
 
-                        is BottomSheetType.ActivityDateRangeSelector -> DateRangeSelectorSheet()
-                        is BottomSheetType.ActivityTagSelector -> TagSelectorSheet()
-
-                        is BottomSheetType.PinSetup -> PinNavigationSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                        )
-
-                        BottomSheetType.Backup -> BackupSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                            onBackupClick = {
-                                appViewModel.hideSheet()
-                                appViewModel.showSheet(BottomSheetType.BackupNavigation)
-                            },
-                            walletViewModel = walletViewModel
-                        )
-
-                        BottomSheetType.BackupNavigation -> BackupNavigationSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                        )
-
-                        is BottomSheetType.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-
+                        is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
+                        is Sheet.ActivityTagSelector -> TagSelectorSheet()
+                        is Sheet.Pin -> PinSheet(sheet, appViewModel)
+                        is Sheet.Backup -> BackupSheet(sheet, appViewModel)
+                        is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                         null -> Unit
                     }
                 }
@@ -552,7 +534,7 @@ private fun RootNavHost(
                             // TODO show receive sheet -> ReceiveAmount
                             navController.navigateToHome()
                             delay(500) // Wait for nav to actually finish
-                            appViewModel.showSheet(BottomSheetType.Receive)
+                            appViewModel.showSheet(Sheet.Receive)
                         }
                     },
                     onAdvanced = { navController.navigate(Routes.FundingAdvanced) },

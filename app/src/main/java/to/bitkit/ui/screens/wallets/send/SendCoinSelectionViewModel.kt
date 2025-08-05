@@ -21,7 +21,7 @@ import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 @HiltViewModel
-class CoinSelectionViewModel @Inject constructor(
+class SendCoinSelectionViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningRepo: LightningRepo,
     private val coreService: CoreService,
