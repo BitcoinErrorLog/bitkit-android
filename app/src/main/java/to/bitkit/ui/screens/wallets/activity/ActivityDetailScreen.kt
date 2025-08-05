@@ -63,6 +63,7 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityAddTagSheet
 import to.bitkit.ui.screens.wallets.activity.components.ActivityIcon
 import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.sheets.BoostTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.copyToClipboard
