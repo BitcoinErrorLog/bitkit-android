@@ -18,7 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
@@ -129,11 +131,19 @@ val ScreenTransitionMs = AnimationConstants.DefaultDurationMillis.milliseconds /
 object Insets {
     val Top: Dp
         @Composable
-        get() = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        get() {
+            val isPreview = LocalInspectionMode.current
+            if (isPreview) return 32.dp
+            return WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        }
 
     val Bottom: Dp
         @Composable
-        get() = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        get() {
+            val isPreview = LocalInspectionMode.current
+            if (isPreview) return 32.dp
+            return WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        }
 }
 
 val TopBarHeight: Dp
