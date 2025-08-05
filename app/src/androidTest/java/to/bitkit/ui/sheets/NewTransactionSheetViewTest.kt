@@ -60,7 +60,7 @@ class NewTransactionSheetViewTest {
         composeTestRule.mainClock.advanceTimeBy(1000)
         composeTestRule.waitForIdle()
 
-        //        composeTestRule.onNodeWithTag("balance_header").assertExists() Doesn't work because of viewmodel instance
+        // composeTestRule.onNodeWithTag("balance_header").assertExists() Doesn't work because of viewmodel instance
         composeTestRule.onNodeWithTag("sent_buttons_row").assertExists()
 
         // Verify buttons exist and click interactions work
@@ -106,7 +106,7 @@ class NewTransactionSheetViewTest {
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("confetti_animation").assertExists()
-        //        composeTestRule.onNodeWithTag("balance_header").assertExists()
+        // composeTestRule.onNodeWithTag("balance_header").assertExists()
         composeTestRule.onNodeWithTag("sent_buttons_row").assertDoesNotExist()
 
         // Verify only OK button exists for received transactions
