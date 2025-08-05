@@ -18,7 +18,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,7 +60,7 @@ fun SendFeeRateScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.load(sendUiState.speed)
+        viewModel.init(sendUiState)
     }
 
     Content(
@@ -88,7 +87,7 @@ private fun Content(
             .testTag("speed_screen")
     ) {
         SheetTopBar(stringResource(R.string.wallet__send_fee_speed), onBack = onBack)
-        if (uiState.items.isEmpty()) {
+        if (uiState.fees.isEmpty()) {
             Box(Modifier.fillMaxSize()) {
                 CircularProgressIndicator(
                     strokeWidth = 2.dp,
@@ -104,7 +103,7 @@ private fun Content(
             title = stringResource(R.string.wallet__send_fee_and_speed),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        uiState.items.map { (feeRate, sats) ->
+        uiState.fees.map { (feeRate, sats) ->
             FeeItem(
                 feeRate = feeRate,
                 sats = sats,
@@ -187,7 +186,7 @@ private fun Preview() {
         BottomSheetPreview {
             Content(
                 uiState = SendFeeUiState(
-                    items = mapOf(
+                    fees = mapOf(
                         FeeRate.FAST to 4000L,
                         FeeRate.NORMAL to 3000L,
                         FeeRate.SLOW to 2000L,
@@ -208,7 +207,7 @@ private fun PreviewEmpty() {
         BottomSheetPreview {
             Content(
                 uiState = SendFeeUiState(
-                    items = mapOf(),
+                    fees = mapOf(),
                     selected = FeeRate.NORMAL,
                 ),
                 modifier = Modifier.sheetHeight(),

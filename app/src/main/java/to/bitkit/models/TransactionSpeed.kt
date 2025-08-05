@@ -32,8 +32,6 @@ sealed class TransactionSpeed {
     }
 
     companion object {
-        fun entries() = listOf(Fast, Medium, Slow, Custom(0u))
-
         fun fromString(value: String): TransactionSpeed = when {
             value == "fast" -> Fast
             value == "medium" -> Medium
