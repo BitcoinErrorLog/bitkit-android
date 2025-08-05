@@ -11,15 +11,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import to.bitkit.repositories.LightningState
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.walletViewModel
 import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.WalletViewModelEffects
@@ -59,9 +60,9 @@ fun ReceiveSheet(
     ) {
         NavHost(
             navController = navController,
-            startDestination = ReceiveRoutes.QR,
+            startDestination = ReceiveRoute.QR,
         ) {
-            composable(ReceiveRoutes.QR) {
+            composableWithDefaultTransitions<ReceiveRoute.QR> {
                 LaunchedEffect(cjitInvoice.value) {
                     showCreateCjit.value = !cjitInvoice.value.isNullOrBlank()
                 }
@@ -70,7 +71,7 @@ fun ReceiveSheet(
                     wallet.walletEffect.collect { effect ->
                         when (effect) {
                             WalletViewModelEffects.NavigateGeoBlockScreen -> {
-                                navController.navigate(ReceiveRoutes.LOCATION_BLOCK)
+                                navController.navigate(ReceiveRoute.GeoBlock)
                             }
                         }
                     }
@@ -82,7 +83,7 @@ fun ReceiveSheet(
                     walletState = walletState,
                     onCjitToggle = { active ->
                         when {
-                            active && lightningState.shouldBlockLightning -> navController.navigate(ReceiveRoutes.LOCATION_BLOCK)
+                            active && lightningState.shouldBlockLightning -> navController.navigate(ReceiveRoute.GeoBlock)
 
                             !active -> {
                                 showCreateCjit.value = false
@@ -91,57 +92,57 @@ fun ReceiveSheet(
 
                             active && cjitInvoice.value == null -> {
                                 showCreateCjit.value = true
-                                navController.navigate(ReceiveRoutes.AMOUNT)
+                                navController.navigate(ReceiveRoute.Amount)
                             }
                         }
                     },
-                    onClickEditInvoice = { navController.navigate(ReceiveRoutes.EDIT_INVOICE) },
+                    onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },
                     onClickReceiveOnSpending = { wallet.toggleReceiveOnSpending() }
                 )
             }
-            composable(ReceiveRoutes.AMOUNT) {
+            composableWithDefaultTransitions<ReceiveRoute.Amount> {
                 ReceiveAmountScreen(
                     onCjitCreated = { entry ->
                         cjitEntryDetails.value = entry
-                        navController.navigate(ReceiveRoutes.CONFIRM)
+                        navController.navigate(ReceiveRoute.Confirm)
                     },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(ReceiveRoutes.LOCATION_BLOCK) {
+            composableWithDefaultTransitions<ReceiveRoute.GeoBlock> {
                 LocationBlockScreen(
                     onBackPressed = { navController.popBackStack() },
-                    navigateAdvancedSetup = navigateToExternalConnection
+                    navigateAdvancedSetup = navigateToExternalConnection,
                 )
             }
-            composable(ReceiveRoutes.CONFIRM) {
+            composableWithDefaultTransitions<ReceiveRoute.Confirm> {
                 cjitEntryDetails.value?.let { entryDetails ->
                     ReceiveConfirmScreen(
                         entry = entryDetails,
-                        onLearnMore = { navController.navigate(ReceiveRoutes.LIQUIDITY) },
+                        onLearnMore = { navController.navigate(ReceiveRoute.Liquidity) },
                         onContinue = { invoice ->
                             cjitInvoice.value = invoice
-                            navController.navigate(ReceiveRoutes.QR) { popUpTo(ReceiveRoutes.QR) { inclusive = true } }
+                            navController.navigate(ReceiveRoute.QR) { popUpTo(ReceiveRoute.QR) { inclusive = true } }
                         },
                         onBack = { navController.popBackStack() },
                     )
                 }
             }
-            composable(ReceiveRoutes.CONFIRM_INCREASE_INBOUND) {
+            composableWithDefaultTransitions<ReceiveRoute.ConfirmIncreaseInbound> {
                 cjitEntryDetails.value?.let { entryDetails ->
                     ReceiveConfirmScreen(
                         entry = entryDetails,
-                        onLearnMore = { navController.navigate(ReceiveRoutes.LIQUIDITY_ADDITIONAL) },
+                        onLearnMore = { navController.navigate(ReceiveRoute.LiquidityAdditional) },
                         onContinue = { invoice ->
                             cjitInvoice.value = invoice
-                            navController.navigate(ReceiveRoutes.QR) { popUpTo(ReceiveRoutes.QR) { inclusive = true } }
+                            navController.navigate(ReceiveRoute.QR) { popUpTo(ReceiveRoute.QR) { inclusive = true } }
                         },
                         isAdditional = true,
                         onBack = { navController.popBackStack() },
                     )
                 }
             }
-            composable(ReceiveRoutes.LIQUIDITY) {
+            composableWithDefaultTransitions<ReceiveRoute.Liquidity> {
                 cjitEntryDetails.value?.let { entryDetails ->
                     ReceiveLiquidityScreen(
                         entry = entryDetails,
@@ -150,7 +151,7 @@ fun ReceiveSheet(
                     )
                 }
             }
-            composable(ReceiveRoutes.LIQUIDITY_ADDITIONAL) {
+            composableWithDefaultTransitions<ReceiveRoute.LiquidityAdditional> {
                 cjitEntryDetails.value?.let { entryDetails ->
                     ReceiveLiquidityScreen(
                         entry = entryDetails,
@@ -160,7 +161,7 @@ fun ReceiveSheet(
                     )
                 }
             }
-            composable(ReceiveRoutes.EDIT_INVOICE) {
+            composableWithDefaultTransitions<ReceiveRoute.EditInvoice> {
                 val walletUiState by wallet.walletState.collectAsStateWithLifecycle()
                 EditInvoiceScreen(
                     walletUiState = walletUiState,
@@ -169,7 +170,7 @@ fun ReceiveSheet(
                         wallet.updateBip21Invoice(amountSats = sats)
                     },
                     onClickAddTag = {
-                        navController.navigate(ReceiveRoutes.ADD_TAG)
+                        navController.navigate(ReceiveRoute.AddTag)
                     },
                     onClickTag = { tagToRemove ->
                         wallet.removeTag(tagToRemove)
@@ -182,11 +183,11 @@ fun ReceiveSheet(
                     },
                     navigateReceiveConfirm = { entry ->
                         cjitEntryDetails.value = entry
-                        navController.navigate(ReceiveRoutes.CONFIRM_INCREASE_INBOUND)
+                        navController.navigate(ReceiveRoute.ConfirmIncreaseInbound)
                     }
                 )
             }
-            composable(ReceiveRoutes.ADD_TAG) {
+            composableWithDefaultTransitions<ReceiveRoute.AddTag> {
                 AddTagScreen(
                     onBack = {
                         navController.popBackStack()
@@ -196,20 +197,36 @@ fun ReceiveSheet(
                         navController.popBackStack()
                     }
                 )
-
             }
         }
     }
 }
 
-private object ReceiveRoutes {
-    const val QR = "qr"
-    const val AMOUNT = "amount"
-    const val CONFIRM = "confirm"
-    const val CONFIRM_INCREASE_INBOUND = "confirm_increase_inbound"
-    const val LIQUIDITY = "liquidity"
-    const val LIQUIDITY_ADDITIONAL = "liquidity_additional"
-    const val EDIT_INVOICE = "edit_invoice"
-    const val ADD_TAG = "add_tag"
-    const val LOCATION_BLOCK = "location_block"
+sealed interface ReceiveRoute {
+    @Serializable
+    data object QR : ReceiveRoute
+
+    @Serializable
+    data object Amount : ReceiveRoute
+
+    @Serializable
+    data object Confirm : ReceiveRoute
+
+    @Serializable
+    data object ConfirmIncreaseInbound : ReceiveRoute
+
+    @Serializable
+    data object Liquidity : ReceiveRoute
+
+    @Serializable
+    data object LiquidityAdditional : ReceiveRoute
+
+    @Serializable
+    data object EditInvoice : ReceiveRoute
+
+    @Serializable
+    data object AddTag : ReceiveRoute
+
+    @Serializable
+    data object GeoBlock : ReceiveRoute
 }
