@@ -72,7 +72,7 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.screens.wallets.send.SendRoute
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
@@ -300,7 +300,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private val isMainScanner get() = currentSheet.value !is BottomSheetType.Send
+    private val isMainScanner get() = currentSheet.value !is Sheet.Send
 
     private fun onEnterManuallyClick() {
         resetAddressInput()
@@ -502,7 +502,7 @@ class AppViewModel @Inject constructor(
             if (quickPayHandled) return
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.Confirm))
+                showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }
@@ -512,7 +512,7 @@ class AppViewModel @Inject constructor(
         resetAmountInput()
 
         if (isMainScanner) {
-            showSheet(BottomSheetType.Send(SendRoute.Amount))
+            showSheet(Sheet.Send(SendRoute.Amount))
         } else {
             setSendEffect(SendEffect.NavigateToAmount)
         }
@@ -552,7 +552,7 @@ class AppViewModel @Inject constructor(
             Logger.info("Found amount in invoice, proceeding with payment")
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.Confirm))
+                showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }
@@ -562,7 +562,7 @@ class AppViewModel @Inject constructor(
         resetAmountInput()
 
         if (isMainScanner) {
-            showSheet(BottomSheetType.Send(SendRoute.Amount))
+            showSheet(Sheet.Send(SendRoute.Amount))
         } else {
             setSendEffect(SendEffect.NavigateToAmount)
         }
@@ -600,7 +600,7 @@ class AppViewModel @Inject constructor(
             if (quickPayHandled) return
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.Confirm))
+                showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }
@@ -609,7 +609,7 @@ class AppViewModel @Inject constructor(
 
         Logger.info("No amount found in lnurlPay, proceeding to enter amount manually")
         if (isMainScanner) {
-            showSheet(BottomSheetType.Send(SendRoute.Amount))
+            showSheet(Sheet.Send(SendRoute.Amount))
         } else {
             setSendEffect(SendEffect.NavigateToAmount)
         }
@@ -645,7 +645,7 @@ class AppViewModel @Inject constructor(
         }
 
         if (isMainScanner) {
-            showSheet(BottomSheetType.Send(SendRoute.Amount))
+            showSheet(Sheet.Send(SendRoute.Amount))
         } else {
             setSendEffect(SendEffect.NavigateToAmount)
         }
@@ -656,7 +656,7 @@ class AppViewModel @Inject constructor(
 
         val domain = runCatching { data.uri.toUri().host }.getOrDefault(data.uri).orEmpty().trim()
 
-        showSheet(BottomSheetType.LnurlAuth(domain = domain, lnurl = lnurl, k1 = data.k1))
+        showSheet(Sheet.LnurlAuth(domain = domain, lnurl = lnurl, k1 = data.k1))
     }
 
     fun requestLnurlAuth(callback: String, k1: String, domain: String) {
@@ -749,7 +749,7 @@ class AppViewModel @Inject constructor(
             Logger.debug("QuickPayData: $quickPayData")
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.QuickPay))
+                showSheet(Sheet.Send(SendRoute.QuickPay))
             } else {
                 setSendEffect(SendEffect.NavigateToQuickPay)
             }
@@ -1088,10 +1088,10 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Sheets
-    var currentSheet = mutableStateOf<BottomSheetType?>(null)
+    var currentSheet = mutableStateOf<Sheet?>(null)
         private set
 
-    fun showSheet(sheetType: BottomSheetType) {
+    fun showSheet(sheetType: Sheet) {
         currentSheet.value = sheetType
     }
 

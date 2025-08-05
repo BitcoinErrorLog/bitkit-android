@@ -17,7 +17,7 @@ import to.bitkit.R
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyS
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.components.settings.SettingsSwitchRow
@@ -77,7 +77,7 @@ fun SecuritySettingsScreen(
         isBiometrySupported = rememberBiometricAuthSupported(),
         onPinClick = {
             if (!isPinEnabled) {
-                app.showSheet(BottomSheetType.Pin())
+                app.showSheet(Sheet.Pin())
             } else {
                 navController.navigateToDisablePin()
             }

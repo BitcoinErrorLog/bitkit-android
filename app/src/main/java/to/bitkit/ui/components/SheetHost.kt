@@ -30,14 +30,14 @@ import to.bitkit.ui.theme.Colors
 
 enum class SheetSize { LARGE, MEDIUM, SMALL, CALENDAR; }
 
-sealed class BottomSheetType {
-    data class Send(val route: SendRoute = SendRoute.Recipient) : BottomSheetType()
-    data object Receive : BottomSheetType()
-    data class Pin(val route: PinRoute = PinRoute.Prompt()) : BottomSheetType()
-    data class Backup(val route: BackupRoute = BackupRoute.ShowMnemonic) : BottomSheetType()
-    data object ActivityDateRangeSelector : BottomSheetType()
-    data object ActivityTagSelector : BottomSheetType()
-    data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : BottomSheetType()
+sealed class Sheet {
+    data class Send(val route: SendRoute = SendRoute.Recipient) : Sheet()
+    data object Receive : Sheet()
+    data class Pin(val route: PinRoute = PinRoute.Prompt()) : Sheet()
+    data class Backup(val route: BackupRoute = BackupRoute.ShowMnemonic) : Sheet()
+    data object ActivityDateRangeSelector : Sheet()
+    data object ActivityTagSelector : Sheet()
+    data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

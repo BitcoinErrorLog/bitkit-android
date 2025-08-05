@@ -8,7 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.settings.pin.PinBiometricsScreen
 import to.bitkit.ui.settings.pin.PinChooseScreen
@@ -21,7 +21,7 @@ import to.bitkit.viewmodels.AppViewModel
 
 @Composable
 fun PinSheet(
-    sheet: BottomSheetType.Pin,
+    sheet: Sheet.Pin,
     app: AppViewModel,
 ) {
     val navController = rememberNavController()

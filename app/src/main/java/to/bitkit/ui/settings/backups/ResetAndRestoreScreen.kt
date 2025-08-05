@@ -27,7 +27,7 @@ import androidx.navigation.NavController
 import to.bitkit.R
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.navigateToHome
@@ -56,7 +56,7 @@ fun ResetAndRestoreScreen(
 
     Content(
         showConfirmDialog = showDialog,
-        onClickBackup = { app.showSheet(BottomSheetType.Backup()) },
+        onClickBackup = { app.showSheet(Sheet.Backup()) },
         onClickReset = { showDialog = true },
         onResetConfirm = { wallet.wipeWallet() },
         onResetDismiss = { showDialog = false },

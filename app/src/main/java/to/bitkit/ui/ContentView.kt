@@ -35,7 +35,7 @@ import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.components.AuthCheckScreen
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
@@ -320,7 +320,7 @@ fun ContentView(
                 onDismiss = { appViewModel.hideSheet() },
                 sheets = {
                     when (val sheet = currentSheet) {
-                        is BottomSheetType.Send -> {
+                        is Sheet.Send -> {
                             SendSheet(
                                 appViewModel = appViewModel,
                                 walletViewModel = walletViewModel,
@@ -334,7 +334,7 @@ fun ContentView(
                             )
                         }
 
-                        is BottomSheetType.Receive -> {
+                        is Sheet.Receive -> {
                             val walletUiState by walletViewModel.uiState.collectAsState()
                             ReceiveQrSheet(
                                 walletState = walletUiState,
@@ -344,11 +344,11 @@ fun ContentView(
                             )
                         }
 
-                        is BottomSheetType.ActivityDateRangeSelector -> DateRangeSelectorSheet()
-                        is BottomSheetType.ActivityTagSelector -> TagSelectorSheet()
-                        is BottomSheetType.Pin -> PinSheet(sheet, appViewModel)
-                        is BottomSheetType.Backup -> BackupSheet(sheet, appViewModel)
-                        is BottomSheetType.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
+                        is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
+                        is Sheet.ActivityTagSelector -> TagSelectorSheet()
+                        is Sheet.Pin -> PinSheet(sheet, appViewModel)
+                        is Sheet.Backup -> BackupSheet(sheet, appViewModel)
+                        is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                         null -> Unit
                     }
                 }
@@ -534,7 +534,7 @@ private fun RootNavHost(
                             // TODO show receive sheet -> ReceiveAmount
                             navController.navigateToHome()
                             delay(500) // Wait for nav to actually finish
-                            appViewModel.showSheet(BottomSheetType.Receive)
+                            appViewModel.showSheet(Sheet.Receive)
                         }
                     },
                     onAdvanced = { navController.navigate(Routes.FundingAdvanced) },

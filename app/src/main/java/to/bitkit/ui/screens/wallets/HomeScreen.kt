@@ -75,7 +75,7 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.StatusBarSpacer
@@ -178,11 +178,11 @@ fun HomeScreen(
                 }
 
                 Suggestion.BACK_UP -> {
-                    appViewModel.showSheet(BottomSheetType.Backup(BackupRoute.Intro))
+                    appViewModel.showSheet(Sheet.Backup(BackupRoute.Intro))
                 }
 
                 Suggestion.SECURE -> {
-                    appViewModel.showSheet(BottomSheetType.Pin(PinRoute.Prompt(showLaterButton = true)))
+                    appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
                 }
 
                 Suggestion.SUPPORT -> {
@@ -250,7 +250,7 @@ fun HomeScreen(
         },
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         onDismissHighBalanceSheet = homeViewModel::dismissHighBalanceSheet,
-        onClickEmptyActivityRow = { appViewModel.showSheet(BottomSheetType.Receive) },
+        onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
     )
 }
 

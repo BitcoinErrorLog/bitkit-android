@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
-import to.bitkit.ui.components.BottomSheetType
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.SheetSize
@@ -32,7 +32,7 @@ import to.bitkit.viewmodels.AppViewModel
 
 @Composable
 fun LnurlAuthSheet(
-    sheet: BottomSheetType.LnurlAuth,
+    sheet: Sheet.LnurlAuth,
     app: AppViewModel,
 ) {
     Content(
