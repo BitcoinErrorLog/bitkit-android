@@ -320,8 +320,6 @@ class ActivityRepo @Inject constructor(
                 val updatedActivity = Activity.Onchain(
                     v1 = newOnChainActivity.v1.copy(
                         isBoosted = true,
-                        feeRate = pendingBoostActivity.feeRate,
-                        fee = pendingBoostActivity.fee,
                         updatedAt = pendingBoostActivity.updatedAt
                     )
                 )
