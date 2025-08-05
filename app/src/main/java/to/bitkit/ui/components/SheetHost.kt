@@ -22,22 +22,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.PinRoute
+import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.Colors
 
 enum class SheetSize { LARGE, MEDIUM, SMALL, CALENDAR; }
 
-sealed class Sheet {
-    data class Send(val route: SendRoute = SendRoute.Recipient) : Sheet()
-    data object Receive : Sheet()
-    data class Pin(val route: PinRoute = PinRoute.Prompt()) : Sheet()
-    data class Backup(val route: BackupRoute = BackupRoute.ShowMnemonic) : Sheet()
-    data object ActivityDateRangeSelector : Sheet()
-    data object ActivityTagSelector : Sheet()
-    data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet()
+sealed interface Sheet {
+    data class Send(val route: SendRoute = SendRoute.Recipient) : Sheet
+    data object Receive : Sheet
+    data class Pin(val route: PinRoute = PinRoute.Prompt()) : Sheet
+    data class Backup(val route: BackupRoute = BackupRoute.ShowMnemonic) : Sheet
+    data object ActivityDateRangeSelector : Sheet
+    data object ActivityTagSelector : Sheet
+    data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
