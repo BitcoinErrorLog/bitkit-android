@@ -5,17 +5,9 @@
     <ID>AnnotationSpacing:AppDb.kt$AppDb$@Database( entities = [ ConfigEntity::class, InvoiceTagEntity::class, ], version = 2, ) @TypeConverters(StringListConverter::class) abstract</ID>
     <ID>AnnotationSpacing:Change.kt$Change$@Serializable data</ID>
     <ID>AnnotationSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend</ID>
-    <ID>ArgumentListWrapping:ActivityDetailScreen.kt$(if (item.isBoosted()) R.string.wallet__activity_boosted else R.string.wallet__activity_boost)</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$("Activity $id was deleted. If you want update it, set forceUpdate as true")</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$("Activity not found")</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$("paymentHashOrTxId is empty")</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$(Exception("Activity $id was deleted. If you want update it, set forceUpdate as true"))</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$(IllegalArgumentException("paymentHashOrTxId is empty"))</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$(IllegalStateException("Activity not found"))</ID>
-    <ID>ArgumentListWrapping:ActivityRepo.kt$ActivityRepo$(activity)</ID>
-    <ID>ArgumentListWrapping:BackupNavigationSheet.kt$(BackupRoute.ConfirmMnemonic)</ID>
-    <ID>ArgumentListWrapping:BackupNavigationSheet.kt$(BackupRoute.ConfirmPassphrase)</ID>
-    <ID>ArgumentListWrapping:BackupNavigationSheet.kt$(BackupRoute.MultipleDevices)</ID>
+    <ID>ArgumentListWrapping:BackupSheet.kt$(BackupRoute.ConfirmMnemonic)</ID>
+    <ID>ArgumentListWrapping:BackupSheet.kt$(BackupRoute.ConfirmPassphrase)</ID>
+    <ID>ArgumentListWrapping:BackupSheet.kt$(BackupRoute.MultipleDevices)</ID>
     <ID>ArgumentListWrapping:Bip39Test.kt$Bip39Test$("AbAnDoN abandon ABANDON abandon abandon abandon abandon abandon abandon abandon abandon about".toWordList().validBip39Checksum())</ID>
     <ID>ArgumentListWrapping:Bip39Test.kt$Bip39Test$("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon")</ID>
     <ID>ArgumentListWrapping:Bip39Test.kt$Bip39Test$("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon")</ID>
@@ -55,13 +47,11 @@
     <ID>ArgumentListWrapping:MainActivity.kt$MainActivity$(StartupRoutes.WarningMultipleDevices)</ID>
     <ID>ArgumentListWrapping:ProfileIntroScreen.kt$(R.string.slashtags__onboarding_profile1_header)</ID>
     <ID>ArgumentListWrapping:ProfileIntroScreen.kt$(accentColor = Colors.Brand)</ID>
-    <ID>ArgumentListWrapping:ReceiveConfirmScreen.kt$(if (isAdditional) R.string.wallet__receive_connect_additional else R.string.wallet__receive_connect_initial)</ID>
     <ID>ArgumentListWrapping:ReceiveLiquidityScreen.kt$(if (isAdditional) R.string.wallet__receive_liquidity__label_additional else R.string.wallet__receive_liquidity__label)</ID>
     <ID>ArgumentListWrapping:ReceiveLiquidityScreen.kt$(if (isAdditional) R.string.wallet__receive_liquidity__nav_title_additional else R.string.wallet__receive_liquidity__nav_title)</ID>
     <ID>ArgumentListWrapping:ReceiveLiquidityScreen.kt$(if (isAdditional) R.string.wallet__receive_liquidity__text_additional else R.string.wallet__receive_liquidity__text)</ID>
     <ID>ArgumentListWrapping:ReceiveLiquidityScreen.kt$(text = stringResource(if (isAdditional) R.string.wallet__receive_liquidity__label_additional else R.string.wallet__receive_liquidity__label))</ID>
     <ID>ArgumentListWrapping:ReceiveQrScreen.kt$(R.string.wallet__receive_text_lnfunds)</ID>
-    <ID>ArgumentListWrapping:ReceiveQrScreen.kt$(ReceiveRoutes.LOCATION_BLOCK)</ID>
     <ID>ArgumentListWrapping:ReceiveQrScreen.kt$(accentColor = Colors.Purple)</ID>
     <ID>ArgumentListWrapping:RestoreWalletScreen.kt$(R.string.onboarding__restore_passphrase_placeholder)</ID>
     <ID>ArgumentListWrapping:RestoreWalletScreen.kt$(R.string.onboarding__restore_red_explain)</ID>
@@ -89,10 +79,7 @@
     <ID>ChainWrapping:vss_rust_client_ffi.kt$FfiConverterTypeVssError$+</ID>
     <ID>ClassNaming:vss_rust_client_ffi.kt$_UniFFILib : Library</ID>
     <ID>ClassNaming:vss_rust_client_ffi.kt$uniffiRustFutureContinuationCallback : UniFffiRustFutureContinuationCallbackType</ID>
-    <ID>CommentSpacing:ActivityDetailScreen.kt$//TODO CREATE STRING RESOURCE</ID>
     <ID>CommentSpacing:CreateProfileScreen.kt$//TODO IMPLEMENT</ID>
-    <ID>CommentSpacing:NumberPadTextField.kt$//Convert fiat to sats</ID>
-    <ID>CommentSpacing:NumberPadTextField.kt$//Convert sats to fiat</ID>
     <ID>CommentSpacing:ShopDiscoverScreen.kt$//Page, Title</ID>
     <ID>CommentSpacing:WeatherService.kt$WeatherService$//TODO CACHE</ID>
     <ID>CommentSpacing:WidgetsRepo.kt$WidgetsRepo$//TODO Only refresh in loop widgets displayed in the Home</ID>
@@ -130,10 +117,8 @@
     <ID>ComposableParamOrder:NumberPadTextField.kt$MoneyAmount</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingTab</ID>
-    <ID>ComposableParamOrder:PinPromptScreen.kt$PinPromptScreen</ID>
     <ID>ComposableParamOrder:PriceCard.kt$PriceCard</ID>
     <ID>ComposableParamOrder:ReceiveConfirmScreen.kt$ReceiveConfirmScreen</ID>
-    <ID>ComposableParamOrder:ReceiveLiquidityScreen.kt$ReceiveLiquidityScreen</ID>
     <ID>ComposableParamOrder:ReportIssueScreen.kt$ReportIssueScreen</ID>
     <ID>ComposableParamOrder:RestoreWalletScreen.kt$MnemonicInputField</ID>
     <ID>ComposableParamOrder:SendAmountScreen.kt$SendAmountContent</ID>
@@ -188,7 +173,6 @@
     <ID>CyclomaticComplexMethod:LightningService.kt$LightningService$private fun logEvent(event: Event)</ID>
     <ID>CyclomaticComplexMethod:NumberPadTextField.kt$@Composable fun AmountInputHandler( input: String, primaryDisplay: PrimaryDisplay, displayUnit: BitcoinDisplayUnit, onInputChanged: (String) -&gt; Unit, onAmountCalculated: (String) -&gt; Unit, currencyVM: CurrencyViewModel, overrideSats: Long? = null, )</ID>
     <ID>CyclomaticComplexMethod:NumberPadTextField.kt$@Composable fun NumberPadTextField( input: String, displayUnit: BitcoinDisplayUnit, primaryDisplay: PrimaryDisplay, modifier: Modifier = Modifier, )</ID>
-    <ID>CyclomaticComplexMethod:ReceiveQrScreen.kt$@Composable fun ReceiveQrSheet( navigateToExternalConnection: () -&gt; Unit, walletState: MainUiState, modifier: Modifier = Modifier, )</ID>
     <ID>CyclomaticComplexMethod:RestoreWalletScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RestoreWalletView( onBackClick: () -&gt; Unit, onRestoreClick: (mnemonic: String, passphrase: String?) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:SettingsButtonRow.kt$@Composable fun SettingsButtonRow( title: String, modifier: Modifier = Modifier, subtitle: String? = null, value: SettingsButtonValue = SettingsButtonValue.None, description: String? = null, iconRes: Int? = null, iconTint: Color = Color.Unspecified, iconSize: Dp = 32.dp, maxLinesSubtitle: Int = Int.MAX_VALUE, enabled: Boolean = true, loading: Boolean = false, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:Slider.kt$@Composable fun StepSlider( value: Int, steps: List&lt;Int&gt;, onValueChange: (Int) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
@@ -216,7 +200,7 @@
     <ID>ForbiddenComment:ActivityRow.kt$// TODO: calculate confirmsIn text</ID>
     <ID>ForbiddenComment:AppViewModel.kt$AppViewModel$// TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.</ID>
     <ID>ForbiddenComment:AppViewModel.kt$AppViewModel$// TODO: handle ONLY cjit as payment received. This makes it look like any channel confirmed is a received payment.</ID>
-    <ID>ForbiddenComment:BackupNavigationSheetViewModel.kt$BackupNavigationSheetViewModel$// TODO: get from actual repository state</ID>
+    <ID>ForbiddenComment:BackupNavSheetViewModel.kt$BackupNavSheetViewModel$// TODO: get from actual repository state</ID>
     <ID>ForbiddenComment:BackupRepo.kt$BackupRepo$// TODO: Add other backup categories as they get implemented:</ID>
     <ID>ForbiddenComment:BoostTransactionViewModel.kt$BoostTransactionUiState$// TODO: Implement dynamic time estimation</ID>
     <ID>ForbiddenComment:ChannelStatusView.kt$// TODO: handle closed channels marking &amp; detection</ID>
@@ -350,24 +334,27 @@
     <ID>ImplicitDefaultLocale:BlocksService.kt$BlocksService$String.format("%.2f", blockInfo.difficulty / 1_000_000_000_000.0)</ID>
     <ID>ImplicitDefaultLocale:PriceService.kt$PriceService$String.format("%.2f", price)</ID>
     <ID>ImportOrdering:ActivityListFilter.kt$import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.width import androidx.compose.material3.Tab import androidx.compose.material3.TabRow import androidx.compose.material3.Text import androidx.compose.runtime.Composable import androidx.compose.ui.Modifier import androidx.compose.ui.graphics.Color import androidx.compose.ui.platform.LocalFocusManager import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import to.bitkit.R import to.bitkit.ui.components.SearchInputIconButton import to.bitkit.ui.components.SearchInput import to.bitkit.ui.theme.AppThemeSurface</ID>
-    <ID>ImportOrdering:BackupNavigationSheetViewModel.kt$import android.content.Context import androidx.lifecycle.ViewModel import androidx.lifecycle.viewModelScope import dagger.hilt.android.lifecycle.HiltViewModel import dagger.hilt.android.qualifiers.ApplicationContext import kotlinx.coroutines.delay import kotlinx.coroutines.flow.MutableSharedFlow import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.asSharedFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.flow.update import kotlinx.coroutines.launch import to.bitkit.R import to.bitkit.data.SettingsStore import to.bitkit.data.keychain.Keychain import to.bitkit.models.Toast import to.bitkit.ui.shared.toast.ToastEventBus import to.bitkit.utils.Logger import to.bitkit.ui.settings.backups.BackupContract.SideEffect import to.bitkit.ui.settings.backups.BackupContract.UiState import javax.inject.Inject</ID>
+    <ID>ImportOrdering:AppViewModel.kt$import android.content.Context import androidx.annotation.StringRes import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.setValue import androidx.core.net.toUri import androidx.lifecycle.ViewModel import androidx.lifecycle.viewModelScope import com.synonym.bitkitcore.ActivityFilter import com.synonym.bitkitcore.LightningInvoice import com.synonym.bitkitcore.LnurlAuthData import com.synonym.bitkitcore.LnurlChannelData import com.synonym.bitkitcore.LnurlPayData import com.synonym.bitkitcore.LnurlWithdrawData import com.synonym.bitkitcore.OnChainInvoice import com.synonym.bitkitcore.PaymentType import com.synonym.bitkitcore.Scanner import com.synonym.bitkitcore.decode import com.synonym.bitkitcore.validateBitcoinAddress import dagger.hilt.android.lifecycle.HiltViewModel import dagger.hilt.android.qualifiers.ApplicationContext import kotlinx.coroutines.CoroutineDispatcher import kotlinx.coroutines.delay import kotlinx.coroutines.flow.MutableSharedFlow import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.SharingStarted import kotlinx.coroutines.flow.asSharedFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.flow.first import kotlinx.coroutines.flow.map import kotlinx.coroutines.flow.stateIn import kotlinx.coroutines.flow.update import kotlinx.coroutines.launch import org.lightningdevkit.ldknode.Event import org.lightningdevkit.ldknode.PaymentId import org.lightningdevkit.ldknode.SpendableUtxo import org.lightningdevkit.ldknode.Txid import to.bitkit.R import to.bitkit.data.SettingsStore import to.bitkit.data.keychain.Keychain import to.bitkit.data.resetPin import to.bitkit.di.BgDispatcher import to.bitkit.env.Env import to.bitkit.ext.WatchResult import to.bitkit.ext.getClipboardText import to.bitkit.ext.maxSendableSat import to.bitkit.ext.maxWithdrawableSat import to.bitkit.ext.minSendableSat import to.bitkit.ext.minWithdrawableSat import to.bitkit.ext.rawId import to.bitkit.ext.removeSpaces import to.bitkit.ext.setClipboardText import to.bitkit.ext.watchUntil import to.bitkit.models.NewTransactionSheetDetails import to.bitkit.models.NewTransactionSheetDirection import to.bitkit.models.NewTransactionSheetType import to.bitkit.models.Suggestion import to.bitkit.models.Toast import to.bitkit.models.TransactionSpeed import to.bitkit.models.toActivityFilter import to.bitkit.models.toCoreNetworkType import to.bitkit.models.toTxType import to.bitkit.repositories.ActivityRepo import to.bitkit.repositories.ConnectivityRepo import to.bitkit.repositories.ConnectivityState import to.bitkit.repositories.CurrencyRepo import to.bitkit.repositories.HealthRepo import to.bitkit.repositories.LightningRepo import to.bitkit.repositories.WalletRepo import to.bitkit.services.CoreService import to.bitkit.services.LdkNodeEventBus import to.bitkit.ui.Routes import to.bitkit.ui.components.Sheet import to.bitkit.ui.sheets.SendRoute import to.bitkit.ui.shared.toast.ToastEventBus import to.bitkit.utils.Logger import java.math.BigDecimal import javax.inject.Inject</ID>
+    <ID>ImportOrdering:BackupNavSheetViewModel.kt$import android.content.Context import androidx.lifecycle.ViewModel import androidx.lifecycle.viewModelScope import dagger.hilt.android.lifecycle.HiltViewModel import dagger.hilt.android.qualifiers.ApplicationContext import kotlinx.coroutines.delay import kotlinx.coroutines.flow.MutableSharedFlow import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.asSharedFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.flow.update import kotlinx.coroutines.launch import to.bitkit.R import to.bitkit.data.SettingsStore import to.bitkit.data.keychain.Keychain import to.bitkit.models.Toast import to.bitkit.ui.shared.toast.ToastEventBus import to.bitkit.utils.Logger import to.bitkit.ui.settings.backups.BackupContract.SideEffect import to.bitkit.ui.settings.backups.BackupContract.UiState import javax.inject.Inject</ID>
+    <ID>ImportOrdering:BackupSettingsScreen.kt$import androidx.annotation.DrawableRes import androidx.compose.foundation.background import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Box import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.foundation.rememberScrollState import androidx.compose.foundation.shape.CircleShape import androidx.compose.foundation.verticalScroll import androidx.compose.material3.HorizontalDivider import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.platform.testTag import androidx.compose.ui.res.painterResource import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.navigation.NavController import to.bitkit.R import to.bitkit.ext.toLocalizedTimestamp import to.bitkit.models.BackupCategory import to.bitkit.models.BackupItemStatus import to.bitkit.models.uiIcon import to.bitkit.models.uiTitle import to.bitkit.ui.Routes import to.bitkit.ui.appViewModel import to.bitkit.ui.backupsViewModel import to.bitkit.ui.components.AuthCheckAction import to.bitkit.ui.components.BodyMSB import to.bitkit.ui.components.Sheet import to.bitkit.ui.components.CaptionB import to.bitkit.ui.components.settings.SectionHeader import to.bitkit.ui.components.settings.SettingsButtonRow import to.bitkit.ui.navigateToAuthCheck import to.bitkit.ui.navigateToHome import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.settingsViewModel import to.bitkit.ui.shared.util.clickableAlpha import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.viewmodels.BackupCategoryUiState import to.bitkit.viewmodels.BackupStatusUiState import to.bitkit.viewmodels.toUiState</ID>
     <ID>ImportOrdering:BalanceHeaderView.kt$import androidx.compose.animation.AnimatedContent import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.platform.LocalInspectionMode import androidx.compose.ui.res.painterResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import to.bitkit.R import to.bitkit.models.BITCOIN_SYMBOL import to.bitkit.models.ConvertedAmount import to.bitkit.models.PrimaryDisplay import to.bitkit.models.formatToModernDisplay import to.bitkit.ui.LocalCurrencies import to.bitkit.ui.currencyViewModel import to.bitkit.ui.settingsViewModel import to.bitkit.ui.shared.animations.BalanceAnimations import to.bitkit.ui.shared.modifiers.swipeToHide import to.bitkit.ui.shared.UiConstants import to.bitkit.ui.shared.util.clickableAlpha import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:ChangePinConfirmScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.navigation.NavController import kotlinx.coroutines.delay import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.navigateToHome import to.bitkit.ui.navigateToChangePinResult import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:ChangePinNewScreen.kt$import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.navigation.NavController import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.navigateToChangePinConfirm import to.bitkit.ui.navigateToHome import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:ChangePinScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.navigation.NavController import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.navigateToChangePinNew import to.bitkit.ui.navigateToHome import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.shared.util.clickableAlpha import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
-    <ID>ImportOrdering:ChannelOrdersScreen.kt$import androidx.compose.animation.core.Spring import androidx.compose.animation.core.animateFloatAsState import androidx.compose.animation.core.spring import androidx.compose.foundation.clickable import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.lazy.LazyColumn import androidx.compose.foundation.lazy.items import androidx.compose.material3.Card import androidx.compose.material3.CardColors import androidx.compose.material3.CardDefaults import androidx.compose.material3.MaterialTheme import androidx.compose.material3.Scaffold import androidx.compose.material3.Surface import androidx.compose.material3.Text import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.rememberCoroutineScope import androidx.compose.runtime.setValue import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.draw.scale import androidx.compose.ui.graphics.Color import androidx.compose.ui.platform.LocalClipboardManager import androidx.compose.ui.text.AnnotatedString import androidx.compose.ui.text.font.FontFamily import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.text.style.TextOverflow import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.compose.ui.unit.sp import com.synonym.bitkitcore.BtBolt11InvoiceState import com.synonym.bitkitcore.BtOrderState import com.synonym.bitkitcore.BtOrderState2 import com.synonym.bitkitcore.BtPaymentState import com.synonym.bitkitcore.BtPaymentState2 import com.synonym.bitkitcore.CJitStateEnum import com.synonym.bitkitcore.IBtBolt11Invoice import com.synonym.bitkitcore.IBtOnchainTransaction import com.synonym.bitkitcore.IBtOnchainTransactions import com.synonym.bitkitcore.IBtOrder import com.synonym.bitkitcore.IBtPayment import com.synonym.bitkitcore.IDiscount import com.synonym.bitkitcore.ILspNode import com.synonym.bitkitcore.IcJitEntry import kotlinx.coroutines.delay import kotlinx.coroutines.launch import to.bitkit.ext.formatWithDotSeparator import to.bitkit.ui.Routes import to.bitkit.ui.blocktankViewModel import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.PrimaryButton import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.utils.Logger</ID>
-    <ID>ImportOrdering:ChoosePinScreen.kt$import androidx.compose.foundation.background import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
-    <ID>ImportOrdering:ConfirmPinScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.foundation.background import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import kotlinx.coroutines.delay import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
+    <ID>ImportOrdering:ContentView.kt$import androidx.compose.runtime.Composable import androidx.compose.runtime.CompositionLocalProvider import androidx.compose.runtime.DisposableEffect import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.collectAsState import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableIntStateOf import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.rememberCoroutineScope import androidx.compose.runtime.setValue import androidx.compose.ui.platform.LocalContext import androidx.hilt.navigation.compose.hiltViewModel import androidx.lifecycle.Lifecycle import androidx.lifecycle.LifecycleEventObserver import androidx.lifecycle.compose.LocalLifecycleOwner import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.navigation.NavController import androidx.navigation.NavDestination.Companion.hasRoute import androidx.navigation.NavGraphBuilder import androidx.navigation.NavHostController import androidx.navigation.NavOptions import androidx.navigation.compose.NavHost import androidx.navigation.compose.composable import androidx.navigation.compose.navigation import androidx.navigation.compose.rememberNavController import androidx.navigation.toRoute import kotlinx.coroutines.delay import kotlinx.coroutines.launch import kotlinx.serialization.Serializable import to.bitkit.models.NewTransactionSheetDetails import to.bitkit.models.NodeLifecycleState import to.bitkit.models.Toast import to.bitkit.models.WidgetType import to.bitkit.ui.components.AuthCheckScreen import to.bitkit.ui.components.Sheet import to.bitkit.ui.components.SheetHost import to.bitkit.ui.onboarding.InitializingWalletView import to.bitkit.ui.onboarding.WalletRestoreErrorView import to.bitkit.ui.onboarding.WalletRestoreSuccessView import to.bitkit.ui.screens.profile.CreateProfileScreen import to.bitkit.ui.screens.profile.ProfileIntroScreen import to.bitkit.ui.screens.scanner.QrScanningScreen import to.bitkit.ui.screens.scanner.SCAN_REQUEST_KEY import to.bitkit.ui.screens.settings.DevSettingsScreen import to.bitkit.ui.screens.settings.FeeSettingsScreen import to.bitkit.ui.screens.shop.ShopIntroScreen import to.bitkit.ui.screens.shop.shopDiscover.ShopDiscoverScreen import to.bitkit.ui.screens.shop.shopWebView.ShopWebViewScreen import to.bitkit.ui.screens.transfer.FundingAdvancedScreen import to.bitkit.ui.screens.transfer.FundingScreen import to.bitkit.ui.screens.transfer.LiquidityScreen import to.bitkit.ui.screens.transfer.SavingsAdvancedScreen import to.bitkit.ui.screens.transfer.SavingsAvailabilityScreen import to.bitkit.ui.screens.transfer.SavingsConfirmScreen import to.bitkit.ui.screens.transfer.SavingsIntroScreen import to.bitkit.ui.screens.transfer.SavingsProgressScreen import to.bitkit.ui.screens.transfer.SettingUpScreen import to.bitkit.ui.screens.transfer.SpendingAdvancedScreen import to.bitkit.ui.screens.transfer.SpendingAmountScreen import to.bitkit.ui.screens.transfer.SpendingConfirmScreen import to.bitkit.ui.screens.transfer.SpendingIntroScreen import to.bitkit.ui.screens.transfer.TransferIntroScreen import to.bitkit.ui.screens.transfer.external.ExternalAmountScreen import to.bitkit.ui.screens.transfer.external.ExternalConfirmScreen import to.bitkit.ui.screens.transfer.external.ExternalConnectionScreen import to.bitkit.ui.screens.transfer.external.ExternalFeeCustomScreen import to.bitkit.ui.screens.transfer.external.ExternalNodeViewModel import to.bitkit.ui.screens.transfer.external.ExternalSuccessScreen import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen import to.bitkit.ui.screens.wallets.HomeNav import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet import to.bitkit.ui.screens.wallets.receive.ReceiveSheet import to.bitkit.ui.sheets.SendSheet import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen import to.bitkit.ui.screens.widgets.AddWidgetsScreen import to.bitkit.ui.screens.widgets.WidgetsIntroScreen import to.bitkit.ui.screens.widgets.blocks.BlocksEditScreen import to.bitkit.ui.screens.widgets.blocks.BlocksPreviewScreen import to.bitkit.ui.screens.widgets.blocks.BlocksViewModel import to.bitkit.ui.screens.widgets.calculator.CalculatorPreviewScreen import to.bitkit.ui.screens.widgets.facts.FactsEditScreen import to.bitkit.ui.screens.widgets.facts.FactsPreviewScreen import to.bitkit.ui.screens.widgets.facts.FactsViewModel import to.bitkit.ui.screens.widgets.headlines.HeadlinesEditScreen import to.bitkit.ui.screens.widgets.headlines.HeadlinesPreviewScreen import to.bitkit.ui.screens.widgets.headlines.HeadlinesViewModel import to.bitkit.ui.screens.widgets.price.PriceEditScreen import to.bitkit.ui.screens.widgets.price.PricePreviewScreen import to.bitkit.ui.screens.widgets.price.PriceViewModel import to.bitkit.ui.screens.widgets.weather.WeatherEditScreen import to.bitkit.ui.screens.widgets.weather.WeatherPreviewScreen import to.bitkit.ui.screens.widgets.weather.WeatherViewModel import to.bitkit.ui.settings.AboutScreen import to.bitkit.ui.settings.AdvancedSettingsScreen import to.bitkit.ui.settings.BackupSettingsScreen import to.bitkit.ui.settings.BlocktankRegtestScreen import to.bitkit.ui.settings.CJitDetailScreen import to.bitkit.ui.settings.ChannelOrdersScreen import to.bitkit.ui.settings.LogDetailScreen import to.bitkit.ui.settings.LogsScreen import to.bitkit.ui.settings.OrderDetailScreen import to.bitkit.ui.settings.SecuritySettingsScreen import to.bitkit.ui.settings.SettingsScreen import to.bitkit.ui.settings.advanced.AddressViewerScreen import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen import to.bitkit.ui.settings.advanced.ElectrumConfigScreen import to.bitkit.ui.settings.advanced.RgsServerScreen import to.bitkit.ui.settings.appStatus.AppStatusScreen import to.bitkit.ui.settings.backups.ResetAndRestoreScreen import to.bitkit.ui.settings.general.DefaultUnitSettingsScreen import to.bitkit.ui.settings.general.GeneralSettingsScreen import to.bitkit.ui.settings.general.LocalCurrencySettingsScreen import to.bitkit.ui.settings.general.TagsSettingsScreen import to.bitkit.ui.settings.general.WidgetsSettingsScreen import to.bitkit.ui.settings.lightning.ChannelDetailScreen import to.bitkit.ui.settings.lightning.CloseConnectionScreen import to.bitkit.ui.settings.lightning.LightningConnectionsScreen import to.bitkit.ui.settings.lightning.LightningConnectionsViewModel import to.bitkit.ui.settings.pin.ChangePinConfirmScreen import to.bitkit.ui.settings.pin.ChangePinNewScreen import to.bitkit.ui.settings.pin.ChangePinResultScreen import to.bitkit.ui.settings.pin.ChangePinScreen import to.bitkit.ui.settings.pin.DisablePinScreen import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen import to.bitkit.ui.settings.quickPay.QuickPaySettingsScreen import to.bitkit.ui.settings.support.ReportIssueResultScreen import to.bitkit.ui.settings.support.ReportIssueScreen import to.bitkit.ui.settings.support.SupportScreen import to.bitkit.ui.settings.transactionSpeed.CustomFeeSettingsScreen import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen import to.bitkit.ui.sheets.BackupSheet import to.bitkit.ui.sheets.LnurlAuthSheet import to.bitkit.ui.sheets.PinSheet import to.bitkit.ui.utils.AutoReadClipboardHandler import to.bitkit.ui.utils.composableWithDefaultTransitions import to.bitkit.ui.utils.screenSlideIn import to.bitkit.ui.utils.screenSlideOut import to.bitkit.utils.Logger import to.bitkit.viewmodels.ActivityListViewModel import to.bitkit.viewmodels.AppViewModel import to.bitkit.viewmodels.BackupsViewModel import to.bitkit.viewmodels.BlocktankViewModel import to.bitkit.viewmodels.CurrencyViewModel import to.bitkit.viewmodels.MainScreenEffect import to.bitkit.viewmodels.RestoreState import to.bitkit.viewmodels.SettingsViewModel import to.bitkit.viewmodels.TransferViewModel import to.bitkit.viewmodels.WalletViewModel</ID>
     <ID>ImportOrdering:CryptoTest.kt$import org.junit.Before import org.junit.Test import to.bitkit.env.Env.DERIVATION_NAME import to.bitkit.ext.fromBase64 import to.bitkit.ext.fromHex import to.bitkit.ext.toHex import to.bitkit.ext.toBase64 import to.bitkit.fcm.EncryptedNotification import kotlin.test.assertContentEquals import kotlin.test.assertEquals</ID>
     <ID>ImportOrdering:ExternalConfirmScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.animation.fadeIn import androidx.compose.animation.fadeOut import androidx.compose.foundation.Image import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.IntrinsicSize import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxHeight import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.foundation.layout.width import androidx.compose.foundation.rememberScrollState import androidx.compose.foundation.verticalScroll import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.collectAsState import androidx.compose.runtime.getValue import androidx.compose.ui.Alignment import androidx.compose.ui.Alignment.Companion.CenterHorizontally import androidx.compose.ui.Modifier import androidx.compose.ui.layout.ContentScale import androidx.compose.ui.res.painterResource import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import to.bitkit.R import to.bitkit.ui.components.Caption13Up import to.bitkit.ui.components.Display import to.bitkit.ui.components.FeeInfo import to.bitkit.ui.components.MoneySSB import to.bitkit.ui.components.SwipeToConfirm import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.shared.util.clickableAlpha import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.ui.utils.withAccent import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect</ID>
     <ID>ImportOrdering:ExternalConnectionScreen.kt$import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.imePadding import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.foundation.rememberScrollState import androidx.compose.foundation.text.KeyboardOptions import androidx.compose.foundation.verticalScroll import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.collectAsState import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.platform.LocalContext import androidx.compose.ui.res.painterResource import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.input.ImeAction import androidx.compose.ui.text.input.KeyboardCapitalization import androidx.compose.ui.text.input.KeyboardType import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.lifecycle.SavedStateHandle import kotlinx.coroutines.flow.filterNotNull import to.bitkit.R import to.bitkit.ext.getClipboardText import to.bitkit.models.LnPeer import to.bitkit.ui.Routes import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.ButtonSize import to.bitkit.ui.components.Caption13Up import to.bitkit.ui.components.Display import to.bitkit.ui.components.PrimaryButton import to.bitkit.ui.components.SecondaryButton import to.bitkit.ui.components.TextInput import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.screens.scanner.SCAN_RESULT_KEY import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.ui.utils.withAccent import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect</ID>
+    <ID>ImportOrdering:HomeNav.kt$import androidx.compose.foundation.layout.Box import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.material3.DrawerState import androidx.compose.material3.DrawerValue import androidx.compose.material3.rememberDrawerState import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.navigation.NavController import androidx.navigation.NavHostController import androidx.navigation.compose.NavHost import androidx.navigation.compose.composable import androidx.navigation.compose.rememberNavController import dev.chrisbanes.haze.hazeSource import dev.chrisbanes.haze.rememberHazeState import kotlinx.serialization.Serializable import to.bitkit.ui.components.Sheet import to.bitkit.ui.components.DrawerMenu import to.bitkit.ui.components.TabBar import to.bitkit.ui.navigateToActivityItem import to.bitkit.ui.navigateToScanner import to.bitkit.ui.navigateToTransferSavingsAvailability import to.bitkit.ui.navigateToTransferSavingsIntro import to.bitkit.ui.navigateToTransferSpendingAmount import to.bitkit.ui.navigateToTransferSpendingIntro import to.bitkit.ui.screens.wallets.activity.AllActivityScreen import to.bitkit.ui.utils.RequestNotificationPermissions import to.bitkit.ui.utils.screenSlideIn import to.bitkit.ui.utils.screenSlideOut import to.bitkit.viewmodels.ActivityListViewModel import to.bitkit.viewmodels.AppViewModel import to.bitkit.viewmodels.MainUiState import to.bitkit.viewmodels.SettingsViewModel import to.bitkit.viewmodels.WalletViewModel</ID>
     <ID>ImportOrdering:LightningChannel.kt$import androidx.compose.foundation.background import androidx.compose.foundation.layout.* import androidx.compose.foundation.shape.RoundedCornerShape import androidx.compose.material.icons.Icons import androidx.compose.material.icons.filled.ArrowDownward import androidx.compose.material.icons.filled.ArrowUpward import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.ui.Alignment import androidx.compose.ui.Alignment.Companion.CenterVertically import androidx.compose.ui.Modifier import androidx.compose.ui.draw.alpha import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import to.bitkit.ui.theme.Colors import to.bitkit.R import to.bitkit.ui.theme.AppThemeSurface</ID>
     <ID>ImportOrdering:LightningConnectionsViewModel.kt$import android.content.Context import android.net.Uri import androidx.lifecycle.ViewModel import androidx.lifecycle.viewModelScope import com.synonym.bitkitcore.BtOrderState2 import com.synonym.bitkitcore.IBtOrder import dagger.hilt.android.lifecycle.HiltViewModel import dagger.hilt.android.qualifiers.ApplicationContext import kotlinx.coroutines.CoroutineDispatcher import kotlinx.coroutines.delay import kotlinx.coroutines.flow.MutableStateFlow import kotlinx.coroutines.flow.asStateFlow import kotlinx.coroutines.flow.combine import kotlinx.coroutines.flow.update import kotlinx.coroutines.launch import org.lightningdevkit.ldknode.ChannelDetails import org.lightningdevkit.ldknode.Event import org.lightningdevkit.ldknode.OutPoint import to.bitkit.R import to.bitkit.di.BgDispatcher import to.bitkit.ext.amountOnClose import to.bitkit.ext.createChannelDetails import to.bitkit.models.Toast import to.bitkit.repositories.BlocktankRepo import to.bitkit.repositories.LightningRepo import to.bitkit.repositories.LogsRepo import to.bitkit.repositories.WalletRepo import to.bitkit.services.LdkNodeEventBus import to.bitkit.ext.filterOpen import to.bitkit.ext.filterPending import to.bitkit.ui.shared.toast.ToastEventBus import to.bitkit.utils.AddressChecker import to.bitkit.utils.Logger import to.bitkit.utils.TxDetails import javax.inject.Inject</ID>
+    <ID>ImportOrdering:MainActivity.kt$import android.content.Intent import android.os.Bundle import androidx.activity.compose.setContent import androidx.activity.viewModels import androidx.compose.animation.AnimatedVisibility import androidx.compose.animation.fadeIn import androidx.compose.animation.fadeOut import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.rememberCoroutineScope import androidx.compose.ui.Modifier import androidx.compose.ui.semantics.semantics import androidx.compose.ui.semantics.testTagsAsResourceId import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen import androidx.fragment.app.FragmentActivity import androidx.lifecycle.compose.collectAsStateWithLifecycle import androidx.navigation.compose.NavHost import androidx.navigation.compose.composable import androidx.navigation.compose.rememberNavController import androidx.navigation.toRoute import dagger.hilt.android.AndroidEntryPoint import kotlinx.coroutines.launch import kotlinx.serialization.Serializable import to.bitkit.androidServices.LightningNodeService import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE import to.bitkit.ui.components.AuthCheckView import to.bitkit.ui.sheets.ForgotPinSheet import to.bitkit.ui.components.InactivityTracker import to.bitkit.ui.components.IsOnlineTracker import to.bitkit.ui.components.ToastOverlay import to.bitkit.ui.onboarding.CreateWalletWithPassphraseScreen import to.bitkit.ui.onboarding.IntroScreen import to.bitkit.ui.onboarding.OnboardingSlidesScreen import to.bitkit.ui.onboarding.RestoreWalletView import to.bitkit.ui.onboarding.TermsOfUseScreen import to.bitkit.ui.onboarding.WarningMultipleDevicesScreen import to.bitkit.ui.screens.SplashScreen import to.bitkit.ui.sheets.NewTransactionSheet import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.utils.enableAppEdgeToEdge import to.bitkit.ui.utils.screenScaleIn import to.bitkit.ui.utils.screenScaleOut import to.bitkit.ui.utils.screenSlideIn import to.bitkit.ui.utils.screenSlideOut import to.bitkit.viewmodels.ActivityListViewModel import to.bitkit.viewmodels.AppViewModel import to.bitkit.viewmodels.BackupsViewModel import to.bitkit.viewmodels.BlocktankViewModel import to.bitkit.viewmodels.CurrencyViewModel import to.bitkit.viewmodels.MainScreenEffect import to.bitkit.viewmodels.SettingsViewModel import to.bitkit.viewmodels.TransferViewModel import to.bitkit.viewmodels.WalletViewModel</ID>
     <ID>ImportOrdering:NewTransactionSheetDetails.kt$import android.content.Context import android.content.SharedPreferences import com.synonym.bitkitcore.ActivityFilter import com.synonym.bitkitcore.PaymentType import kotlinx.serialization.Serializable import to.bitkit.di.json import to.bitkit.utils.Logger import androidx.core.content.edit</ID>
-    <ID>ImportOrdering:NumberPadTextField.kt$import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.saveable.rememberSaveable import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.platform.LocalInspectionMode import androidx.compose.ui.semantics.contentDescription import androidx.compose.ui.semantics.semantics import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import okhttp3.internal.toLongOrDefault import to.bitkit.ext.removeSpaces import to.bitkit.models.BITCOIN_SYMBOL import to.bitkit.models.BitcoinDisplayUnit import to.bitkit.models.PrimaryDisplay import to.bitkit.models.SATS_IN_BTC import to.bitkit.models.formatToModernDisplay import to.bitkit.models.asBtc import to.bitkit.ui.currencyViewModel import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.viewmodels.CurrencyViewModel import java.math.BigDecimal</ID>
-    <ID>ImportOrdering:PinCheckScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.foundation.background import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.clickableAlpha import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
+    <ID>ImportOrdering:PinChooseScreen.kt$import androidx.compose.foundation.background import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
+    <ID>ImportOrdering:PinConfirmScreen.kt$import androidx.compose.animation.AnimatedVisibility import androidx.compose.foundation.background import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.res.stringResource import androidx.compose.ui.text.style.TextAlign import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import kotlinx.coroutines.delay import to.bitkit.R import to.bitkit.env.Env import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.BodyS import to.bitkit.ui.components.KEY_DELETE import to.bitkit.ui.components.PinDots import to.bitkit.ui.components.NumberPadSimple import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:PinDots.kt$import androidx.compose.foundation.background import androidx.compose.foundation.border import androidx.compose.foundation.layout.Box import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.shape.CircleShape import androidx.compose.runtime.Composable import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.draw.clip import androidx.compose.ui.unit.dp import to.bitkit.env.Env import to.bitkit.ui.theme.Colors</ID>
-    <ID>ImportOrdering:SendAmountScreen.kt$import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.navigationBarsPadding import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.width import androidx.compose.material3.HorizontalDivider import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.platform.testTag import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import com.synonym.bitkitcore.LnurlPayData import com.synonym.bitkitcore.LnurlWithdrawData import to.bitkit.R import to.bitkit.models.BalanceState import to.bitkit.models.BitcoinDisplayUnit import to.bitkit.models.NodeLifecycleState import to.bitkit.models.PrimaryDisplay import to.bitkit.ext.maxSendableSat import to.bitkit.ext.maxWithdrawableSat import to.bitkit.ui.LocalBalances import to.bitkit.ui.LocalCurrencies import to.bitkit.ui.components.AmountInputHandler import to.bitkit.ui.components.Keyboard import to.bitkit.ui.components.MoneySSB import to.bitkit.ui.components.NumberPadActionButton import to.bitkit.ui.components.NumberPadTextField import to.bitkit.ui.components.PrimaryButton import to.bitkit.ui.components.SyncNodeView import to.bitkit.ui.components.Text13Up import to.bitkit.ui.components.UnitButton import to.bitkit.ui.currencyViewModel import to.bitkit.ui.scaffold.SheetTopBar import to.bitkit.ui.shared.util.gradientBackground import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.viewmodels.CurrencyUiState import to.bitkit.viewmodels.LnurlParams import to.bitkit.viewmodels.MainUiState import to.bitkit.viewmodels.SendEvent import to.bitkit.viewmodels.SendMethod import to.bitkit.viewmodels.SendUiState</ID>
+    <ID>ImportOrdering:ResetAndRestoreScreen.kt$import androidx.compose.foundation.Image import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Box import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.platform.testTag import androidx.compose.ui.res.painterResource import androidx.compose.ui.res.stringResource import androidx.compose.ui.tooling.preview.Preview import androidx.compose.ui.unit.dp import androidx.navigation.NavController import to.bitkit.R import to.bitkit.ui.appViewModel import to.bitkit.ui.components.BodyM import to.bitkit.ui.components.Sheet import to.bitkit.ui.components.PrimaryButton import to.bitkit.ui.components.SecondaryButton import to.bitkit.ui.navigateToHome import to.bitkit.ui.scaffold.AppAlertDialog import to.bitkit.ui.scaffold.AppTopBar import to.bitkit.ui.scaffold.CloseNavIcon import to.bitkit.ui.scaffold.ScreenColumn import to.bitkit.ui.theme.AppThemeSurface import to.bitkit.ui.theme.Colors import to.bitkit.ui.walletViewModel</ID>
+    <ID>ImportOrdering:SheetHost.kt$import androidx.activity.compose.BackHandler import androidx.compose.animation.core.animateFloatAsState import androidx.compose.animation.core.tween import androidx.compose.foundation.background import androidx.compose.foundation.clickable import androidx.compose.foundation.layout.Box import androidx.compose.foundation.layout.ColumnScope import androidx.compose.foundation.layout.fillMaxSize import androidx.compose.material3.BottomSheetScaffold import androidx.compose.material3.ExperimentalMaterial3Api import androidx.compose.material3.MaterialTheme import androidx.compose.material3.SheetState import androidx.compose.material3.SheetValue import androidx.compose.material3.rememberBottomSheetScaffoldState import androidx.compose.material3.rememberModalBottomSheetState import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.rememberCoroutineScope import androidx.compose.ui.Modifier import androidx.compose.ui.unit.dp import kotlinx.coroutines.launch import to.bitkit.ui.sheets.SendRoute import to.bitkit.ui.sheets.BackupRoute import to.bitkit.ui.sheets.PinRoute import to.bitkit.ui.theme.AppShapes import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:WakeNodeWorker.kt$import android.content.Context import androidx.hilt.work.HiltWorker import androidx.work.CoroutineWorker import androidx.work.WorkerParameters import androidx.work.workDataOf import dagger.assisted.Assisted import dagger.assisted.AssistedInject import kotlinx.coroutines.CompletableDeferred import kotlinx.coroutines.withTimeout import kotlinx.serialization.json.JsonObject import kotlinx.serialization.json.JsonPrimitive import kotlinx.serialization.json.contentOrNull import kotlinx.serialization.json.jsonObject import org.lightningdevkit.ldknode.Event import to.bitkit.di.json import to.bitkit.models.NewTransactionSheetDetails import to.bitkit.models.NewTransactionSheetDirection import to.bitkit.models.NewTransactionSheetType import to.bitkit.models.BlocktankNotificationType import to.bitkit.models.BlocktankNotificationType.cjitPaymentArrived import to.bitkit.models.BlocktankNotificationType.incomingHtlc import to.bitkit.models.BlocktankNotificationType.mutualClose import to.bitkit.models.BlocktankNotificationType.orderPaymentConfirmed import to.bitkit.models.BlocktankNotificationType.wakeToTimeout import to.bitkit.repositories.LightningRepo import to.bitkit.services.CoreService import to.bitkit.ui.pushNotification import to.bitkit.utils.Logger import to.bitkit.utils.withPerformanceLogging import kotlin.time.Duration.Companion.minutes</ID>
     <ID>ImportOrdering:WalletBalanceView.kt$import androidx.compose.animation.AnimatedContent import androidx.compose.foundation.layout.Arrangement import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.Row import androidx.compose.foundation.layout.RowScope import androidx.compose.foundation.layout.Spacer import androidx.compose.foundation.layout.height import androidx.compose.foundation.layout.padding import androidx.compose.foundation.layout.size import androidx.compose.material3.Icon import androidx.compose.runtime.Composable import androidx.compose.runtime.getValue import androidx.compose.ui.Alignment import androidx.compose.ui.Modifier import androidx.compose.ui.graphics.Color import androidx.compose.ui.graphics.painter.Painter import androidx.compose.ui.unit.dp import androidx.lifecycle.compose.collectAsStateWithLifecycle import to.bitkit.models.ConvertedAmount import to.bitkit.models.PrimaryDisplay import to.bitkit.ui.LocalCurrencies import to.bitkit.ui.currencyViewModel import to.bitkit.ui.settingsViewModel import to.bitkit.ui.shared.animations.BalanceAnimations import to.bitkit.ui.shared.UiConstants import to.bitkit.ui.theme.Colors</ID>
     <ID>ImportOrdering:vss_rust_client_ffi.kt$import com.sun.jna.Library import com.sun.jna.IntegerType import com.sun.jna.Native import com.sun.jna.Pointer import com.sun.jna.Structure import com.sun.jna.Callback import com.sun.jna.ptr.* import java.nio.ByteBuffer import java.nio.ByteOrder import java.nio.CharBuffer import java.nio.charset.CodingErrorAction import java.util.concurrent.ConcurrentHashMap import kotlin.coroutines.resume import kotlinx.coroutines.CancellableContinuation import kotlinx.coroutines.suspendCancellableCoroutine</ID>
@@ -402,14 +389,11 @@
     <ID>LambdaParameterEventTrailing:ToastView.kt$onDismiss</ID>
     <ID>LambdaParameterInRestartableEffect:AmountInput.kt$onSatsChange</ID>
     <ID>LambdaParameterInRestartableEffect:AuthCheckView.kt$validatePin</ID>
-    <ID>LambdaParameterInRestartableEffect:BackupNavigationSheet.kt$onDismiss</ID>
     <ID>LambdaParameterInRestartableEffect:BiometricPrompt.kt$onSuccess</ID>
     <ID>LambdaParameterInRestartableEffect:BoostTransactionSheet.kt$onFailure</ID>
     <ID>LambdaParameterInRestartableEffect:BoostTransactionSheet.kt$onMaxFee</ID>
     <ID>LambdaParameterInRestartableEffect:BoostTransactionSheet.kt$onMinFee</ID>
     <ID>LambdaParameterInRestartableEffect:BoostTransactionSheet.kt$onSuccess</ID>
-    <ID>LambdaParameterInRestartableEffect:CoinSelectionScreen.kt$onRender</ID>
-    <ID>LambdaParameterInRestartableEffect:ConfirmPinScreen.kt$onPinConfirmed</ID>
     <ID>LambdaParameterInRestartableEffect:EditInvoiceScreen.kt$navigateReceiveConfirm</ID>
     <ID>LambdaParameterInRestartableEffect:EditInvoiceScreen.kt$onBack</ID>
     <ID>LambdaParameterInRestartableEffect:EditInvoiceScreen.kt$updateInvoice</ID>
@@ -417,17 +401,19 @@
     <ID>LambdaParameterInRestartableEffect:LnurlChannelScreen.kt$onConnected</ID>
     <ID>LambdaParameterInRestartableEffect:NumberPadTextField.kt$onAmountCalculated</ID>
     <ID>LambdaParameterInRestartableEffect:NumberPadTextField.kt$onInputChanged</ID>
-    <ID>LambdaParameterInRestartableEffect:PinCheckScreen.kt$onSuccess</ID>
+    <ID>LambdaParameterInRestartableEffect:PinConfirmScreen.kt$onPinConfirmed</ID>
     <ID>LambdaParameterInRestartableEffect:PricePreviewScreen.kt$onClose</ID>
     <ID>LambdaParameterInRestartableEffect:QrCodeImage.kt$onBitmapGenerated</ID>
     <ID>LambdaParameterInRestartableEffect:QrScanningScreen.kt$onBack</ID>
     <ID>LambdaParameterInRestartableEffect:QrScanningScreen.kt$onScanSuccess</ID>
-    <ID>LambdaParameterInRestartableEffect:QuickPaySendScreen.kt$onPaymentComplete</ID>
-    <ID>LambdaParameterInRestartableEffect:QuickPaySendScreen.kt$onShowError</ID>
     <ID>LambdaParameterInRestartableEffect:ReportIssueScreen.kt$navigateResultScreen</ID>
-    <ID>LambdaParameterInRestartableEffect:SendAndReviewScreen.kt$onEvent</ID>
-    <ID>LambdaParameterInRestartableEffect:SendAndReviewScreen.kt$onNavigateToPin</ID>
-    <ID>LambdaParameterInRestartableEffect:SendOptionsView.kt$onComplete</ID>
+    <ID>LambdaParameterInRestartableEffect:SendCoinSelectionScreen.kt$onRender</ID>
+    <ID>LambdaParameterInRestartableEffect:SendConfirmScreen.kt$onEvent</ID>
+    <ID>LambdaParameterInRestartableEffect:SendConfirmScreen.kt$onNavigateToPin</ID>
+    <ID>LambdaParameterInRestartableEffect:SendPinCheckScreen.kt$onSuccess</ID>
+    <ID>LambdaParameterInRestartableEffect:SendQuickPayScreen.kt$onPaymentComplete</ID>
+    <ID>LambdaParameterInRestartableEffect:SendQuickPayScreen.kt$onShowError</ID>
+    <ID>LambdaParameterInRestartableEffect:SendSheet.kt$onComplete</ID>
     <ID>LambdaParameterInRestartableEffect:SheetHost.kt$onDismiss</ID>
     <ID>LambdaParameterInRestartableEffect:SpendingAmountScreen.kt$onOrderCreated</ID>
     <ID>LambdaParameterInRestartableEffect:SpendingAmountScreen.kt$toast</ID>
@@ -443,7 +429,7 @@
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>LongMethod:WakeNodeWorker.kt$WakeNodeWorker$private suspend fun handleLdkEvent(event: Event)</ID>
     <ID>LongParameterList:ActivityRepo.kt$ActivityRepo$( filter: ActivityFilter? = null, txType: PaymentType? = null, tags: List&lt;String&gt;? = null, search: String? = null, minDate: ULong? = null, maxDate: ULong? = null, limit: UInt? = null, sortDirection: SortDirection? = null, )</ID>
-    <ID>LongParameterList:AppViewModel.kt$AppViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val keychain: Keychain, private val lightningService: LightningRepo, private val walletRepo: WalletRepo, private val coreService: CoreService, private val ldkNodeEventBus: LdkNodeEventBus, private val settingsStore: SettingsStore, private val currencyRepo: CurrencyRepo, private val activityRepo: ActivityRepo, connectivityRepo: ConnectivityRepo, healthRepo: HealthRepo, )</ID>
+    <ID>LongParameterList:AppViewModel.kt$AppViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val keychain: Keychain, private val lightningRepo: LightningRepo, private val walletRepo: WalletRepo, private val coreService: CoreService, private val ldkNodeEventBus: LdkNodeEventBus, private val settingsStore: SettingsStore, private val currencyRepo: CurrencyRepo, private val activityRepo: ActivityRepo, connectivityRepo: ConnectivityRepo, healthRepo: HealthRepo, )</ID>
     <ID>LongParameterList:BiometricPrompt.kt$( activity: Context, title: String, cancelButtonText: String, onAuthSucceed: () -&gt; Unit, onAuthFailed: (() -&gt; Unit), onAuthError: ((errorCode: Int, errString: CharSequence) -&gt; Unit), )</ID>
     <ID>LongParameterList:BiometricPrompt.kt$( activity: Context, title: String, cancelButtonText: String, onAuthSucceeded: () -&gt; Unit, onAuthFailed: (() -&gt; Unit), onAuthError: ((errorCode: Int, errString: CharSequence) -&gt; Unit), onUnsupported: () -&gt; Unit, )</ID>
     <ID>LongParameterList:CoreService.kt$ActivityService$( filter: ActivityFilter? = null, txType: PaymentType? = null, tags: List&lt;String&gt;? = null, search: String? = null, minDate: ULong? = null, maxDate: ULong? = null, limit: UInt? = null, sortDirection: SortDirection? = null, )</ID>
@@ -452,6 +438,7 @@
     <ID>LongParameterList:DevSettingsViewModel.kt$DevSettingsViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val firebaseMessaging: FirebaseMessaging, private val lightningRepo: LightningRepo, private val walletRepo: WalletRepo, private val widgetsStore: WidgetsStore, private val currencyRepo: CurrencyRepo, private val logsRepo: LogsRepo, private val cacheStore: CacheStore, private val blocktankRepo: BlocktankRepo, )</ID>
     <ID>LongParameterList:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val lightningRepo: LightningRepo, internal val blocktankRepo: BlocktankRepo, private val logsRepo: LogsRepo, private val addressChecker: AddressChecker, private val ldkNodeEventBus: LdkNodeEventBus, private val walletRepo: WalletRepo, )</ID>
     <ID>LongParameterList:LightningRepo.kt$LightningRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val lightningService: LightningService, private val ldkNodeEventBus: LdkNodeEventBus, private val settingsStore: SettingsStore, private val coreService: CoreService, private val blocktankNotificationsService: BlocktankNotificationsService, private val firebaseMessaging: FirebaseMessaging, private val keychain: Keychain, private val lnurlService: LnurlService, private val cacheStore: CacheStore, )</ID>
+    <ID>LongParameterList:LightningRepo.kt$LightningRepo$( address: Address, sats: ULong, speed: TransactionSpeed? = null, utxosToSpend: List&lt;SpendableUtxo&gt;? = null, isTransfer: Boolean = false, channelId: String? = null, )</ID>
     <ID>LongParameterList:LightningRepo.kt$LightningRepo$( walletIndex: Int = 0, timeout: Duration? = null, shouldRetry: Boolean = true, eventHandler: NodeEventHandler? = null, customServer: ElectrumServer? = null, customRgsServerUrl: String? = null, )</ID>
     <ID>LongParameterList:Nav.kt$( typeMap: Map&lt;KType, NavType&lt;*&gt;&gt; = emptyMap(), deepLinks: List&lt;NavDeepLink&gt; = emptyList(), noinline enterTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; EnterTransition?)? = { screenSlideIn }, noinline exitTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; ExitTransition?)? = { screenScaleOut }, noinline popEnterTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; EnterTransition?)? = { screenScaleIn }, noinline popExitTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; ExitTransition?)? = { screenSlideOut }, noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -&gt; Unit, )</ID>
     <ID>LongParameterList:Notifications.kt$( title: String?, text: String?, extras: Bundle? = null, bigText: String? = null, id: Int = Random.nextInt(), context: Context, )</ID>
@@ -497,7 +484,7 @@
     <ID>MagicNumber:ArticleModel.kt$30</ID>
     <ID>MagicNumber:ArticleModel.kt$60</ID>
     <ID>MagicNumber:AutoReadClipboardHandler.kt$1000</ID>
-    <ID>MagicNumber:BackupNavigationSheetViewModel.kt$BackupNavigationSheetViewModel$200</ID>
+    <ID>MagicNumber:BackupNavSheetViewModel.kt$BackupNavSheetViewModel$200</ID>
     <ID>MagicNumber:BackupRepo.kt$BackupRepo$60000</ID>
     <ID>MagicNumber:BackupSettingsScreen.kt$1000</ID>
     <ID>MagicNumber:BackupSettingsScreen.kt$35</ID>
@@ -553,7 +540,6 @@
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$24</ID>
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$300</ID>
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$6</ID>
-    <ID>MagicNumber:ConfirmPinScreen.kt$500</ID>
     <ID>MagicNumber:ContentView.kt$100</ID>
     <ID>MagicNumber:ContentView.kt$500</ID>
     <ID>MagicNumber:Context.kt$1024</ID>
@@ -572,7 +558,6 @@
     <ID>MagicNumber:Crypto.kt$Crypto$32</ID>
     <ID>MagicNumber:CurrencyService.kt$CurrencyService$1000L</ID>
     <ID>MagicNumber:CurrencyService.kt$CurrencyService$3</ID>
-    <ID>MagicNumber:DateRangeSelectorSheet.kt$.775f</ID>
     <ID>MagicNumber:ElectrumConfigViewModel.kt$ElectrumConfigViewModel$65535</ID>
     <ID>MagicNumber:ElectrumServer.kt$50001</ID>
     <ID>MagicNumber:ElectrumServer.kt$50002</ID>
@@ -595,7 +580,6 @@
     <ID>MagicNumber:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$500</ID>
     <ID>MagicNumber:LiquidityScreen.kt$200_000L</ID>
     <ID>MagicNumber:LiquidityScreen.kt$50_000L</ID>
-    <ID>MagicNumber:LnurlChannelScreen.kt$24</ID>
     <ID>MagicNumber:Logger.kt$Logger$1024L</ID>
     <ID>MagicNumber:Logger.kt$Logger$4</ID>
     <ID>MagicNumber:LogsRepo.kt$LogsRepo$3</ID>
@@ -607,6 +591,7 @@
     <ID>MagicNumber:OnboardingSlidesScreen.kt$4</ID>
     <ID>MagicNumber:OnboardingSlidesScreen.kt$5</ID>
     <ID>MagicNumber:Perf.kt$1000.0</ID>
+    <ID>MagicNumber:PinConfirmScreen.kt$500</ID>
     <ID>MagicNumber:PinPromptScreen.kt$0.8f</ID>
     <ID>MagicNumber:PreviewItems.kt$10</ID>
     <ID>MagicNumber:PreviewItems.kt$1000</ID>
@@ -637,7 +622,7 @@
     <ID>MagicNumber:SavingsConfirmScreen.kt$300</ID>
     <ID>MagicNumber:SavingsProgressScreen.kt$2500</ID>
     <ID>MagicNumber:SavingsProgressScreen.kt$5000</ID>
-    <ID>MagicNumber:SendAndReviewScreen.kt$300</ID>
+    <ID>MagicNumber:SendConfirmScreen.kt$300</ID>
     <ID>MagicNumber:SettingUpScreen.kt$3</ID>
     <ID>MagicNumber:SettingUpScreen.kt$5000</ID>
     <ID>MagicNumber:SettingsButtonRow.kt$0.5f</ID>
@@ -702,7 +687,6 @@
     <ID>MatchingDeclarationName:BoostTransactionViewModelTest.kt$BoostTransactionViewModelSimplifiedTest : BaseUnitTest</ID>
     <ID>MatchingDeclarationName:Button.kt$ButtonSize</ID>
     <ID>MatchingDeclarationName:CoinSelectPreferenceScreen.kt$CoinSelectPreferenceTestTags</ID>
-    <ID>MatchingDeclarationName:CoinSelectionScreen.kt$CoinSelectionTestTags</ID>
     <ID>MatchingDeclarationName:LightningChannel.kt$ChannelStatusUi</ID>
     <ID>MatchingDeclarationName:LightningConnectionsScreen.kt$LightningConnectionsTestTags</ID>
     <ID>MatchingDeclarationName:ReceiveConfirmScreen.kt$CjitEntryDetails</ID>
@@ -712,19 +696,11 @@
     <ID>MatchingDeclarationName:SecuritySettingsScreen.kt$SecuritySettingsTestTags</ID>
     <ID>MatchingDeclarationName:SettingsButtonRow.kt$SettingsButtonValue</ID>
     <ID>MaxLineLength:ActivityDetailScreen.kt$description = "Unable to increase the fee any further. Otherwise, it will exceed half the current input balance"</ID>
-    <ID>MaxLineLength:ActivityDetailScreen.kt$text = stringResource(if (item.isBoosted()) R.string.wallet__activity_boosted else R.string.wallet__activity_boost)</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$"Update activity fail. Parameters: id:$id, activityIdToDelete:$activityIdToDelete activity:$activity"</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$"findActivityByPaymentId error. Parameters:\n paymentHashOrTxId:$paymentHashOrTxId type:$type txType:$txType"</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$"getActivities error. Parameters:\nfilter:$filter txType:$txType tags:$tags search:$search minDate:$minDate maxDate:$maxDate limit:$limit sortDirection:$sortDirection"</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$* Updates an activity and delete other one. In case of failure in the update or deletion, the data will be cached to try again on the next sync</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$if (activity != null) Result.success(activity) else Result.failure(IllegalStateException("Activity not found"))</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$if (paymentHashOrTxId.isEmpty()) return@withContext Result.failure(IllegalArgumentException("paymentHashOrTxId is empty"))</ID>
-    <ID>MaxLineLength:ActivityRepo.kt$ActivityRepo$return@withContext Result.failure(Exception("Activity $id was deleted. If you want update it, set forceUpdate as true"))</ID>
     <ID>MaxLineLength:AppViewModel.kt$AppViewModel$// TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.</ID>
     <ID>MaxLineLength:AppViewModel.kt$AppViewModel$// TODO: handle ONLY cjit as payment received. This makes it look like any channel confirmed is a received payment.</ID>
-    <ID>MaxLineLength:BackupNavigationSheet.kt$BackupContract.SideEffect.NavigateToConfirmMnemonic -&gt; navController.navigate(BackupRoute.ConfirmMnemonic)</ID>
-    <ID>MaxLineLength:BackupNavigationSheet.kt$BackupContract.SideEffect.NavigateToConfirmPassphrase -&gt; navController.navigate(BackupRoute.ConfirmPassphrase)</ID>
-    <ID>MaxLineLength:BackupNavigationSheet.kt$BackupContract.SideEffect.NavigateToMultipleDevices -&gt; navController.navigate(BackupRoute.MultipleDevices)</ID>
+    <ID>MaxLineLength:BackupSheet.kt$BackupContract.SideEffect.NavigateToConfirmMnemonic -&gt; navController.navigate(BackupRoute.ConfirmMnemonic)</ID>
+    <ID>MaxLineLength:BackupSheet.kt$BackupContract.SideEffect.NavigateToConfirmPassphrase -&gt; navController.navigate(BackupRoute.ConfirmPassphrase)</ID>
+    <ID>MaxLineLength:BackupSheet.kt$BackupContract.SideEffect.NavigateToMultipleDevices -&gt; navController.navigate(BackupRoute.MultipleDevices)</ID>
     <ID>MaxLineLength:Bip39Test.kt$Bip39Test$"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" to true</ID>
     <ID>MaxLineLength:Bip39Test.kt$Bip39Test$"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon" to false</ID>
     <ID>MaxLineLength:Bip39Test.kt$Bip39Test$"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon" to false</ID>
@@ -747,7 +723,6 @@
     <ID>MaxLineLength:BlocktankRepo.kt$BlocktankRepo$"Buying channel with lspBalanceSat: $receivingBalanceSats, channelExpiryWeeks: $channelExpiryWeeks, options: $options"</ID>
     <ID>MaxLineLength:BoostTransactionViewModel.kt$BoostTransactionViewModel$Logger.error("Activity $newTxId not found. Caching data to try again on next sync", e = error, context = TAG)</ID>
     <ID>MaxLineLength:ChannelOrdersScreen.kt$lnurl = "LNURL1DP68GURN8GHJ7CTSDYH8XARPVUHXYMR0VD4HGCTWDVH8GME0VFKX7CMTW3SKU6E0V9CXJTMKXGHKCTENVV6NVDP4XUEJ6ETRX33Z6DPEXU6Z6C34XQEZ6DT9XENX2WFNXQ6RXDTXGQAH4MLNURL1DP68GURN8GHJ7CTSDYH8XARPVUHXYMR0VD4HGCTWDVH8GME0VFKX7CMTW3SKU6E0V9CXJTMKXGHKCTENVV6NVDP4XUEJ6ETRX33Z6DPEXU6Z6C34XQEZ6DT9XENX2WFNXQ6RXDTXGQAH4M"</ID>
-    <ID>MaxLineLength:CoreService.kt$ActivityService$if</ID>
     <ID>MaxLineLength:CoreService.kt$CoreService$// val blocktankPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }.orEmpty()</ID>
     <ID>MaxLineLength:CryptoTest.kt$CryptoTest$val ciphertext = "l2fInfyw64gO12odo8iipISloQJ45Rc4WjFmpe95brdaAMDq+T/L9ZChcmMCXnR0J6BXd8sSIJe/0bmby8uSZZJuVCzwF76XHfY5oq0Y1/hKzyZTn8nG3dqfiLHnAPy1tZFQfm5ALgjwWnViYJLXoGFpXs7kLMA=".fromBase64()</ID>
     <ID>MaxLineLength:CryptoTest.kt$CryptoTest$val decryptedPayload = """{"source":"blocktank","type":"incomingHtlc","payload":{"secretMessage":"hello"},"createdAt":"2024-09-18T13:33:52.555Z"}"""</ID>
@@ -773,14 +748,11 @@
     <ID>MaxLineLength:Nav.kt$noinline exitTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; ExitTransition?)? = { screenScaleOut }</ID>
     <ID>MaxLineLength:Nav.kt$noinline popEnterTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; EnterTransition?)? = { screenScaleIn }</ID>
     <ID>MaxLineLength:Nav.kt$noinline popExitTransition: (AnimatedContentTransitionScope&lt;NavBackStackEntry&gt;.() -&gt; ExitTransition?)? = { screenSlideOut }</ID>
-    <ID>MaxLineLength:NumberPadTextField.kt$if (displayUnit == BitcoinDisplayUnit.MODERN) input else (input.toLongOrDefault(0L) * SATS_IN_BTC).toString()</ID>
     <ID>MaxLineLength:PriceViewModel.kt$PriceViewModel$_previewPrice.update { _allPrices.value.firstOrNull { it.widgets.firstOrNull()?.period == _customPreferences.value.period } }</ID>
     <ID>MaxLineLength:ProfileIntroScreen.kt$text = stringResource(R.string.slashtags__onboarding_profile1_header).withAccent(accentColor = Colors.Brand)</ID>
-    <ID>MaxLineLength:ReceiveConfirmScreen.kt$text</ID>
     <ID>MaxLineLength:ReceiveLiquidityScreen.kt$BodyMB(text = stringResource(if (isAdditional) R.string.wallet__receive_liquidity__label_additional else R.string.wallet__receive_liquidity__label))</ID>
     <ID>MaxLineLength:ReceiveLiquidityScreen.kt$stringResource(if (isAdditional) R.string.wallet__receive_liquidity__nav_title_additional else R.string.wallet__receive_liquidity__nav_title)</ID>
     <ID>MaxLineLength:ReceiveLiquidityScreen.kt$text = stringResource(if (isAdditional) R.string.wallet__receive_liquidity__text_additional else R.string.wallet__receive_liquidity__text)</ID>
-    <ID>MaxLineLength:ReceiveQrScreen.kt$active &amp;&amp; lightningState.shouldBlockLightning -&gt; navController.navigate(ReceiveRoutes.LOCATION_BLOCK)</ID>
     <ID>MaxLineLength:ReceiveQrScreen.kt$text = stringResource(R.string.wallet__receive_text_lnfunds).withAccent(accentColor = Colors.Purple)</ID>
     <ID>MaxLineLength:RestoreWalletScreen.kt$placeholder = { Text(text = stringResource(R.string.onboarding__restore_passphrase_placeholder)) }</ID>
     <ID>MaxLineLength:RestoreWalletScreen.kt$text = stringResource(R.string.onboarding__restore_red_explain).withAccent(accentColor = Colors.Red)</ID>
@@ -805,8 +777,7 @@
     <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(future, continuation) }</ID>
     <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_void(future, continuation) }</ID>
     <ID>MaximumLineLength:ActivityDetailScreen.kt$ </ID>
-    <ID>MaximumLineLength:ActivityRepo.kt$ActivityRepo$ </ID>
-    <ID>MaximumLineLength:BackupNavigationSheet.kt$ </ID>
+    <ID>MaximumLineLength:BackupSheet.kt$ </ID>
     <ID>MaximumLineLength:Bip39Test.kt$Bip39Test$ </ID>
     <ID>MaximumLineLength:Bip39Utils.kt$val</ID>
     <ID>MaximumLineLength:BlocksEditScreen.kt$ </ID>
@@ -814,7 +785,6 @@
     <ID>MaximumLineLength:BlocktankRepo.kt$BlocktankRepo$ </ID>
     <ID>MaximumLineLength:BoostTransactionViewModel.kt$BoostTransactionViewModel$ </ID>
     <ID>MaximumLineLength:ChannelOrdersScreen.kt$ </ID>
-    <ID>MaximumLineLength:CoreService.kt$ActivityService$ </ID>
     <ID>MaximumLineLength:CryptoTest.kt$CryptoTest$ </ID>
     <ID>MaximumLineLength:EditInvoiceVM.kt$EditInvoiceVM$ </ID>
     <ID>MaximumLineLength:ExternalConfirmScreen.kt$ </ID>
@@ -826,10 +796,8 @@
     <ID>MaximumLineLength:LightningService.kt$LightningService$ </ID>
     <ID>MaximumLineLength:MainActivity.kt$MainActivity$ </ID>
     <ID>MaximumLineLength:Nav.kt$ </ID>
-    <ID>MaximumLineLength:NumberPadTextField.kt$ </ID>
     <ID>MaximumLineLength:PriceViewModel.kt$PriceViewModel$ </ID>
     <ID>MaximumLineLength:ProfileIntroScreen.kt$ </ID>
-    <ID>MaximumLineLength:ReceiveConfirmScreen.kt$ </ID>
     <ID>MaximumLineLength:ReceiveLiquidityScreen.kt$ </ID>
     <ID>MaximumLineLength:ReceiveQrScreen.kt$ </ID>
     <ID>MaximumLineLength:RestoreWalletScreen.kt$ </ID>
@@ -849,23 +817,22 @@
     <ID>MemberNameEqualsClassName:Keychain.kt$Keychain$private val keychain = context.keychainDataStore</ID>
     <ID>ModifierComposed:AllActivityScreen.kt$swipeToChangeTab</ID>
     <ID>ModifierComposed:Modifiers.kt$clickableAlpha</ID>
+    <ID>ModifierComposed:SheetHeight.kt$sheetHeight</ID>
     <ID>ModifierListSpacing:App.kt$App$@Inject lateinit</ID>
     <ID>ModifierListSpacing:AppDb.kt$AppDb$@Database( entities = [ ConfigEntity::class, InvoiceTagEntity::class, ], version = 2, ) @TypeConverters(StringListConverter::class) abstract</ID>
     <ID>ModifierListSpacing:Change.kt$Change$@Serializable data</ID>
     <ID>ModifierListSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend</ID>
     <ID>ModifierMissing:AboutScreen.kt$AboutScreen</ID>
+    <ID>ModifierMissing:ActivityAddTagSheet.kt$ActivityAddTagSheet</ID>
     <ID>ModifierMissing:ActivityDetailScreen.kt$ActivityDetailScreen</ID>
     <ID>ModifierMissing:ActivityListSimple.kt$ActivityListSimple</ID>
     <ID>ModifierMissing:ActivityRow.kt$ActivityRow</ID>
-    <ID>ModifierMissing:AddTagScreen.kt$AddTagScreen</ID>
     <ID>ModifierMissing:AddWidgetsScreen.kt$AddWidgetsScreen</ID>
     <ID>ModifierMissing:AmountInput.kt$AmountInput</ID>
     <ID>ModifierMissing:AppTopBar.kt$AppTopBar</ID>
     <ID>ModifierMissing:AppTopBar.kt$BackNavIcon</ID>
     <ID>ModifierMissing:AppTopBar.kt$CloseNavIcon</ID>
     <ID>ModifierMissing:AppTopBar.kt$ScanNavIcon</ID>
-    <ID>ModifierMissing:BackupIntroScreen.kt$BackupIntroScreen</ID>
-    <ID>ModifierMissing:BackupNavigationSheet.kt$BackupNavigationSheet</ID>
     <ID>ModifierMissing:BackupSheet.kt$BackupSheet</ID>
     <ID>ModifierMissing:BalanceHeaderView.kt$LargeRow</ID>
     <ID>ModifierMissing:BiometricsView.kt$BiometricsView</ID>
@@ -876,12 +843,10 @@
     <ID>ModifierMissing:CalculatorPreviewScreen.kt$CalculatorPreviewContent</ID>
     <ID>ModifierMissing:CameraPermissionView.kt$DeniedContent</ID>
     <ID>ModifierMissing:ChannelStatusView.kt$ChannelStatusView</ID>
-    <ID>ModifierMissing:ChoosePinScreen.kt$ChoosePinScreen</ID>
     <ID>ModifierMissing:CreateProfileScreen.kt$CreateProfileScreen</ID>
     <ID>ModifierMissing:CreateWalletWithPassphraseScreen.kt$CreateWalletWithPassphraseScreen</ID>
     <ID>ModifierMissing:DefaultUnitSettingsScreen.kt$DefaultUnitSettingsScreenContent</ID>
     <ID>ModifierMissing:DevSettingsScreen.kt$DevSettingsScreen</ID>
-    <ID>ModifierMissing:EditInvoiceScreen.kt$EditInvoiceContent</ID>
     <ID>ModifierMissing:FactsEditScreen.kt$FactsEditContent</ID>
     <ID>ModifierMissing:FactsPreviewScreen.kt$FactsPreviewContent</ID>
     <ID>ModifierMissing:FundingAdvancedScreen.kt$FundingAdvancedScreen</ID>
@@ -895,14 +860,13 @@
     <ID>ModifierMissing:InitializingWalletView.kt$InitializingWalletView</ID>
     <ID>ModifierMissing:IntroScreen.kt$IntroScreen</ID>
     <ID>ModifierMissing:LocalCurrencySettingsScreen.kt$LocalCurrencySettingsContent</ID>
-    <ID>ModifierMissing:LocationBlockScreen.kt$LocationBlockScreen</ID>
     <ID>ModifierMissing:LogsScreen.kt$LogDetailScreen</ID>
     <ID>ModifierMissing:LogsScreen.kt$LogsScreen</ID>
     <ID>ModifierMissing:Money.kt$MoneyDisplay</ID>
     <ID>ModifierMissing:NewTransactionSheet.kt$NewTransactionSheetView</ID>
     <ID>ModifierMissing:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
-    <ID>ModifierMissing:PinNavigationSheet.kt$PinNavigationSheet</ID>
-    <ID>ModifierMissing:PinPromptScreen.kt$PinPromptScreen</ID>
+    <ID>ModifierMissing:PinChooseScreen.kt$PinChooseScreen</ID>
+    <ID>ModifierMissing:PinSheet.kt$PinSheet</ID>
     <ID>ModifierMissing:PriceEditScreen.kt$PriceEditContent</ID>
     <ID>ModifierMissing:PricePreviewScreen.kt$PricePreviewContent</ID>
     <ID>ModifierMissing:ProfileIntroScreen.kt$ProfileIntroScreen</ID>
@@ -910,7 +874,7 @@
     <ID>ModifierMissing:QuickPayIntroScreen.kt$QuickPayIntroScreen</ID>
     <ID>ModifierMissing:QuickPaySettingsScreen.kt$QuickPaySettingsScreenContent</ID>
     <ID>ModifierMissing:ReceiveAmountScreen.kt$ReceiveAmountScreen</ID>
-    <ID>ModifierMissing:ReceiveLiquidityScreen.kt$ReceiveLiquidityScreen</ID>
+    <ID>ModifierMissing:ReceiveSheet.kt$ReceiveSheet</ID>
     <ID>ModifierMissing:ReportIssueResultScreen.kt$ReportIssueResultScreen</ID>
     <ID>ModifierMissing:ReportIssueScreen.kt$ReportIssueContent</ID>
     <ID>ModifierMissing:RestoreWalletScreen.kt$MnemonicInputField</ID>
@@ -919,9 +883,7 @@
     <ID>ModifierMissing:SavingsAvailabilityScreen.kt$SavingsAvailabilityScreen</ID>
     <ID>ModifierMissing:SavingsIntroScreen.kt$SavingsIntroScreen</ID>
     <ID>ModifierMissing:SavingsWalletScreen.kt$SavingsWalletScreen</ID>
-    <ID>ModifierMissing:SendAddressScreen.kt$SendAddressScreen</ID>
-    <ID>ModifierMissing:SendAmountScreen.kt$SendAmountContent</ID>
-    <ID>ModifierMissing:SendOptionsView.kt$SendOptionsView</ID>
+    <ID>ModifierMissing:SendSheet.kt$SendSheet</ID>
     <ID>ModifierMissing:SettingsScreen.kt$SettingsScreenContent</ID>
     <ID>ModifierMissing:SheetHost.kt$SheetHost</ID>
     <ID>ModifierMissing:ShopDiscoverScreen.kt$ShopDiscoverScreen</ID>
@@ -943,8 +905,6 @@
     <ID>ModifierMissing:WeatherEditScreen.kt$WeatherEditContent</ID>
     <ID>ModifierMissing:WeatherPreviewScreen.kt$WeatherPreviewContent</ID>
     <ID>ModifierMissing:WidgetsIntroScreen.kt$WidgetsIntroScreen</ID>
-    <ID>ModifierMissing:WithdrawConfirmScreen.kt$WithdrawConfirmScreen</ID>
-    <ID>ModifierMissing:WithdrawErrorScreen.kt$WithDrawErrorScreen</ID>
     <ID>ModifierNotUsedAtRoot:QrScanningScreen.kt$modifier = modifier .fillMaxWidth() .clip(RoundedCornerShape(16.dp)) .weight(1f)</ID>
     <ID>ModifierNotUsedAtRoot:SettingsTextButtonRow.kt$modifier = modifier.then(if (!enabled) Modifier.alpha(0.5f) else Modifier)</ID>
     <ID>ModifierReused:QrScanningScreen.kt$Box( modifier = modifier .fillMaxWidth() .clip(RoundedCornerShape(16.dp)) .weight(1f) ) { AndroidView( modifier = Modifier .fillMaxSize() .clipToBounds(), factory = { previewView.apply { setLayerType(LAYER_TYPE_HARDWARE, null) } } ) IconButton( onClick = onClickGallery, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopStart) ) { Icon( painter = painterResource(R.drawable.ic_image_square), contentDescription = null, tint = Colors.White ) } IconButton( onClick = onClickFlashlight, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopEnd) ) { Icon( painter = painterResource(R.drawable.ic_flashlight), contentDescription = null, tint = Colors.White ) } }</ID>
@@ -973,8 +933,8 @@
     <ID>MultipleEmitters:BoostTransactionSheet.kt$DefaultModeContent</ID>
     <ID>MultipleEmitters:DrawerMenu.kt$DrawerMenu</ID>
     <ID>MultipleEmitters:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
-    <ID>MultipleEmitters:SendAndReviewScreen.kt$LnurlCommentSection</ID>
-    <ID>MultipleEmitters:SendAndReviewScreen.kt$TagsSection</ID>
+    <ID>MultipleEmitters:SendConfirmScreen.kt$LnurlCommentSection</ID>
+    <ID>MultipleEmitters:SendConfirmScreen.kt$TagsSection</ID>
     <ID>MutableStateAutoboxing:DragDropColumn.kt$mutableStateOf(0f)</ID>
     <ID>MutableStateParam:ReceiveQrScreen.kt$cjitActive</ID>
     <ID>MutableStateParam:ReceiveQrScreen.kt$cjitInvoice</ID>
@@ -987,10 +947,9 @@
     <ID>NoBlankLineBeforeRbrace:BlocktankRegtestScreen.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:CreateProfileScreen.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:PriceService.kt$PriceService$ </ID>
-    <ID>NoBlankLineBeforeRbrace:ReceiveQrScreen.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:SendAddressScreen.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:SendAmountScreen.kt$ </ID>
-    <ID>NoBlankLineBeforeRbrace:SendAndReviewScreen.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:SendConfirmScreen.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:ShareSheet.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:SuggestionCard.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:WeatherCard.kt$ </ID>
@@ -1001,10 +960,8 @@
     <ID>NoConsecutiveBlankLines:ActivityListSimple.kt$ </ID>
     <ID>NoConsecutiveBlankLines:ActivityRepo.kt$ActivityRepo$ </ID>
     <ID>NoConsecutiveBlankLines:ActivityRepoTest.kt$ActivityRepoTest$ </ID>
-    <ID>NoConsecutiveBlankLines:AddTagScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:AddWidgetsScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:AddressChecker.kt$AddressChecker$ </ID>
-    <ID>NoConsecutiveBlankLines:BackupIntroScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:Bip39Test.kt$Bip39Test$ </ID>
     <ID>NoConsecutiveBlankLines:BlocksEditScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:BlocksService.kt$ </ID>
@@ -1022,7 +979,6 @@
     <ID>NoConsecutiveBlankLines:HighlightLabel.kt$ </ID>
     <ID>NoConsecutiveBlankLines:HomeViewModel.kt$HomeViewModel$ </ID>
     <ID>NoConsecutiveBlankLines:LogsRepo.kt$LogsRepo$ </ID>
-    <ID>NoConsecutiveBlankLines:Money.kt$ </ID>
     <ID>NoConsecutiveBlankLines:NewsService.kt$NewsService$ </ID>
     <ID>NoConsecutiveBlankLines:NumberPadTextField.kt$ </ID>
     <ID>NoConsecutiveBlankLines:PriceService.kt$ </ID>
@@ -1034,7 +990,6 @@
     <ID>NoConsecutiveBlankLines:ReportIssueScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:ShopIntroScreen.kt$ </ID>
     <ID>NoConsecutiveBlankLines:ShopWebViewScreen.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:String.kt$ </ID>
     <ID>NoConsecutiveBlankLines:SuggestionCard.kt$ </ID>
     <ID>NoConsecutiveBlankLines:SyncNodeView.kt$ </ID>
     <ID>NoConsecutiveBlankLines:Text.kt$ </ID>
@@ -1045,13 +1000,11 @@
     <ID>NoConsecutiveBlankLines:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
     <ID>NoConsecutiveBlankLines:vss_rust_client_ffi.kt$VssException$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:ActivityRepo.kt$ActivityRepo$ </ID>
-    <ID>NoEmptyFirstLineInMethodBlock:AddTagScreen.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:BuyIntroScreen.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:CoreService.kt$ActivityService$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:CreateProfileScreen.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:FactsCard.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:LightningRepo.kt$LightningRepo$ </ID>
-    <ID>NoEmptyFirstLineInMethodBlock:NewTransactionSheet.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:NumberPadTextField.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:ProfileIntroScreen.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:QuickPayIntroScreen.kt$ </ID>
@@ -1077,23 +1030,20 @@
     <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$VssException$ </ID>
     <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$VssItem$ </ID>
     <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$_UniFFILib$ </ID>
-    <ID>NoUnusedImports:AppCacheSerializer.kt$to.bitkit.data.serializers.AppCacheSerializer.kt</ID>
-    <ID>NoUnusedImports:BoostTransactionSheet.kt$to.bitkit.ui.screens.wallets.activity.BoostTransactionSheet.kt</ID>
+    <ID>NoUnusedImports:ActivityDetailViewModel.kt$to.bitkit.viewmodels.ActivityDetailViewModel.kt</ID>
     <ID>NoUnusedImports:ChatwootHttpClient.kt$to.bitkit.data.ChatwootHttpClient.kt</ID>
     <ID>NoUnusedImports:DevSettingsViewModel.kt$to.bitkit.viewmodels.DevSettingsViewModel.kt</ID>
     <ID>NoUnusedImports:FactsEditScreen.kt$to.bitkit.ui.screens.widgets.facts.FactsEditScreen.kt</ID>
     <ID>NoUnusedImports:HeadlinesEditScreen.kt$to.bitkit.ui.screens.widgets.headlines.HeadlinesEditScreen.kt</ID>
-    <ID>NoUnusedImports:HealthRepoTest.kt$to.bitkit.repositories.HealthRepoTest.kt</ID>
-    <ID>NoUnusedImports:HighBalanceWarningSheet.kt$to.bitkit.ui.screens.wallets.sheets.HighBalanceWarningSheet.kt</ID>
     <ID>NoUnusedImports:HttpModule.kt$to.bitkit.di.HttpModule.kt</ID>
     <ID>NoUnusedImports:MapWebViewClient.kt$to.bitkit.ui.screens.shop.shopDiscover.MapWebViewClient.kt</ID>
     <ID>NoUnusedImports:PinDots.kt$to.bitkit.ui.components.PinDots.kt</ID>
     <ID>NoUnusedImports:PriceCard.kt$to.bitkit.ui.screens.widgets.price.PriceCard.kt</ID>
     <ID>NoUnusedImports:QrCodeImage.kt$to.bitkit.ui.components.QrCodeImage.kt</ID>
+    <ID>NoUnusedImports:SendFeeRateScreen.kt$to.bitkit.ui.screens.wallets.send.SendFeeRateScreen.kt</ID>
     <ID>NoUnusedImports:ShopDiscoverScreen.kt$to.bitkit.ui.screens.shop.shopDiscover.ShopDiscoverScreen.kt</ID>
     <ID>NoUnusedImports:ShopWebViewInterface.kt$to.bitkit.ui.screens.shop.shopWebView.ShopWebViewInterface.kt</ID>
     <ID>NoUnusedImports:ShopWebViewScreen.kt$to.bitkit.ui.screens.shop.shopWebView.ShopWebViewScreen.kt</ID>
-    <ID>NoUnusedImports:Spacers.kt$to.bitkit.ui.components.Spacers.kt</ID>
     <ID>NoUnusedImports:TagsViewModel.kt$to.bitkit.viewmodels.TagsViewModel.kt</ID>
     <ID>NoUnusedImports:WeatherService.kt$to.bitkit.data.widgets.WeatherService.kt</ID>
     <ID>NoUnusedImports:WeatherViewModel.kt$to.bitkit.ui.screens.widgets.weather.WeatherViewModel.kt</ID>
@@ -1127,8 +1077,6 @@
     <ID>ParameterNaming:AddressViewerScreen.kt$onSearchTextChanged</ID>
     <ID>ParameterNaming:BiometricPrompt.kt$onFailed</ID>
     <ID>ParameterNaming:BiometricPrompt.kt$onUnsupported</ID>
-    <ID>ParameterNaming:ChoosePinScreen.kt$onPinChosen</ID>
-    <ID>ParameterNaming:ConfirmPinScreen.kt$onPinConfirmed</ID>
     <ID>ParameterNaming:EditInvoiceScreen.kt$onInputChanged</ID>
     <ID>ParameterNaming:EditInvoiceScreen.kt$onInputUpdated</ID>
     <ID>ParameterNaming:EditInvoiceScreen.kt$onTextChanged</ID>
@@ -1138,6 +1086,8 @@
     <ID>ParameterNaming:LocationBlockScreen.kt$onBackPressed</ID>
     <ID>ParameterNaming:NumberPadTextField.kt$onAmountCalculated</ID>
     <ID>ParameterNaming:NumberPadTextField.kt$onInputChanged</ID>
+    <ID>ParameterNaming:PinChooseScreen.kt$onPinChosen</ID>
+    <ID>ParameterNaming:PinConfirmScreen.kt$onPinConfirmed</ID>
     <ID>ParameterNaming:QrCodeImage.kt$onBitmapGenerated</ID>
     <ID>ParameterNaming:ReceiveAmountScreen.kt$onCjitCreated</ID>
     <ID>ParameterNaming:RestoreWalletScreen.kt$onPositionChanged</ID>
@@ -1189,10 +1139,9 @@
     <ID>ReturnCount:MonetaryVisualTransformation.kt$MonetaryVisualTransformation$private fun formatMonetaryValue(text: String): String</ID>
     <ID>ReturnCount:MonetaryVisualTransformation.kt$MonetaryVisualTransformation.&lt;no name provided&gt;$override fun originalToTransformed(offset: Int): Int</ID>
     <ID>ReturnCount:MonetaryVisualTransformation.kt$MonetaryVisualTransformation.&lt;no name provided&gt;$override fun transformedToOriginal(offset: Int): Int</ID>
-    <ID>ReturnCount:Money.kt$@Composable fun rememberMoneyText( sats: Long, reversed: Boolean = false, ): String?</ID>
+    <ID>ReturnCount:Money.kt$@Composable fun rememberMoneyText( sats: Long, reversed: Boolean = false, currencies: CurrencyUiState = LocalCurrencies.current, unit: PrimaryDisplay = if (reversed) currencies.primaryDisplay.not() else currencies.primaryDisplay, ): String?</ID>
     <ID>ReturnCount:NodeInfoScreen.kt$@Composable fun NodeInfoScreen( navController: NavController, )</ID>
     <ID>ReturnCount:ReceiveAmountScreen.kt$@Composable fun ReceiveAmountScreen( onCjitCreated: (CjitEntryDetails) -&gt; Unit, onBack: () -&gt; Unit, )</ID>
-    <ID>ReturnCount:ReceiveQrScreen.kt$@Composable fun ReceiveQrSheet( navigateToExternalConnection: () -&gt; Unit, walletState: MainUiState, modifier: Modifier = Modifier, )</ID>
     <ID>ReturnCount:SavingsAdvancedScreen.kt$@Composable fun SavingsAdvancedScreen( onContinueClick: () -&gt; Unit, onBackClick: () -&gt; Unit, onCloseClick: () -&gt; Unit, )</ID>
     <ID>ReturnCount:SavingsConfirmScreen.kt$@Composable fun SavingsConfirmScreen( onConfirm: () -&gt; Unit, onAdvancedClick: () -&gt; Unit, onBackClick: () -&gt; Unit, onCloseClick: () -&gt; Unit, )</ID>
     <ID>ReturnCount:SpendingAdvancedScreen.kt$@Composable fun SpendingAdvancedScreen( viewModel: TransferViewModel, onBackClick: () -&gt; Unit = {}, onCloseClick: () -&gt; Unit = {}, onOrderCreated: () -&gt; Unit = {}, )</ID>
@@ -1230,7 +1179,6 @@
     <ID>SpacingAroundComma:vss_rust_client_ffi.kt$VssFilterType.PREFIX$,</ID>
     <ID>SpacingAroundComma:vss_rust_client_ffi.kt$_UniFFILib$,</ID>
     <ID>SpacingAroundKeyword:Activities.kt$when</ID>
-    <ID>SpacingAroundKeyword:LnurlChannelScreen.kt$if</ID>
     <ID>SpacingAroundKeyword:PricePreviewScreen.kt$when</ID>
     <ID>SpacingAroundKeyword:WeatherModel.kt$when</ID>
     <ID>SpacingAroundKeyword:vss_rust_client_ffi.kt$FfiConverterTypeVssError$when</ID>
@@ -1243,8 +1191,6 @@
     <ID>SpacingAroundParens:vss_rust_client_ffi.kt$ListKeyVersionsResponse$(</ID>
     <ID>SpacingAroundParens:vss_rust_client_ffi.kt$VssItem$(</ID>
     <ID>SpacingAroundParens:vss_rust_client_ffi.kt$_UniFFILib$(</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:Defaults.kt$AppTextFieldDefaults$@Stable val semiTransparent: TextFieldColors @Composable get() = TextFieldDefaults.colors( focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedContainerColor = Colors.White10, unfocusedContainerColor = Colors.White10, errorIndicatorColor = Color.Transparent, errorContainerColor = Colors.White10, errorTextColor = Colors.Red, errorPrefixColor = Colors.Red )</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:Defaults.kt$AppTextFieldDefaults$@Stable val transparent: TextFieldColors @Composable get() = noIndicatorColors.copy( unfocusedIndicatorColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), )</ID>
     <ID>SpacingBetweenDeclarationsWithAnnotations:EditInvoiceVMTest.kt$EditInvoiceVMTest$@Test fun `onClickContinue should emit UpdateInvoice when shouldRequestAdditionalLiquidity fails`()</ID>
     <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssGet`(`key`: String) : VssItem?</ID>
     <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssListKeys`(`prefix`: String?) : List&lt;KeyVersion&gt;</ID>
@@ -1279,14 +1225,13 @@
     <ID>TooGenericExceptionCaught:AppViewModel.kt$AppViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AppViewModel.kt$AppViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ArticleModel.kt$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:BackupNavigationSheetViewModel.kt$BackupNavigationSheetViewModel$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:BackupNavSheetViewModel.kt$BackupNavSheetViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:BackupRepo.kt$BackupRepo$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:BiometricPrompt.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BlocktankRegtestScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BlocktankRepo.kt$BlocktankRepo$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:BoostTransactionViewModel.kt$BoostTransactionViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChannelOrdersScreen.kt$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:CoinSelectionViewModel.kt$CoinSelectionViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ContentView.kt$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:CoreService.kt$ActivityService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CoreService.kt$ActivityService$e: Throwable</ID>
@@ -1306,7 +1251,7 @@
     <ID>TooGenericExceptionCaught:PriceService.kt$PriceService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:QrScanningScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ReceiveAmountScreen.kt$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ReceiveQrScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SendCoinSelectionViewModel.kt$SendCoinSelectionViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ServiceQueue.kt$ServiceQueue$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SettingUpScreen.kt$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShopWebViewInterface.kt$ShopWebViewInterface$e: Exception</ID>
@@ -1334,7 +1279,7 @@
     <ID>TooManyFunctions:ActivityListViewModel.kt$ActivityListViewModel : ViewModel</ID>
     <ID>TooManyFunctions:ActivityRepo.kt$ActivityRepo</ID>
     <ID>TooManyFunctions:AppViewModel.kt$AppViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:BackupNavigationSheetViewModel.kt$BackupNavigationSheetViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:BackupNavSheetViewModel.kt$BackupNavSheetViewModel : ViewModel</ID>
     <ID>TooManyFunctions:BackupRepo.kt$BackupRepo</ID>
     <ID>TooManyFunctions:BlocktankRepo.kt$BlocktankRepo</ID>
     <ID>TooManyFunctions:BoostTransactionViewModel.kt$BoostTransactionViewModel : ViewModel</ID>
@@ -1356,7 +1301,7 @@
     <ID>TooManyFunctions:Logger.kt$Logger</ID>
     <ID>TooManyFunctions:NodeInfoScreen.kt$to.bitkit.ui.NodeInfoScreen.kt</ID>
     <ID>TooManyFunctions:NumberPadTextField.kt$to.bitkit.ui.components.NumberPadTextField.kt</ID>
-    <ID>TooManyFunctions:SendAndReviewScreen.kt$to.bitkit.ui.screens.wallets.send.SendAndReviewScreen.kt</ID>
+    <ID>TooManyFunctions:SendConfirmScreen.kt$to.bitkit.ui.screens.wallets.send.SendConfirmScreen.kt</ID>
     <ID>TooManyFunctions:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
     <ID>TooManyFunctions:TOS.kt$to.bitkit.ui.onboarding.TOS.kt</ID>
     <ID>TooManyFunctions:Text.kt$to.bitkit.ui.components.Text.kt</ID>
@@ -1373,10 +1318,9 @@
     <ID>UnnecessaryParenthesesBeforeTrailingLambda:vss_rust_client_ffi.kt$()</ID>
     <ID>UnnecessaryParenthesesBeforeTrailingLambda:vss_rust_client_ffi.kt$RustBuffer.Companion$()</ID>
     <ID>UnusedParameter:ActivityRow.kt$confirmed: Boolean?</ID>
-    <ID>UnusedPrivateProperty:ActivityDetailViewModel.kt$ActivityDetailViewModel$private val lightningRepo: LightningRepo</ID>
+    <ID>UnusedParameter:SendFeeRateScreen.kt$uiState: SendUiState</ID>
     <ID>UnusedPrivateProperty:ActivityListViewModel.kt$ActivityListViewModel$private val lightningRepo: LightningRepo</ID>
     <ID>UnusedPrivateProperty:ActivityRepoTest.kt$ActivityRepoTest$private val testOnChainActivity = mock&lt;Activity.Onchain&gt; { on { v1 } doReturn testOnChainActivityV1 }</ID>
-    <ID>UnusedPrivateProperty:CoreService.kt$CoreService$private val settingsStore: SettingsStore</ID>
     <ID>UnusedPrivateProperty:CurrencyRepoTest.kt$CurrencyRepoTest$private val toastEventBus: ToastEventBus = mock()</ID>
     <ID>UseCheckOrError:CurrencyRepo.kt$CurrencyRepo$throw IllegalStateException( "Rate not found for currency: $targetCurrency. Available currencies: ${ _currencyState.value.rates.joinToString { it.quote } }" )</ID>
     <ID>VariableNaming:vss_rust_client_ffi.kt$RustCallStatus$@JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()</ID>
@@ -1384,10 +1328,11 @@
     <ID>VariableNaming:vss_rust_client_ffi.kt$val return_value = callback(status)</ID>
     <ID>VariableNaming:vss_rust_client_ffi.kt$val scaffolding_contract_version = lib.ffi_vss_rust_client_ffi_uniffi_contract_version()</ID>
     <ID>ViewModelForwarding:ActivityDetailScreen.kt$ActivityAddTagSheet( listViewModel = listViewModel, activityViewModel = detailViewModel, onDismiss = { showAddTagSheet = false }, )</ID>
-    <ID>ViewModelForwarding:ContentView.kt$BackupSheet( onDismiss = { appViewModel.hideSheet() }, onBackupClick = { appViewModel.hideSheet() appViewModel.showSheet(BottomSheetType.BackupNavigation) }, walletViewModel = walletViewModel )</ID>
+    <ID>ViewModelForwarding:ContentView.kt$BackupSheet(sheet, appViewModel)</ID>
     <ID>ViewModelForwarding:ContentView.kt$LnurlAuthSheet(sheet, appViewModel)</ID>
+    <ID>ViewModelForwarding:ContentView.kt$PinSheet(sheet, appViewModel)</ID>
     <ID>ViewModelForwarding:ContentView.kt$RootNavHost( navController = navController, walletViewModel = walletViewModel, appViewModel = appViewModel, activityListViewModel = activityListViewModel, settingsViewModel = settingsViewModel, currencyViewModel = currencyViewModel, transferViewModel = transferViewModel, )</ID>
-    <ID>ViewModelForwarding:ContentView.kt$SendOptionsView( appViewModel = appViewModel, walletViewModel = walletViewModel, startDestination = sheet.route, onComplete = { txSheet -&gt; appViewModel.resetSendState() appViewModel.hideSheet() appViewModel.clearClipboardForAutoRead() txSheet?.let { appViewModel.showNewTransactionSheet(it) } } )</ID>
+    <ID>ViewModelForwarding:ContentView.kt$SendSheet( appViewModel = appViewModel, walletViewModel = walletViewModel, startDestination = sheet.route, onComplete = { txSheet -&gt; appViewModel.resetSendState() appViewModel.hideSheet() appViewModel.clearClipboardForAutoRead() txSheet?.let { appViewModel.showNewTransactionSheet(it) } } )</ID>
     <ID>ViewModelForwarding:ContentView.kt$SettingUpScreen( viewModel = transferViewModel, onCloseClick = { navController.popBackStack&lt;Routes.TransferRoot&gt;(inclusive = true) }, onContinueClick = { navController.popBackStack&lt;Routes.TransferRoot&gt;(inclusive = true) }, )</ID>
     <ID>ViewModelForwarding:ContentView.kt$SpendingAdvancedScreen( viewModel = transferViewModel, onBackClick = { navController.popBackStack() }, onCloseClick = { navController.navigateToHome() }, onOrderCreated = { navController.popBackStack&lt;Routes.SpendingConfirm&gt;(inclusive = false) }, )</ID>
     <ID>ViewModelForwarding:ContentView.kt$SpendingAmountScreen( viewModel = transferViewModel, onBackClick = { navController.popBackStack() }, onCloseClick = { navController.navigateToHome() }, onOrderCreated = { navController.navigate(Routes.SpendingConfirm) }, toastException = { appViewModel.toast(it) }, toast = { title, description -&gt; appViewModel.toast( type = Toast.ToastType.ERROR, title = title, description = description ) }, )</ID>
@@ -1401,7 +1346,6 @@
     <ID>Wrapping:ActivityDetailScreen.kt$(</ID>
     <ID>Wrapping:ActivityExploreScreen.kt$(</ID>
     <ID>Wrapping:BlocktankRegtestScreen.kt$( verticalAlignment = CenterVertically, modifier = Modifier .padding(vertical = 4.dp) .fillMaxWidth() )</ID>
-    <ID>Wrapping:CoreService.kt$ActivityService$(</ID>
     <ID>Wrapping:EditInvoiceVM.kt$EditInvoiceVM$_editInvoiceEffect.emit(effect)</ID>
     <ID>Wrapping:MonetaryVisualTransformation.kt$MonetaryVisualTransformation.&lt;no name provided&gt;$(</ID>
     <ID>Wrapping:Nav.kt$screenScaleIn</ID>
