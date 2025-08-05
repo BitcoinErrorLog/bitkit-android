@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.activity
+package to.bitkit.ui.sheets
 
 import android.R
 import androidx.compose.ui.Modifier
