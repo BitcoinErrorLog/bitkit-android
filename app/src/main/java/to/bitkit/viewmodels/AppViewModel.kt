@@ -73,7 +73,7 @@ import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.screens.wallets.send.SendRoute
+import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import java.math.BigDecimal

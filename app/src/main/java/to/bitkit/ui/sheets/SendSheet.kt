@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.send
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -34,6 +34,15 @@ import to.bitkit.ui.components.RectangleButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.scanner.QrScanningScreen
+import to.bitkit.ui.screens.wallets.send.AddTagScreen
+import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
+import to.bitkit.ui.screens.wallets.send.SendAddressScreen
+import to.bitkit.ui.screens.wallets.send.SendAmountScreen
+import to.bitkit.ui.screens.wallets.send.SendCoinSelectionScreen
+import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
+import to.bitkit.ui.screens.wallets.send.SendErrorScreen
+import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
+import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithDrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.settings.support.SupportScreen

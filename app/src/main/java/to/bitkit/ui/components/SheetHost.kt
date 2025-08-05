@@ -22,7 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import to.bitkit.ui.screens.wallets.send.SendRoute
+import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.theme.AppShapes
