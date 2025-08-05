@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.createWithdrawCallbackUrl
@@ -579,10 +580,11 @@ class LightningRepo @Inject constructor(
         address: Address? = null,
         speed: TransactionSpeed? = null,
         utxosToSpend: List<SpendableUtxo>? = null,
+        feeRates: FeeRates? = null,
     ): Result<ULong> = withContext(bgDispatcher) {
         return@withContext try {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
-            val satsPerVByte = getFeeRateForSpeed(transactionSpeed).getOrThrow().toUInt()
+            val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
             val addressOrDefault = address ?: cacheStore.data.first().onchainAddress
 
@@ -600,9 +602,12 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    suspend fun getFeeRateForSpeed(speed: TransactionSpeed): Result<ULong> = withContext(bgDispatcher) {
+    suspend fun getFeeRateForSpeed(
+        speed: TransactionSpeed,
+        feeRates: FeeRates? = null,
+    ): Result<ULong> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            val fees = coreService.blocktank.getFees().getOrThrow()
+            val fees = feeRates ?: coreService.blocktank.getFees().getOrThrow()
             val satsPerVByte = fees.getSatsPerVByteFor(speed)
             satsPerVByte.toULong()
         }.onFailure { e ->

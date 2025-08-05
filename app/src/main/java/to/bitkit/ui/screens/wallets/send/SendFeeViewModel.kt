@@ -78,7 +78,11 @@ class SendFeeViewModel @Inject constructor(
                     .map { speed ->
                         async {
                             val rate = FeeRate.fromSpeed(speed)
-                            val fee = getFeeSatsForSpeed(speed, feeRates)
+                            val fee = if (feeRates?.getSatsPerVByteFor(speed)?.toLong() != 0L) {
+                                getFeeForSpeed(speed, feeRates)
+                            } else {
+                                0
+                            }
                             rate to fee
                         }
                     }.awaitAll()
@@ -87,13 +91,12 @@ class SendFeeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getFeeSatsForSpeed(speed: TransactionSpeed, feeRates: FeeRates?): Long {
-        if (feeRates?.getSatsPerVByteFor(speed)?.toLong() == 0L) return 0L
-
+    private suspend fun getFeeForSpeed(speed: TransactionSpeed, feeRates: FeeRates?): Long {
         return lightningRepo.calculateTotalFee(
             amountSats = sendUiState.amount,
             utxosToSpend = sendUiState.selectedUtxos,
             speed = speed,
+            feeRates = feeRates,
         ).getOrDefault(0u).toLong()
     }
 
