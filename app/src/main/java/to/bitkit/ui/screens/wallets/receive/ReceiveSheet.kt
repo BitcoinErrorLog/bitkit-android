@@ -16,7 +16,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.repositories.LightningState
-import to.bitkit.ui.appViewModel
 import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -30,9 +29,8 @@ fun ReceiveSheet(
     navigateToExternalConnection: () -> Unit,
     walletState: MainUiState,
 ) {
-    val app = appViewModel ?: return
-    val wallet = walletViewModel ?: return
-    val blocktank = blocktankViewModel ?: return
+    val wallet = requireNotNull(walletViewModel)
+    val blocktank = requireNotNull(blocktankViewModel)
 
     val navController = rememberNavController()
 
@@ -42,13 +40,12 @@ fun ReceiveSheet(
     val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        try {
+        runCatching {
+            // TODO move to viewModel
             coroutineScope {
                 launch { wallet.refreshBip21() }
                 launch { blocktank.refreshInfo() }
             }
-        } catch (e: Exception) {
-            app.toast(e)
         }
     }
 
