@@ -81,16 +81,18 @@ fun ReceiveSheet(
                     cjitInvoice = cjitInvoice,
                     cjitActive = showCreateCjit,
                     walletState = walletState,
-                    onCjitToggle = { active ->
+                    onCjitToggle = { isOn ->
                         when {
-                            active && lightningState.shouldBlockLightning -> navController.navigate(ReceiveRoute.GeoBlock)
+                            isOn && lightningState.shouldBlockLightning -> {
+                                navController.navigate(ReceiveRoute.GeoBlock)
+                            }
 
-                            !active -> {
+                            !isOn -> {
                                 showCreateCjit.value = false
                                 cjitInvoice.value = null
                             }
 
-                            active && cjitInvoice.value == null -> {
+                            isOn && cjitInvoice.value == null -> {
                                 showCreateCjit.value = true
                                 navController.navigate(ReceiveRoute.Amount)
                             }

@@ -189,8 +189,11 @@ fun AmountInputHandler(
     LaunchedEffect(input) {
         val sats = when (primaryDisplay) {
             PrimaryDisplay.BITCOIN -> {
-                if (displayUnit == BitcoinDisplayUnit.MODERN) input
-                else (input.toLongOrDefault() * SATS_IN_BTC).toString()
+                if (displayUnit == BitcoinDisplayUnit.MODERN) {
+                    input
+                } else {
+                    (input.toLongOrDefault() * SATS_IN_BTC).toString()
+                }
             }
 
             PrimaryDisplay.FIAT -> {

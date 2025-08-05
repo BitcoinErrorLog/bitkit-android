@@ -65,7 +65,9 @@ private fun Content(
 
         FillHeight()
         Image(
-            painter = painterResource(R.drawable.restore), contentDescription = null, modifier = Modifier.width(256.dp)
+            painter = painterResource(R.drawable.restore),
+            contentDescription = null,
+            modifier = Modifier.width(256.dp)
         )
         FillHeight()
 
