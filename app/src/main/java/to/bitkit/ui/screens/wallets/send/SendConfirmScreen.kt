@@ -348,7 +348,7 @@ private fun OnChainDescription(
                             BodySSB(")")
                         }
                         Icon(
-                            painterResource(R.drawable.ic_pencil),
+                            painterResource(R.drawable.ic_pencil_simple),
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )

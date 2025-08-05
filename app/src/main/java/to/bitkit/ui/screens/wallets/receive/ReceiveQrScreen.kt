@@ -266,7 +266,7 @@ private fun ReceiveQrSlide(
                 color = Colors.White10,
                 icon = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_pencil),
+                        painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
                         tint = Colors.Brand,
                         modifier = Modifier.size(18.dp)

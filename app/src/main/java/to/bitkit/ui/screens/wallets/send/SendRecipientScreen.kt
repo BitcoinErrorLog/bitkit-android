@@ -88,7 +88,7 @@ fun SendRecipientScreen(
                 label = stringResource(R.string.wallet__recipient_manual),
                 icon = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_pencil),
+                        painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
                         tint = Colors.Brand,
                         modifier = Modifier.size(28.dp),
