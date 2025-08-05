@@ -37,7 +37,7 @@ import to.bitkit.ui.onboarding.RestoreWalletView
 import to.bitkit.ui.onboarding.TermsOfUseScreen
 import to.bitkit.ui.onboarding.WarningMultipleDevicesScreen
 import to.bitkit.ui.screens.SplashScreen
-import to.bitkit.ui.screens.wallets.sheets.NewTransactionSheet
+import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.enableAppEdgeToEdge
 import to.bitkit.ui.utils.screenScaleIn

@@ -77,9 +77,6 @@ import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
 import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
 import to.bitkit.ui.screens.wallets.send.SendSheet
-import to.bitkit.ui.screens.wallets.sheets.BackupSheet
-import to.bitkit.ui.screens.wallets.sheets.LnurlAuthSheet
-import to.bitkit.ui.screens.wallets.sheets.PinSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
 import to.bitkit.ui.screens.widgets.WidgetsIntroScreen
@@ -137,6 +134,9 @@ import to.bitkit.ui.settings.support.ReportIssueScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.settings.transactionSpeed.CustomFeeSettingsScreen
 import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen
+import to.bitkit.ui.sheets.BackupSheet
+import to.bitkit.ui.sheets.LnurlAuthSheet
+import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.screenSlideIn

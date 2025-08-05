@@ -1,7 +1,8 @@
 package to.bitkit.ui.screens.wallets.sheets
 
-import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -10,6 +11,7 @@ import org.junit.Test
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
+import to.bitkit.ui.sheets.NewTransactionSheetView
 
 @HiltAndroidTest
 class NewTransactionSheetViewTest {

@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.sheets
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
-import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar

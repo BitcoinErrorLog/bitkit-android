@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.sheets
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
