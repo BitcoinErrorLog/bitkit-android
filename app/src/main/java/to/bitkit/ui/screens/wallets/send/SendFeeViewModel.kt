@@ -10,12 +10,10 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.models.FeeRate
@@ -30,7 +28,6 @@ class SendFeeViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningRepo: LightningRepo,
     private val blocktankRepo: BlocktankRepo,
-    private val settingsStore: SettingsStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SendFeeUiState())
     val uiState = _uiState.asStateFlow()
@@ -40,10 +37,9 @@ class SendFeeViewModel @Inject constructor(
     fun init(sendUiState: SendUiState) {
         this.sendUiState = sendUiState
         viewModelScope.launch {
-            val selectedSpeed = sendUiState.speed ?: settingsStore.data.first().defaultTransactionSpeed
             _uiState.update {
                 it.copy(
-                    selected = FeeRate.fromSpeed(selectedSpeed),
+                    selected = FeeRate.fromSpeed(sendUiState.speed),
                 )
             }
         }
@@ -54,7 +50,7 @@ class SendFeeViewModel @Inject constructor(
     private fun collectState() {
         viewModelScope.launch(bgDispatcher) {
             blocktankRepo.blocktankState.map { it.info?.onchain?.feeRates }.collect { feeRates ->
-                // init first
+                // init ui first
                 _uiState.update {
                     it.copy(
                         fees = speedEntries().associate { speed ->
@@ -64,6 +60,7 @@ class SendFeeViewModel @Inject constructor(
                         }
                     )
                 }
+                // TODO try move to appViewModel and trigger load in bg onAmountContinue + store in sendUiState
                 loadFees(feeRates)
             }
         }

@@ -110,6 +110,7 @@ private fun Content(
                 isSelected = uiState.selected == feeRate,
                 isDisabled = false, // TODO
                 onClick = { onSelect(feeRate) },
+                modifier = Modifier.testTag("fee_${feeRate.name}_button"),
             )
         }
 
@@ -202,14 +203,32 @@ private fun Preview() {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun PreviewEmpty() {
+private fun PreviewCustom() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
                 uiState = SendFeeUiState(
-                    fees = mapOf(),
-                    selected = FeeRate.NORMAL,
+                    fees = mapOf(
+                        FeeRate.FAST to 4000L,
+                        FeeRate.NORMAL to 3000L,
+                        FeeRate.SLOW to 2000L,
+                        FeeRate.CUSTOM to 6000L,
+                    ),
+                    selected = FeeRate.CUSTOM,
                 ),
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewEmpty() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = SendFeeUiState(),
                 modifier = Modifier.sheetHeight(),
             )
         }

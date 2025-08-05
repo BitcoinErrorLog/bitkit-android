@@ -70,7 +70,7 @@ data class SettingsData(
     val primaryDisplay: PrimaryDisplay = PrimaryDisplay.BITCOIN,
     val displayUnit: BitcoinDisplayUnit = BitcoinDisplayUnit.MODERN,
     val selectedCurrency: String = "USD",
-    val defaultTransactionSpeed: TransactionSpeed = TransactionSpeed.Medium,
+    val defaultTransactionSpeed: TransactionSpeed = TransactionSpeed.default(),
     val showEmptyBalanceView: Boolean = true,
     val hasSeenSpendingIntro: Boolean = false,
     val hasSeenWidgetsIntro: Boolean = false,

@@ -50,9 +50,6 @@ fun SendSheet(
             appViewModel.resetQuickPayData()
         }
     }
-
-
-
     Column(
         modifier = Modifier
             .fillMaxWidth()

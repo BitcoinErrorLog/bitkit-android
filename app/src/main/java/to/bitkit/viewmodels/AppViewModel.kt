@@ -269,6 +269,7 @@ class AppViewModel @Inject constructor(
     }
 
     // region send
+
     private fun observeSendEvents() {
         viewModelScope.launch {
             sendEvents.collect {
@@ -1057,7 +1058,11 @@ class AppViewModel @Inject constructor(
     fun resetQuickPayData() = _quickPayData.update { null }
 
     fun resetSendState() {
-        _sendUiState.value = SendUiState()
+        viewModelScope.launch {
+            _sendUiState.value = SendUiState(
+                speed = settingsStore.data.first().defaultTransactionSpeed,
+            )
+        }
     }
     // endregion
 
@@ -1259,7 +1264,7 @@ data class SendUiState(
     val selectedUtxos: List<SpendableUtxo>? = null,
     val lnurl: LnurlParams? = null,
     val isLoading: Boolean = false,
-    val speed: TransactionSpeed? = null,
+    val speed: TransactionSpeed = TransactionSpeed.default(),
     val comment: String = "",
 )
 
