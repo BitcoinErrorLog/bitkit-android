@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
 import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE
 import to.bitkit.ui.components.AuthCheckView
-import to.bitkit.ui.components.ForgotPinSheet
+import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.components.InactivityTracker
 import to.bitkit.ui.components.IsOnlineTracker
 import to.bitkit.ui.components.ToastOverlay

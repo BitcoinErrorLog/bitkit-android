@@ -1,4 +1,4 @@
-package to.bitkit.ui.components
+package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -14,6 +14,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BottomSheet
+import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.FillHeight
+import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -59,9 +65,7 @@ private fun Content(
 
         FillHeight()
         Image(
-            painter = painterResource(R.drawable.restore),
-            contentDescription = null,
-            modifier = Modifier.width(256.dp)
+            painter = painterResource(R.drawable.restore), contentDescription = null, modifier = Modifier.width(256.dp)
         )
         FillHeight()
 
