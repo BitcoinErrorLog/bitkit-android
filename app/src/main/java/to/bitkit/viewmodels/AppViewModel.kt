@@ -361,7 +361,6 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.NavigateToReview)
     }
 
-
     private fun onPaymentMethodSwitch() {
         val nextPaymentMethod = when (_sendUiState.value.payMethod) {
             SendMethod.ONCHAIN -> SendMethod.LIGHTNING
@@ -816,7 +815,7 @@ class AppViewModel @Inject constructor(
             amountSats = amountSats,
             address = _sendUiState.value.address,
             speed = _sendUiState.value.speed,
-            utxosToSpend = _sendUiState.value.utxosToSpend
+            utxosToSpend = _sendUiState.value.selectedUtxos,
         ).getOrNull() ?: return
 
         if (totalFee > BigDecimal.valueOf(amountSats.toLong())
@@ -1261,7 +1260,6 @@ data class SendUiState(
     val lnurl: LnurlParams? = null,
     val isLoading: Boolean = false,
     val speed: TransactionSpeed? = null,
-    val utxosToSpend: List<SpendableUtxo>? = null,
     val comment: String = "",
 )
 
