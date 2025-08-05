@@ -22,6 +22,7 @@ fun String.truncate(length: Int): String {
 
 fun String.removeSpaces() = this.filterNot { it.isWhitespace() }
 
+fun String.toLongOrDefault(defaultValue: Long = 0): Long = toLongOrNull() ?: defaultValue
 
 /**
  * Pluralizes this string using the ICU MessageFormat with the provided arguments map.

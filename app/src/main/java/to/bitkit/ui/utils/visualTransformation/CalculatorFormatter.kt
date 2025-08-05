@@ -1,7 +1,7 @@
 package to.bitkit.ui.utils.visualTransformation
 
-import okhttp3.internal.toLongOrDefault
 import to.bitkit.ext.removeSpaces
+import to.bitkit.ext.toLongOrDefault
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.SATS_IN_BTC
 import to.bitkit.models.asBtc
@@ -16,14 +16,11 @@ object CalculatorFormatter {
     fun convertBtcToFiat(
         btcValue: String,
         displayUnit: BitcoinDisplayUnit,
-        currencyViewModel: CurrencyViewModel
+        currencyViewModel: CurrencyViewModel,
     ): String? {
         val satsOrBtc = btcValue.removeSpaces()
         val satsLong = when (displayUnit) {
-            BitcoinDisplayUnit.MODERN -> {
-                satsOrBtc.toLongOrDefault(0L)
-            }
-
+            BitcoinDisplayUnit.MODERN -> satsOrBtc.toLongOrDefault()
             BitcoinDisplayUnit.CLASSIC -> {
                 val btcDecimal = BigDecimal.valueOf(satsOrBtc.toDoubleOrNull() ?: 0.0)
                 val satsDecimal = btcDecimal.multiply(BigDecimal(SATS_IN_BTC))
@@ -39,7 +36,7 @@ object CalculatorFormatter {
     fun convertFiatToBtc(
         fiatValue: String,
         displayUnit: BitcoinDisplayUnit,
-        currencyViewModel: CurrencyViewModel
+        currencyViewModel: CurrencyViewModel,
     ): String {
         val satsValue = currencyViewModel.convertFiatToSats(fiatValue.toDoubleOrNull() ?: 0.0)
 
