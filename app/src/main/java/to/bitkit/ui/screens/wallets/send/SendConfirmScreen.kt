@@ -1,6 +1,5 @@
 package to.bitkit.ui.screens.wallets.send
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -321,9 +320,9 @@ private fun OnChainDescription(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .clickable { onEvent(SendEvent.SpeedAndFee) }
-                    .padding(top = 16.dp)
+                    .clickableAlpha { onEvent(SendEvent.SpeedAndFee) }
             ) {
+                VerticalSpacer(16.dp)
                 Caption13Up(text = stringResource(R.string.wallet__send_fee_and_speed), color = Colors.White64)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -351,8 +350,8 @@ private fun OnChainDescription(
                     .fillMaxHeight()
                     .weight(1f)
                     .clickableAlpha { onEvent(SendEvent.SpeedAndFee) }
-                    .padding(top = 16.dp)
             ) {
+                VerticalSpacer(16.dp)
                 Caption13Up(text = stringResource(R.string.wallet__send_confirming_in), color = Colors.White64)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -405,8 +404,8 @@ private fun LightningDescription(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .padding(top = 16.dp)
             ) {
+                VerticalSpacer(16.dp)
                 Caption13Up(text = stringResource(R.string.wallet__send_fee_and_speed), color = Colors.White64)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(

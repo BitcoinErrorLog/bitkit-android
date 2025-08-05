@@ -21,6 +21,8 @@ import to.bitkit.ui.screens.wallets.send.SendAmountScreen
 import to.bitkit.ui.screens.wallets.send.SendCoinSelectionScreen
 import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
 import to.bitkit.ui.screens.wallets.send.SendErrorScreen
+import to.bitkit.ui.screens.wallets.send.SendFeeCustomScreen
+import to.bitkit.ui.screens.wallets.send.SendFeeRateScreen
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
@@ -68,6 +70,7 @@ fun SendSheet(
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
+                    is SendEffect.NavigateToFee -> navController.navigate(SendRoute.FeeRate)
                 }
             }
         }
@@ -115,6 +118,22 @@ fun SendSheet(
                     address = sendUiState.address,
                     onBack = { navController.popBackStack() },
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
+                )
+            }
+            composableWithDefaultTransitions<SendRoute.FeeRate> {
+                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                SendFeeRateScreen(
+                    uiState = sendUiState,
+                    onBack = { navController.popBackStack() },
+                    onContinue = {}, // TODO
+                )
+            }
+            composableWithDefaultTransitions<SendRoute.FeeCustom> {
+                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                SendFeeCustomScreen(
+                    uiState = sendUiState,
+                    onBack = { navController.popBackStack() },
+                    onContinue = {}, // TODO
                 )
             }
             composableWithDefaultTransitions<SendRoute.Confirm> {
@@ -238,6 +257,12 @@ sealed interface SendRoute {
 
     @Serializable
     data object QuickPay : SendRoute
+
+    @Serializable
+    data object FeeRate : SendRoute
+
+    @Serializable
+    data object FeeCustom : SendRoute
 
     @Serializable
     data object Confirm : SendRoute

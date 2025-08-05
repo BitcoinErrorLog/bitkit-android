@@ -290,7 +290,7 @@ class AppViewModel @Inject constructor(
 
                     is SendEvent.CommentChange -> onCommentChange(it.value)
 
-                    SendEvent.SpeedAndFee -> toast(Exception("Coming soon: Speed and Fee"))
+                    SendEvent.SpeedAndFee -> setSendEffect(SendEffect.NavigateToFee)
                     SendEvent.SwipeToPay -> onSwipeToPay()
                     SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning()
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
@@ -1274,6 +1274,7 @@ sealed class SendEffect {
     data object NavigateToWithdrawError : SendEffect()
     data object NavigateToCoinSelection : SendEffect()
     data object NavigateToQuickPay : SendEffect()
+    data object NavigateToFee : SendEffect()
     data class PaymentSuccess(val sheet: NewTransactionSheetDetails? = null) : SendEffect()
 }
 
