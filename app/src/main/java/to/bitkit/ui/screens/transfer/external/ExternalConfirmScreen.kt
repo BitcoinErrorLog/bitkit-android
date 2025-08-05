@@ -123,9 +123,8 @@ private fun Content(
                             MoneySSB(sats = networkFee)
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
-                                painterResource(R.drawable.ic_pencil_simple),
+                                painterResource(R.drawable.ic_pencil),
                                 contentDescription = null,
-                                tint = Colors.White,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

@@ -338,9 +338,8 @@ private fun OnChainDescription(
                     )
                     BodySSB(text = "Normal (₿ 210)") // TODO GET FROM STATE
                     Icon(
-                        painterResource(R.drawable.ic_pencil_simple),
+                        painterResource(R.drawable.ic_pencil),
                         contentDescription = null,
-                        tint = Colors.White,
                         modifier = Modifier.size(16.dp)
                     )
                 }

@@ -255,8 +255,7 @@ private fun DefaultModeContent(
                     )
 
                     Icon(
-                        painter = painterResource(R.drawable.ic_pencil_simple),
-                        tint = Colors.White,
+                        painter = painterResource(R.drawable.ic_pencil),
                         contentDescription = stringResource(R.string.common__edit),
                         modifier = Modifier
                             .size(16.dp)
