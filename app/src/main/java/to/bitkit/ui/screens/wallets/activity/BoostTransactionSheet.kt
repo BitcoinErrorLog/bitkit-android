@@ -1,11 +1,11 @@
 package to.bitkit.ui.screens.wallets.activity
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -42,12 +42,16 @@ import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -121,18 +125,20 @@ fun BoostTransactionContent(
     onSwipe: () -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .gradientBackground()
-            .padding(horizontal = 16.dp)
-            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_CONTENT),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .sheetHeight(SheetSize.SMALL)
+            .gradientBackground()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp)
+            .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_CONTENT)
     ) {
         SheetTopBar(
             titleText = stringResource(R.string.wallet__boost_title),
             modifier = Modifier.testTag(BoostTransactionTestTags.SHEET_TOP_BAR)
         )
+        VerticalSpacer(16.dp)
 
         val bodyText = if (uiState.isDefaultMode) {
             R.string.wallet__boost_fee_recomended
@@ -157,7 +163,7 @@ fun BoostTransactionContent(
                 DefaultModeContent(
                     uiState = uiState,
                     onClickEdit = onClickEdit,
-                    onSwipe = onSwipe
+                    onSwipe = onSwipe,
                 )
             }
 
@@ -166,12 +172,11 @@ fun BoostTransactionContent(
                     uiState = uiState,
                     onChangeAmount = onChangeAmount,
                     onClickUseSuggestedFee = onClickUseSuggestedFee,
-                    onSwipe = onSwipe
+                    onSwipe = onSwipe,
                 )
             }
         }
-
-        VerticalSpacer(8.dp)
+        VerticalSpacer(16.dp)
     }
 }
 
@@ -187,6 +192,7 @@ private fun LoadingState() {
                 .size(32.dp)
                 .testTag(BoostTransactionTestTags.LOADING_INDICATOR)
         )
+        FillHeight()
     }
 }
 
@@ -196,94 +202,96 @@ private fun DefaultModeContent(
     onClickEdit: () -> Unit,
     onSwipe: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClickEdit() }
-            .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
-            .semantics {
-                contentDescription = "Edit fee settings"
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_timer_alt_yellow),
-            contentDescription = null,
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .size(24.dp)
-                .testTag(BoostTransactionTestTags.TIMER_ICON)
-        )
-
-        HorizontalSpacer(16.dp)
-
-        Column(modifier = Modifier.weight(1f)) {
-            BodyMSB(
-                text = stringResource(R.string.wallet__boost),
-                color = Colors.White,
-                modifier = Modifier.testTag(BoostTransactionTestTags.BOOST_TITLE)
-            )
-            BodySSB(
-                text = uiState.estimateTime,
-                color = Colors.White64,
-                modifier = Modifier.testTag(BoostTransactionTestTags.ESTIMATE_TIME)
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.End,
+                .fillMaxWidth()
+                .clickableAlpha { onClickEdit() }
+                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
+                .semantics {
+                    contentDescription = "Edit fee settings"
+                },
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
-                    ?.withAccent(defaultColor = Colors.White)
-                    ?.toString()
-                    .orEmpty()
+            Image(
+                painter = painterResource(R.drawable.ic_timer_alt_yellow),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(24.dp)
+                    .testTag(BoostTransactionTestTags.TIMER_ICON)
+            )
 
+            HorizontalSpacer(16.dp)
+
+            Column(modifier = Modifier.weight(1f)) {
                 BodyMSB(
-                    text = feeText,
+                    text = stringResource(R.string.wallet__boost),
                     color = Colors.White,
-                    modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_PRIMARY)
+                    modifier = Modifier.testTag(BoostTransactionTestTags.BOOST_TITLE)
                 )
-
-                Icon(
-                    painter = painterResource(R.drawable.ic_pencil_simple),
-                    tint = Colors.White,
-                    contentDescription = stringResource(R.string.common__edit),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .testTag(BoostTransactionTestTags.EDIT_FEE_ICON)
+                BodySSB(
+                    text = uiState.estimateTime,
+                    color = Colors.White64,
+                    modifier = Modifier.testTag(BoostTransactionTestTags.ESTIMATE_TIME)
                 )
             }
 
-            val feeTextSecondary = rememberMoneyText(
-                sats = uiState.totalFeeSats.toLong(),
-                reversed = true
-            )?.withAccent(defaultColor = Colors.White64)
-                ?.toString()
-                .orEmpty()
+            Column(
+                horizontalAlignment = Alignment.End,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
+                        ?.withAccent(defaultColor = Colors.White)
+                        ?.toString()
+                        .orEmpty()
 
-            BodySSB(
-                text = feeTextSecondary,
-                color = Colors.White64,
-                modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_SECONDARY)
-            )
+                    BodyMSB(
+                        text = feeText,
+                        color = Colors.White,
+                        modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_PRIMARY)
+                    )
+
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pencil_simple),
+                        tint = Colors.White,
+                        contentDescription = stringResource(R.string.common__edit),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .testTag(BoostTransactionTestTags.EDIT_FEE_ICON)
+                    )
+                }
+
+                val feeTextSecondary = rememberMoneyText(
+                    sats = uiState.totalFeeSats.toLong(),
+                    reversed = true
+                )?.withAccent(defaultColor = Colors.White64)
+                    ?.toString()
+                    .orEmpty()
+
+                BodySSB(
+                    text = feeTextSecondary,
+                    color = Colors.White64,
+                    modifier = Modifier.testTag(BoostTransactionTestTags.TOTAL_FEE_SECONDARY)
+                )
+            }
         }
+
+        FillHeight(min = 16.dp)
+
+        SwipeToConfirm(
+            text = stringResource(R.string.wallet__boost_swipe),
+            color = Colors.Yellow,
+            endIcon = R.drawable.ic_timer_alt_yellow,
+            onConfirm = onSwipe,
+            loading = uiState.boosting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(BoostTransactionTestTags.SWIPE_TO_CONFIRM)
+        )
     }
-
-    VerticalSpacer(68.dp)
-
-    SwipeToConfirm(
-        text = stringResource(R.string.wallet__boost_swipe),
-        color = Colors.Yellow,
-        endIcon = R.drawable.ic_timer_alt_yellow,
-        onConfirm = onSwipe,
-        loading = uiState.boosting,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(BoostTransactionTestTags.SWIPE_TO_CONFIRM)
-    )
 }
 
 @Composable
@@ -294,8 +302,8 @@ private fun CustomModeContent(
     onSwipe: () -> Unit,
 ) {
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.testTag(BoostTransactionTestTags.CUSTOM_MODE_CONTENT),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -372,7 +380,7 @@ private fun CustomModeContent(
             modifier = Modifier.testTag(BoostTransactionTestTags.USE_SUGGESTED_FEE_BUTTON)
         )
 
-        VerticalSpacer(16.dp)
+        FillHeight(min = 16.dp)
 
         SwipeToConfirm(
             text = stringResource(R.string.wallet__boost_swipe),
@@ -462,48 +470,52 @@ private fun Preview() {
                     loading = false,
                     isDefaultMode = true,
                     feeRate = 4UL,
-                )
+                ),
             )
         }
     }
 }
 
-@Preview(showBackground = true, name = "Custom mode")
+@Preview(showSystemUi = true, name = "Custom mode")
 @Composable
 private fun PreviewCustomMode() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = false,
-                isDefaultMode = false,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = false,
+                    isDefaultMode = false,
+                    feeRate = 4UL,
+                ),
             )
-        )
+        }
     }
 }
 
-@Preview(showBackground = true, name = "Loading state")
+@Preview(showSystemUi = true, name = "Loading state")
 @Composable
 private fun PreviewLoading() {
     AppThemeSurface {
-        BoostTransactionContent(
-            onClickEdit = {},
-            onClickUseSuggestedFee = {},
-            onChangeAmount = {},
-            onSwipe = {},
-            uiState = BoostTransactionUiState(
-                totalFeeSats = 4250UL,
-                estimateTime = "±10-20 minutes",
-                loading = true,
-                isDefaultMode = false,
-                feeRate = 4UL,
+        BottomSheetPreview {
+            BoostTransactionContent(
+                onClickEdit = {},
+                onClickUseSuggestedFee = {},
+                onChangeAmount = {},
+                onSwipe = {},
+                uiState = BoostTransactionUiState(
+                    totalFeeSats = 4250UL,
+                    estimateTime = "±10-20 minutes",
+                    loading = true,
+                    isDefaultMode = false,
+                    feeRate = 4UL,
+                ),
             )
-        )
+        }
     }
 }
