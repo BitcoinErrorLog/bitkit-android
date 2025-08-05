@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -75,9 +74,8 @@ import to.bitkit.viewmodels.SendMethod
 import to.bitkit.viewmodels.SendUiState
 import java.time.Instant
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SendAndReviewScreen(
+fun SendConfirmScreen(
     savedStateHandle: SavedStateHandle,
     uiState: SendUiState,
     onBack: () -> Unit,
@@ -155,14 +153,14 @@ private fun Content(
     uiState: SendUiState,
     isLoading: Boolean,
     showBiometrics: Boolean,
-    onBack: () -> Unit,
-    onEvent: (SendEvent) -> Unit,
-    onClickAddTag: () -> Unit,
-    onClickTag: (String) -> Unit,
-    onSwipeToConfirm: () -> Unit,
-    onBiometricsSuccess: () -> Unit,
-    onBiometricsFailure: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
+    onEvent: (SendEvent) -> Unit = {},
+    onClickAddTag: () -> Unit = {},
+    onClickTag: (String) -> Unit = {},
+    onSwipeToConfirm: () -> Unit = {},
+    onBiometricsSuccess: () -> Unit = {},
+    onBiometricsFailure: () -> Unit = {},
 ) {
     Box(modifier = modifier) {
         Column(
@@ -471,53 +469,66 @@ private fun LightningDescription(
     }
 }
 
-@Preview(name = "Lightning", showSystemUi = true)
+@Suppress("SpellCheckingInspection")
+private fun sendUiState() = SendUiState(
+    amount = 2_345u,
+    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+    decodedInvoice = LightningInvoice(
+        bolt11 = "lnbcrt1p5frwyedq2gf5hg6mfwsnp4qdkkcte90vc7c5z6z72uu5p2schwkmlx9j704tuwm2z59wfgku46xpp56yfmwmfxtl",
+        paymentHash = ByteArray(0),
+        amountSatoshis = 6_543u,
+        timestampSeconds = 0u,
+        expirySeconds = 3600u,
+        isExpired = false,
+        networkType = NetworkType.REGTEST,
+        payeeNodeId = null,
+        description = "Some invoice description",
+    ),
+)
+
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview() {
+private fun PreviewOnChain() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                uiState = SendUiState(
-                    amount = 1234u,
-                    address = "",
-                    payMethod = SendMethod.LIGHTNING,
-                    decodedInvoice = LightningInvoice(
-                        bolt11 = "bolt11_invoice_string",
-                        paymentHash = ByteArray(0),
-                        amountSatoshis = 100_000u,
-                        timestampSeconds = 0u,
-                        expirySeconds = 3600u,
-                        isExpired = false,
-                        networkType = NetworkType.REGTEST,
-                        payeeNodeId = null,
-                        description = "Some invoice description",
-                    ),
+                uiState = sendUiState().copy(
+                    selectedTags = listOf("car", "house", "uber"),
                 ),
                 isLoading = false,
                 showBiometrics = false,
-                onBack = {},
-                onEvent = {},
-                onClickAddTag = {},
-                onClickTag = {},
-                onSwipeToConfirm = {},
-                onBiometricsSuccess = {},
-                onBiometricsFailure = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
     }
 }
 
-@Suppress("SpellCheckingInspection")
-@Preview(name = "LnurlPay", showSystemUi = true)
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewLightning() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = sendUiState().copy(
+                    amount = 6_543u,
+                    payMethod = SendMethod.LIGHTNING,
+                    selectedTags = emptyList(),
+                ),
+                isLoading = false,
+                showBiometrics = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewLnurl() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                uiState = SendUiState(
-                    amount = 1234u,
-                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
+                uiState = sendUiState().copy(
                     payMethod = SendMethod.LIGHTNING,
                     lnurl = LnurlParams.LnurlPay(
                         data = LnurlPayData(
@@ -531,119 +542,43 @@ private fun PreviewLnurl() {
                             nostrPubkey = null,
                         ),
                     ),
-                    decodedInvoice = LightningInvoice(
-                        bolt11 = "bcrt123",
-                        paymentHash = ByteArray(0),
-                        amountSatoshis = 100_000u,
-                        timestampSeconds = 0u,
-                        expirySeconds = 3600u,
-                        isExpired = false,
-                        networkType = NetworkType.REGTEST,
-                        payeeNodeId = null,
-                        description = "Some invoice description",
-                    ),
                 ),
                 isLoading = false,
                 showBiometrics = false,
-                onBack = {},
-                onEvent = {},
-                onClickAddTag = {},
-                onClickTag = {},
-                onSwipeToConfirm = {},
-                onBiometricsSuccess = {},
-                onBiometricsFailure = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
     }
 }
 
-@Suppress("SpellCheckingInspection")
-@Preview(name = "OnChain", showSystemUi = true)
-@Composable
-private fun PreviewOnChain() {
-    AppThemeSurface {
-        BottomSheetPreview {
-            Content(
-                uiState = SendUiState(
-                    amount = 1234u,
-                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                    payMethod = SendMethod.ONCHAIN,
-                    selectedTags = listOf("car", "house", "uber"),
-                    decodedInvoice = null,
-                ),
-                isLoading = false,
-                showBiometrics = false,
-                onBack = {},
-                onEvent = {},
-                onClickAddTag = {},
-                onClickTag = {},
-                onSwipeToConfirm = {},
-                onBiometricsSuccess = {},
-                onBiometricsFailure = {},
-                modifier = Modifier.sheetHeight(),
-            )
-        }
-    }
-}
-
-@Suppress("SpellCheckingInspection")
 @Preview(showSystemUi = true)
 @Composable
 private fun PreviewBio() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                uiState = SendUiState(
-                    amount = 1234u,
-                    address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                    payMethod = SendMethod.ONCHAIN,
-                    selectedTags = listOf("car", "house", "uber"),
-                    decodedInvoice = null,
-                ),
+                uiState = sendUiState(),
                 isLoading = false,
                 showBiometrics = true,
-                onBack = {},
-                onEvent = {},
-                onClickAddTag = {},
-                onClickTag = {},
-                onSwipeToConfirm = {},
-                onBiometricsSuccess = {},
-                onBiometricsFailure = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
     }
 }
 
-@Suppress("SpellCheckingInspection")
 @Preview(showSystemUi = true)
 @Composable
 private fun PreviewDialog() {
     AppThemeSurface {
         BottomSheetPreview {
-            BottomSheetPreview {
-                Content(
-                    uiState = SendUiState(
-                        amount = 1234u,
-                        address = "bcrt1qkgfgyxyqhvkdqh04sklnzxphmcds6vft6y7h0r",
-                        payMethod = SendMethod.ONCHAIN,
-                        selectedTags = listOf("car", "house", "uber"),
-                        decodedInvoice = null,
-                        showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD,
-                    ),
-                    isLoading = false,
-                    showBiometrics = true,
-                    onBack = {},
-                    onEvent = {},
-                    onClickAddTag = {},
-                    onClickTag = {},
-                    onSwipeToConfirm = {},
-                    onBiometricsSuccess = {},
-                    onBiometricsFailure = {},
-                    modifier = Modifier.sheetHeight(),
-                )
-            }
+            Content(
+                uiState = sendUiState().copy(
+                    showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD,
+                ),
+                isLoading = false,
+                showBiometrics = true,
+                modifier = Modifier.sheetHeight(),
+            )
         }
     }
 }

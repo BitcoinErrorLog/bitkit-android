@@ -76,7 +76,7 @@ import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
 import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
-import to.bitkit.ui.screens.wallets.send.SendOptionsView
+import to.bitkit.ui.screens.wallets.send.SendSheet
 import to.bitkit.ui.screens.wallets.sheets.LnurlAuthSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
@@ -322,7 +322,7 @@ fun ContentView(
                 sheets = {
                     when (val sheet = currentSheet) {
                         is BottomSheetType.Send -> {
-                            SendOptionsView(
+                            SendSheet(
                                 appViewModel = appViewModel,
                                 walletViewModel = walletViewModel,
                                 startDestination = sheet.route,

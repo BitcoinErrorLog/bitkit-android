@@ -502,7 +502,7 @@ class AppViewModel @Inject constructor(
             if (quickPayHandled) return
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.ReviewAndSend))
+                showSheet(BottomSheetType.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }
@@ -552,7 +552,7 @@ class AppViewModel @Inject constructor(
             Logger.info("Found amount in invoice, proceeding with payment")
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.ReviewAndSend))
+                showSheet(BottomSheetType.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }
@@ -600,7 +600,7 @@ class AppViewModel @Inject constructor(
             if (quickPayHandled) return
 
             if (isMainScanner) {
-                showSheet(BottomSheetType.Send(SendRoute.ReviewAndSend))
+                showSheet(BottomSheetType.Send(SendRoute.Confirm))
             } else {
                 setSendEffect(SendEffect.NavigateToReview)
             }

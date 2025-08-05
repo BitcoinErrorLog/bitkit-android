@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,15 +48,15 @@ import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
-fun SendOptionsView(
+fun SendSheet(
     appViewModel: AppViewModel,
     walletViewModel: WalletViewModel,
-    startDestination: SendRoute = SendRoute.Options,
+    startDestination: SendRoute = SendRoute.Recipient,
     onComplete: (NewTransactionSheetDetails?) -> Unit,
 ) {
     // Reset on new user-initiated send
     LaunchedEffect(startDestination) {
-        if (startDestination == SendRoute.Options) {
+        if (startDestination == SendRoute.Recipient) {
             appViewModel.resetSendState()
             appViewModel.resetQuickPayData()
         }
@@ -79,7 +76,7 @@ fun SendOptionsView(
                     is SendEffect.NavigateToAddress -> navController.navigate(SendRoute.Address)
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
-                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.ReviewAndSend)
+                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.Confirm)
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
@@ -92,8 +89,8 @@ fun SendOptionsView(
             navController = navController,
             startDestination = startDestination,
         ) {
-            composableWithDefaultTransitions<SendRoute.Options> {
-                SendOptionsContent(
+            composableWithDefaultTransitions<SendRoute.Recipient> {
+                SendRecipientScreen(
                     onEvent = { appViewModel.setSendEvent(it) }
                 )
             }
@@ -133,9 +130,9 @@ fun SendOptionsView(
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
                 )
             }
-            composableWithDefaultTransitions<SendRoute.ReviewAndSend> {
+            composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                SendAndReviewScreen(
+                SendConfirmScreen(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
                     onBack = { navController.popBackStack() },
@@ -204,9 +201,9 @@ fun SendOptionsView(
                 SendErrorScreen(
                     errorMessage = route.errorMessage,
                     onRetry = {
-                        if (startDestination == SendRoute.Options) {
-                            navController.navigate(SendRoute.Options) {
-                                popUpTo<SendRoute.Options> { inclusive = true }
+                        if (startDestination == SendRoute.Recipient) {
+                            navController.navigate(SendRoute.Recipient) {
+                                popUpTo<SendRoute.Recipient> { inclusive = true }
                             }
                         } else {
                             onComplete(null)
@@ -221,16 +218,14 @@ fun SendOptionsView(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SendOptionsContent(
+private fun SendRecipientScreen(
     onEvent: (SendEvent) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val app = appViewModel
     Column(
         modifier = Modifier
-            .windowInsetsPadding(BottomSheetDefaults.windowInsets)
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -317,9 +312,9 @@ private fun SendOptionsContent(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun SendOptionsContentPreview() {
+private fun Preview() {
     AppThemeSurface {
-        SendOptionsContent(
+        SendRecipientScreen(
             onEvent = {},
         )
     }
@@ -327,7 +322,7 @@ private fun SendOptionsContentPreview() {
 
 sealed interface SendRoute {
     @Serializable
-    data object Options : SendRoute
+    data object Recipient : SendRoute
 
     @Serializable
     data object Address : SendRoute
@@ -337,9 +332,6 @@ sealed interface SendRoute {
 
     @Serializable
     data object QrScanner : SendRoute
-
-    @Serializable
-    data object ReviewAndSend : SendRoute
 
     @Serializable
     data object WithdrawConfirm : SendRoute
@@ -360,13 +352,10 @@ sealed interface SendRoute {
     data object CoinSelection : SendRoute
 
     @Serializable
-    data object FeeRate : SendRoute
-
-    @Serializable
-    data object FeeCustom : SendRoute
-
-    @Serializable
     data object QuickPay : SendRoute
+
+    @Serializable
+    data object Confirm : SendRoute
 
     @Serializable
     data class Error(val errorMessage: String) : SendRoute

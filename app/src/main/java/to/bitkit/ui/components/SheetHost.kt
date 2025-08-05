@@ -29,7 +29,7 @@ import to.bitkit.ui.theme.Colors
 enum class SheetSize { LARGE, MEDIUM, SMALL, CALENDAR; }
 
 sealed class BottomSheetType {
-    data class Send(val route: SendRoute = SendRoute.Options) : BottomSheetType()
+    data class Send(val route: SendRoute = SendRoute.Recipient) : BottomSheetType()
     data object Receive : BottomSheetType()
     data object PinSetup : BottomSheetType()
     data object Backup : BottomSheetType()
