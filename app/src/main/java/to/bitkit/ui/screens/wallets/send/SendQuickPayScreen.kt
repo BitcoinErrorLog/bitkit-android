@@ -36,7 +36,7 @@ import to.bitkit.viewmodels.QuickPayResult
 import to.bitkit.viewmodels.QuickPayViewModel
 
 @Composable
-fun QuickPaySendScreen(
+fun SendQuickPayScreen(
     quickPayData: QuickPayData,
     onPaymentComplete: () -> Unit,
     onShowError: (String) -> Unit,

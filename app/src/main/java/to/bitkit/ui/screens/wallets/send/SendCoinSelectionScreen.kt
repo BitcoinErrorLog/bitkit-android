@@ -51,20 +51,13 @@ import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-object CoinSelectionTestTags {
-    const val SCREEN = "coin_selection_screen"
-    const val AUTO_SELECT_ROW = "auto_select_row"
-    const val UTXO_ROW_PREFIX = "utxo_row"
-    const val CONTINUE_BUTTON = "continue_button"
-}
-
 @Composable
-fun CoinSelectionScreen(
+fun SendCoinSelectionScreen(
     requiredAmount: ULong,
     address: String,
     onBack: () -> Unit,
     onContinue: (List<SpendableUtxo>) -> Unit,
-    viewModel: CoinSelectionViewModel = hiltViewModel(),
+    viewModel: SendCoinSelectionViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tagsByTxId by viewModel.tagsByTxId.collectAsStateWithLifecycle()
@@ -104,7 +97,7 @@ private fun Content(
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
-            .testTag(CoinSelectionTestTags.SCREEN)
+            .testTag("coin_selection_screen")
     ) {
         SheetTopBar(stringResource(R.string.wallet__selection_title), onBack = onBack)
 
@@ -123,7 +116,7 @@ private fun Content(
                         .fillMaxWidth()
                         .height(72.dp)
                         .clickableAlpha { onClickAuto() }
-                        .testTag(CoinSelectionTestTags.AUTO_SELECT_ROW)
+                        .testTag("auto_select_row")
                 ) {
                     BodyMSB(text = stringResource(R.string.wallet__selection_auto))
                     Switch(
@@ -179,7 +172,7 @@ private fun Content(
                 text = stringResource(R.string.common__continue),
                 enabled = uiState.isSelectionValid,
                 onClick = onContinue,
-                modifier = Modifier.testTag(CoinSelectionTestTags.CONTINUE_BUTTON)
+                modifier = Modifier.testTag("continue_button")
             )
             VerticalSpacer(16.dp)
         }
@@ -202,7 +195,7 @@ private fun UtxoRow(
             .fillMaxWidth()
             .height(72.dp)
             .clickableAlpha { onTap() }
-            .testTag("${CoinSelectionTestTags.UTXO_ROW_PREFIX}_${utxo.uniqueUtxoKey()}")
+            .testTag("utxo_row_${utxo.uniqueUtxoKey()}")
     ) {
         Column {
             val amount = utxo.valueSats.toLong()

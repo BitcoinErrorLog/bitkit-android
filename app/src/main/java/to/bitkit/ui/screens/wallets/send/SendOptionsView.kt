@@ -126,7 +126,7 @@ fun SendOptionsView(
             }
             composableWithDefaultTransitions<SendRoute.CoinSelection> {
                 val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                CoinSelectionScreen(
+                SendCoinSelectionScreen(
                     requiredAmount = sendUiState.amount,
                     address = sendUiState.address,
                     onBack = { navController.popBackStack() },
@@ -176,7 +176,7 @@ fun SendOptionsView(
                 )
             }
             composableWithDefaultTransitions<SendRoute.PinCheck> {
-                PinCheckScreen(
+                SendPinCheckScreen(
                     onBack = { navController.popBackStack() },
                     onSuccess = {
                         navController.previousBackStackEntry
@@ -189,7 +189,7 @@ fun SendOptionsView(
             }
             composableWithDefaultTransitions<SendRoute.QuickPay> {
                 val quickPayData by appViewModel.quickPayData.collectAsStateWithLifecycle()
-                QuickPaySendScreen(
+                SendQuickPayScreen(
                     quickPayData = requireNotNull(quickPayData),
                     onPaymentComplete = {
                         onComplete(null)

@@ -36,10 +36,10 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun PinPromptScreen(
-    modifier: Modifier = Modifier,
-    showLaterButton: Boolean = true,
     onContinue: () -> Unit,
     onLater: () -> Unit,
+    modifier: Modifier = Modifier,
+    showLaterButton: Boolean = true,
 ) {
     Column(
         modifier = modifier

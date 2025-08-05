@@ -39,7 +39,7 @@ import to.bitkit.ui.theme.Colors
 const val PIN_CHECK_RESULT_KEY = "PIN_CHECK_RESULT_KEY"
 
 @Composable
-fun PinCheckScreen(
+fun SendPinCheckScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
 ) {
