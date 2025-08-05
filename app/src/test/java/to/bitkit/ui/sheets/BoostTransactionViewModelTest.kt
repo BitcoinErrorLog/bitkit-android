@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.wallets.activity
+package to.bitkit.ui.sheets
 
 import app.cash.turbine.test
 import com.synonym.bitkitcore.Activity

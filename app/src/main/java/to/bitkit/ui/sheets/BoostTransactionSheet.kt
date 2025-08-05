@@ -50,9 +50,6 @@ import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.screens.wallets.activity.BoostTransactionEffects
-import to.bitkit.ui.screens.wallets.activity.BoostTransactionUiState
-import to.bitkit.ui.screens.wallets.activity.BoostTransactionViewModel
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
