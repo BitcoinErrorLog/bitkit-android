@@ -121,6 +121,7 @@ class MainActivity : FragmentActivity() {
                             val route = navBackEntry.toRoute<StartupRoutes.Slides>()
                             OnboardingSlidesScreen(
                                 currentTab = route.tab,
+                                isGeoBlocked = appViewModel.isGeoBlocked == true,
                                 onAdvancedSetupClick = { startupNavController.navigate(StartupRoutes.Advanced) },
                                 onCreateClick = {
                                     scope.launch {
