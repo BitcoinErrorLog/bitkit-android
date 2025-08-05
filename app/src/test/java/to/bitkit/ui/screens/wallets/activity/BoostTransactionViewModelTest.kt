@@ -69,7 +69,7 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
             walletRepo = walletRepo,
             activityRepo = activityRepo
         )
-        wheneverBlocking { lightningRepo.listSpendableOutputs()}.thenReturn(Result.success(emptyList()))
+        wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
     }
 
     @Test
