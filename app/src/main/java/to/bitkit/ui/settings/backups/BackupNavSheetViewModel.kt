@@ -23,7 +23,7 @@ import to.bitkit.ui.settings.backups.BackupContract.UiState
 import javax.inject.Inject
 
 @HiltViewModel
-class BackupNavigationSheetViewModel @Inject constructor(
+class BackupNavSheetViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsStore: SettingsStore,
     private val keychain: Keychain,

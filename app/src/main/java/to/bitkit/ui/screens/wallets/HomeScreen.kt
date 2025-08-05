@@ -93,6 +93,7 @@ import to.bitkit.ui.navigateToTransferIntro
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListSimple
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
+import to.bitkit.ui.screens.wallets.sheets.BackupRoute
 import to.bitkit.ui.screens.wallets.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.screens.widgets.DragAndDropWidget
 import to.bitkit.ui.screens.widgets.DragDropColumn
@@ -176,7 +177,7 @@ fun HomeScreen(
                 }
 
                 Suggestion.BACK_UP -> {
-                    appViewModel.showSheet(BottomSheetType.Backup)
+                    appViewModel.showSheet(BottomSheetType.Backup(BackupRoute.Intro))
                 }
 
                 Suggestion.SECURE -> {

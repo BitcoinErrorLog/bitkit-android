@@ -73,7 +73,7 @@ fun BackupSettingsScreen(
 
     BackupSettingsScreenContent(
         uiState = uiState,
-        onBackupClick = { app.showSheet(BottomSheetType.BackupNavigation) },
+        onBackupClick = { app.showSheet(BottomSheetType.Backup()) },
         onResetAndRestoreClick = {
             if (isPinEnabled) {
                 navController.navigateToAuthCheck(onSuccessActionId = AuthCheckAction.NAV_TO_RESET)

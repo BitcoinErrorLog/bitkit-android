@@ -1,4 +1,4 @@
-package to.bitkit.ui.settings.backups
+package to.bitkit.ui.screens.wallets.sheets
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -13,26 +14,41 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
+import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.components.SheetSize
+import to.bitkit.ui.settings.backups.BackupContract
+import to.bitkit.ui.settings.backups.BackupIntroScreen
+import to.bitkit.ui.settings.backups.BackupNavSheetViewModel
+import to.bitkit.ui.settings.backups.ConfirmMnemonicScreen
+import to.bitkit.ui.settings.backups.ConfirmPassphraseScreen
+import to.bitkit.ui.settings.backups.MetadataScreen
+import to.bitkit.ui.settings.backups.MultipleDevicesScreen
+import to.bitkit.ui.settings.backups.ShowMnemonicScreen
+import to.bitkit.ui.settings.backups.ShowPassphraseScreen
+import to.bitkit.ui.settings.backups.SuccessScreen
+import to.bitkit.ui.settings.backups.WarningScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
+import to.bitkit.viewmodels.AppViewModel
 
 @Composable
-fun BackupNavigationSheet(
-    onDismiss: () -> Unit,
-    viewModel: BackupNavigationSheetViewModel = hiltViewModel(),
+fun BackupSheet(
+    app: AppViewModel,
+    startDestination: BackupRoute = BackupRoute.ShowMnemonic,
+    viewModel: BackupNavSheetViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val onDismiss by rememberUpdatedState { app.hideSheet() }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadMnemonicData()
+    }
 
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetState()
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadMnemonicData()
     }
 
     LaunchedEffect(Unit) {
@@ -58,8 +74,15 @@ fun BackupNavigationSheet(
     ) {
         NavHost(
             navController = navController,
-            startDestination = BackupRoute.ShowMnemonic,
+            startDestination = startDestination,
         ) {
+            composableWithDefaultTransitions<BackupRoute.Intro> {
+                BackupIntroScreen(
+                    hasFunds = LocalBalances.current.totalSats > 0u,
+                    onClose = onDismiss,
+                    onConfirm = { navController.navigate(BackupRoute.ShowMnemonic) },
+                )
+            }
             composableWithDefaultTransitions<BackupRoute.ShowMnemonic> {
                 ShowMnemonicScreen(
                     uiState = uiState,
@@ -118,28 +141,31 @@ fun BackupNavigationSheet(
     }
 }
 
-object BackupRoute {
+sealed interface BackupRoute {
     @Serializable
-    data object ShowMnemonic
+    data object Intro : BackupRoute
 
     @Serializable
-    data object ShowPassphrase
+    data object ShowMnemonic : BackupRoute
 
     @Serializable
-    data object ConfirmMnemonic
+    data object ShowPassphrase : BackupRoute
 
     @Serializable
-    data object ConfirmPassphrase
+    data object ConfirmMnemonic : BackupRoute
 
     @Serializable
-    data object Warning
+    data object ConfirmPassphrase : BackupRoute
 
     @Serializable
-    data object Success
+    data object Warning : BackupRoute
 
     @Serializable
-    data object MultipleDevices
+    data object Success : BackupRoute
 
     @Serializable
-    data object Metadata
+    data object MultipleDevices : BackupRoute
+
+    @Serializable
+    data object Metadata : BackupRoute
 }

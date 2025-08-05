@@ -49,8 +49,8 @@ fun BackupIntroScreen(
         SheetTopBar(stringResource(R.string.security__backup_wallet))
 
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
                 painter = painterResource(R.drawable.safe),
@@ -108,7 +108,7 @@ fun BackupIntroScreen(
     }
 }
 
-@Preview(showSystemUi = true, name = "has funds")
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
@@ -123,9 +123,9 @@ private fun Preview() {
     }
 }
 
-@Preview(showSystemUi = true, name = "no funds")
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewHasFunds() {
     AppThemeSurface {
         BottomSheetPreview {
             BackupIntroScreen(

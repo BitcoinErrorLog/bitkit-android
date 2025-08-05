@@ -77,6 +77,7 @@ import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
 import to.bitkit.ui.screens.wallets.receive.ReceiveQrSheet
 import to.bitkit.ui.screens.wallets.send.SendSheet
+import to.bitkit.ui.screens.wallets.sheets.BackupSheet
 import to.bitkit.ui.screens.wallets.sheets.LnurlAuthSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
@@ -113,8 +114,6 @@ import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen
 import to.bitkit.ui.settings.advanced.ElectrumConfigScreen
 import to.bitkit.ui.settings.advanced.RgsServerScreen
 import to.bitkit.ui.settings.appStatus.AppStatusScreen
-import to.bitkit.ui.settings.backups.BackupNavigationSheet
-import to.bitkit.ui.settings.backups.BackupSheet
 import to.bitkit.ui.settings.backups.ResetAndRestoreScreen
 import to.bitkit.ui.settings.general.DefaultUnitSettingsScreen
 import to.bitkit.ui.settings.general.GeneralSettingsScreen
@@ -352,19 +351,7 @@ fun ContentView(
                             onDismiss = { appViewModel.hideSheet() },
                         )
 
-                        BottomSheetType.Backup -> BackupSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                            onBackupClick = {
-                                appViewModel.hideSheet()
-                                appViewModel.showSheet(BottomSheetType.BackupNavigation)
-                            },
-                            walletViewModel = walletViewModel
-                        )
-
-                        BottomSheetType.BackupNavigation -> BackupNavigationSheet(
-                            onDismiss = { appViewModel.hideSheet() },
-                        )
-
+                        is BottomSheetType.Backup -> BackupSheet(appViewModel, sheet.route)
                         is BottomSheetType.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
 
                         null -> Unit

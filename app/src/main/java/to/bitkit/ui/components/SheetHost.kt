@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import to.bitkit.ui.screens.wallets.send.SendRoute
+import to.bitkit.ui.screens.wallets.sheets.BackupRoute
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.Colors
 
@@ -32,8 +33,7 @@ sealed class BottomSheetType {
     data class Send(val route: SendRoute = SendRoute.Recipient) : BottomSheetType()
     data object Receive : BottomSheetType()
     data object PinSetup : BottomSheetType()
-    data object Backup : BottomSheetType()
-    data object BackupNavigation : BottomSheetType()
+    data class Backup(val route: BackupRoute = BackupRoute.ShowMnemonic) : BottomSheetType()
     data object ActivityDateRangeSelector : BottomSheetType()
     data object ActivityTagSelector : BottomSheetType()
     data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : BottomSheetType()
