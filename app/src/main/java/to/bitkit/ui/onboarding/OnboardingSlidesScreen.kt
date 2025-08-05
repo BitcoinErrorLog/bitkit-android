@@ -54,6 +54,7 @@ import to.bitkit.ui.utils.withAccent
 @Composable
 fun OnboardingSlidesScreen(
     currentTab: Int = 0,
+    isGeoBlocked: Boolean,
     onAdvancedSetupClick: () -> Unit,
     onCreateClick: () -> Unit,
     onRestoreClick: () -> Unit,
@@ -86,7 +87,7 @@ fun OnboardingSlidesScreen(
                     title = stringResource(R.string.onboarding__slide1_header),
                     titleAccentColor = Colors.Purple,
                     text = stringResource(R.string.onboarding__slide1_text),
-                    disclaimerText = stringResource(R.string.onboarding__slide1_note), // TODO use GeoBlocking state
+                    disclaimerText = stringResource(R.string.onboarding__slide1_note).takeIf { isGeoBlocked },
                     modifier = Modifier.testTag("Slide1")
                 )
 
@@ -239,6 +240,35 @@ private fun OnboardingViewPreview() {
             onAdvancedSetupClick = {},
             onCreateClick = {},
             onRestoreClick = {},
+            isGeoBlocked = true
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun OnboardingViewPreview2() {
+    AppThemeSurface {
+        OnboardingSlidesScreen(
+            currentTab = 1,
+            onAdvancedSetupClick = {},
+            onCreateClick = {},
+            onRestoreClick = {},
+            isGeoBlocked = true
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun OnboardingViewPreview3() {
+    AppThemeSurface {
+        OnboardingSlidesScreen(
+            currentTab = 1,
+            onAdvancedSetupClick = {},
+            onCreateClick = {},
+            onRestoreClick = {},
+            isGeoBlocked = false
         )
     }
 }
