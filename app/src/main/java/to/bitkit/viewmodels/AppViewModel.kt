@@ -416,26 +416,24 @@ class AppViewModel @Inject constructor(
     ): Boolean {
         if (value.isBlank()) return false
         val amount = value.toULongOrNull() ?: return false
-
-        val lnurl = _sendUiState.value.lnurl
-
-        val isValidLNAmount = when (lnurl) {
-            null -> lightningRepo.canSend(amount)
-            is LnurlParams.LnurlPay -> {
-                val minSat = lnurl.data.minSendableSat()
-                val maxSat = lnurl.data.maxSendableSat()
-
-                amount in minSat..maxSat && lightningRepo.canSend(amount)
-            }
-
-            is LnurlParams.LnurlWithdraw -> {
-                amount < lnurl.data.maxWithdrawableSat()
-            }
-        }
+        if (amount == 0uL) return false
 
         return when (payMethod) {
+            SendMethod.LIGHTNING -> when (val lnurl = _sendUiState.value.lnurl) {
+                null -> lightningRepo.canSend(amount)
+                is LnurlParams.LnurlPay -> {
+                    val minSat = lnurl.data.minSendableSat()
+                    val maxSat = lnurl.data.maxSendableSat()
+
+                    amount in minSat..maxSat && lightningRepo.canSend(amount)
+                }
+
+                is LnurlParams.LnurlWithdraw -> {
+                    amount < lnurl.data.maxWithdrawableSat()
+                }
+            }
+
             SendMethod.ONCHAIN -> amount > getMinOnchainTx()
-            else -> isValidLNAmount && amount > 0uL
         }
     }
 
