@@ -88,7 +88,7 @@ class LightningRepo @Inject constructor(
         waitTimeout: Duration = 1.minutes,
         operation: suspend () -> Result<T>,
     ): Result<T> = withContext(bgDispatcher) {
-        Logger.debug("Operation called: $operationName", context = TAG)
+        Logger.verbose("Operation called: $operationName", context = TAG)
 
         if (_lightningState.value.nodeLifecycleState.isRunning()) {
             return@withContext executeOperation(operationName, operation)
@@ -107,7 +107,7 @@ class LightningRepo @Inject constructor(
             }
 
             // Otherwise, wait for it to transition to running state
-            Logger.debug("Waiting for node runs to execute $operationName", context = TAG)
+            Logger.verbose("Waiting for node runs to execute $operationName", context = TAG)
             _lightningState.first { it.nodeLifecycleState.isRunning() }
             Logger.debug("Operation executed: $operationName", context = TAG)
             true
@@ -532,7 +532,7 @@ class LightningRepo @Inject constructor(
             Result.success(txId)
         }
 
-    private suspend fun determineUtxosToSpend(
+    suspend fun determineUtxosToSpend(
         sats: ULong,
         satsPerVByte: UInt,
     ): List<SpendableUtxo>? {
@@ -544,14 +544,14 @@ class LightningRepo @Inject constructor(
                 val allSpendableUtxos = lightningService.listSpendableOutputs().getOrThrow()
 
                 if (coinSelectionPreference == CoinSelectionPreference.Consolidate) {
-                    Logger.info("Consolidating by spending all ${allSpendableUtxos.size} UTXOs", context = TAG)
+                    Logger.debug("Consolidating by spending all ${allSpendableUtxos.size} UTXOs", context = TAG)
                     return allSpendableUtxos
                 }
 
                 val coinSelectionAlgorithm = coinSelectionPreference.toCoinSelectAlgorithm().getOrThrow()
 
-                Logger.info("Selecting UTXOs with algorithm: $coinSelectionAlgorithm for sats: $sats", context = TAG)
-                Logger.debug("All spendable UTXOs: $allSpendableUtxos", context = TAG)
+                Logger.debug("Selecting UTXOs with algorithm: $coinSelectionAlgorithm for sats: $sats", context = TAG)
+                Logger.verbose("All spendable UTXOs: $allSpendableUtxos", context = TAG)
 
                 lightningService.selectUtxosWithAlgorithm(
                     targetAmountSats = sats,

@@ -222,12 +222,12 @@ class LightningService @Inject constructor(
     suspend fun sync() {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
-        Logger.debug("Syncing LDK…")
+        Logger.verbose("Syncing LDK…")
         ServiceQueue.LDK.background {
             node.syncWallets()
             // launch { setMaxDustHtlcExposureForCurrentChannels() }
         }
-        Logger.info("LDK synced")
+        Logger.debug("LDK synced")
     }
 
     // private fun setMaxDustHtlcExposureForCurrentChannels() {

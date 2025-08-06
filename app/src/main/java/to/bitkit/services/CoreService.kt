@@ -111,13 +111,12 @@ class CoreService @Inject constructor(
     /** Returns true if geo blocked */
     suspend fun checkGeoStatus(): Boolean? {
         return ServiceQueue.CORE.background {
-            Logger.info("Checking geo status…", context = "GeoCheck")
+            Logger.verbose("Checking geo status…", context = "GeoCheck")
             val response = httpClient.get(Env.geoCheckUrl)
-            Logger.debug("Received geo status response: ${response.status.value}", context = "GeoCheck")
 
             when (response.status.value) {
                 HttpStatusCode.OK.value -> {
-                    Logger.info("Region allowed", context = "GeoCheck")
+                    Logger.verbose("Region allowed", context = "GeoCheck")
                     false
                 }
 
