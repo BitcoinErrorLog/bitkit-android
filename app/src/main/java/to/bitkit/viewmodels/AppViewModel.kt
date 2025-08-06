@@ -412,7 +412,7 @@ class AppViewModel @Inject constructor(
         }
 
         refreshOnchainSendIfNeeded()
-        setSendEffect(SendEffect.NavigateToReview)
+        setSendEffect(SendEffect.NavigateToConfirm)
     }
 
     private suspend fun onCoinSelectionContinue(utxos: List<SpendableUtxo>) {
@@ -424,7 +424,7 @@ class AppViewModel @Inject constructor(
             it.copy(fee = fee)
         }
 
-        setSendEffect(SendEffect.NavigateToReview)
+        setSendEffect(SendEffect.NavigateToConfirm)
     }
 
     private fun validateAmount(
@@ -537,7 +537,7 @@ class AppViewModel @Inject constructor(
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
-                setSendEffect(SendEffect.NavigateToReview)
+                setSendEffect(SendEffect.NavigateToConfirm)
             }
             return
         }
@@ -587,7 +587,7 @@ class AppViewModel @Inject constructor(
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
-                setSendEffect(SendEffect.NavigateToReview)
+                setSendEffect(SendEffect.NavigateToConfirm)
             }
             return
         }
@@ -634,7 +634,7 @@ class AppViewModel @Inject constructor(
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
-                setSendEffect(SendEffect.NavigateToReview)
+                setSendEffect(SendEffect.NavigateToConfirm)
             }
             return
         }
@@ -1389,7 +1389,7 @@ sealed class SendEffect {
     data object NavigateToAddress : SendEffect()
     data object NavigateToAmount : SendEffect()
     data object NavigateToScan : SendEffect()
-    data object NavigateToReview : SendEffect()
+    data object NavigateToConfirm : SendEffect()
     data object PopBack : SendEffect()
     data object NavigateToWithdrawConfirm : SendEffect()
     data object NavigateToWithdrawError : SendEffect()

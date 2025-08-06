@@ -64,7 +64,7 @@ fun SendSheet(
                     is SendEffect.NavigateToAddress -> navController.navigate(SendRoute.Address)
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
-                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.Confirm)
+                    is SendEffect.NavigateToConfirm -> navController.navigate(SendRoute.Confirm)
                     is SendEffect.PopBack -> navController.popBackStack()
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)

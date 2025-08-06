@@ -26,7 +26,6 @@ class SendFeeViewModel @Inject constructor(
             )
         }
     }
-
 }
 
 data class SendFeeUiState(
