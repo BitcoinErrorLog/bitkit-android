@@ -307,10 +307,7 @@ private fun OnChainDescription(
 ) {
     val fee by remember(uiState.speed) { mutableStateOf(FeeRate.fromSpeed(uiState.speed)) }
     Column(modifier = Modifier.fillMaxWidth()) {
-        Caption13Up(
-            text = stringResource(R.string.wallet__send_to),
-            color = Colors.White64,
-        )
+        Caption13Up(text = stringResource(R.string.wallet__send_to), color = Colors.White64)
         Spacer(modifier = Modifier.height(8.dp))
         BodySSB(text = uiState.address, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
@@ -385,8 +382,8 @@ private fun OnChainDescription(
                     }
                     FillHeight()
                     VerticalSpacer(16.dp)
-                    HorizontalDivider()
                 }
+                HorizontalDivider()
             }
         }
     }
