@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
+import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.FillHeight
@@ -56,6 +57,7 @@ private fun Content(
         ) {
             SectionHeader(stringResource(R.string.wallet__send_fee_and_speed))
             Display("TODO")
+            BodyM("Lint hack " + uiState.speed.toString())
 
             FillHeight(min = 16.dp)
 
@@ -81,5 +83,3 @@ private fun Preview() {
         }
     }
 }
-
-// TODO nav

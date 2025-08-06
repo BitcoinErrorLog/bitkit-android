@@ -180,6 +180,7 @@ private fun FeeItem(
     }
 }
 
+@Suppress("MagicNumber")
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
@@ -201,6 +202,7 @@ private fun Preview() {
     }
 }
 
+@Suppress("MagicNumber")
 @Preview(showSystemUi = true)
 @Composable
 private fun PreviewCustom() {
