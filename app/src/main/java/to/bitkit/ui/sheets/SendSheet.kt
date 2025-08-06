@@ -26,8 +26,8 @@ import to.bitkit.ui.screens.wallets.send.SendFeeRateScreen
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
-import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
+import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
@@ -43,8 +43,8 @@ fun SendSheet(
     startDestination: SendRoute = SendRoute.Recipient,
     onComplete: (NewTransactionSheetDetails?) -> Unit,
 ) {
-    // Reset on new user-initiated send
     LaunchedEffect(startDestination) {
+        // always reset state on new user-initiated send
         if (startDestination == SendRoute.Recipient) {
             appViewModel.resetSendState()
             appViewModel.resetQuickPayData()

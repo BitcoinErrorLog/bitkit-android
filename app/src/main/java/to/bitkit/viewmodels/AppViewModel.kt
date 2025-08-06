@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -457,15 +458,15 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleScan(result: String) {
+    private suspend fun handleScan(result: String) = withContext(bgDispatcher) {
+        // always reset state on new scan
+        resetSendState()
+        resetQuickPayData()
+
         val scan = runCatching { decode(result) }
             .onFailure { Logger.error("Failed to decode scan result: '$result'", it) }
             .onSuccess { Logger.info("Handling scan data: $it") }
             .getOrNull()
-
-        // always reset state on new scan
-        resetSendState()
-        resetQuickPayData()
 
         when (scan) {
             is Scanner.OnChain -> onScanOnchain(scan.invoice)
@@ -589,7 +590,6 @@ class AppViewModel @Inject constructor(
                 title = context.getString(R.string.other__lnurl_pay_error),
                 description = context.getString(R.string.other__lnurl_pay_error_no_capacity),
             )
-            resetSendState()
             return
         }
 
@@ -636,7 +636,6 @@ class AppViewModel @Inject constructor(
                 title = context.getString(R.string.other__lnurl_withdr_error),
                 description = context.getString(R.string.other__lnurl_withdr_error_minmax)
             )
-            resetSendState()
             return
         }
 
@@ -938,7 +937,6 @@ class AppViewModel @Inject constructor(
             val lnurl = _sendUiState.value.lnurl as? LnurlParams.LnurlWithdraw
 
             if (lnurl == null) {
-                resetSendState()
                 setSendEffect(SendEffect.NavigateToWithdrawError)
                 return@launch
             }
@@ -958,7 +956,6 @@ class AppViewModel @Inject constructor(
             ).getOrNull()
 
             if (invoice == null) {
-                resetSendState()
                 setSendEffect(SendEffect.NavigateToWithdrawError)
                 return@launch
             }
@@ -976,7 +973,6 @@ class AppViewModel @Inject constructor(
                 hideSheet()
                 _sendUiState.update { it.copy(isLoading = false) }
                 mainScreenEffect(MainScreenEffect.Navigate(Routes.Home))
-                resetSendState()
             }.onFailure {
                 _sendUiState.update { it.copy(isLoading = false) }
                 setSendEffect(SendEffect.NavigateToWithdrawError)
@@ -1057,12 +1053,11 @@ class AppViewModel @Inject constructor(
 
     fun resetQuickPayData() = _quickPayData.update { null }
 
-    fun resetSendState() {
-        viewModelScope.launch {
-            _sendUiState.value = SendUiState(
-                speed = settingsStore.data.first().defaultTransactionSpeed,
-            )
-        }
+    suspend fun resetSendState() {
+        _sendUiState.value = SendUiState(
+            speed = settingsStore.data.first().defaultTransactionSpeed,
+        )
+        Logger.debug("Send state reset")
     }
     // endregion
 
