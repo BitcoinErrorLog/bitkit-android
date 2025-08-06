@@ -481,28 +481,18 @@ class LightningRepo @Inject constructor(
             Result.success(paymentId)
         }
 
-    /**
-     * Sends bitcoin to an on-chain address
-     *
-     * @param address The bitcoin address to send to
-     * @param sats The amount in  satoshis to send
-     * @param speed The desired transaction speed determining the fee rate. If null, the user's default speed is used.
-     * @param utxosToSpend Manually specify UTXO's to spend if not null.
-     * @return A `Result` with the `Txid` of sent transaction, or an error if the transaction fails
-     * or the fee rate cannot be retrieved.
-     */
-
     suspend fun sendOnChain(
         address: Address,
         sats: ULong,
         speed: TransactionSpeed? = null,
         utxosToSpend: List<SpendableUtxo>? = null,
+        feeRates: FeeRates? = null,
         isTransfer: Boolean = false,
         channelId: String? = null,
     ): Result<Txid> =
         executeWhenNodeRunning("Send on-chain") {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
-            val satsPerVByte = getFeeRateForSpeed(transactionSpeed).getOrThrow().toUInt()
+            val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
             // if utxos are manually specified, use them, otherwise run auto coin select if enabled
             val finalUtxosToSpend = utxosToSpend ?: determineUtxosToSpend(

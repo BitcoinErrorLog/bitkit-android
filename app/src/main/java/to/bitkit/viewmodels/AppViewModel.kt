@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.LnurlAuthData
 import com.synonym.bitkitcore.LnurlChannelData
@@ -1104,10 +1105,6 @@ class AppViewModel @Inject constructor(
     private suspend fun refreshFeeEstimates() = withContext(bgDispatcher) {
         val currentState = _sendUiState.value
 
-        // Refresh blocktank info to get latest fee rates
-        blocktankRepo.refreshInfo()
-
-        val feeRates = blocktankRepo.blocktankState.value.info?.onchain?.feeRates
         val speeds = listOf(
             TransactionSpeed.Fast,
             TransactionSpeed.Medium,
@@ -1123,7 +1120,7 @@ class AppViewModel @Inject constructor(
             speeds.map { speed ->
                 async {
                     val rate = FeeRate.fromSpeed(speed)
-                    val fee = if (feeRates?.getSatsPerVByteFor(speed) != 0u) getFeeEstimate(speed) else 0L
+                    val fee = if (currentState.feeRates?.getSatsPerVByteFor(speed) != 0u) getFeeEstimate(speed) else 0
 
                     if (speed == currentState.speed) {
                         currentFee = fee
@@ -1149,13 +1146,24 @@ class AppViewModel @Inject constructor(
             address = currentState.address,
             speed = speed ?: currentState.speed,
             utxosToSpend = currentState.selectedUtxos,
+            feeRates = currentState.feeRates,
         ).getOrDefault(0u).toLong()
     }
 
     suspend fun resetSendState() {
-        _sendUiState.value = SendUiState(
-            speed = settingsStore.data.first().defaultTransactionSpeed,
-        )
+        val speed = settingsStore.data.first().defaultTransactionSpeed
+        val rates = let {
+            // Refresh blocktank info to get latest fee rates
+            blocktankRepo.refreshInfo()
+            blocktankRepo.blocktankState.value.info?.onchain?.feeRates
+        }
+
+        _sendUiState.update {
+            SendUiState(
+                speed = speed,
+                feeRates = rates,
+            )
+        }
     }
     // endregion
 
@@ -1363,6 +1371,7 @@ data class SendUiState(
     val isLoading: Boolean = false,
     val speed: TransactionSpeed = TransactionSpeed.default(),
     val comment: String = "",
+    val feeRates: FeeRates? = null,
     val fee: Long = 0,
     val fees: Map<FeeRate, Long> = emptyMap(),
 )
