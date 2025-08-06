@@ -449,7 +449,7 @@ class AppViewModel @Inject constructor(
                 }
             }
 
-            SendMethod.ONCHAIN -> amount > getMinOnchainTx()
+            SendMethod.ONCHAIN -> amount > Env.TransactionDefaults.dustLimit.toULong()
         }
     }
 
@@ -1060,10 +1060,6 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun getMinOnchainTx(): ULong {
-        return Env.TransactionDefaults.dustLimit.toULong()
-    }
-
     fun clearClipboardForAutoRead() {
         viewModelScope.launch {
             val isAutoReadClipboardEnabled = settingsStore.data.first().enableAutoReadClipboard
@@ -1160,7 +1156,6 @@ class AppViewModel @Inject constructor(
         _sendUiState.value = SendUiState(
             speed = settingsStore.data.first().defaultTransactionSpeed,
         )
-        Logger.debug("Send state reset")
     }
     // endregion
 
