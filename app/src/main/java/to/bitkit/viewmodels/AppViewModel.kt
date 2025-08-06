@@ -370,12 +370,14 @@ class AppViewModel @Inject constructor(
             _sendUiState.update {
                 it.copy(
                     speed = speed,
-                    selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos
+                    fee = it.fees.getOrDefault(FeeRate.fromSpeed(speed), 0),
+                    selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos,
                 )
             }
         } else {
             // TODO implement custom fee screen in next PRs + refresh sendUiState fee & fees[speed] for new custom fee
         }
+        refreshOnchainSendIfNeeded()
         setSendEffect(SendEffect.PopBack)
     }
 
