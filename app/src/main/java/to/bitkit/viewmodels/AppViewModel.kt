@@ -22,6 +22,9 @@ import com.synonym.bitkitcore.validateBitcoinAddress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +49,7 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.getClipboardText
+import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.ext.maxSendableSat
 import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ext.minSendableSat
@@ -54,6 +58,7 @@ import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.watchUntil
+import to.bitkit.models.FeeRate
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
@@ -64,6 +69,7 @@ import to.bitkit.models.toActivityFilter
 import to.bitkit.models.toCoreNetworkType
 import to.bitkit.models.toTxType
 import to.bitkit.repositories.ActivityRepo
+import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.ConnectivityRepo
 import to.bitkit.repositories.ConnectivityState
 import to.bitkit.repositories.CurrencyRepo
@@ -94,6 +100,7 @@ class AppViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
+    private val blocktankRepo: BlocktankRepo,
     connectivityRepo: ConnectivityRepo,
     healthRepo: HealthRepo,
 ) : ViewModel() {
@@ -356,15 +363,18 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onSpeedChange(speed: TransactionSpeed) {
+    private suspend fun onSpeedChange(speed: TransactionSpeed) {
         if (speed !is TransactionSpeed.Custom) {
+            val shouldResetUtxos = settingsStore.data.first().coinSelectAuto
             _sendUiState.update {
-                it.copy(speed = speed)
+                it.copy(
+                    speed = speed,
+                    selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos
+                )
             }
         } else {
-            // TODO implement custom fee screen in next PRs
+            // TODO implement custom fee screen in next PRs + refresh sendUiState fee & fees[speed] for new custom fee
         }
-        refreshFeeIfNeeded()
         setSendEffect(SendEffect.PopBack)
     }
 
@@ -385,8 +395,10 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(
                 amount = amount.toULongOrNull() ?: 0u,
+                selectedUtxos = null,
             )
         }
+
         if (_sendUiState.value.payMethod != SendMethod.LIGHTNING && !settingsStore.data.first().coinSelectAuto) {
             setSendEffect(SendEffect.NavigateToCoinSelection)
             return
@@ -398,15 +410,19 @@ class AppViewModel @Inject constructor(
             return
         }
 
-        refreshFeeIfNeeded()
+        refreshOnchainSendIfNeeded()
         setSendEffect(SendEffect.NavigateToReview)
     }
 
-    private fun onCoinSelectionContinue(utxos: List<SpendableUtxo>) {
+    private suspend fun onCoinSelectionContinue(utxos: List<SpendableUtxo>) {
         _sendUiState.update {
             it.copy(selectedUtxos = utxos)
         }
-        refreshFeeIfNeeded()
+        val fee = getFeeEstimate()
+        _sendUiState.update {
+            it.copy(fee = fee)
+        }
+
         setSendEffect(SendEffect.NavigateToReview)
     }
 
@@ -516,7 +532,7 @@ class AppViewModel @Inject constructor(
             )
             if (quickPayHandled) return
 
-            refreshFeeIfNeeded()
+            refreshOnchainSendIfNeeded()
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
@@ -1003,7 +1019,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun sendOnchain(address: String, amount: ULong, speed: TransactionSpeed? = null): Result<Txid> {
+    private suspend fun sendOnchain(address: String, amount: ULong): Result<Txid> {
         return lightningRepo.sendOnChain(
             address = address,
             sats = amount,
@@ -1059,7 +1075,7 @@ class AppViewModel @Inject constructor(
 
     fun resetQuickPayData() = _quickPayData.update { null }
 
-    private fun refreshFeeIfNeeded() {
+    private fun refreshOnchainSendIfNeeded() {
         val currentState = _sendUiState.value
         if (currentState.payMethod != SendMethod.ONCHAIN ||
             currentState.amount == 0uL ||
@@ -1068,23 +1084,76 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        // refresh in background
         viewModelScope.launch(bgDispatcher) {
-            lightningRepo.calculateTotalFee(
-                amountSats = currentState.amount,
-                address = currentState.address,
-                speed = currentState.speed,
-                utxosToSpend = currentState.selectedUtxos,
-            ).onSuccess { feeSat ->
-                _sendUiState.update {
-                    it.copy(fee = feeSat.toLong())
-                }
-            }.onFailure { e ->
-                Logger.warn("Failed to calculate send fee", e = e, context = TAG)
-                _sendUiState.update {
-                    it.copy(fee = 0)
-                }
+            // preselect utxos for deterministic fee estimation
+            if (settingsStore.data.first().coinSelectAuto && currentState.selectedUtxos == null) {
+                lightningRepo.getFeeRateForSpeed(currentState.speed)
+                    .mapCatching { satsPerVByte ->
+                        lightningRepo.determineUtxosToSpend(
+                            sats = currentState.amount,
+                            satsPerVByte = satsPerVByte.toUInt(),
+                        )
+                    }
+                    .onSuccess { utxos ->
+                        _sendUiState.update {
+                            it.copy(selectedUtxos = utxos)
+                        }
+                    }
             }
+            refreshFeeEstimates()
         }
+    }
+
+    private suspend fun refreshFeeEstimates() = withContext(bgDispatcher) {
+        val currentState = _sendUiState.value
+
+        // Refresh blocktank info to get latest fee rates
+        blocktankRepo.refreshInfo()
+
+        val feeRates = blocktankRepo.blocktankState.value.info?.onchain?.feeRates
+        val speeds = listOf(
+            TransactionSpeed.Fast,
+            TransactionSpeed.Medium,
+            TransactionSpeed.Slow,
+            when (val speed = currentState.speed) {
+                is TransactionSpeed.Custom -> speed
+                else -> TransactionSpeed.Custom(0u)
+            }
+        )
+
+        var currentFee = 0L
+        val feesMap = coroutineScope {
+            speeds.map { speed ->
+                async {
+                    val rate = FeeRate.fromSpeed(speed)
+                    val fee = if (feeRates?.getSatsPerVByteFor(speed) != 0u) getFeeEstimate(speed) else 0L
+
+                    if (speed == currentState.speed) {
+                        currentFee = fee
+                    }
+
+                    rate to fee
+                }
+            }.awaitAll().toMap()
+        }
+
+        _sendUiState.update {
+            it.copy(
+                fees = feesMap,
+                fee = currentFee,
+            )
+        }
+    }
+
+    private suspend fun getFeeEstimate(speed: TransactionSpeed? = null): Long {
+        val currentState = _sendUiState.value
+        return lightningRepo.calculateTotalFee(
+            amountSats = currentState.amount,
+            address = currentState.address,
+            speed = speed ?: currentState.speed,
+            utxosToSpend = currentState.selectedUtxos,
+        ).getOrDefault(0u).toLong()
     }
 
     suspend fun resetSendState() {
@@ -1300,6 +1369,7 @@ data class SendUiState(
     val speed: TransactionSpeed = TransactionSpeed.default(),
     val comment: String = "",
     val fee: Long = 0,
+    val fees: Map<FeeRate, Long> = emptyMap(),
 )
 
 enum class AmountWarning(@StringRes val message: Int) {

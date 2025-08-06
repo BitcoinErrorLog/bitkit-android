@@ -535,8 +535,8 @@ class LightningRepo @Inject constructor(
     suspend fun determineUtxosToSpend(
         sats: ULong,
         satsPerVByte: UInt,
-    ): List<SpendableUtxo>? {
-        return runCatching {
+    ): List<SpendableUtxo>? = withContext(bgDispatcher) {
+        return@withContext runCatching {
             val settings = settingsStore.data.first()
             if (settings.coinSelectAuto) {
                 val coinSelectionPreference = settings.coinSelectPreference
@@ -545,7 +545,7 @@ class LightningRepo @Inject constructor(
 
                 if (coinSelectionPreference == CoinSelectionPreference.Consolidate) {
                     Logger.debug("Consolidating by spending all ${allSpendableUtxos.size} UTXOs", context = TAG)
-                    return allSpendableUtxos
+                    return@withContext allSpendableUtxos
                 }
 
                 val coinSelectionAlgorithm = coinSelectionPreference.toCoinSelectAlgorithm().getOrThrow()
@@ -558,7 +558,9 @@ class LightningRepo @Inject constructor(
                     algorithm = coinSelectionAlgorithm,
                     satsPerVByte = satsPerVByte,
                     utxos = allSpendableUtxos,
-                ).getOrThrow()
+                ).onSuccess {
+                    Logger.debug("Selected ${it.size} UTXOs", context = TAG)
+                }.getOrThrow()
             } else {
                 null // let ldk-node handle utxos
             }

@@ -557,7 +557,7 @@ class LightningService @Inject constructor(
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         Logger.info(
-            "Calculating fee for $amountSats sats to $address, satsPerVByte=$satsPerVByte, UTXOs=${utxosToSpend?.size}"
+            "Calculating fee for $amountSats sats to $address, UTXOs=${utxosToSpend?.size}, satsPerVByte=$satsPerVByte"
         )
 
         return ServiceQueue.LDK.background {
