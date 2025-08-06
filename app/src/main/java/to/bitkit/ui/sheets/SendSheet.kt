@@ -26,7 +26,7 @@ import to.bitkit.ui.screens.wallets.send.SendFeeRateScreen
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
-import to.bitkit.ui.screens.wallets.withdraw.WithDrawErrorScreen
+import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -159,7 +159,7 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.WithdrawError> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                WithDrawErrorScreen(
+                WithdrawErrorScreen(
                     uiState = uiState,
                     onBack = { navController.popBackStack() },
                     onClickScan = { navController.navigate(SendRoute.QrScanner) },
