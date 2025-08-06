@@ -1074,6 +1074,7 @@ class AppViewModel @Inject constructor(
 
     fun resetQuickPayData() = _quickPayData.update { null }
 
+    /** Reselect utxos for current amount & speed then refresh fees using updated utxos */
     private fun refreshOnchainSendIfNeeded() {
         val currentState = _sendUiState.value
         if (currentState.payMethod != SendMethod.ONCHAIN ||
@@ -1087,7 +1088,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch(bgDispatcher) {
             // preselect utxos for deterministic fee estimation
             if (settingsStore.data.first().coinSelectAuto && currentState.selectedUtxos == null) {
-                lightningRepo.getFeeRateForSpeed(currentState.speed)
+                lightningRepo.getFeeRateForSpeed(currentState.speed, currentState.feeRates)
                     .mapCatching { satsPerVByte ->
                         lightningRepo.determineUtxosToSpend(
                             sats = currentState.amount,
