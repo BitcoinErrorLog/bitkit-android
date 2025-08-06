@@ -367,11 +367,18 @@ class AppViewModel @Inject constructor(
     private suspend fun onSpeedChange(speed: TransactionSpeed) {
         if (speed !is TransactionSpeed.Custom) {
             val shouldResetUtxos = settingsStore.data.first().coinSelectAuto
+            val currentState = _sendUiState.value
+
+            // Only reset utxos if the satsPerVByte actually changes
+            val currentSatsPerVByte = currentState.feeRates?.getSatsPerVByteFor(currentState.speed)
+            val newSatsPerVByte = currentState.feeRates?.getSatsPerVByteFor(speed)
+            val satsPerVByteChanged = currentSatsPerVByte != newSatsPerVByte
+
             _sendUiState.update {
                 it.copy(
                     speed = speed,
                     fee = it.fees.getOrDefault(FeeRate.fromSpeed(speed), 0),
-                    selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos,
+                    selectedUtxos = if (shouldResetUtxos && satsPerVByteChanged) null else it.selectedUtxos,
                 )
             }
         } else {
@@ -421,11 +428,7 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(selectedUtxos = utxos)
         }
-        val fee = getFeeEstimate()
-        _sendUiState.update {
-            it.copy(fee = fee)
-        }
-
+        refreshFeeEstimates()
         setSendEffect(SendEffect.NavigateToConfirm)
     }
 
@@ -1353,6 +1356,7 @@ class AppViewModel @Inject constructor(
         private const val TAG = "AppViewModel"
     }
 }
+
 
 // region send contract
 data class SendUiState(
