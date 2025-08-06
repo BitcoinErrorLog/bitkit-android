@@ -357,9 +357,14 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onSpeedChange(speed: TransactionSpeed) {
-        _sendUiState.update {
-            it.copy(speed = speed)
+        if (speed !is TransactionSpeed.Custom) {
+            _sendUiState.update {
+                it.copy(speed = speed)
+            }
+        } else {
+            // TODO implement custom fee screen in next PRs
         }
+        refreshFeeIfNeeded()
         setSendEffect(SendEffect.PopBack)
     }
 
@@ -393,6 +398,7 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        refreshFeeIfNeeded()
         setSendEffect(SendEffect.NavigateToReview)
     }
 
@@ -400,6 +406,7 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(selectedUtxos = utxos)
         }
+        refreshFeeIfNeeded()
         setSendEffect(SendEffect.NavigateToReview)
     }
 
@@ -511,6 +518,7 @@ class AppViewModel @Inject constructor(
             )
             if (quickPayHandled) return
 
+            refreshFeeIfNeeded()
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
             } else {
@@ -1053,6 +1061,34 @@ class AppViewModel @Inject constructor(
 
     fun resetQuickPayData() = _quickPayData.update { null }
 
+    private fun refreshFeeIfNeeded() {
+        val currentState = _sendUiState.value
+        if (currentState.payMethod != SendMethod.ONCHAIN ||
+            currentState.amount == 0uL ||
+            currentState.address.isEmpty()
+        ) {
+            return
+        }
+
+        viewModelScope.launch(bgDispatcher) {
+            lightningRepo.calculateTotalFee(
+                amountSats = currentState.amount,
+                address = currentState.address,
+                speed = currentState.speed,
+                utxosToSpend = currentState.selectedUtxos,
+            ).onSuccess { feeSat ->
+                _sendUiState.update {
+                    it.copy(fee = feeSat.toLong())
+                }
+            }.onFailure { e ->
+                Logger.warn("Failed to calculate send fee", e = e, context = TAG)
+                _sendUiState.update {
+                    it.copy(fee = 0)
+                }
+            }
+        }
+    }
+
     suspend fun resetSendState() {
         _sendUiState.value = SendUiState(
             speed = settingsStore.data.first().defaultTransactionSpeed,
@@ -1239,6 +1275,10 @@ class AppViewModel @Inject constructor(
             proceedWithPayment()
         }
     }
+
+    companion object {
+        private const val TAG = "AppViewModel"
+    }
 }
 
 // region send contract
@@ -1261,6 +1301,7 @@ data class SendUiState(
     val isLoading: Boolean = false,
     val speed: TransactionSpeed = TransactionSpeed.default(),
     val comment: String = "",
+    val fee: Long = 0,
 )
 
 enum class AmountWarning(@StringRes val message: Int) {

@@ -341,7 +341,7 @@ private fun OnChainDescription(
                         )
                         Row {
                             BodySSB(stringResource(fee.title) + " (")
-                            MoneySSB(sats = 210, accent = Colors.White) // TODO get from state
+                            MoneySSB(sats = uiState.fee, accent = Colors.White)
                             BodySSB(")")
                         }
                         Icon(
