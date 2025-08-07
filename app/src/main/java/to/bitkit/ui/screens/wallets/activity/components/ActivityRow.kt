@@ -95,11 +95,16 @@ fun ActivityRow(
             val subtitleText = when (item) {
                 is Activity.Lightning -> item.v1.message.ifEmpty { formattedTime(timestamp) }
                 is Activity.Onchain -> {
-                    if (confirmed == true) {
-                        formattedTime(timestamp)
-                    } else {
-                        // TODO: calculate confirmsIn text
-                        stringResource(R.string.wallet__activity_confirms_in).replace("{feeRateDescription}", "± 1h")
+                    when {
+                        isTransfer && isSent -> stringResource(R.string.wallet__activity_transfer_spending_done)
+                        isTransfer && !isSent -> stringResource(R.string.wallet__activity_transfer_savings_done)
+                        confirmed == true -> {
+                            formattedTime(timestamp)
+                        }
+                        else -> {
+                            // TODO: calculate confirmsIn text
+                            stringResource(R.string.wallet__activity_confirms_in).replace("{feeRateDescription}", "± 1h")
+                        }
                     }
                 }
             }
