@@ -22,7 +22,9 @@ import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.viewmodels.SendUiState
 import javax.inject.Inject
 
-const val MAX_INPUT_VALUE = 999u
+private const val MAX_DIGITS = 3
+private const val MAX_VALUE = 999u
+private const val MAX_RATIO = 0.5
 
 @HiltViewModel
 class SendFeeViewModel @Inject constructor(
@@ -35,7 +37,7 @@ class SendFeeViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     private lateinit var sendUiState: SendUiState
-    private var maxSatsPerVByte: UInt = MAX_INPUT_VALUE
+    private var maxSatsPerVByte: UInt = MAX_VALUE
     private var maxFee: ULong = 0u
 
     fun init(sendUiState: SendUiState) {
@@ -67,7 +69,7 @@ class SendFeeViewModel @Inject constructor(
 
     private fun getFeeLimit(): ULong {
         val totalBalance = walletRepo.balanceState.value.totalOnchainSats
-        val halfBalance = (totalBalance.toDouble() * 0.5).toULong()
+        val halfBalance = (totalBalance.toDouble() * MAX_RATIO).toULong()
         val remainingFunds = maxOf(0u, totalBalance - sendUiState.amount)
         return minOf(halfBalance, remainingFunds)
     }
@@ -76,7 +78,7 @@ class SendFeeViewModel @Inject constructor(
         val currentInput = _uiState.value.input
         val newInput = when (key) {
             KEY_DELETE -> if (currentInput.isNotEmpty()) currentInput.dropLast(1) else ""
-            else -> if (currentInput.length < 3) (currentInput + key).trimStart('0') else currentInput
+            else -> if (currentInput.length < MAX_DIGITS) (currentInput + key).trimStart('0') else currentInput
         }
 
         val satsPerVByte = newInput.toUIntOrNull() ?: 0u
@@ -157,7 +159,7 @@ class SendFeeViewModel @Inject constructor(
             maxSatsPerVByte = if (feeFor1SatPerVByte > 0uL) {
                 (maxFee / feeFor1SatPerVByte).toUInt().coerceAtLeast(1u)
             } else {
-                MAX_INPUT_VALUE
+                MAX_VALUE
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -38,11 +39,12 @@ fun SendFeeCustomScreen(
     onContinue: (TransactionSpeed) -> Unit,
     viewModel: SendFeeViewModel,
 ) {
+    val currentOnContinue by rememberUpdatedState(onContinue)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.isCustomFeeValid, uiState.custom) {
         if (uiState.isCustomFeeValid == true) {
-            uiState.custom?.let { onContinue(it) }
+            uiState.custom?.let { currentOnContinue(it) }
         }
     }
 
