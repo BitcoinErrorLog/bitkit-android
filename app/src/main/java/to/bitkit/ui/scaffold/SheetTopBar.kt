@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -27,8 +26,8 @@ import to.bitkit.R
 import to.bitkit.ui.components.Subtitle
 import to.bitkit.ui.theme.AppThemeSurface
 
+/** For pixel perfection from FIGMA, use the back arrow + 14 padding as starting point for added space under this. */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun SheetTopBar(
     titleText: String?,
     modifier: Modifier = Modifier,
@@ -37,7 +36,7 @@ fun SheetTopBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(42.dp)
+            .height(54.dp)
     ) {
         titleText?.let {
             Subtitle(
@@ -107,7 +106,7 @@ private fun PreviewNoText() {
 private fun PreviewOverflow() {
     AppThemeSurface {
         SheetTopBar(
-            titleText = "Overflowing Text In This Sheet Top Bar Preview",
+            titleText = "Overflowing Title Text In This Preview",
             onBack = {},
         )
     }
