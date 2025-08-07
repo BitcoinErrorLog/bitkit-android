@@ -144,7 +144,9 @@ class BlocktankRepo @Inject constructor(
             }
 
             Logger.debug(
-                "Orders refreshed: ${orders.size} orders, ${cjitEntries.size} cjit entries",
+                "Orders refreshed: ${orders.size} orders, " +
+                    "${cjitEntries.size} cjit entries, " +
+                    "${_blocktankState.value.paidOrders.size} paid orders",
                 context = TAG
             )
             openChannelWithPaidOrders()
