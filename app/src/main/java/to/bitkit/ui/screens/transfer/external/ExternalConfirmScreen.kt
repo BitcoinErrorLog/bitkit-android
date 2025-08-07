@@ -125,7 +125,6 @@ private fun Content(
                             Icon(
                                 painterResource(R.drawable.ic_pencil_simple),
                                 contentDescription = null,
-                                tint = Colors.White,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

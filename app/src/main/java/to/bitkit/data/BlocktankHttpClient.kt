@@ -16,7 +16,7 @@ class BlocktankHttpClient @Inject constructor(
 ) {
     suspend fun fetchLatestRates(): FxRateResponse {
         val response = client.get(Env.btcRatesServer)
-        Logger.debug("Http call: $response")
+        Logger.verbose("Http call: $response")
 
         return when (response.status.isSuccess()) {
             true -> response.body()

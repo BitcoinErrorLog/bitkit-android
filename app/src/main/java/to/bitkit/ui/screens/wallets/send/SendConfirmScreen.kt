@@ -1,6 +1,5 @@
 package to.bitkit.ui.screens.wallets.send
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +45,7 @@ import to.bitkit.R
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.commentAllowed
 import to.bitkit.ext.formatted
+import to.bitkit.models.FeeRate
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BiometricsView
 import to.bitkit.ui.components.BodySSB
@@ -53,6 +53,7 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
+import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.TagButton
@@ -304,11 +305,9 @@ private fun OnChainDescription(
     uiState: SendUiState,
     onEvent: (SendEvent) -> Unit,
 ) {
+    val fee by remember(uiState.speed) { mutableStateOf(FeeRate.fromSpeed(uiState.speed)) }
     Column(modifier = Modifier.fillMaxWidth()) {
-        Caption13Up(
-            text = stringResource(R.string.wallet__send_to),
-            color = Colors.White64,
-        )
+        Caption13Up(text = stringResource(R.string.wallet__send_to), color = Colors.White64)
         Spacer(modifier = Modifier.height(8.dp))
         BodySSB(text = uiState.address, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
@@ -321,57 +320,71 @@ private fun OnChainDescription(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .clickable { onEvent(SendEvent.SpeedAndFee) }
-                    .padding(top = 16.dp)
             ) {
-                Caption13Up(text = stringResource(R.string.wallet__send_fee_and_speed), color = Colors.White64)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickableAlpha { onEvent(SendEvent.SpeedAndFee) }
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_speed_normal),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    BodySSB(text = "Normal (₿ 210)") // TODO GET FROM STATE
-                    Icon(
-                        painterResource(R.drawable.ic_pencil_simple),
-                        contentDescription = null,
-                        tint = Colors.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    VerticalSpacer(16.dp)
+                    Caption13Up(stringResource(R.string.wallet__send_fee_and_speed), color = Colors.White64)
+                    VerticalSpacer(8.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            painterResource(fee.icon),
+                            contentDescription = null,
+                            tint = fee.color,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Row {
+                            BodySSB(stringResource(fee.title) + " (")
+                            MoneySSB(sats = uiState.fee, accent = Colors.White)
+                            BodySSB(")")
+                        }
+                        Icon(
+                            painterResource(R.drawable.ic_pencil_simple),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    FillHeight()
+                    VerticalSpacer(16.dp)
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+                HorizontalDivider()
             }
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .clickableAlpha { onEvent(SendEvent.SpeedAndFee) }
-                    .padding(top = 16.dp)
             ) {
-                Caption13Up(text = stringResource(R.string.wallet__send_confirming_in), color = Colors.White64)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickableAlpha { onEvent(SendEvent.SpeedAndFee) }
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_clock),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    BodySSB(text = "± 20-60 minutes") // TODO GET FROM STATE
+                    VerticalSpacer(16.dp)
+                    Caption13Up(text = stringResource(R.string.wallet__send_confirming_in), color = Colors.White64)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_clock),
+                            contentDescription = null,
+                            tint = Colors.Brand,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        BodySSB(stringResource(fee.description))
+                    }
+                    FillHeight()
+                    VerticalSpacer(16.dp)
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+                HorizontalDivider()
             }
-
         }
     }
 }
@@ -406,8 +419,8 @@ private fun LightningDescription(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .padding(top = 16.dp)
             ) {
+                VerticalSpacer(16.dp)
                 Caption13Up(text = stringResource(R.string.wallet__send_fee_and_speed), color = Colors.White64)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(

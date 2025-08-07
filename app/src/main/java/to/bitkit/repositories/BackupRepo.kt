@@ -153,7 +153,7 @@ class BackupRepo @Inject constructor(
             cacheStore.updateBackupStatus(category) {
                 it.copy(required = System.currentTimeMillis())
             }
-            Logger.debug("Marked backup required for: '$category'", context = TAG)
+            Logger.verbose("Marked backup required for: '$category'", context = TAG)
         }
     }
 
@@ -161,7 +161,7 @@ class BackupRepo @Inject constructor(
         // Cancel existing backup job for this category
         backupJobs[category]?.cancel()
 
-        Logger.debug("Scheduling backup for: '$category'", context = TAG)
+        Logger.verbose("Scheduling backup for: '$category'", context = TAG)
 
         backupJobs[category] = scope.launch {
             delay(BACKUP_DEBOUNCE)

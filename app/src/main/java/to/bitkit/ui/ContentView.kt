@@ -76,7 +76,6 @@ import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
 import to.bitkit.ui.screens.wallets.receive.ReceiveSheet
-import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.screens.wallets.suggestion.BuyIntroScreen
 import to.bitkit.ui.screens.widgets.AddWidgetsScreen
 import to.bitkit.ui.screens.widgets.WidgetsIntroScreen
@@ -137,6 +136,7 @@ import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen
 import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
+import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.screenSlideIn
@@ -326,7 +326,6 @@ fun ContentView(
                                 walletViewModel = walletViewModel,
                                 startDestination = sheet.route,
                                 onComplete = { txSheet ->
-                                    appViewModel.resetSendState()
                                     appViewModel.hideSheet()
                                     appViewModel.clearClipboardForAutoRead()
                                     txSheet?.let { appViewModel.showNewTransactionSheet(it) }

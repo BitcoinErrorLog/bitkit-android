@@ -220,7 +220,7 @@ fun MoneyAmount(
         horizontalAlignment = Alignment.Start
     ) {
 
-        MoneySSB(sats = satoshis, unit = unit.not())
+        MoneySSB(sats = satoshis, unit = unit.not(), color = Colors.White64)
 
         Spacer(modifier = Modifier.height(12.dp))
 

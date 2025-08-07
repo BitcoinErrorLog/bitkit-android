@@ -18,6 +18,7 @@ import java.util.concurrent.Executors
 
 object Logger {
     private const val TAG = "APP"
+    private const val COMPACT = false
 
     private val singleThreadDispatcher = Executors
         .newSingleThreadExecutor { Thread(it, "bitkit.log").apply { priority = Thread.NORM_PRIORITY - 1 } }
@@ -69,9 +70,9 @@ object Logger {
         file: String = getCallerFile(),
         line: Int = getCallerLine(),
     ) {
-        val errMsg = e?.message?.let { " (err: '$it')" } ?: ""
-        val message = format("WARN⚠️: $msg$errMsg", context, file, line)
-        Log.w(TAG, message, e)
+        val errMsg = e?.let { "[${e::class.simpleName}='${e.message}']" }.orEmpty()
+        val message = format("WARN⚠️: $msg $errMsg", context, file, line)
+        if (COMPACT) Log.w(TAG, message) else Log.w(TAG, message, e)
         saveToFile(message)
     }
 
@@ -82,20 +83,21 @@ object Logger {
         file: String = getCallerFile(),
         line: Int = getCallerLine(),
     ) {
-        val errMsg = e?.message?.let { " (err: '$it')" } ?: ""
-        val message = format("ERROR❌️: $msg$errMsg", context, file, line)
-        Log.e(TAG, message, e)
+        val errMsg = e?.let { "[${e::class.simpleName}='${e.message}']" }.orEmpty()
+        val message = format("ERROR❌️: $msg $errMsg", context, file, line)
+        if (COMPACT) Log.e(TAG, message) else Log.e(TAG, message, e)
         saveToFile(message)
     }
 
     fun verbose(
         msg: String?,
+        e: Throwable? = null,
         context: String = "",
         file: String = getCallerFile(),
         line: Int = getCallerLine(),
     ) {
         val message = format("VERBOSE: $msg", context, file, line)
-        Log.v(TAG, message)
+        if (COMPACT) Log.v(TAG, message) else Log.v(TAG, message, e)
         saveToFile(message)
     }
 
@@ -110,8 +112,10 @@ object Logger {
         saveToFile(message)
     }
 
-    private fun format(message: Any, context: String, file: String, line: Int): String {
-        return "$message ${if (context.isNotEmpty()) "- $context " else ""}[$file:$line]"
+    private fun format(message: String, context: String, file: String, line: Int): String {
+        val message = message.trim()
+        val context = if (context.isNotEmpty()) " - $context" else ""
+        return "$message$context [$file:$line]"
     }
 
     private fun getCallerFile(): String {

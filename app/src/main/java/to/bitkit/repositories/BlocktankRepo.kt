@@ -116,7 +116,7 @@ class BlocktankRepo @Inject constructor(
         isRefreshing = true
 
         try {
-            Logger.debug("Refreshing blocktank orders…", context = TAG)
+            Logger.verbose("Refreshing blocktank orders…", context = TAG)
 
             val paidOrderIds = cacheStore.data.first().paidOrders.keys
 
@@ -142,10 +142,7 @@ class BlocktankRepo @Inject constructor(
                 )
             }
 
-            Logger.debug(
-                "Orders refreshed: ${orders.size} orders, ${cjitEntries.size} cjit entries",
-                context = TAG
-            )
+            Logger.debug("Orders refreshed: ${orders.size} orders, ${cjitEntries.size} cjit entries", context = TAG)
         } catch (e: Throwable) {
             Logger.error("Failed to refresh orders", e, context = TAG)
         } finally {
