@@ -364,7 +364,7 @@ class AppViewModel @Inject constructor(
     }
 
     fun onSelectSpeed(speed: TransactionSpeed) {
-        if (speed is TransactionSpeed.Custom) {
+        if (speed is TransactionSpeed.Custom && speed.satsPerVByte == 0u) {
             setSendEffect(SendEffect.NavigateToFeeCustom)
         } else {
             setTransactionSpeed(speed)
@@ -373,21 +373,23 @@ class AppViewModel @Inject constructor(
 
     fun setTransactionSpeed(speed: TransactionSpeed) {
         viewModelScope.launch {
+            val state = _sendUiState.value
             val shouldResetUtxos = when (settingsStore.data.first().coinSelectAuto) {
                 true -> {
-                    // Reset utxos auto-selection if the satsPerVByte actually changes
-                    val state = _sendUiState.value
                     val currentSatsPerVByte = state.feeRates?.getSatsPerVByteFor(state.speed)
                     val newSatsPerVByte = state.feeRates?.getSatsPerVByteFor(speed)
                     currentSatsPerVByte != newSatsPerVByte
                 }
-
                 else -> false
+            }
+            val fee = when (speed is TransactionSpeed.Custom) {
+                true -> getFeeEstimate(speed)
+                else -> state.fees.getOrDefault(FeeRate.fromSpeed(speed), 0)
             }
             _sendUiState.update {
                 it.copy(
                     speed = speed,
-                    fee = it.fees.getOrDefault(FeeRate.fromSpeed(speed), 0),
+                    fee = fee,
                     selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos,
                 )
             }
