@@ -1,5 +1,6 @@
 package to.bitkit.repositories
 
+import com.synonym.bitkitcore.BtOrderState2
 import com.synonym.bitkitcore.CreateCjitOptions
 import com.synonym.bitkitcore.CreateOrderOptions
 import com.synonym.bitkitcore.IBtEstimateFeeResponse2
@@ -142,7 +143,13 @@ class BlocktankRepo @Inject constructor(
                 )
             }
 
-            Logger.debug("Orders refreshed: ${orders.size} orders, ${cjitEntries.size} cjit entries", context = TAG)
+            Logger.debug(
+                "Orders refreshed: ${orders.size} orders, " +
+                    "${cjitEntries.size} cjit entries, " +
+                    "${_blocktankState.value.paidOrders.size} paid orders",
+                context = TAG
+            )
+            openChannelWithPaidOrders()
         } catch (e: Throwable) {
             Logger.error("Failed to refresh orders", e, context = TAG)
         } finally {
@@ -281,6 +288,12 @@ class BlocktankRepo @Inject constructor(
         } catch (e: Throwable) {
             Logger.error("Failed to get order: $orderId", e, context = TAG)
             Result.failure(e)
+        }
+    }
+
+    private suspend fun openChannelWithPaidOrders() = withContext(bgDispatcher) {
+        _blocktankState.value.paidOrders.filter { it.state2 == BtOrderState2.PAID }.forEach { order ->
+            openChannel(order.id)
         }
     }
 
