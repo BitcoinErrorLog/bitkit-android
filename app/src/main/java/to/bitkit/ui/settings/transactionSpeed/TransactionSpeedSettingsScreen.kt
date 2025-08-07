@@ -34,7 +34,10 @@ fun TransactionSpeedSettingsScreen(
 
     TransactionSpeedSettingsContent(
         selectedSpeed = defaultTransactionSpeed.value,
-        onSpeedSelected = { settings.setDefaultTransactionSpeed(it) },
+        onSpeedSelected = {
+            settings.setDefaultTransactionSpeed(it)
+            navController.popBackStack()
+        },
         onCustomFeeClick = { navController.navigateToCustomFeeSettings() },
         onBackClick = { navController.popBackStack() },
         onCloseClick = { navController.navigateToHome() },
