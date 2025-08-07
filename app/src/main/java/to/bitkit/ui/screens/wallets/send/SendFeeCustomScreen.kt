@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,12 +40,22 @@ fun SendFeeCustomScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(uiState.isCustomFeeValid, uiState.custom) {
+        if (uiState.isCustomFeeValid == true) {
+            uiState.custom?.let { onContinue(it) }
+        }
+    }
+
     Content(
         input = uiState.input,
         totalFeeText = uiState.totalFeeText,
         onKeyPress = viewModel::onKeyPress,
         onBack = onBack,
-        onContinue = { uiState.custom?.let { onContinue(it) } },
+        onContinue = {
+            uiState.custom?.let {
+                viewModel.validateAndProceed()
+            }
+        },
     )
 }
 
