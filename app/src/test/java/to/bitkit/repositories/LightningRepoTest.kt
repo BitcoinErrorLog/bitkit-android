@@ -369,13 +369,14 @@ class LightningRepoTest : BaseUnitTest() {
 
         // Create a spy to mock the getFeeRateForSpeed method
         val spySut = spy(sut)
-        doReturn(Result.success(10uL)).whenever(spySut).getFeeRateForSpeed(any())
+        doReturn(Result.success(10uL)).whenever(spySut).getFeeRateForSpeed(any(), anyOrNull())
 
         val result = spySut.sendOnChain(
             address = "test_address",
             sats = 1000uL,
             speed = TransactionSpeed.Fast,
-            utxosToSpend = null, // This was the missing parameter!
+            utxosToSpend = null,
+            feeRates = null,
             isTransfer = true,
             channelId = "test_channel_id"
         )
