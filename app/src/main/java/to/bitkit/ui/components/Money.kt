@@ -32,10 +32,34 @@ fun MoneyDisplay(
 @Composable
 fun MoneySSB(
     sats: Long,
+    modifier: Modifier = Modifier,
     unit: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
+    color: Color = MaterialTheme.colorScheme.primary,
+    accent: Color = Colors.White64,
 ) {
     rememberMoneyText(sats = sats, unit = unit)?.let { text ->
-        BodySSB(text = text.withAccent(accentColor = Colors.White64))
+        BodySSB(
+            text = text.withAccent(accentColor = accent),
+            color = color,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+fun MoneyMSB(
+    sats: Long,
+    modifier: Modifier = Modifier,
+    unit: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
+    color: Color = MaterialTheme.colorScheme.primary,
+    accent: Color = Colors.White64,
+) {
+    rememberMoneyText(sats = sats, unit = unit)?.let { text ->
+        BodyMSB(
+            text = text.withAccent(accentColor = accent),
+            color = color,
+            modifier = modifier,
+        )
     }
 }
 

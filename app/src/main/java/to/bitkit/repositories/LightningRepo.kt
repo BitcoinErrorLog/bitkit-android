@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.createWithdrawCallbackUrl
@@ -87,7 +88,7 @@ class LightningRepo @Inject constructor(
         waitTimeout: Duration = 1.minutes,
         operation: suspend () -> Result<T>,
     ): Result<T> = withContext(bgDispatcher) {
-        Logger.debug("Operation called: $operationName", context = TAG)
+        Logger.verbose("Operation called: $operationName", context = TAG)
 
         if (_lightningState.value.nodeLifecycleState.isRunning()) {
             return@withContext executeOperation(operationName, operation)
@@ -106,7 +107,7 @@ class LightningRepo @Inject constructor(
             }
 
             // Otherwise, wait for it to transition to running state
-            Logger.debug("Waiting for node runs to execute $operationName", context = TAG)
+            Logger.verbose("Waiting for node runs to execute $operationName", context = TAG)
             _lightningState.first { it.nodeLifecycleState.isRunning() }
             Logger.debug("Operation executed: $operationName", context = TAG)
             true
@@ -480,28 +481,18 @@ class LightningRepo @Inject constructor(
             Result.success(paymentId)
         }
 
-    /**
-     * Sends bitcoin to an on-chain address
-     *
-     * @param address The bitcoin address to send to
-     * @param sats The amount in  satoshis to send
-     * @param speed The desired transaction speed determining the fee rate. If null, the user's default speed is used.
-     * @param utxosToSpend Manually specify UTXO's to spend if not null.
-     * @return A `Result` with the `Txid` of sent transaction, or an error if the transaction fails
-     * or the fee rate cannot be retrieved.
-     */
-
     suspend fun sendOnChain(
         address: Address,
         sats: ULong,
         speed: TransactionSpeed? = null,
         utxosToSpend: List<SpendableUtxo>? = null,
+        feeRates: FeeRates? = null,
         isTransfer: Boolean = false,
         channelId: String? = null,
     ): Result<Txid> =
         executeWhenNodeRunning("Send on-chain") {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
-            val satsPerVByte = getFeeRateForSpeed(transactionSpeed).getOrThrow().toUInt()
+            val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
             // if utxos are manually specified, use them, otherwise run auto coin select if enabled
             val finalUtxosToSpend = utxosToSpend ?: determineUtxosToSpend(
@@ -531,11 +522,11 @@ class LightningRepo @Inject constructor(
             Result.success(txId)
         }
 
-    private suspend fun determineUtxosToSpend(
+    suspend fun determineUtxosToSpend(
         sats: ULong,
         satsPerVByte: UInt,
-    ): List<SpendableUtxo>? {
-        return runCatching {
+    ): List<SpendableUtxo>? = withContext(bgDispatcher) {
+        return@withContext runCatching {
             val settings = settingsStore.data.first()
             if (settings.coinSelectAuto) {
                 val coinSelectionPreference = settings.coinSelectPreference
@@ -543,21 +534,23 @@ class LightningRepo @Inject constructor(
                 val allSpendableUtxos = lightningService.listSpendableOutputs().getOrThrow()
 
                 if (coinSelectionPreference == CoinSelectionPreference.Consolidate) {
-                    Logger.info("Consolidating by spending all ${allSpendableUtxos.size} UTXOs", context = TAG)
-                    return allSpendableUtxos
+                    Logger.debug("Consolidating by spending all ${allSpendableUtxos.size} UTXOs", context = TAG)
+                    return@withContext allSpendableUtxos
                 }
 
                 val coinSelectionAlgorithm = coinSelectionPreference.toCoinSelectAlgorithm().getOrThrow()
 
-                Logger.info("Selecting UTXOs with algorithm: $coinSelectionAlgorithm for sats: $sats", context = TAG)
-                Logger.debug("All spendable UTXOs: $allSpendableUtxos", context = TAG)
+                Logger.debug("Selecting UTXOs with algorithm: $coinSelectionAlgorithm for sats: $sats", context = TAG)
+                Logger.verbose("All spendable UTXOs: $allSpendableUtxos", context = TAG)
 
                 lightningService.selectUtxosWithAlgorithm(
                     targetAmountSats = sats,
                     algorithm = coinSelectionAlgorithm,
                     satsPerVByte = satsPerVByte,
                     utxos = allSpendableUtxos,
-                ).getOrThrow()
+                ).onSuccess {
+                    Logger.debug("Selected ${it.size} UTXOs", context = TAG)
+                }.getOrThrow()
             } else {
                 null // let ldk-node handle utxos
             }
@@ -579,10 +572,11 @@ class LightningRepo @Inject constructor(
         address: Address? = null,
         speed: TransactionSpeed? = null,
         utxosToSpend: List<SpendableUtxo>? = null,
+        feeRates: FeeRates? = null,
     ): Result<ULong> = withContext(bgDispatcher) {
         return@withContext try {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
-            val satsPerVByte = getFeeRateForSpeed(transactionSpeed).getOrThrow().toUInt()
+            val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
             val addressOrDefault = address ?: cacheStore.data.first().onchainAddress
 
@@ -600,9 +594,12 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    suspend fun getFeeRateForSpeed(speed: TransactionSpeed): Result<ULong> = withContext(bgDispatcher) {
+    suspend fun getFeeRateForSpeed(
+        speed: TransactionSpeed,
+        feeRates: FeeRates? = null,
+    ): Result<ULong> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            val fees = coreService.blocktank.getFees().getOrThrow()
+            val fees = feeRates ?: coreService.blocktank.getFees().getOrThrow()
             val satsPerVByte = fees.getSatsPerVByteFor(speed)
             satsPerVByte.toULong()
         }.onFailure { e ->

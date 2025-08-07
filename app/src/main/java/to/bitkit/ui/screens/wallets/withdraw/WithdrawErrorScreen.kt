@@ -31,7 +31,7 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.SendUiState
 
 @Composable
-fun WithDrawErrorScreen(
+fun WithdrawErrorScreen(
     uiState: SendUiState,
     onBack: () -> Unit,
     onClickScan: () -> Unit,
@@ -102,7 +102,7 @@ fun WithDrawErrorScreen(
 private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
-            WithDrawErrorScreen(
+            WithdrawErrorScreen(
                 uiState = SendUiState(
                     amount = 250_000u
                 ),

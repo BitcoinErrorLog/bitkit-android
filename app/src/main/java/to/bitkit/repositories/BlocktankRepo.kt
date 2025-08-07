@@ -117,7 +117,7 @@ class BlocktankRepo @Inject constructor(
         isRefreshing = true
 
         try {
-            Logger.debug("Refreshing blocktank orders…", context = TAG)
+            Logger.verbose("Refreshing blocktank orders…", context = TAG)
 
             val paidOrderIds = cacheStore.data.first().paidOrders.keys
 

@@ -88,9 +88,9 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
     @Test
     fun `setupActivity should set loading state initially`() = runTest {
-        whenever(lightningRepo.getFeeRateForSpeed(any()))
+        whenever(lightningRepo.getFeeRateForSpeed(any(), anyOrNull()))
             .thenReturn(Result.success(testFeeRate))
-        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(testTotalFee))
 
         sut.uiState.test {
@@ -105,15 +105,15 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
     @Test
     fun `setupActivity should call correct repository methods for sent transaction`() = runTest {
-        whenever(lightningRepo.getFeeRateForSpeed(TransactionSpeed.Fast))
+        whenever(lightningRepo.getFeeRateForSpeed(eq(TransactionSpeed.Fast), anyOrNull()))
             .thenReturn(Result.success(testFeeRate))
-        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(testTotalFee))
 
         sut.setupActivity(mockActivitySent)
 
-        verify(lightningRepo).getFeeRateForSpeed(TransactionSpeed.Fast)
-        verify(lightningRepo).calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull())
+        verify(lightningRepo).getFeeRateForSpeed(eq(TransactionSpeed.Fast), anyOrNull())
+        verify(lightningRepo).calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
     }
 
     @Test
@@ -128,7 +128,7 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
         sut.setupActivity(receivedActivity)
 
         verify(lightningRepo).calculateCpfpFeeRate(eq(mockTxId))
-        verify(lightningRepo, never()).getFeeRateForSpeed(any())
+        verify(lightningRepo, never()).getFeeRateForSpeed(any(), anyOrNull())
     }
 
     @Test
@@ -152,9 +152,9 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
     @Test
     fun `onChangeAmount should emit OnMaxFee when at maximum rate`() = runTest {
-        whenever(lightningRepo.getFeeRateForSpeed(any()))
+        whenever(lightningRepo.getFeeRateForSpeed(any(), anyOrNull()))
             .thenReturn(Result.success(100UL)) // MAX_FEE_RATE
-        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(testTotalFee))
 
         sut.setupActivity(mockActivitySent)
@@ -167,9 +167,9 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
     @Test
     fun `onChangeAmount should emit OnMinFee when at minimum rate`() = runTest {
-        whenever(lightningRepo.getFeeRateForSpeed(any()))
+        whenever(lightningRepo.getFeeRateForSpeed(any(), anyOrNull()))
             .thenReturn(Result.success(1UL)) // MIN_FEE_RATE
-        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(testTotalFee))
 
         sut.setupActivity(mockActivitySent)
@@ -182,7 +182,7 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
     @Test
     fun `setupActivity failure should emit OnBoostFailed`() = runTest {
-        whenever(lightningRepo.getFeeRateForSpeed(any()))
+        whenever(lightningRepo.getFeeRateForSpeed(any(), anyOrNull()))
             .thenReturn(Result.failure(Exception("Fee estimation failed")))
 
         sut.boostTransactionEffect.test {
@@ -199,7 +199,7 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
 
         whenever(lightningRepo.calculateCpfpFeeRate(any()))
             .thenReturn(Result.success(testFeeRate))
-        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(testTotalFee))
         whenever(walletRepo.getOnchainAddress())
             .thenReturn(mockAddress)

@@ -21,11 +21,13 @@ import to.bitkit.ui.screens.wallets.send.SendAmountScreen
 import to.bitkit.ui.screens.wallets.send.SendCoinSelectionScreen
 import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
 import to.bitkit.ui.screens.wallets.send.SendErrorScreen
+import to.bitkit.ui.screens.wallets.send.SendFeeCustomScreen
+import to.bitkit.ui.screens.wallets.send.SendFeeRateScreen
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
-import to.bitkit.ui.screens.wallets.withdraw.WithDrawErrorScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
+import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
@@ -41,14 +43,13 @@ fun SendSheet(
     startDestination: SendRoute = SendRoute.Recipient,
     onComplete: (NewTransactionSheetDetails?) -> Unit,
 ) {
-    // Reset on new user-initiated send
     LaunchedEffect(startDestination) {
+        // always reset state on new user-initiated send
         if (startDestination == SendRoute.Recipient) {
             appViewModel.resetSendState()
             appViewModel.resetQuickPayData()
         }
     }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -63,11 +64,13 @@ fun SendSheet(
                     is SendEffect.NavigateToAddress -> navController.navigate(SendRoute.Address)
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
-                    is SendEffect.NavigateToReview -> navController.navigate(SendRoute.Confirm)
+                    is SendEffect.NavigateToConfirm -> navController.navigate(SendRoute.Confirm)
+                    is SendEffect.PopBack -> navController.popBackStack()
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
+                    is SendEffect.NavigateToFee -> navController.navigate(SendRoute.FeeRate)
                 }
             }
         }
@@ -117,6 +120,23 @@ fun SendSheet(
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
                 )
             }
+            composableWithDefaultTransitions<SendRoute.FeeRate> {
+                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                SendFeeRateScreen(
+                    sendUiState = sendUiState,
+                    onBack = { navController.popBackStack() },
+                    onContinue = { navController.popBackStack() },
+                    onSelect = { appViewModel.setSendEvent(SendEvent.SpeedChange(it)) },
+                )
+            }
+            composableWithDefaultTransitions<SendRoute.FeeCustom> {
+                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                SendFeeCustomScreen(
+                    uiState = sendUiState,
+                    onBack = { navController.popBackStack() },
+                    onContinue = {}, // TODO
+                )
+            }
             composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
                 SendConfirmScreen(
@@ -139,7 +159,7 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.WithdrawError> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                WithDrawErrorScreen(
+                WithdrawErrorScreen(
                     uiState = uiState,
                     onBack = { navController.popBackStack() },
                     onClickScan = { navController.navigate(SendRoute.QrScanner) },
@@ -238,6 +258,12 @@ sealed interface SendRoute {
 
     @Serializable
     data object QuickPay : SendRoute
+
+    @Serializable
+    data object FeeRate : SendRoute
+
+    @Serializable
+    data object FeeCustom : SendRoute
 
     @Serializable
     data object Confirm : SendRoute

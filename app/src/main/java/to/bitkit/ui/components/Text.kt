@@ -197,6 +197,25 @@ fun BodyMSB(
     overflow: TextOverflow = TextOverflow.Clip,
     textAlign: TextAlign = TextAlign.Start,
 ) {
+    BodyMSB(
+        text = AnnotatedString(text),
+        color = color,
+        maxLines = maxLines,
+        overflow = overflow,
+        modifier = modifier,
+        textAlign = textAlign,
+    )
+}
+
+@Composable
+fun BodyMSB(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    textAlign: TextAlign = TextAlign.Start,
+) {
     Text(
         text = text,
         style = AppTextStyles.BodyMSB.merge(

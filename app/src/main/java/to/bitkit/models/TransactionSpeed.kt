@@ -26,6 +26,8 @@ sealed class TransactionSpeed {
     }
 
     companion object {
+        fun default(): TransactionSpeed = Medium
+
         fun fromString(value: String): TransactionSpeed = when {
             value == "fast" -> Fast
             value == "medium" -> Medium
