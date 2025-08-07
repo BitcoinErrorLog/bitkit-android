@@ -68,6 +68,11 @@ fun ActivityRow(
         is Activity.Lightning -> null
         is Activity.Onchain -> item.v1.confirmed
     }
+    val isTransfer = when (item) {
+        is Activity.Lightning -> false
+        is Activity.Onchain -> item.v1.isTransfer
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -85,7 +90,7 @@ fun ActivityRow(
                 txType = txType,
                 isLightning = isLightning,
                 status = status,
-                confirmed = confirmed,
+                isTransfer = isTransfer
             )
             val subtitleText = when (item) {
                 is Activity.Lightning -> item.v1.message.ifEmpty { formattedTime(timestamp) }
@@ -117,9 +122,10 @@ private fun TransactionStatusText(
     txType: PaymentType,
     isLightning: Boolean,
     status: PaymentState?,
-    confirmed: Boolean?,
+    isTransfer: Boolean,
 ) {
     when {
+        isTransfer -> BodyMSB(text = stringResource(R.string.wallet__activity_transfer))
         isLightning -> {
             when (txType) {
                 PaymentType.SENT -> when (status) {
