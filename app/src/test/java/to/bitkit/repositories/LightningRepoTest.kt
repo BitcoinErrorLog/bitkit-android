@@ -2,12 +2,14 @@ package to.bitkit.repositories
 
 import app.cash.turbine.test
 import com.google.firebase.messaging.FirebaseMessaging
+import com.synonym.bitkitcore.FeeRates
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
+import org.lightningdevkit.ldknode.SpendableUtxo
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
@@ -26,11 +28,13 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
+import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.services.BlocktankNotificationsService
+import to.bitkit.services.BlocktankService
 import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.services.LightningService
@@ -38,6 +42,7 @@ import to.bitkit.services.LnurlService
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -432,5 +437,62 @@ class LightningRepoTest : BaseUnitTest() {
         val result = sut.restartWithElectrumServer(customServer)
 
         assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getFeeRateForSpeed should use provided feeRates`() = test {
+        val mockFeeRates = mock<FeeRates>()
+        whenever(mockFeeRates.mid).thenReturn(20u)
+
+        val result = sut.getFeeRateForSpeed(TransactionSpeed.Medium, mockFeeRates)
+
+        assertTrue(result.isSuccess)
+        assertEquals(20uL, result.getOrNull())
+    }
+
+    @Test
+    fun `getFeeRateForSpeed should fetch from blocktank when feeRates is null`() = test {
+        val mockFeeRates = mock<FeeRates>()
+        whenever(mockFeeRates.fast).thenReturn(30u)
+        val blocktank = mock<BlocktankService>()
+        whenever(blocktank.getFees()).thenReturn(Result.success(mockFeeRates))
+        whenever(coreService.blocktank).thenReturn(blocktank)
+
+        val result = sut.getFeeRateForSpeed(TransactionSpeed.Fast, null)
+
+        assertTrue(result.isSuccess)
+        assertEquals(30uL, result.getOrNull())
+    }
+
+    @Test
+    fun `determineUtxosToSpend should return null when coinSelectAuto is false`() = test {
+        val mockSettingsData = SettingsData(coinSelectAuto = false)
+        whenever(settingsStore.data).thenReturn(flowOf(mockSettingsData))
+
+        val result = sut.determineUtxosToSpend(1000uL, 10u)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `determineUtxosToSpend should return all UTXOs when preference is Consolidate`() = test {
+        val mockSettingsData = SettingsData(
+            coinSelectAuto = true,
+            coinSelectPreference = CoinSelectionPreference.Consolidate
+        )
+        whenever(settingsStore.data).thenReturn(flowOf(mockSettingsData))
+
+        val mockUtxos = listOf(
+            mock<SpendableUtxo>(),
+            mock<SpendableUtxo>(),
+            mock<SpendableUtxo>()
+        )
+        whenever(lightningService.listSpendableOutputs()).thenReturn(Result.success(mockUtxos))
+
+        val result = sut.determineUtxosToSpend(1000uL, 10u)
+
+        assertNotNull(result)
+        assertEquals(3, result.size)
+        assertEquals(mockUtxos, result)
     }
 }
