@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
 
 object Logger {
     private const val TAG = "APP"
-    private const val COMPACT = true
+    private const val COMPACT = false
 
     private val singleThreadDispatcher = Executors
         .newSingleThreadExecutor { Thread(it, "bitkit.log").apply { priority = Thread.NORM_PRIORITY - 1 } }
@@ -114,7 +114,7 @@ object Logger {
 
     private fun format(message: String, context: String, file: String, line: Int): String {
         val message = message.trim()
-        val context = if (context.isNotEmpty()) "- $context" else ""
+        val context = if (context.isNotEmpty()) " - $context" else ""
         return "$message$context [$file:$line]"
     }
 
