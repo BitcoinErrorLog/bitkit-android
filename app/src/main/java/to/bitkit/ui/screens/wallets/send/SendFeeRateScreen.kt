@@ -107,8 +107,8 @@ private fun Content(
                 feeRate = feeRate,
                 sats = sats,
                 isSelected = uiState.selected == feeRate,
-                isDisabled = false, // TODO
-                onClick = { onSelect(feeRate) },
+                isDisabled = feeRate in uiState.disabledRates,
+                onClick = { if (feeRate !in uiState.disabledRates) onSelect(feeRate) },
                 modifier = Modifier.testTag("fee_${feeRate.name}_button"),
             )
         }

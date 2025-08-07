@@ -53,7 +53,7 @@ fun SendFeeCustomScreen(
         onBack = onBack,
         onContinue = {
             uiState.custom?.let {
-                viewModel.validateAndProceed()
+                viewModel.validateCustomFee()
             }
         },
     )

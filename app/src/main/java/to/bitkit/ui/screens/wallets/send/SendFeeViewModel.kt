@@ -12,26 +12,35 @@ import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.models.FeeRate
+import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.components.KEY_DELETE
+import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.viewmodels.SendUiState
 import javax.inject.Inject
+
+const val MAX_INPUT_VALUE = 999u
 
 @HiltViewModel
 class SendFeeViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val currencyRepo: CurrencyRepo,
+    private val walletRepo: WalletRepo,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SendFeeUiState())
     val uiState = _uiState.asStateFlow()
 
     private lateinit var sendUiState: SendUiState
+    private var maxSatsPerVByte: UInt = MAX_INPUT_VALUE
+    private var maxFee: ULong = 0u
 
     fun init(sendUiState: SendUiState) {
         this.sendUiState = sendUiState
+        this.maxFee = getFeeLimit()
         val selected = FeeRate.fromSpeed(sendUiState.speed)
         val fees = sendUiState.fees
 
@@ -42,15 +51,25 @@ class SendFeeViewModel @Inject constructor(
                 TransactionSpeed.Custom(satsPerVByte)
             }
         }
+        calculateMaxSatPerVByte()
+        val disabledRates = fees.filter { it.value.toULong() > maxFee }.keys.toSet()
         _uiState.update {
             it.copy(
                 selected = selected,
                 fees = fees,
                 custom = custom,
                 input = custom.satsPerVByte.toString().takeIf { custom.satsPerVByte > 0u } ?: "",
+                disabledRates = disabledRates,
             )
         }
-        recalculateFee()
+        updateTotalFeeText()
+    }
+
+    private fun getFeeLimit(): ULong {
+        val totalBalance = walletRepo.balanceState.value.totalOnchainSats
+        val halfBalance = (totalBalance.toDouble() * 0.5).toULong()
+        val remainingFunds = maxOf(0u, totalBalance - sendUiState.amount)
+        return minOf(halfBalance, remainingFunds)
     }
 
     fun onKeyPress(key: String) {
@@ -60,16 +79,51 @@ class SendFeeViewModel @Inject constructor(
             else -> if (currentInput.length < 3) (currentInput + key).trimStart('0') else currentInput
         }
 
+        val satsPerVByte = newInput.toUIntOrNull() ?: 0u
+
         _uiState.update {
             it.copy(
                 input = newInput,
-                custom = TransactionSpeed.Custom(newInput.toUIntOrNull() ?: 0u)
+                custom = TransactionSpeed.Custom(satsPerVByte),
             )
         }
-        recalculateFee()
+        updateTotalFeeText()
     }
 
-    private fun recalculateFee() {
+    fun validateCustomFee() {
+        viewModelScope.launch {
+            val isValid = performValidation()
+            _uiState.update { it.copy(isCustomFeeValid = isValid) }
+        }
+    }
+
+    private suspend fun performValidation(): Boolean {
+        val satsPerVByte = _uiState.value.custom?.satsPerVByte ?: 0u
+
+        // TODO update to use minimum instead of slow when using mempool api
+        val minSatsPerVByte = sendUiState.feeRates?.slow ?: 1u
+        if (satsPerVByte < minSatsPerVByte) {
+            ToastEventBus.send(
+                type = Toast.ToastType.INFO,
+                title = context.getString(R.string.wallet__min_possible_fee_rate),
+                description = context.getString(R.string.wallet__min_possible_fee_rate_msg)
+            )
+            return false
+        }
+
+        if (satsPerVByte > maxSatsPerVByte) {
+            ToastEventBus.send(
+                type = Toast.ToastType.INFO,
+                title = context.getString(R.string.wallet__max_possible_fee_rate),
+                description = context.getString(R.string.wallet__max_possible_fee_rate_msg)
+            )
+            return false
+        }
+
+        return true
+    }
+
+    private fun updateTotalFeeText() {
         viewModelScope.launch {
             val satsPerVByte = _uiState.value.custom?.satsPerVByte ?: 0u
             val totalFee = if (satsPerVByte > 0u) calculateTotalFee(satsPerVByte).toLong() else 0L
@@ -86,6 +140,24 @@ class SendFeeViewModel @Inject constructor(
                 it.copy(
                     totalFeeText = totalFeeText,
                 )
+            }
+        }
+    }
+
+    private fun calculateMaxSatPerVByte() {
+        viewModelScope.launch {
+            val feeFor1SatPerVByte = lightningRepo.calculateTotalFee(
+                amountSats = sendUiState.amount,
+                address = sendUiState.address,
+                speed = TransactionSpeed.Custom(1u),
+                utxosToSpend = sendUiState.selectedUtxos,
+                feeRates = sendUiState.feeRates,
+            ).getOrDefault(0uL)
+
+            maxSatsPerVByte = if (feeFor1SatPerVByte > 0uL) {
+                (maxFee / feeFor1SatPerVByte).toUInt().coerceAtLeast(1u)
+            } else {
+                MAX_INPUT_VALUE
             }
         }
     }
@@ -107,4 +179,6 @@ data class SendFeeUiState(
     val custom: TransactionSpeed.Custom? = null,
     val input: String = "",
     val totalFeeText: String = "",
+    val disabledRates: Set<FeeRate> = emptySet(),
+    val isCustomFeeValid: Boolean? = null,
 )
