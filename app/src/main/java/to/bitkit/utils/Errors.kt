@@ -12,7 +12,7 @@ open class AppError(override val message: String? = null) : Exception(message) {
         private const val serialVersionUID = 1L
     }
 
-    constructor(cause: Throwable) : this(cause.message)
+    constructor(cause: Throwable) : this("${cause::class.simpleName}='${cause.message}'")
 
     fun readResolve(): Any {
         // Return a new instance of the class, or handle it if needed
