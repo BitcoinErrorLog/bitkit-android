@@ -95,7 +95,7 @@ class SendFeeViewModel @Inject constructor(
     fun validateCustomFee() {
         viewModelScope.launch {
             val isValid = performValidation()
-            _uiState.update { it.copy(isCustomFeeValid = isValid) }
+            _uiState.update { it.copy(shouldContinue = isValid) }
         }
     }
 
@@ -182,5 +182,5 @@ data class SendFeeUiState(
     val input: String = "",
     val totalFeeText: String = "",
     val disabledRates: Set<FeeRate> = emptySet(),
-    val isCustomFeeValid: Boolean? = null,
+    val shouldContinue: Boolean? = null,
 )

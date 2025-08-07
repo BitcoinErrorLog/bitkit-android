@@ -42,8 +42,8 @@ fun SendFeeCustomScreen(
     val currentOnContinue by rememberUpdatedState(onContinue)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(uiState.isCustomFeeValid, uiState.custom) {
-        if (uiState.isCustomFeeValid == true) {
+    LaunchedEffect(uiState.shouldContinue, uiState.custom) {
+        if (uiState.shouldContinue == true) {
             uiState.custom?.let { currentOnContinue(it) }
         }
     }
@@ -53,11 +53,7 @@ fun SendFeeCustomScreen(
         totalFeeText = uiState.totalFeeText,
         onKeyPress = viewModel::onKeyPress,
         onBack = onBack,
-        onContinue = {
-            uiState.custom?.let {
-                viewModel.validateCustomFee()
-            }
-        },
+        onContinue = { viewModel.validateCustomFee() },
     )
 }
 
@@ -71,7 +67,6 @@ private fun Content(
     onContinue: () -> Unit = {},
 ) {
     val isValid = input.toLongOrDefault(0) != 0L
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -105,9 +100,9 @@ private fun Content(
                 modifier = Modifier.height(350.dp)
             )
             PrimaryButton(
+                text = stringResource(R.string.common__continue),
                 onClick = onContinue,
                 enabled = isValid,
-                text = stringResource(R.string.common__continue),
                 modifier = Modifier.testTag("continue_btn")
             )
             VerticalSpacer(16.dp)

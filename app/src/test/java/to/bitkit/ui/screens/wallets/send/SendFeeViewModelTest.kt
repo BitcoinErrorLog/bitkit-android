@@ -90,7 +90,7 @@ class SendFeeViewModelTest : BaseUnitTest() {
 
         sut.validateCustomFee()
 
-        assertFalse(sut.uiState.value.isCustomFeeValid == true)
+        assertFalse(sut.uiState.value.shouldContinue == true)
     }
 
     @Test
@@ -101,7 +101,7 @@ class SendFeeViewModelTest : BaseUnitTest() {
 
         sut.validateCustomFee()
 
-        assertFalse(sut.uiState.value.isCustomFeeValid == true)
+        assertFalse(sut.uiState.value.shouldContinue == true)
     }
 
     @Test
@@ -116,7 +116,7 @@ class SendFeeViewModelTest : BaseUnitTest() {
 
         sut.validateCustomFee()
 
-        assertTrue(sut.uiState.value.isCustomFeeValid == true)
+        assertTrue(sut.uiState.value.shouldContinue == true)
     }
 
     private fun createSendUiState(
