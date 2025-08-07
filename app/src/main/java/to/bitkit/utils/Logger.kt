@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
 
 object Logger {
     private const val TAG = "APP"
-    private const val COMPACT = false
+    private const val COMPACT = true
 
     private val singleThreadDispatcher = Executors
         .newSingleThreadExecutor { Thread(it, "bitkit.log").apply { priority = Thread.NORM_PRIORITY - 1 } }
@@ -91,12 +91,13 @@ object Logger {
 
     fun verbose(
         msg: String?,
+        e: Throwable? = null,
         context: String = "",
         file: String = getCallerFile(),
         line: Int = getCallerLine(),
     ) {
         val message = format("VERBOSE: $msg", context, file, line)
-        Log.v(TAG, message)
+        if (COMPACT) Log.v(TAG, message) else Log.v(TAG, message, e)
         saveToFile(message)
     }
 

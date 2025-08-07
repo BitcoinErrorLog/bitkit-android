@@ -25,7 +25,7 @@ class VssBackupClient @Inject constructor(
     suspend fun setup() = withContext(bgDispatcher) {
         try {
             withTimeout(30.seconds) {
-                Logger.debug("VSS client setting up…", context = TAG)
+                Logger.verbose("VSS client setting up…", context = TAG)
                 vssNewClient(
                     baseUrl = Env.vssServerUrl,
                     storeId = vssStoreIdProvider.getVssStoreId(),
@@ -44,34 +44,34 @@ class VssBackupClient @Inject constructor(
         data: ByteArray,
     ): Result<VssItem> = withContext(bgDispatcher) {
         isSetup.await()
-        Logger.debug("VSS 'putObject' call for '$key'", context = TAG)
+        Logger.verbose("VSS 'putObject' call for '$key'", context = TAG)
         runCatching {
             vssStore(
                 key = key,
                 value = data,
             )
         }.onSuccess {
-            Logger.debug("VSS 'putObject' success for '$key' at version: ${it.version}", context = TAG)
+            Logger.verbose("VSS 'putObject' success for '$key' at version: ${it.version}", context = TAG)
         }.onFailure { e ->
-            Logger.error("VSS 'putObject' error for '$key'", e = e, context = TAG)
+            Logger.verbose("VSS 'putObject' error for '$key'", e = e, context = TAG)
         }
     }
 
     suspend fun getObject(key: String): Result<VssItem?> = withContext(bgDispatcher) {
         isSetup.await()
-        Logger.debug("VSS 'getObject' call for '$key'", context = TAG)
+        Logger.verbose("VSS 'getObject' call for '$key'", context = TAG)
         runCatching {
             vssGet(
                 key = key,
             )
         }.onSuccess {
             if (it == null) {
-                Logger.warn("VSS 'getObject' success null for '$key'", context = TAG)
+                Logger.verbose("VSS 'getObject' success null for '$key'", context = TAG)
             } else {
-                Logger.debug("VSS 'getObject' success for '$key'", context = TAG)
+                Logger.verbose("VSS 'getObject' success for '$key'", context = TAG)
             }
         }.onFailure { e ->
-            Logger.error("VSS 'getObject' error for '$key'", e = e, context = TAG)
+            Logger.verbose("VSS 'getObject' error for '$key'", e = e, context = TAG)
         }
     }
 

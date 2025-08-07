@@ -145,10 +145,10 @@ class WidgetsRepo @Inject constructor(
         service.fetchData()
             .onSuccess { data ->
                 updateStore(data)
-                Logger.debug("Updated $widgetType widget successfully")
+                Logger.verbose("Updated $widgetType widget successfully")
             }
-            .onFailure { error ->
-                Logger.warn(e = error, msg = "Failed to update $widgetType widget", context = TAG)
+            .onFailure { e ->
+                Logger.verbose("Failed to update $widgetType widget", e = e, context = TAG)
             }
 
         _refreshStates.update { it + (widgetType to false) }
