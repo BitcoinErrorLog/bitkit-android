@@ -84,7 +84,7 @@ val previewActivityItems = buildList {
         Activity.Onchain(
             OnchainActivity(
                 id = "4",
-                txType = PaymentType.RECEIVED,
+                txType = PaymentType.SENT,
                 txId = "04",
                 value = 950_000_u,
                 fee = 110_u,

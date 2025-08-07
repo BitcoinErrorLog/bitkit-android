@@ -68,6 +68,11 @@ fun ActivityRow(
         is Activity.Lightning -> null
         is Activity.Onchain -> item.v1.confirmed
     }
+    val isTransfer = when (item) {
+        is Activity.Lightning -> false
+        is Activity.Onchain -> item.v1.isTransfer
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -85,16 +90,41 @@ fun ActivityRow(
                 txType = txType,
                 isLightning = isLightning,
                 status = status,
-                confirmed = confirmed,
+                isTransfer = isTransfer
             )
             val subtitleText = when (item) {
                 is Activity.Lightning -> item.v1.message.ifEmpty { formattedTime(timestamp) }
                 is Activity.Onchain -> {
-                    if (confirmed == true) {
-                        formattedTime(timestamp)
-                    } else {
-                        // TODO: calculate confirmsIn text
-                        stringResource(R.string.wallet__activity_confirms_in).replace("{feeRateDescription}", "± 1h")
+                    when {
+                        isTransfer && isSent -> {
+                            if (item.v1.confirmed) {
+                                stringResource(R.string.wallet__activity_transfer_spending_done)
+                            } else {
+                                stringResource(R.string.wallet__activity_transfer_spending_pending)
+                                    .replace("{duration}", "1h") // TODO: calculate confirmsIn text
+                            }
+                        }
+
+                        isTransfer && !isSent -> {
+                            if (item.v1.confirmed) {
+                                stringResource(R.string.wallet__activity_transfer_savings_done)
+                            } else {
+                                stringResource(R.string.wallet__activity_transfer_savings_pending)
+                                    .replace("{duration}", "1h") // TODO: calculate confirmsIn text
+                            }
+                        }
+
+                        confirmed == true -> {
+                            formattedTime(timestamp)
+                        }
+
+                        else -> {
+                            // TODO: calculate confirmsIn text
+                            stringResource(R.string.wallet__activity_confirms_in).replace(
+                                "{feeRateDescription}",
+                                "± 1h"
+                            )
+                        }
                     }
                 }
             }
@@ -117,9 +147,10 @@ private fun TransactionStatusText(
     txType: PaymentType,
     isLightning: Boolean,
     status: PaymentState?,
-    confirmed: Boolean?,
+    isTransfer: Boolean,
 ) {
     when {
+        isTransfer -> BodyMSB(text = stringResource(R.string.wallet__activity_transfer))
         isLightning -> {
             when (txType) {
                 PaymentType.SENT -> when (status) {
