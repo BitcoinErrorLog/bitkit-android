@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -341,7 +342,11 @@ private fun OnChainDescription(
                         )
                         Row {
                             BodySSB(stringResource(fee.title) + " (")
-                            MoneySSB(sats = uiState.fee, accent = Colors.White)
+                            if (uiState.fee > 0) {
+                                MoneySSB(sats = uiState.fee, accent = Colors.White)
+                            } else {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            }
                             BodySSB(")")
                         }
                         Icon(
@@ -497,6 +502,7 @@ private fun sendUiState() = SendUiState(
         payeeNodeId = null,
         description = "Some invoice description",
     ),
+    fee = 212,
 )
 
 @Preview(showSystemUi = true)
