@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -18,19 +14,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
+import to.bitkit.ext.toLongOrDefault
 import to.bitkit.models.BITCOIN_SYMBOL
-import to.bitkit.models.ConvertedAmount
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.FillHeight
-import to.bitkit.ui.components.KEY_DELETE
 import to.bitkit.ui.components.LargeRow
 import to.bitkit.ui.components.NumberPadSimple
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SectionHeader
-import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -44,51 +38,13 @@ fun SendFeeCustomScreen(
     viewModel: SendFeeViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val currency = currencyViewModel
-    var converted: ConvertedAmount? by remember { mutableStateOf(null) }
-    var totalFee by remember { mutableStateOf(0uL) }
-
-    var input by remember { mutableStateOf(uiState.custom?.satsPerVByte?.toString() ?: "") }
-
-    LaunchedEffect(input) {
-        val satsPerVByte = input.toUIntOrNull() ?: 0u
-        totalFee = if (satsPerVByte > 0u) {
-            viewModel.calculateTotalFee(satsPerVByte)
-        } else {
-            0u
-        }
-
-        converted = if (totalFee == 0uL || currency == null) {
-            null
-        } else {
-            currency.convert(totalFee.toLong())
-        }
-    }
-
-    val totalFeeText = converted
-        ?.let {
-            stringResource(R.string.wallet__send_fee_total_fiat)
-                .replace("{feeSats}", "$totalFee")
-                .replace("{fiatSymbol}", it.symbol)
-                .replace("{fiatFormatted}", it.formatted)
-        }
-        ?: stringResource(R.string.wallet__send_fee_total).replace("{feeSats}", "$totalFee")
 
     Content(
-        input = input,
-        totalFeeText = totalFeeText,
-        onKeyPress = { key ->
-            when (key) {
-                KEY_DELETE -> input = if (input.isNotEmpty()) input.dropLast(1) else ""
-                else -> if (input.length < 3) input = (input + key).trimStart('0')
-            }
-            viewModel.onInputChange(input)
-        },
+        input = uiState.input,
+        totalFeeText = uiState.totalFeeText,
+        onKeyPress = viewModel::onKeyPress,
         onBack = onBack,
-        onContinue = {
-            val feeRate = input.toUIntOrNull() ?: 0u
-            onContinue(TransactionSpeed.Custom(feeRate))
-        },
+        onContinue = { uiState.custom?.let { onContinue(it) } },
     )
 }
 
@@ -101,8 +57,7 @@ private fun Content(
     onBack: () -> Unit = {},
     onContinue: () -> Unit = {},
 ) {
-    val feeRate = input.toUIntOrNull() ?: 0u
-    val isValid = feeRate != 0u
+    val isValid = input.toLongOrDefault(0) != 0L
 
     Column(
         modifier = modifier
@@ -154,7 +109,7 @@ private fun Preview() {
         BottomSheetPreview {
             Content(
                 input = "5",
-                totalFeeText = "₿ 256 for average transaction ($0.25)",
+                totalFeeText = "₿ 256 for this transaction ($0.25)",
                 modifier = Modifier.sheetHeight(),
             )
         }
