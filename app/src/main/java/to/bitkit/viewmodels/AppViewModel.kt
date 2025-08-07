@@ -299,7 +299,6 @@ class AppViewModel @Inject constructor(
                     is SendEvent.CoinSelectionContinue -> onCoinSelectionContinue(it.utxos)
 
                     is SendEvent.CommentChange -> onCommentChange(it.value)
-                    is SendEvent.SpeedChange -> onSpeedChange(it.speed)
 
                     SendEvent.SpeedAndFee -> setSendEffect(SendEffect.NavigateToFee)
                     SendEvent.SwipeToPay -> onSwipeToPay()
@@ -364,28 +363,37 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun onSpeedChange(speed: TransactionSpeed) {
-        if (speed !is TransactionSpeed.Custom) {
-            val shouldResetUtxos = settingsStore.data.first().coinSelectAuto
-            val currentState = _sendUiState.value
+    fun onSelectSpeed(speed: TransactionSpeed) {
+        if (speed is TransactionSpeed.Custom) {
+            setSendEffect(SendEffect.NavigateToFeeCustom)
+        } else {
+            setTransactionSpeed(speed)
+        }
+    }
 
-            // Only reset utxos if the satsPerVByte actually changes
-            val currentSatsPerVByte = currentState.feeRates?.getSatsPerVByteFor(currentState.speed)
-            val newSatsPerVByte = currentState.feeRates?.getSatsPerVByteFor(speed)
-            val satsPerVByteChanged = currentSatsPerVByte != newSatsPerVByte
+    fun setTransactionSpeed(speed: TransactionSpeed) {
+        viewModelScope.launch {
+            val shouldResetUtxos = when (settingsStore.data.first().coinSelectAuto) {
+                true -> {
+                    // Reset utxos auto-selection if the satsPerVByte actually changes
+                    val state = _sendUiState.value
+                    val currentSatsPerVByte = state.feeRates?.getSatsPerVByteFor(state.speed)
+                    val newSatsPerVByte = state.feeRates?.getSatsPerVByteFor(speed)
+                    currentSatsPerVByte != newSatsPerVByte
+                }
 
+                else -> false
+            }
             _sendUiState.update {
                 it.copy(
                     speed = speed,
                     fee = it.fees.getOrDefault(FeeRate.fromSpeed(speed), 0),
-                    selectedUtxos = if (shouldResetUtxos && satsPerVByteChanged) null else it.selectedUtxos,
+                    selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos,
                 )
             }
-        } else {
-            // TODO implement custom fee screen in next PRs + refresh sendUiState fee & fees[speed] for new custom fee
+            refreshOnchainSendIfNeeded()
+            setSendEffect(SendEffect.PopBackToConfirm)
         }
-        refreshOnchainSendIfNeeded()
-        setSendEffect(SendEffect.PopBack)
     }
 
     private fun onPaymentMethodSwitch() {
@@ -895,6 +903,7 @@ class AppViewModel @Inject constructor(
         when (_sendUiState.value.payMethod) {
             SendMethod.ONCHAIN -> {
                 val address = _sendUiState.value.address
+                // TODO validate early, validate network & address types, showing detailed errors
                 val validatedAddress = runCatching { validateBitcoinAddress(address) }
                     .getOrElse { e ->
                         Logger.error("Invalid bitcoin send address: '$address'", e)
@@ -1397,12 +1406,13 @@ sealed class SendEffect {
     data object NavigateToAmount : SendEffect()
     data object NavigateToScan : SendEffect()
     data object NavigateToConfirm : SendEffect()
-    data object PopBack : SendEffect()
+    data object PopBackToConfirm : SendEffect()
     data object NavigateToWithdrawConfirm : SendEffect()
     data object NavigateToWithdrawError : SendEffect()
     data object NavigateToCoinSelection : SendEffect()
     data object NavigateToQuickPay : SendEffect()
     data object NavigateToFee : SendEffect()
+    data object NavigateToFeeCustom : SendEffect()
     data class PaymentSuccess(val sheet: NewTransactionSheetDetails? = null) : SendEffect()
 }
 
@@ -1435,7 +1445,6 @@ sealed class SendEvent {
     data object ConfirmAmountWarning : SendEvent()
     data object DismissAmountWarning : SendEvent()
     data object PayConfirmed : SendEvent()
-    data class SpeedChange(val speed: TransactionSpeed) : SendEvent()
 }
 
 sealed interface LnurlParams {
