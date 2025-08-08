@@ -87,8 +87,6 @@ import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
 
-private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
-
 @HiltViewModel
 class AppViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -251,7 +249,7 @@ class AppViewModel @Inject constructor(
                         is Event.PaymentForwarded -> Unit
                     }
                 } catch (e: Exception) {
-                    Logger.error("LDK event handler error", e)
+                    Logger.error("LDK event handler error", e, context = TAG)
                 }
             }
         }
@@ -272,7 +270,7 @@ class AppViewModel @Inject constructor(
             try {
                 isGeoBlocked = coreService.checkGeoStatus()
             } catch (e: Throwable) {
-                Logger.error("Failed to check geo status: ${e.message}", context = "GeoCheck")
+                Logger.error("Failed to check geo status: ${e.message}", e, context = TAG)
             }
         }
     }
@@ -501,8 +499,8 @@ class AppViewModel @Inject constructor(
         resetQuickPayData()
 
         val scan = runCatching { decode(result) }
-            .onFailure { Logger.error("Failed to decode scan result: '$result'", it) }
-            .onSuccess { Logger.info("Handling scan data: $it") }
+            .onFailure { Logger.error("Failed to decode scan result: '$result'", it, context = TAG) }
+            .onSuccess { Logger.info("Handling scan data: $it", context = TAG) }
             .getOrNull()
 
         when (scan) {
@@ -514,7 +512,7 @@ class AppViewModel @Inject constructor(
             is Scanner.LnurlChannel -> onScanLnurlChannel(scan.data)
             is Scanner.NodeId -> onScanNodeId(scan)
             else -> {
-                Logger.warn("Unhandled scan data: $scan")
+                Logger.warn("Unhandled scan data: $scan", context = TAG)
                 toast(
                     type = Toast.ToastType.WARNING,
                     title = context.getString(R.string.other__scan_err_decoding),
@@ -540,7 +538,7 @@ class AppViewModel @Inject constructor(
         }
         val isLnInvoiceWithAmount = lnInvoice?.amountSatoshis?.takeIf { it > 0uL } != null
         if (isLnInvoiceWithAmount) {
-            Logger.info("Found amount in unified invoice, checking QuickPay conditions")
+            Logger.info("Found amount in unified invoice, checking QuickPay conditions", context = TAG)
 
             val quickPayHandled = handleQuickPayIfApplicable(
                 amountSats = lnInvoice.amountSatoshis,
@@ -556,7 +554,7 @@ class AppViewModel @Inject constructor(
             }
             return
         }
-        Logger.info("No amount found in invoice, proceeding to enter amount manually")
+        Logger.info("No amount found in invoice, proceeding to enter amount manually", context = TAG)
         resetAmountInput()
 
         if (isMainScanner) {
@@ -597,7 +595,7 @@ class AppViewModel @Inject constructor(
         }
 
         if (invoice.amountSatoshis > 0uL) {
-            Logger.info("Found amount in invoice, proceeding with payment")
+            Logger.info("Found amount in invoice, proceeding with payment", context = TAG)
 
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.Confirm))
@@ -606,7 +604,7 @@ class AppViewModel @Inject constructor(
             }
             return
         }
-        Logger.info("No amount found in invoice, proceeding to enter amount manually")
+        Logger.info("No amount found in invoice, proceeding to enter amount manually", context = TAG)
         resetAmountInput()
 
         if (isMainScanner) {
@@ -617,7 +615,7 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun onScanLnurlPay(data: LnurlPayData) {
-        Logger.debug("LNURL: $data")
+        Logger.debug("LNURL: $data", context = TAG)
 
         val minSendable = data.minSendableSat()
         val maxSendable = data.maxSendableSat()
@@ -641,7 +639,7 @@ class AppViewModel @Inject constructor(
 
         val hasAmount = minSendable == maxSendable && minSendable > 0u
         if (hasAmount) {
-            Logger.info("Found amount $$minSendable in lnurlPay, proceeding with payment")
+            Logger.info("Found amount $$minSendable in lnurlPay, proceeding with payment", context = TAG)
 
             val quickPayHandled = handleQuickPayIfApplicable(amountSats = minSendable, lnurlPay = data)
             if (quickPayHandled) return
@@ -654,7 +652,7 @@ class AppViewModel @Inject constructor(
             return
         }
 
-        Logger.info("No amount found in lnurlPay, proceeding to enter amount manually")
+        Logger.info("No amount found in lnurlPay, proceeding to enter amount manually", context = TAG)
         if (isMainScanner) {
             showSheet(Sheet.Send(SendRoute.Amount))
         } else {
@@ -663,7 +661,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanLnurlWithdraw(data: LnurlWithdrawData) {
-        Logger.debug("LNURL: $data")
+        Logger.debug("LNURL: $data", context = TAG)
 
         val minWithdrawable = data.minWithdrawableSat()
         val maxWithdrawable = data.maxWithdrawableSat()
@@ -698,7 +696,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanLnurlAuth(data: LnurlAuthData, lnurl: String) {
-        Logger.debug("LNURL: $data")
+        Logger.debug("LNURL: $data", context = TAG)
 
         val domain = runCatching { data.uri.toUri().host }.getOrDefault(data.uri).orEmpty().trim()
 
@@ -736,7 +734,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanLnurlChannel(data: LnurlChannelData) {
-        Logger.debug("LNURL: $data")
+        Logger.debug("LNURL: $data", context = TAG)
         hideSheet() // hide scan sheet if opened
         mainScreenEffect(
             MainScreenEffect.Navigate(
@@ -777,7 +775,7 @@ class AppViewModel @Inject constructor(
             ?: return false
 
         if (amountSats <= quickPayAmountSats) {
-            Logger.info("Using QuickPay: $amountSats sats <= $quickPayAmountSats sats threshold")
+            Logger.info("Using QuickPay: $amountSats sats <= $quickPayAmountSats sats threshold", context = TAG)
 
             val quickPayData: QuickPayData = when {
                 lnurlPay != null -> {
@@ -792,7 +790,7 @@ class AppViewModel @Inject constructor(
 
             _quickPayData.update { quickPayData }
 
-            Logger.debug("QuickPayData: $quickPayData")
+            Logger.debug("QuickPayData: $quickPayData", context = TAG)
 
             if (isMainScanner) {
                 showSheet(Sheet.Send(SendRoute.QuickPay))
@@ -815,7 +813,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onSwipeToPay() {
-        Logger.debug("Swipe to pay event, checking send confirmation conditions")
+        Logger.debug("Swipe to pay event, checking send confirmation conditions", context = TAG)
         viewModelScope.launch {
             val amount = _sendUiState.value.amount
 
@@ -908,7 +906,7 @@ class AppViewModel @Inject constructor(
                 // TODO validate early, validate network & address types, showing detailed errors
                 val validatedAddress = runCatching { validateBitcoinAddress(address) }
                     .getOrElse { e ->
-                        Logger.error("Invalid bitcoin send address: '$address'", e)
+                        Logger.error("Invalid bitcoin send address: '$address'", e, context = TAG)
                         toast(Exception("Invalid bitcoin send address"))
                         hideSheet()
                         return
@@ -923,7 +921,7 @@ class AppViewModel @Inject constructor(
                             txType = PaymentType.SENT,
                             tags = tags
                         )
-                        Logger.info("Onchain send result txid: $txId")
+                        Logger.info("Onchain send result txid: $txId", context = TAG)
                         setSendEffect(
                             SendEffect.PaymentSuccess(
                                 NewTransactionSheetDetails(
@@ -934,7 +932,7 @@ class AppViewModel @Inject constructor(
                             )
                         )
                     }.onFailure { e ->
-                        Logger.error(msg = "Error sending onchain payment", e = e)
+                        Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
                             type = Toast.ToastType.ERROR,
                             title = "Error Sending",
@@ -952,7 +950,7 @@ class AppViewModel @Inject constructor(
                 val paymentAmount = decodedInvoice.amountSatoshis.takeIf { it > 0uL } ?: amount
 
                 sendLightning(bolt11, paymentAmount).onSuccess { paymentHash ->
-                    Logger.info("Lightning send result payment hash: $paymentHash")
+                    Logger.info("Lightning send result payment hash: $paymentHash", context = TAG)
                     val tags = _sendUiState.value.selectedTags
                     activityRepo.addTagsToTransaction(
                         paymentHashOrTxId = paymentHash,
@@ -962,7 +960,7 @@ class AppViewModel @Inject constructor(
                     )
                     setSendEffect(SendEffect.PaymentSuccess())
                 }.onFailure { e ->
-                    Logger.error("Error sending lightning payment", e)
+                    Logger.error("Error sending lightning payment", e, context = TAG)
                     toast(e)
                     hideSheet()
                 }
@@ -1027,7 +1025,7 @@ class AppViewModel @Inject constructor(
             val activity = coreService.activity.get(filter = filter, txType = paymentType, limit = 1u).firstOrNull()
 
             if (activity == null) {
-                Logger.error(msg = "Activity not found")
+                Logger.error(msg = "Activity not found", context = TAG)
                 return@launch
             }
 
@@ -1205,7 +1203,7 @@ class AppViewModel @Inject constructor(
 
     fun showNewTransactionSheet(details: NewTransactionSheetDetails) {
         if (!isNewTransactionSheetEnabled) {
-            Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false")
+            Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
             return
         }
 
@@ -1356,7 +1354,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onConfirmPay() {
-        Logger.debug("Payment checks confirmed, proceeding…")
+        Logger.debug("Payment checks confirmed, proceeding…", context = TAG)
         viewModelScope.launch {
             _sendUiState.update { it.copy(shouldConfirmPay = false) }
             proceedWithPayment()
@@ -1365,9 +1363,9 @@ class AppViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "AppViewModel"
+        private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
     }
 }
-
 
 // region send contract
 data class SendUiState(
