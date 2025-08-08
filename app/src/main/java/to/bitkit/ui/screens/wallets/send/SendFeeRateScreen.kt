@@ -23,7 +23,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.models.FeeRate
@@ -55,7 +54,7 @@ fun SendFeeRateScreen(
     onBack: () -> Unit,
     onContinue: () -> Unit,
     onSelect: (TransactionSpeed) -> Unit,
-    viewModel: SendFeeViewModel = hiltViewModel(),
+    viewModel: SendFeeViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -108,8 +107,8 @@ private fun Content(
                 feeRate = feeRate,
                 sats = sats,
                 isSelected = uiState.selected == feeRate,
-                isDisabled = false, // TODO
-                onClick = { onSelect(feeRate) },
+                isDisabled = feeRate in uiState.disabledRates,
+                onClick = { if (feeRate !in uiState.disabledRates) onSelect(feeRate) },
                 modifier = Modifier.testTag("fee_${feeRate.name}_button"),
             )
         }

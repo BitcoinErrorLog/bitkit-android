@@ -178,7 +178,7 @@ private fun Preview() {
     AppThemeSurface {
         Content(
             input = "5",
-            totalFeeText = "₿ 256 for average transaction ($0.25)"
+            totalFeeText = "₿ 256 for this transaction ($0.25)"
         )
     }
 }

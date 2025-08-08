@@ -541,7 +541,7 @@ class LightningRepo @Inject constructor(
                 val coinSelectionAlgorithm = coinSelectionPreference.toCoinSelectAlgorithm().getOrThrow()
 
                 Logger.debug("Selecting UTXOs with algorithm: $coinSelectionAlgorithm for sats: $sats", context = TAG)
-                Logger.verbose("All spendable UTXOs: $allSpendableUtxos", context = TAG)
+                Logger.verbose("All spendable UTXOs(${allSpendableUtxos.size}): $allSpendableUtxos", context = TAG)
 
                 lightningService.selectUtxosWithAlgorithm(
                     targetAmountSats = sats,
