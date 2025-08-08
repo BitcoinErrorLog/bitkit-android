@@ -140,10 +140,13 @@ class TransferViewModel @Inject constructor(
 
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
+                    settingsStore.update { it.copy(lightningSetupStep = 0) }
                     onOrderCreated(order)
+                    delay(1.seconds) // Give time to settle the UI
                     _spendingUiState.update { it.copy(isLoading = false) }
                 }.onFailure { e ->
                     setTransferEffect(TransferEffect.ToastException(e))
+                    delay(1.seconds) // Give time to settle the UI
                     _spendingUiState.update { it.copy(isLoading = false) }
                 }
         }
@@ -192,7 +195,6 @@ class TransferViewModel @Inject constructor(
                 )
                 .onSuccess { txId ->
                     cacheStore.addPaidOrder(orderId = order.id, txId = txId)
-                    settingsStore.update { it.copy(lightningSetupStep = 0) }
                     watchOrder(order.id)
                 }
                 .onFailure { error ->
@@ -248,7 +250,8 @@ class TransferViewModel @Inject constructor(
         return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
     }
 
-    private fun onOrderCreated(order: IBtOrder) {
+    private suspend fun onOrderCreated(order: IBtOrder) {
+        settingsStore.update { it.copy(lightningSetupStep = 0) }
         _spendingUiState.update { it.copy(order = order, isAdvanced = false, defaultOrder = null) }
         setTransferEffect(TransferEffect.OnOrderCreated)
     }
