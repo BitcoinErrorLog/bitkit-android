@@ -52,6 +52,7 @@ class EditInvoiceVMTest : BaseUnitTest() {
 
         verify(walletRepo).shouldRequestAdditionalLiquidity()
     }
+
     @Test
     fun `onClickContinue should emit UpdateInvoice when shouldRequestAdditionalLiquidity fails`() = test {
         // Given

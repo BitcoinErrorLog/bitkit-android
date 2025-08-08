@@ -40,7 +40,6 @@ fun NumberPadTextField(
     primaryDisplay: PrimaryDisplay,
     modifier: Modifier = Modifier,
 ) {
-
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
         return MoneyAmount(
@@ -178,9 +177,15 @@ fun AmountInputHandler(
 
             PrimaryDisplay.FIAT -> { // Convert sats to fiat
                 val convertedAmount = currencyVM.convert(input.toLongOrDefault())
-                if ((convertedAmount?.value
-                        ?: BigDecimal(0)) > BigDecimal(0)
-                ) convertedAmount?.formatted.toString() else ""
+                if ((
+                        convertedAmount?.value
+                            ?: BigDecimal(0)
+                        ) > BigDecimal(0)
+                ) {
+                    convertedAmount?.formatted.toString()
+                } else {
+                    ""
+                }
             }
         }
         onInputChanged(newInput)
@@ -219,7 +224,6 @@ fun MoneyAmount(
         modifier = modifier.semantics { contentDescription = value },
         horizontalAlignment = Alignment.Start
     ) {
-
         MoneySSB(sats = satoshis, unit = unit.not(), color = Colors.White64)
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -245,7 +249,6 @@ fun MoneyAmount(
         }
     }
 }
-
 
 @Preview(name = "FIAT - Empty", group = "MoneyAmount", showBackground = true)
 @Composable

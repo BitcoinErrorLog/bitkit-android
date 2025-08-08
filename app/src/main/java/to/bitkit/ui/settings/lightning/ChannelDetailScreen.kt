@@ -368,7 +368,9 @@ private fun Content(
                 val fundingTxId = channel.details.fundingTxo?.txid
                 val txTime = if (fundingTxId != null && txDetails?.txid == fundingTxId) {
                     txDetails.status.block_time
-                } else null
+                } else {
+                    null
+                }
 
                 txTime?.let {
                     SectionRow(

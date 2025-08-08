@@ -160,7 +160,6 @@ class ActivityService(
 ) {
     suspend fun removeAll() {
         ServiceQueue.CORE.background {
-
             // Get all activities and delete them one by one
             val activities = getActivities(
                 filter = ActivityFilter.ALL,

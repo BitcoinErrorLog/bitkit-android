@@ -38,7 +38,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.CurrencyViewModel
 
-
 @Composable
 fun CalculatorPreviewScreen(
     viewModel: CalculatorViewModel = hiltViewModel(),
@@ -127,7 +126,6 @@ fun CalculatorPreviewContent(
                 modifier = Modifier.testTag("divider")
             )
 
-
             Spacer(modifier = Modifier.weight(1f))
 
             Text13Up(
@@ -176,7 +174,6 @@ fun CalculatorPreviewContent(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

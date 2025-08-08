@@ -114,8 +114,11 @@ fun AmountInput(
             onValueChange = { newValue ->
                 if (primaryDisplay == PrimaryDisplay.BITCOIN) {
                     val filtered = newValue.text.filter {
-                        if (displayUnit == BitcoinDisplayUnit.MODERN) it.isDigit()
-                        else it.isDigit() || it == '.'
+                        if (displayUnit == BitcoinDisplayUnit.MODERN) {
+                            it.isDigit()
+                        } else {
+                            it.isDigit() || it == '.'
+                        }
                     }
 
                     val newSatsAmount = if (displayUnit == BitcoinDisplayUnit.CLASSIC) {

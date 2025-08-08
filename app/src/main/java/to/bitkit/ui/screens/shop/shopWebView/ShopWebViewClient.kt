@@ -44,7 +44,8 @@ class ShopWebViewClient(
                     }
                 };
             }
-            """.trimIndent(), null
+            """.trimIndent(),
+            null
         )
     }
 

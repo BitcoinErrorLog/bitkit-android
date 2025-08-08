@@ -23,7 +23,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-
 @Composable
 fun QuickPayIntroScreen(
     onBack: () -> Unit,
@@ -31,7 +30,6 @@ fun QuickPayIntroScreen(
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
-
         AppTopBar(
             titleText = stringResource(R.string.settings__quickpay__nav_title),
             onBackClick = onBack,

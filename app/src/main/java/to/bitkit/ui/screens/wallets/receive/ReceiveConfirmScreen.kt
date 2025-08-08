@@ -129,7 +129,6 @@ private fun Content(
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-
             Image(
                 painter = painterResource(R.drawable.lightning),
                 contentDescription = null,

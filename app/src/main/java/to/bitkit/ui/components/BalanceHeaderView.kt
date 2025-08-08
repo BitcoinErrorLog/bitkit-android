@@ -27,9 +27,9 @@ import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.settingsViewModel
+import to.bitkit.ui.shared.UiConstants
 import to.bitkit.ui.shared.animations.BalanceAnimations
 import to.bitkit.ui.shared.modifiers.swipeToHide
-import to.bitkit.ui.shared.UiConstants
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors

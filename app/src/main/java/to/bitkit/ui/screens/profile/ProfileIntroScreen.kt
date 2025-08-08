@@ -23,14 +23,12 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-
 @Composable
 fun ProfileIntroScreen(
     onClose: () -> Unit,
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
-
         AppTopBar(
             titleText = stringResource(R.string.slashtags__profile),
             onBackClick = null,
@@ -49,7 +47,9 @@ fun ProfileIntroScreen(
             )
 
             Display(
-                text = stringResource(R.string.slashtags__onboarding_profile1_header).withAccent(accentColor = Colors.Brand),
+                text = stringResource(
+                    R.string.slashtags__onboarding_profile1_header
+                ).withAccent(accentColor = Colors.Brand),
                 color = Colors.White
             )
             Spacer(Modifier.height(8.dp))

@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import to.bitkit.data.dto.WeatherDTO
 import to.bitkit.models.WidgetType
 import to.bitkit.models.widget.WeatherPreferences
 import to.bitkit.repositories.WidgetsRepo

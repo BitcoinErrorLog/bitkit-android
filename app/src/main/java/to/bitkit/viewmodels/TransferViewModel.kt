@@ -402,7 +402,6 @@ class TransferViewModel @Inject constructor(
     }
 
     private fun getDefaultLspBalance(clientBalanceSat: ULong, maxLspBalance: ULong): ULong {
-
         // Calculate thresholds in sats
         val threshold1 = currencyRepo.convertFiatToSats(BigDecimal(225), EUR_CURRENCY).getOrNull()
         val threshold2 = currencyRepo.convertFiatToSats(BigDecimal(495), EUR_CURRENCY).getOrNull()

@@ -63,7 +63,6 @@ class HeadlinesViewModel @Inject constructor(
     private val _customPreferences = MutableStateFlow(HeadlinePreferences())
     val customPreferences: StateFlow<HeadlinePreferences> = _customPreferences.asStateFlow()
 
-
     init {
         initializeCustomPreferences()
     }

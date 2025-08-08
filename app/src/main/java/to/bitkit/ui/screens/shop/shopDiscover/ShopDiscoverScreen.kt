@@ -1,13 +1,8 @@
 package to.bitkit.ui.screens.shop.shopDiscover
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.view.ViewGroup
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -27,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,14 +54,13 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
 import to.bitkit.ui.utils.configureForBasicWebContent
-import to.bitkit.utils.Logger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopDiscoverScreen(
     onClose: () -> Unit,
     onBack: () -> Unit,
-    navigateWebView: (String, String) -> Unit, //Page, Title
+    navigateWebView: (String, String) -> Unit, // Page, Title
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(

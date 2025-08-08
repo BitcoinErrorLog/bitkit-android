@@ -108,7 +108,8 @@ class MonetaryVisualTransformation(
                         // Skip comma in transformed, don't advance original
                         transformedOffset++
                     } else if (originalIndex < originalSubstring.length &&
-                        originalSubstring[originalIndex] == char) {
+                        originalSubstring[originalIndex] == char
+                    ) {
                         // Characters match, advance both
                         originalIndex++
                         transformedOffset++
@@ -146,11 +147,13 @@ class MonetaryVisualTransformation(
                         transformedIndex++
                         originalOffset++
                     } else if (transformedIndex < transformedSubstring.length - 1 &&
-                        transformedSubstring[transformedIndex] == ',') {
+                        transformedSubstring[transformedIndex] == ','
+                    ) {
                         // Skip comma in transformed
                         transformedIndex++
                         if (transformedIndex < transformedSubstring.length &&
-                            char == transformedSubstring[transformedIndex]) {
+                            char == transformedSubstring[transformedIndex]
+                        ) {
                             transformedIndex++
                             originalOffset++
                         }

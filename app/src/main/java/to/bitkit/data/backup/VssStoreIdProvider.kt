@@ -17,7 +17,9 @@ class VssStoreIdProvider @Inject constructor(
     fun getVssStoreId(): String {
         // TODO Temp fix as we don't have VSS auth yet
         if (Env.network == Network.BITCOIN) {
-            error("Do not run this on mainnet until VSS auth is implemented. Below hack is a temporary fix and not safe for mainnet.")
+            error(
+                "Do not run this on mainnet until VSS auth is implemented. Below hack is a temporary fix and not safe for mainnet."
+            )
         }
 
         val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound

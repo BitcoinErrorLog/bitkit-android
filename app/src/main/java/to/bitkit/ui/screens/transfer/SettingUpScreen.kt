@@ -170,7 +170,6 @@ private fun SettingUpScreen(
                 )
             }
 
-
             val randomOkText = localizedRandom(R.string.common__ok_random)
             PrimaryButton(
                 text = if (inProgress) {

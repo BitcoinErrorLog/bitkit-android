@@ -136,7 +136,6 @@ class LogsRepo @Inject constructor(
         }
     }
 
-
     /** Zips the most recent logs and returns base64 of zip file */
     suspend fun zipLogs(
         limit: Int = 20,

@@ -252,7 +252,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,

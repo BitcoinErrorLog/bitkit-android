@@ -5,8 +5,8 @@ import org.junit.Test
 import to.bitkit.env.Env.DERIVATION_NAME
 import to.bitkit.ext.fromBase64
 import to.bitkit.ext.fromHex
-import to.bitkit.ext.toHex
 import to.bitkit.ext.toBase64
+import to.bitkit.ext.toHex
 import to.bitkit.fcm.EncryptedNotification
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals

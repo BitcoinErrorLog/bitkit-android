@@ -61,7 +61,8 @@ fun SettingsTextButtonRow(
                     Spacer(modifier = Modifier.width(10.dp))
                 }
                 Column(
-                    verticalArrangement = Arrangement.Center, modifier = Modifier
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
                         .weight(1f)
                         .padding(end = 16.dp)
                 ) {
