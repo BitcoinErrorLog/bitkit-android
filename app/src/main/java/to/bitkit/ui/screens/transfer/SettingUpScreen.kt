@@ -1,13 +1,11 @@
 package to.bitkit.ui.screens.transfer
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -20,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.synonym.bitkitcore.regtestMine
@@ -110,6 +109,7 @@ private fun SettingUpScreen(
             actions = { CloseNavIcon(onCloseClick) },
         )
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -119,6 +119,7 @@ private fun SettingUpScreen(
                 Display(
                     text = stringResource(R.string.lightning__savings_progress__title)
                         .withAccent(accentColor = Colors.Purple),
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 BodyM(
@@ -129,6 +130,7 @@ private fun SettingUpScreen(
                 Display(
                     text = stringResource(R.string.lightning__transfer_success__title_spending)
                         .withAccent(accentColor = Colors.Purple),
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 BodyM(
@@ -141,6 +143,7 @@ private fun SettingUpScreen(
                 TransferAnimationView(
                     largeCircleRes = R.drawable.ln_sync_large,
                     smallCircleRes = R.drawable.ln_sync_small,
+                    modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 val steps = listOf(
@@ -157,23 +160,16 @@ private fun SettingUpScreen(
                         .align(alignment = Alignment.CenterHorizontally)
                 )
             } else {
-                Box(
-                    contentAlignment = Alignment.Center,
+                Image(
+                    painter = painterResource(id = R.drawable.check),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.check),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(256.dp)
-                    )
-                }
+                        .weight(1f)
+                        .padding(16.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
 
             val randomOkText = localizedRandom(R.string.common__ok_random)
             PrimaryButton(
@@ -199,9 +195,29 @@ private fun SettingUpScreenProgressPreview() {
     }
 }
 
+@Preview(name = "Progress", showSystemUi = true, showBackground = true, device = NEXUS_5)
+@Composable
+private fun SettingUpScreenProgressSmallPreview() {
+    AppThemeSurface {
+        SettingUpScreen(
+            lightningSetupStep = 2,
+        )
+    }
+}
+
 @Preview(name = "Success", showSystemUi = true, showBackground = true)
 @Composable
 private fun SettingUpScreenSuccessPreview() {
+    AppThemeSurface {
+        SettingUpScreen(
+            lightningSetupStep = 3,
+        )
+    }
+}
+
+@Preview(name = "Success", showSystemUi = true, showBackground = true, device = NEXUS_5)
+@Composable
+private fun SettingUpScreenSuccessSmallPreview() {
     AppThemeSurface {
         SettingUpScreen(
             lightningSetupStep = 3,
