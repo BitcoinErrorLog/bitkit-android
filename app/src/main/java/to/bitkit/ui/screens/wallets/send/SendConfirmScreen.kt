@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -54,12 +55,12 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
-import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.settingsViewModel
@@ -69,6 +70,7 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.rememberBiometricAuthSupported
+import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.AmountWarning
 import to.bitkit.viewmodels.LnurlParams
 import to.bitkit.viewmodels.SendEvent
@@ -340,15 +342,16 @@ private fun OnChainDescription(
                             tint = fee.color,
                             modifier = Modifier.size(16.dp)
                         )
-                        Row {
-                            BodySSB(stringResource(fee.title) + " (")
-                            if (uiState.fee > 0) {
-                                MoneySSB(sats = uiState.fee, accent = Colors.White)
-                            } else {
-                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        uiState.fee.takeIf { it > 0 }
+                            ?.let { rememberMoneyText(it) }
+                            ?.let {
+                                BodySSB(
+                                    text = "${stringResource(fee.title)} ($it)".withAccent(accentColor = Colors.White),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.MiddleEllipsis,
+                                )
                             }
-                            BodySSB(")")
-                        }
+                            ?: CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
                         Icon(
                             painterResource(R.drawable.ic_pencil_simple),
                             contentDescription = null,
@@ -502,10 +505,10 @@ private fun sendUiState() = SendUiState(
         payeeNodeId = null,
         description = "Some invoice description",
     ),
-    fee = 212,
+    fee = 45554,
 )
 
-@Preview(showSystemUi = true)
+@Preview(showSystemUi = true, group = "onchain")
 @Composable
 private fun PreviewOnChain() {
     AppThemeSurface {
@@ -513,6 +516,42 @@ private fun PreviewOnChain() {
             Content(
                 uiState = sendUiState().copy(
                     selectedTags = listOf("car", "house", "uber"),
+                ),
+                isLoading = false,
+                showBiometrics = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true, group = "onchain", device = Devices.NEXUS_5)
+@Composable
+private fun PreviewOnChainLongFeeSmallScreen() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = sendUiState().copy(
+                    selectedTags = listOf("car", "house", "uber"),
+                    fee = 654321,
+                ),
+                isLoading = false,
+                showBiometrics = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true, group = "onchain")
+@Composable
+private fun PreviewOnChainFeeLoading() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = sendUiState().copy(
+                    selectedTags = listOf("car", "house", "uber"),
+                    fee = 0,
                 ),
                 isLoading = false,
                 showBiometrics = false,
