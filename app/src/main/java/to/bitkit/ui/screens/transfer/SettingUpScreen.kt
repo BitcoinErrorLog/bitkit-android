@@ -117,7 +117,8 @@ private fun SettingUpScreen(
             Spacer(modifier = Modifier.height(12.dp))
             if (inProgress) {
                 Display(
-                    text = stringResource(R.string.lightning__savings_progress__title).withAccent(accentColor = Colors.Purple),
+                    text = stringResource(R.string.lightning__savings_progress__title)
+                        .withAccent(accentColor = Colors.Purple),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 BodyM(
