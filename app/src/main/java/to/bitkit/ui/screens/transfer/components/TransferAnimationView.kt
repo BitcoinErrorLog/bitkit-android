@@ -28,6 +28,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 fun TransferAnimationView(
     @DrawableRes largeCircleRes: Int,
     @DrawableRes smallCircleRes: Int,
+    modifier: Modifier = Modifier,
     @DrawableRes contentRes: Int = R.drawable.transfer,
     rotateContent: Boolean = true,
 ) {
@@ -38,7 +39,7 @@ fun TransferAnimationView(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = modifier.padding(horizontal = 16.dp),
     ) {
         val infiniteTransition = rememberInfiniteTransition("transition")
 
