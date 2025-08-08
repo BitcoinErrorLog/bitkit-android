@@ -176,6 +176,7 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 }
 
 dependencies {
+    implementation(project(":libs:vss-client"))
     implementation(fileTree("libs") { include("*.aar") })
     implementation(libs.jna) { artifact { type = "aar" } }
     implementation(platform(libs.kotlin.bom))
@@ -276,6 +277,7 @@ dependencies {
 room {
     schemaDirectory("$projectDir/schemas")
 }
+
 tasks.withType<Test> {
     testLogging {
         events("passed", "skipped", "failed")
