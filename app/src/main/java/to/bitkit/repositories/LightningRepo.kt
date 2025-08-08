@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.Scanner
+import com.synonym.bitkitcore.createChannelRequestUrl
 import com.synonym.bitkitcore.createWithdrawCallbackUrl
 import com.synonym.bitkitcore.decode
 import com.synonym.bitkitcore.lnurlAuth
@@ -446,8 +447,14 @@ class LightningRepo @Inject constructor(
         callback: String,
         nodeId: String,
     ): Result<LnurlChannelResponse> = executeWhenNodeRunning("requestLnurlChannel") {
-        // TODO use bitkit-core createChannelRequestUrl after it is fixed to prevent k1 duplicating
-        lnurlService.requestLnurlChannel(k1 = k1, callback = callback, nodeId = nodeId)
+        val url = createChannelRequestUrl(
+            k1 = k1,
+            callback = callback,
+            localNodeId = nodeId,
+            isPrivate = true,
+            cancel = false,
+        )
+        lnurlService.requestLnurlChannel(url)
     }
 
     suspend fun requestLnurlAuth(

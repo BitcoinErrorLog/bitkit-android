@@ -5,7 +5,6 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.ActivityFilter
@@ -378,6 +377,7 @@ class AppViewModel @Inject constructor(
                     val newSatsPerVByte = state.feeRates?.getSatsPerVByteFor(speed)
                     currentSatsPerVByte != newSatsPerVByte
                 }
+
                 else -> false
             }
             val fee = when (speed is TransactionSpeed.Custom) {
@@ -697,15 +697,11 @@ class AppViewModel @Inject constructor(
 
     private fun onScanLnurlAuth(data: LnurlAuthData, lnurl: String) {
         Logger.debug("LNURL: $data", context = TAG)
-
-        val domain = runCatching { data.uri.toUri().host }.getOrDefault(data.uri).orEmpty().trim()
-
-        showSheet(Sheet.LnurlAuth(domain = domain, lnurl = lnurl, k1 = data.k1))
+        showSheet(Sheet.LnurlAuth(domain = data.domain, lnurl = lnurl, k1 = data.k1))
     }
 
     fun requestLnurlAuth(callback: String, k1: String, domain: String) {
         viewModelScope.launch {
-            // TODO pass callback and domain from bitkit-core when updated to accept decoded callback and return domain
             lightningRepo.requestLnurlAuth(
                 callback = callback,
                 k1 = k1,
