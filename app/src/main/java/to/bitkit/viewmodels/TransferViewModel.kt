@@ -145,6 +145,7 @@ class TransferViewModel @Inject constructor(
                     _spendingUiState.update { it.copy(isLoading = false) }
                 }.onFailure { e ->
                     setTransferEffect(TransferEffect.ToastException(e))
+                    delay(1.seconds) // Give time to settle the UI
                     _spendingUiState.update { it.copy(isLoading = false) }
                 }
         }
