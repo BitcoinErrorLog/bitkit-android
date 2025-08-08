@@ -141,6 +141,7 @@ class TransferViewModel @Inject constructor(
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
                     onOrderCreated(order)
+                    delay(1.seconds) // Give time to settle the UI
                     _spendingUiState.update { it.copy(isLoading = false) }
                 }.onFailure { e ->
                     setTransferEffect(TransferEffect.ToastException(e))
