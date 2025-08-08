@@ -71,7 +71,7 @@ import java.time.Instant
 fun NodeInfoScreen(
     navController: NavController,
 ) {
-    val wallet = walletViewModel?: return
+    val wallet = walletViewModel ?: return
     val app = appViewModel ?: return
     val settings = settingsViewModel ?: return
     val context = LocalContext.current
@@ -171,9 +171,11 @@ private fun NodeIdSection(
         SectionHeader(stringResource(R.string.lightning__node_id))
         Subtitle(
             text = nodeId,
-            modifier = Modifier.clickableAlpha(onClick = copyToClipboard(nodeId) {
-                onCopy(nodeId)
-            })
+            modifier = Modifier.clickableAlpha(
+                onClick = copyToClipboard(nodeId) {
+                    onCopy(nodeId)
+                }
+            )
         )
     }
 }
@@ -297,9 +299,11 @@ private fun ChannelsSection(
                         text = channel.channelId,
                         maxLines = 1,
                         overflow = TextOverflow.MiddleEllipsis,
-                        modifier = Modifier.clickableAlpha(onClick = copyToClipboard(channel.channelId) {
-                            onCopy(channel.channelId)
-                        })
+                        modifier = Modifier.clickableAlpha(
+                            onClick = copyToClipboard(channel.channelId) {
+                                onCopy(channel.channelId)
+                            }
+                        )
                     )
                 }
                 LightningChannel(
@@ -374,9 +378,11 @@ private fun PeersSection(
                     overflow = TextOverflow.MiddleEllipsis,
                     modifier = Modifier
                         .weight(1f)
-                        .clickableAlpha(onClick = copyToClipboard(peer.toString()) {
-                            onCopy(peer.toString())
-                        })
+                        .clickableAlpha(
+                            onClick = copyToClipboard(peer.toString()) {
+                                onCopy(peer.toString())
+                            }
+                        )
                 )
                 Box(
                     contentAlignment = Alignment.Center,

@@ -28,7 +28,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.minutes
 
-
 @Singleton
 class PriceService @Inject constructor(
     private val client: HttpClient,
@@ -66,7 +65,6 @@ class PriceService @Inject constructor(
     }.onFailure {
         Logger.warn(e = it, msg = "fetchAllPeriods: Failed to fetch price data", context = TAG)
     }
-
 
     private suspend fun fetchPairData(pair: TradingPair, period: GraphPeriod): PriceWidgetData {
         val ticker = pair.ticker
@@ -162,7 +160,6 @@ class PriceService @Inject constructor(
             val formatted = numberFormat.format(price)
             val currencySymbol = currency.symbol
             formatted.replace(currencySymbol, "").trim()
-
         } catch (e: Exception) {
             Logger.warn(
                 e = e,

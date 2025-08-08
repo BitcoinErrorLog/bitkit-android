@@ -48,7 +48,9 @@ fun ReceiveLiquidityScreen(
             .navigationBarsPadding()
     ) {
         SheetTopBar(
-            stringResource(if (isAdditional) R.string.wallet__receive_liquidity__nav_title_additional else R.string.wallet__receive_liquidity__nav_title),
+            stringResource(
+                if (isAdditional) R.string.wallet__receive_liquidity__nav_title_additional else R.string.wallet__receive_liquidity__nav_title
+            ),
             onBack = onBack
         )
         Spacer(Modifier.height(24.dp))
@@ -57,13 +59,19 @@ fun ReceiveLiquidityScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             BodyM(
-                text = stringResource(if (isAdditional) R.string.wallet__receive_liquidity__text_additional else R.string.wallet__receive_liquidity__text),
+                text = stringResource(
+                    if (isAdditional) R.string.wallet__receive_liquidity__text_additional else R.string.wallet__receive_liquidity__text
+                ),
                 color = Colors.White64
             )
 
             Spacer(modifier = Modifier.weight(1f))
 
-            BodyMB(text = stringResource(if (isAdditional) R.string.wallet__receive_liquidity__label_additional else R.string.wallet__receive_liquidity__label))
+            BodyMB(
+                text = stringResource(
+                    if (isAdditional) R.string.wallet__receive_liquidity__label_additional else R.string.wallet__receive_liquidity__label
+                )
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             LightningChannel(

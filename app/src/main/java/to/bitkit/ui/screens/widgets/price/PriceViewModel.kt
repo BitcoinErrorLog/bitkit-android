@@ -107,7 +107,9 @@ class PriceViewModel @Inject constructor(
 
     fun resetCustomPreferences() {
         _customPreferences.value = PricePreferences()
-        _previewPrice.update { _allPrices.value.firstOrNull { it.widgets.firstOrNull()?.period == _customPreferences.value.period } }
+        _previewPrice.update {
+            _allPrices.value.firstOrNull { it.widgets.firstOrNull()?.period == _customPreferences.value.period }
+        }
     }
 
     fun savePreferences() {

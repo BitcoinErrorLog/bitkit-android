@@ -2,7 +2,6 @@ package to.bitkit.ui.screens.shop.shopWebView
 
 import android.annotation.SuppressLint
 import android.view.ViewGroup
-import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -25,7 +24,6 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.configureForBasicWebContent
-
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable

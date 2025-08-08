@@ -85,10 +85,10 @@ fun HighBalanceWarningContent(
             VerticalSpacer(8.dp)
             BodyM(
                 text =
-                    stringResource(R.string.other__high_balance__text).withAccent(
-                        defaultColor = Colors.White64,
-                        accentStyle = AppTextStyles.Subtitle.merge(color = Colors.White).toSpanStyle()
-                    ),
+                stringResource(R.string.other__high_balance__text).withAccent(
+                    defaultColor = Colors.White64,
+                    accentStyle = AppTextStyles.Subtitle.merge(color = Colors.White).toSpanStyle()
+                ),
                 color = Colors.White64,
                 modifier = Modifier
                     .testTag("high_balance_description")

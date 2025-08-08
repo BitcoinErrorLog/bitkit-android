@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import to.bitkit.R
 import to.bitkit.data.CacheStore
-import to.bitkit.data.SettingsStore
 import to.bitkit.data.WidgetsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env

@@ -379,7 +379,6 @@ class ActivityRepo @Inject constructor(
         cacheStore.addActivityToPendingBoost(pendingBoostActivity)
     }
 
-
     /**
      * Adds tags to an activity with business logic validation
      */
@@ -413,7 +412,6 @@ class ActivityRepo @Inject constructor(
         txType: PaymentType,
         tags: List<String>,
     ): Result<Unit> = withContext(bgDispatcher) {
-
         if (tags.isEmpty()) return@withContext Result.failure(IllegalArgumentException("No tags selected"))
         return@withContext findActivityByPaymentId(
             paymentHashOrTxId = paymentHashOrTxId,

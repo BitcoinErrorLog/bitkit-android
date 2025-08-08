@@ -45,7 +45,6 @@ import to.bitkit.data.dto.price.PriceWidgetData
 import to.bitkit.data.dto.price.TradingPair
 import to.bitkit.models.widget.PricePreferences
 import to.bitkit.ui.components.BodyMSB
-import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BodySB
 import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.theme.AppThemeSurface

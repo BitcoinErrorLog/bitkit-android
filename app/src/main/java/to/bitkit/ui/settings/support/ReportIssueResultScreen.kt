@@ -27,7 +27,6 @@ fun ReportIssueResultScreen(
     onBack: () -> Unit,
     onClose: () -> Unit,
 ) {
-
     ScreenColumn {
         AppTopBar(
             titleText = if (isSuccess) {
@@ -73,7 +72,6 @@ fun ReportIssueResultScreen(
         }
     }
 }
-
 
 @Preview(showBackground = true, name = "Success")
 @Composable

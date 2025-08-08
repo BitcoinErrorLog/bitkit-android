@@ -61,10 +61,13 @@ fun StepSlider(
 
     // Calculate step positions (evenly spaced)
     val stepPositions = remember(steps, sliderWidth) {
-        if (sliderWidth == 0) emptyList()
-        else steps.indices.map { index ->
-            val numSteps = (steps.size - 1).coerceAtLeast(1)
-            (index.toFloat() / numSteps) * sliderWidth
+        if (sliderWidth == 0) {
+            emptyList()
+        } else {
+            steps.indices.map { index ->
+                val numSteps = (steps.size - 1).coerceAtLeast(1)
+                (index.toFloat() / numSteps) * sliderWidth
+            }
         }
     }
 

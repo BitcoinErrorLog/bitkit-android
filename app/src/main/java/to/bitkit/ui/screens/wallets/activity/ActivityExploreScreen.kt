@@ -183,24 +183,30 @@ private fun LightningDetails(
         Section(
             title = stringResource(R.string.wallet__activity_preimage),
             value = preimage,
-            modifier = Modifier.clickableAlpha(onClick = copyToClipboard(preimage) {
-                onCopy(preimage)
-            }),
+            modifier = Modifier.clickableAlpha(
+                onClick = copyToClipboard(preimage) {
+                    onCopy(preimage)
+                }
+            ),
         )
     }
     Section(
         title = stringResource(R.string.wallet__activity_payment_hash),
         value = paymentHash,
-        modifier = Modifier.clickableAlpha(onClick = copyToClipboard(paymentHash) {
-            onCopy(paymentHash)
-        }),
+        modifier = Modifier.clickableAlpha(
+            onClick = copyToClipboard(paymentHash) {
+                onCopy(paymentHash)
+            }
+        ),
     )
     Section(
         title = stringResource(R.string.wallet__activity_invoice),
         value = invoice,
-        modifier = Modifier.clickableAlpha(onClick = copyToClipboard(invoice) {
-            onCopy(invoice)
-        }),
+        modifier = Modifier.clickableAlpha(
+            onClick = copyToClipboard(invoice) {
+                onCopy(invoice)
+            }
+        ),
     )
 }
 
@@ -214,9 +220,11 @@ private fun ColumnScope.OnchainDetails(
     Section(
         title = stringResource(R.string.wallet__activity_tx_id),
         value = txId,
-        modifier = Modifier.clickableAlpha(onClick = copyToClipboard(txId) {
-            onCopy(txId)
-        }),
+        modifier = Modifier.clickableAlpha(
+            onClick = copyToClipboard(txId) {
+                onCopy(txId)
+            }
+        ),
     )
     if (txDetails != null) {
         Section(

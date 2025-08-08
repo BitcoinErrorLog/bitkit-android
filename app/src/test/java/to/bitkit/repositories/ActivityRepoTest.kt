@@ -345,7 +345,6 @@ class ActivityRepoTest : BaseUnitTest() {
         verify(coreService.activity, never()).appendTags(any(), any())
     }
 
-
     @Test
     fun `attachTagsToActivity should fail with empty tags`() = test {
         val result = sut.addTagsToTransaction(

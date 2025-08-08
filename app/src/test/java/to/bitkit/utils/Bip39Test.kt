@@ -42,25 +42,45 @@ class Bip39Test {
     @Test
     fun `test invalid word count`() {
         // 11 words (too few)
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+            ).validBip39Checksum()
+        )
 
         // 13 words (invalid length)
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+            ).validBip39Checksum()
+        )
 
         // 23 words (invalid length)
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+            ).validBip39Checksum()
+        )
     }
 
     @Test
     fun `test invalid words`() {
         // Contains a word not in the wordlist
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon invalidword").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon invalidword"
+            ).validBip39Checksum()
+        )
     }
 
     @Test
     fun `test invalid checksum`() {
         // Valid words but invalid checksum
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+            ).validBip39Checksum()
+        )
     }
 
     @Test
@@ -72,16 +92,29 @@ class Bip39Test {
         assertTrue(validMnemonic.uppercase().toWordList().validBip39Checksum())
 
         // Test with mixed case
-        assertTrue("AbAnDoN abandon ABANDON abandon abandon abandon abandon abandon abandon abandon abandon about".toWordList().validBip39Checksum())
+        assertTrue(
+            "AbAnDoN abandon ABANDON abandon abandon abandon abandon abandon abandon abandon abandon about".toWordList().validBip39Checksum()
+        )
     }
 
     @Test
     fun `test invalid examples with correct word count`() {
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon").validBip39Checksum())
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon zoo").validBip39Checksum())
-        assertFalse(listOf("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon actor").validBip39Checksum())
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+            ).validBip39Checksum()
+        )
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon zoo"
+            ).validBip39Checksum()
+        )
+        assertFalse(
+            listOf(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon actor"
+            ).validBip39Checksum()
+        )
     }
-
 
     @Test
     fun `isBip39 should return true for valid BIP39 word`() {
@@ -118,5 +151,4 @@ class Bip39Test {
         Assert.assertFalse("abandon-".isBip39())
         Assert.assertFalse("abandon_".isBip39())
     }
-
 }

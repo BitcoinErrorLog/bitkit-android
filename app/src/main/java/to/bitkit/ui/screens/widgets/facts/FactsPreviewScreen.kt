@@ -38,7 +38,6 @@ import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-
 @Composable
 fun FactsPreviewScreen(
     factsViewModel: FactsViewModel,
@@ -195,7 +194,6 @@ fun FactsPreviewContent(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

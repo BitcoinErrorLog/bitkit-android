@@ -97,7 +97,6 @@ fun AboutScreen(
     }
 }
 
-
 @Preview
 @Composable
 private fun Preview() {

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberTooltipState
@@ -43,7 +42,6 @@ import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import to.bitkit.R
-import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -88,7 +86,9 @@ fun QrCodeImage(
                                 tooltipState.show()
                             }
                         }
-                    } else Modifier
+                    } else {
+                        Modifier
+                    }
                 )
             }
 
@@ -170,8 +170,11 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
                 for (y in 0 until matrixHeight) {
                     val shouldColorPixel = bitmapMatrix?.get(x, y) ?: false
                     val pixelColor =
-                        if (shouldColorPixel) android.graphics.Color.BLACK
-                        else android.graphics.Color.WHITE
+                        if (shouldColorPixel) {
+                            android.graphics.Color.BLACK
+                        } else {
+                            android.graphics.Color.WHITE
+                        }
 
                     pixels[y * matrixWidth + x] = pixelColor
                 }

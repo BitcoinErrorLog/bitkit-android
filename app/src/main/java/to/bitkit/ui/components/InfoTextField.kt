@@ -47,11 +47,14 @@ fun ellipsisVisualTransformation(
     maxLength: Int,
     ellipsis: String = "…",
 ) = VisualTransformation { originalText ->
-    val transformedText = if (originalText.length > maxLength) buildAnnotatedString {
-        append(originalText.take(maxLength - ellipsis.length))
-        append(ellipsis)
+    val transformedText = if (originalText.length > maxLength) {
+        buildAnnotatedString {
+            append(originalText.take(maxLength - ellipsis.length))
+            append(ellipsis)
+        }
+    } else {
+        originalText
     }
-    else originalText
 
     val oldLen = originalText.length
     val newLen = transformedText.length
