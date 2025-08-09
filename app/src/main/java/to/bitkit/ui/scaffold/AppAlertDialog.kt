@@ -38,7 +38,7 @@ fun AppAlertDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                modifier = Modifier.testTag("dialog_confirm"),
+                modifier = Modifier.testTag("DialogConfirm")
             ) {
                 BodyMSB(text = confirmText)
             }
@@ -46,7 +46,7 @@ fun AppAlertDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                modifier = Modifier.testTag("dialog_cancel"),
+                modifier = Modifier.testTag("DialogCancel")
             ) {
                 BodyMSB(text = dismissText, color = Colors.White64)
             }

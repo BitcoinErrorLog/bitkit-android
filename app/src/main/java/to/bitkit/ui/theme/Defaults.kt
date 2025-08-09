@@ -15,17 +15,12 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.time.Duration.Companion.milliseconds
 
-@Immutable
 object AppTextFieldDefaults {
-    @Stable
     val noIndicatorColors: TextFieldColors
         @Composable
         get() = TextFieldDefaults.colors(
@@ -33,7 +28,6 @@ object AppTextFieldDefaults {
             focusedIndicatorColor = Color.Transparent,
         )
 
-    @Stable
     val transparent: TextFieldColors
         @Composable
         get() = noIndicatorColors.copy(
@@ -45,7 +39,6 @@ object AppTextFieldDefaults {
             unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
 
-    @Stable
     val semiTransparent: TextFieldColors
         @Composable
         get() = TextFieldDefaults.colors(
@@ -60,9 +53,7 @@ object AppTextFieldDefaults {
         )
 }
 
-@Immutable
 object AppButtonDefaults {
-    @Stable
     val primaryColors: ButtonColors
         @Composable
         get() = ButtonDefaults.buttonColors(
@@ -72,7 +63,6 @@ object AppButtonDefaults {
             disabledContentColor = Colors.White32,
         )
 
-    @Stable
     val secondaryColors: ButtonColors
         @Composable
         get() = ButtonDefaults.outlinedButtonColors(
@@ -80,7 +70,6 @@ object AppButtonDefaults {
             disabledContentColor = Colors.White32,
         )
 
-    @Stable
     val tertiaryColors: ButtonColors
         @Composable
         get() = ButtonDefaults.textButtonColors(
@@ -89,9 +78,7 @@ object AppButtonDefaults {
         )
 }
 
-@Immutable
 object AppSwitchDefaults {
-    @Stable
     val colors: SwitchColors
         @Composable
         get() = SwitchDefaults.colors(
@@ -108,7 +95,6 @@ object AppSwitchDefaults {
             uncheckedIconColor = Colors.Gray4,
         )
 
-    @Stable
     val colorsPurple: SwitchColors
         @Composable
         get() = SwitchDefaults.colors(
@@ -126,7 +112,7 @@ object AppSwitchDefaults {
         )
 }
 
-val ScreenTransitionMs = AnimationConstants.DefaultDurationMillis.milliseconds // 300ms
+const val TRANSITION_SCREEN_MS = AnimationConstants.DefaultDurationMillis.toLong() // 300ms
 const val TRANSITION_SHEET_MS = 650L
 
 object Insets {
@@ -147,6 +133,5 @@ object Insets {
         }
 }
 
-val TopBarHeight: Dp
-    @OptIn(ExperimentalMaterial3Api::class)
-    get() = TopAppBarDefaults.TopAppBarExpandedHeight
+@OptIn(ExperimentalMaterial3Api::class)
+val TopBarHeight: Dp = TopAppBarDefaults.TopAppBarExpandedHeight

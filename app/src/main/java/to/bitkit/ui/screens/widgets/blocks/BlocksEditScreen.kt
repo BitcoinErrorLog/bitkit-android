@@ -100,7 +100,7 @@ fun BlocksEditContent(
                 .padding(horizontal = 16.dp)
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .testTag("main_content")
+                .testTag("WidgetEditScrollView")
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -181,7 +181,7 @@ fun BlocksEditContent(
                 text = stringResource(R.string.common__reset),
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("reset_button"),
+                    .testTag("WidgetEditReset"),
                 enabled = blocksPreferences != BlocksPreferences(),
                 fullWidth = false,
                 onClick = onClickReset
@@ -192,7 +192,7 @@ fun BlocksEditContent(
                 enabled = blocksPreferences.run { showBlock || showTime || showDate || showTransactions || showSize || showSource },
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("preview_button"),
+                    .testTag("WidgetEditPreview"),
                 fullWidth = false,
                 onClick = onClickPreview
             )

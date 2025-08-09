@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -220,11 +221,13 @@ private fun ColumnScope.OnchainDetails(
     Section(
         title = stringResource(R.string.wallet__activity_tx_id),
         value = txId,
-        modifier = Modifier.clickableAlpha(
-            onClick = copyToClipboard(txId) {
-                onCopy(txId)
-            }
-        ),
+        modifier = Modifier
+            .clickableAlpha(
+                onClick = copyToClipboard(txId) {
+                    onCopy(txId)
+                }
+            )
+            .testTag("TXID")
     )
     if (txDetails != null) {
         Section(

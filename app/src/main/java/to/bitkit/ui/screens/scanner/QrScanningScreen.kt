@@ -90,8 +90,7 @@ fun QrScanningScreen(
     val app = appViewModel ?: return
 
     // Check if this scanner was opened for result
-    val backStackEntry = navController.previousBackStackEntry
-    val isCalledForResult = backStackEntry?.savedStateHandle?.contains(SCAN_REQUEST_KEY) == true
+    val isCalledForResult = navController.previousBackStackEntry?.savedStateHandle?.contains(SCAN_REQUEST_KEY) == true
 
     val (scanResult, setScanResult) = remember { mutableStateOf<String?>(null) }
 
@@ -100,10 +99,11 @@ fun QrScanningScreen(
         scanResult?.let { qrCode ->
             delay(100) // wait to prevent navigation result race conditions
 
-            if (isCalledForResult) {
-                backStackEntry.savedStateHandle[SCAN_RESULT_KEY] = qrCode
+            val prev = navController.previousBackStackEntry
+            if (prev?.savedStateHandle?.contains(SCAN_REQUEST_KEY) == true) {
+                prev.savedStateHandle[SCAN_RESULT_KEY] = qrCode
                 onBack()
-                backStackEntry.savedStateHandle.remove<Boolean?>(SCAN_REQUEST_KEY)
+                prev.savedStateHandle.remove<Boolean?>(SCAN_REQUEST_KEY)
             } else {
                 onBack()
                 onScanSuccess(qrCode)
@@ -324,7 +324,7 @@ private fun Content(
                 )
             },
             text = stringResource(R.string.other__qr_paste),
-            onClick = onPasteFromClipboard
+            onClick = onPasteFromClipboard,
         )
         Spacer(modifier = Modifier.height(16.dp))
     }

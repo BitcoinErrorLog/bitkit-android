@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,6 +44,7 @@ import to.bitkit.R
 import to.bitkit.ext.canBeBoosted
 import to.bitkit.ext.ellipsisMiddle
 import to.bitkit.ext.isBoosted
+import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
 import to.bitkit.ext.toActivityItemDate
 import to.bitkit.ext.toActivityItemTime
@@ -55,6 +56,7 @@ import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.Title
@@ -173,7 +175,6 @@ fun ActivityDetailScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActivityDetailContent(
     item: Activity,
@@ -207,13 +208,13 @@ private fun ActivityDetailContent(
         is Activity.Onchain -> item.v1.fee
     }
     val isSelfSend = isSent && paymentValue == 0uL
+    val isTransfer = item.isTransfer()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // header section: amount + icon
         Row(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
@@ -224,10 +225,10 @@ private fun ActivityDetailContent(
                 sats = item.totalValue().toLong(),
                 prefix = amountPrefix,
                 showBitcoinSymbol = false,
-                forceShowBalance = true,
+                useSwipeToHide = false,
                 modifier = Modifier.weight(1f)
             )
-            ActivityIcon(activity = item, size = 48.dp) // TODO Display the user avatar when selfsend
+            ActivityIcon(activity = item, size = 48.dp) // TODO Display the user avatar when selfSend
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -281,8 +282,6 @@ private fun ActivityDetailContent(
                 HorizontalDivider()
             }
         }
-
-        // Fee section for sent transactions
         if (isSent) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -290,29 +289,33 @@ private fun ActivityDetailContent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Caption13Up(
-                        text = if (isSelfSend) {
-                            "Sent to myself" // TODO translation
-                        } else {
-                            stringResource(R.string.wallet__activity_payment)
+                        text = when {
+                            isTransfer -> stringResource(R.string.wallet__activity_transfer_to_spending)
+                            isSelfSend -> "Sent to myself" // TODO add missing localized text
+                            else -> stringResource(R.string.wallet__activity_payment)
                         },
                         color = Colors.White64,
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.testTag("ActivityAmount")
+                    ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_user),
+                            painter = when {
+                                isTransfer -> painterResource(R.drawable.ic_lightning)
+                                else -> painterResource(R.drawable.ic_user)
+                            },
                             contentDescription = null,
                             tint = accentColor,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        BodySSB(text = "$paymentValue")
+                        MoneySSB(sats = paymentValue.toLong())
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider()
                 }
-
-                // Fee column if fee exists
                 if (fee != null) {
                     Column(modifier = Modifier.weight(1f)) {
                         Caption13Up(
@@ -320,7 +323,10 @@ private fun ActivityDetailContent(
                             color = Colors.White64,
                             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.testTag("ActivityFee")
+                        ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_speed_normal),
                                 contentDescription = null,
@@ -328,7 +334,7 @@ private fun ActivityDetailContent(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            BodySSB(text = fee.toString())
+                            MoneySSB(sats = fee.toLong())
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider()
@@ -391,7 +397,9 @@ private fun ActivityDetailContent(
                         Title(
                             text = message,
                             color = Colors.White,
-                            modifier = Modifier.padding(24.dp),
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .testTag("InvoiceNote")
                         )
                     }
                 }
@@ -462,7 +470,15 @@ private fun ActivityDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(
+                            when {
+                                item.isBoosted() -> "BoostedButton"
+                                item.canBeBoosted() -> "BoostButton"
+                                else -> "BoostDisabled"
+                            }
+                        )
                 )
                 PrimaryButton(
                     text = stringResource(R.string.wallet__activity_explore),
@@ -476,7 +492,9 @@ private fun ActivityDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ActivityTxDetails")
                 )
             }
         }
@@ -496,18 +514,27 @@ private fun StatusSection(item: Activity) {
                 is Activity.Lightning -> {
                     when (item.v1.status) {
                         PaymentState.PENDING -> {
-                            StatusIcon(painterResource(R.drawable.ic_hourglass_simple), Colors.Purple)
-                            StatusText(stringResource(R.string.wallet__activity_pending), Colors.Purple)
+                            StatusRow(
+                                painterResource(R.drawable.ic_hourglass_simple),
+                                stringResource(R.string.wallet__activity_pending),
+                                Colors.Purple,
+                            )
                         }
 
                         PaymentState.SUCCEEDED -> {
-                            StatusIcon(painterResource(R.drawable.ic_lightning_alt), Colors.Purple)
-                            StatusText(stringResource(R.string.wallet__activity_successful), Colors.Purple)
+                            StatusRow(
+                                painterResource(R.drawable.ic_lightning_alt),
+                                stringResource(R.string.wallet__activity_successful),
+                                Colors.Purple,
+                            )
                         }
 
                         PaymentState.FAILED -> {
-                            StatusIcon(painterResource(R.drawable.ic_x), Colors.Purple)
-                            StatusText(stringResource(R.string.wallet__activity_failed), Colors.Purple)
+                            StatusRow(
+                                painterResource(R.drawable.ic_x),
+                                stringResource(R.string.wallet__activity_failed),
+                                Colors.Purple,
+                            )
                         }
                     }
                 }
@@ -517,19 +544,27 @@ private fun StatusSection(item: Activity) {
                     var statusIcon = painterResource(R.drawable.ic_hourglass_simple)
                     var statusColor = Colors.Brand
                     var statusText = stringResource(R.string.wallet__activity_confirming)
+                    var statusTestTag: String? = null
 
-                    // TODO: handle isTransfer
+                    if (item.v1.isTransfer) {
+                        val duration = 0 // TODO get transfer duration
+                        statusText = stringResource(R.string.wallet__activity_transfer_pending)
+                            .replace("{duration}", "$duration")
+                        statusTestTag = "StatusTransfer"
+                    }
 
                     if (item.v1.isBoosted) {
                         statusIcon = painterResource(R.drawable.ic_timer_alt)
                         statusColor = Colors.Yellow
                         statusText = stringResource(R.string.wallet__activity_boosting)
+                        statusTestTag = "StatusBoosting"
                     }
 
                     if (item.v1.confirmed) {
                         statusIcon = painterResource(R.drawable.ic_check_circle)
                         statusColor = Colors.Green
                         statusText = stringResource(R.string.wallet__activity_confirmed)
+                        statusTestTag = "StatusConfirmed"
                     }
 
                     if (!item.v1.doesExist) {
@@ -538,8 +573,7 @@ private fun StatusSection(item: Activity) {
                         statusText = stringResource(R.string.wallet__activity_removed)
                     }
 
-                    StatusIcon(statusIcon, statusColor)
-                    StatusText(statusText, statusColor)
+                    StatusRow(statusIcon, statusText, statusColor, statusTestTag)
                 }
             }
         }
@@ -547,28 +581,27 @@ private fun StatusSection(item: Activity) {
 }
 
 @Composable
-private fun StatusIcon(
+private fun StatusRow(
     icon: Painter,
-    tint: Color,
-) {
-    Icon(
-        painter = icon,
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier.size(16.dp)
-    )
-}
-
-@Composable
-private fun StatusText(
     text: String,
     color: Color,
+    testTag: String? = null,
 ) {
-    BodySSB(
-        text = text,
-        color = color,
-        modifier = Modifier.padding(start = 4.dp)
-    )
+    Row {
+        Icon(
+            painter = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        BodySSB(
+            text = text,
+            color = color,
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
+        )
+    }
 }
 
 @Composable

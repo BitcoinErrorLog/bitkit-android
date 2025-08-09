@@ -9,6 +9,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,6 +62,7 @@ private fun Content(
         BodyM(
             text = stringResource(R.string.security__pin_forgot_text),
             color = Colors.White64,
+            modifier = Modifier.testTag("ForgotPIN")
         )
 
         FillHeight()

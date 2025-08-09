@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -37,6 +38,7 @@ fun InfoScreenContent(
     buttonText: String,
     onButtonClick: () -> Unit,
     onCloseClick: () -> Unit,
+    testTag: String,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -52,6 +54,7 @@ fun InfoScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
+                .testTag(testTag)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             Display(text = title)
@@ -79,6 +82,7 @@ fun InfoScreenContent(
             PrimaryButton(
                 text = buttonText,
                 onClick = onButtonClick,
+                modifier = Modifier.testTag("$testTag-button")
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -97,6 +101,7 @@ private fun Preview() {
             buttonText = stringResource(R.string.common__ok),
             onButtonClick = {},
             onCloseClick = {},
+            testTag = "",
         )
     }
 }

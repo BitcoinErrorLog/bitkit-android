@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,7 @@ fun DefaultUnitSettingsScreenContent(
                 iconRes = R.drawable.ic_unit_bitcoin,
                 value = SettingsButtonValue.BooleanValue(primaryDisplay == PrimaryDisplay.BITCOIN),
                 onClick = { onPrimaryUnitClick(PrimaryDisplay.BITCOIN) },
+                modifier = Modifier.testTag(stringResource(R.string.settings__general__unit_bitcoin))
             )
 
             SettingsButtonRow(
@@ -81,6 +83,7 @@ fun DefaultUnitSettingsScreenContent(
                 iconRes = R.drawable.ic_unit_fiat,
                 value = SettingsButtonValue.BooleanValue(primaryDisplay == PrimaryDisplay.FIAT),
                 onClick = { onPrimaryUnitClick(PrimaryDisplay.FIAT) },
+                modifier = Modifier.testTag(selectedCurrency)
             )
 
             SectionFooter(stringResource(R.string.settings__general__unit_note).replace("{currency}", selectedCurrency))
@@ -98,6 +101,9 @@ fun DefaultUnitSettingsScreenContent(
                     ),
                     value = SettingsButtonValue.BooleanValue(displayUnit == unit),
                     onClick = { onBitcoinUnitClick(unit) },
+                    modifier = Modifier.testTag(
+                        if (unit == BitcoinDisplayUnit.MODERN) "DenominationModern" else "DenominationClassic"
+                    )
                 )
             }
 

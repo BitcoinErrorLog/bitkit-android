@@ -82,7 +82,7 @@ import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
-import to.bitkit.ui.theme.ScreenTransitionMs
+import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -303,6 +303,8 @@ class AppViewModel @Inject constructor(
                     SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning()
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
+                    SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
+                    SendEvent.NavToAddress -> setSendEffect(SendEffect.NavigateToAddress)
                 }
             }
         }
@@ -393,7 +395,7 @@ class AppViewModel @Inject constructor(
                 )
             }
             refreshOnchainSendIfNeeded()
-            setSendEffect(SendEffect.PopBackToConfirm)
+            setSendEffect(SendEffect.PopBack(SendRoute.Confirm))
         }
     }
 
@@ -500,16 +502,16 @@ class AppViewModel @Inject constructor(
         resetQuickPayData()
 
         val scan = runCatching { decode(result) }
-            .onFailure { Logger.error("Failed to decode scan result: '$result'", it, context = TAG) }
-            .onSuccess { Logger.info("Handling scan data: $it", context = TAG) }
+            .onFailure { Logger.error("Failed to decode scan data: '$result'", it, context = TAG) }
+            .onSuccess { Logger.info("Handling decoded scan data: $it", context = TAG) }
             .getOrNull()
 
         when (scan) {
-            is Scanner.OnChain -> onScanOnchain(scan.invoice)
-            is Scanner.Lightning -> onScanLightning(scan.invoice)
+            is Scanner.OnChain -> onScanOnchain(scan.invoice, result)
+            is Scanner.Lightning -> onScanLightning(scan.invoice, result)
             is Scanner.LnurlPay -> onScanLnurlPay(scan.data)
             is Scanner.LnurlWithdraw -> onScanLnurlWithdraw(scan.data)
-            is Scanner.LnurlAuth -> onScanLnurlAuth(scan.data, result)
+            is Scanner.LnurlAuth -> onScanLnurlAuth(scan.data)
             is Scanner.LnurlChannel -> onScanLnurlChannel(scan.data)
             is Scanner.NodeId -> onScanNodeId(scan)
             else -> {
@@ -523,7 +525,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun onScanOnchain(invoice: OnChainInvoice) {
+    private suspend fun onScanOnchain(invoice: OnChainInvoice, scanResult: String) {
         val lnInvoice: LightningInvoice? = invoice.params?.get("lightning")?.let { bolt11 ->
             val decoded = runCatching { decode(bolt11) }.getOrNull()
             (decoded as? Scanner.Lightning)?.invoice
@@ -531,6 +533,8 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(
                 address = invoice.address,
+                addressInput = scanResult,
+                isAddressInputValid = true,
                 amount = invoice.amountSatoshis,
                 isUnified = invoice.params?.containsKey("lightning") == true,
                 decodedInvoice = lnInvoice,
@@ -565,7 +569,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun onScanLightning(invoice: LightningInvoice) {
+    private suspend fun onScanLightning(invoice: LightningInvoice, scanResult: String) {
         if (invoice.isExpired) {
             toast(
                 type = Toast.ToastType.ERROR,
@@ -590,6 +594,8 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(
                 amount = invoice.amountSatoshis,
+                addressInput = scanResult,
+                isAddressInputValid = true,
                 decodedInvoice = invoice,
                 payMethod = SendMethod.LIGHTNING,
             )
@@ -696,13 +702,13 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun onScanLnurlAuth(data: LnurlAuthData, lnurl: String) {
+    private suspend fun onScanLnurlAuth(data: LnurlAuthData) {
         Logger.debug("LNURL: $data", context = TAG)
         if (!isMainScanner) {
             hideSheet()
-            delay(ScreenTransitionMs)
+            delay(TRANSITION_SCREEN_MS)
         }
-        showSheet(Sheet.LnurlAuth(domain = data.domain, lnurl = lnurl, k1 = data.k1))
+        showSheet(Sheet.LnurlAuth(domain = data.domain, lnurl = data.uri, k1 = data.k1))
     }
 
     fun requestLnurlAuth(callback: String, k1: String, domain: String) {
@@ -1393,21 +1399,22 @@ data class SendUiState(
     val fees: Map<FeeRate, Long> = emptyMap(),
 )
 
-enum class AmountWarning(@StringRes val message: Int) {
-    VALUE_OVER_100_USD(R.string.wallet__send_dialog1),
-    OVER_HALF_BALANCE(R.string.wallet__send_dialog2),
-    FEE_OVER_HALF_VALUE(R.string.wallet__send_dialog3),
-    FEE_OVER_10_USD(R.string.wallet__send_dialog4),
+enum class AmountWarning(@StringRes val message: Int, val testTag: String) {
+    VALUE_OVER_100_USD(R.string.wallet__send_dialog1, "SendDialog1"),
+    OVER_HALF_BALANCE(R.string.wallet__send_dialog2, "SendDialog2"),
+    FEE_OVER_HALF_VALUE(R.string.wallet__send_dialog3, "SendDialog3"),
+    FEE_OVER_10_USD(R.string.wallet__send_dialog4, "SendDialog4"),
+    // TODO SendDialog5 https://github.com/synonymdev/bitkit/blob/master/src/screens/Wallets/Send/ReviewAndSend.tsx#L457-L466
 }
 
 enum class SendMethod { ONCHAIN, LIGHTNING }
 
 sealed class SendEffect {
+    data class PopBack(val route: SendRoute) : SendEffect()
     data object NavigateToAddress : SendEffect()
     data object NavigateToAmount : SendEffect()
     data object NavigateToScan : SendEffect()
     data object NavigateToConfirm : SendEffect()
-    data object PopBackToConfirm : SendEffect()
     data object NavigateToWithdrawConfirm : SendEffect()
     data object NavigateToWithdrawError : SendEffect()
     data object NavigateToCoinSelection : SendEffect()
@@ -1423,29 +1430,31 @@ sealed class MainScreenEffect {
     data class ProcessClipboardAutoRead(val data: String) : MainScreenEffect()
 }
 
-sealed class SendEvent {
-    data object EnterManually : SendEvent()
-    data object Paste : SendEvent()
-    data object Scan : SendEvent()
+sealed interface SendEvent {
+    data object EnterManually : SendEvent
+    data object Paste : SendEvent
+    data object Scan : SendEvent
 
-    data object AddressReset : SendEvent()
-    data class AddressChange(val value: String) : SendEvent()
-    data class AddressContinue(val data: String) : SendEvent()
+    data object AddressReset : SendEvent
+    data class AddressChange(val value: String) : SendEvent
+    data class AddressContinue(val data: String) : SendEvent
 
-    data object AmountReset : SendEvent()
-    data class AmountContinue(val amount: String) : SendEvent()
-    data class AmountChange(val value: String) : SendEvent()
+    data object AmountReset : SendEvent
+    data class AmountContinue(val amount: String) : SendEvent
+    data class AmountChange(val value: String) : SendEvent
 
-    data class CoinSelectionContinue(val utxos: List<SpendableUtxo>) : SendEvent()
+    data class CoinSelectionContinue(val utxos: List<SpendableUtxo>) : SendEvent
 
-    data class CommentChange(val value: String) : SendEvent()
+    data class CommentChange(val value: String) : SendEvent
 
-    data object SwipeToPay : SendEvent()
-    data object SpeedAndFee : SendEvent()
-    data object PaymentMethodSwitch : SendEvent()
-    data object ConfirmAmountWarning : SendEvent()
-    data object DismissAmountWarning : SendEvent()
-    data object PayConfirmed : SendEvent()
+    data object SwipeToPay : SendEvent
+    data object SpeedAndFee : SendEvent
+    data object PaymentMethodSwitch : SendEvent
+    data object ConfirmAmountWarning : SendEvent
+    data object DismissAmountWarning : SendEvent
+    data object PayConfirmed : SendEvent
+    data object BackToAmount : SendEvent
+    data object NavToAddress : SendEvent
 }
 
 sealed interface LnurlParams {

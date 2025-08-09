@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,6 +32,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 fun AppTopBar(
     titleText: String?,
     onBackClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
     icon: Painter? = null,
     actions: @Composable (RowScope.() -> Unit) = {},
 ) {
@@ -44,7 +46,7 @@ fun AppTopBar(
             if (titleText != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     icon?.let { painter ->
                         Icon(
@@ -65,33 +67,53 @@ fun AppTopBar(
             containerColor = Color.Transparent,
             scrolledContainerColor = Color.Transparent,
         ),
+        modifier = modifier,
     )
 }
 
-// TODO use everywhere
 @Composable
-fun BackNavIcon(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+fun BackNavIcon(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.testTag("NavigationBack")
+    ) {
         Icon(
             imageVector = Icons.AutoMirrored.Default.ArrowBack,
             contentDescription = stringResource(R.string.common__back),
+            modifier = Modifier.size(24.dp)
         )
     }
 }
 
 @Composable
-fun CloseNavIcon(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+fun CloseNavIcon(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.testTag("NavigationClose")
+    ) {
         Icon(
             imageVector = Icons.Default.Close,
             contentDescription = stringResource(R.string.common__close),
+            modifier = Modifier.size(24.dp)
         )
     }
 }
 
 @Composable
-fun ScanNavIcon(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+fun ScanNavIcon(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.testTag("NavigationAction")
+    ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_scan),
             contentDescription = stringResource(R.string.other__qr_scan),

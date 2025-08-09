@@ -114,7 +114,7 @@ fun PricePreviewContent(
                 .padding(horizontal = 16.dp)
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .testTag("main_content")
+                .testTag("WidgetEditScrollView")
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -163,7 +163,7 @@ fun PricePreviewContent(
                     }
                 ),
                 onClick = onClickEdit,
-                modifier = Modifier.testTag("edit_settings_button")
+                modifier = Modifier.testTag("WidgetEdit")
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -200,7 +200,7 @@ fun PricePreviewContent(
                     text = stringResource(R.string.common__delete),
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("delete_button"),
+                        .testTag("WidgetDelete"),
                     fullWidth = false,
                     onClick = onClickDelete
                 )
@@ -210,7 +210,7 @@ fun PricePreviewContent(
                 text = stringResource(R.string.common__save),
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("save_button"),
+                    .testTag("WidgetSave"),
                 fullWidth = false,
                 isLoading = isLoading,
                 onClick = onClickSave

@@ -56,7 +56,7 @@ class HeadlinesEditContentTest {
 
         // Assert main elements exist
         composeTestRule.onNodeWithTag("headlines_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
 
         // Verify description
         composeTestRule.onNodeWithTag("edit_description").assertExists()
@@ -87,8 +87,8 @@ class HeadlinesEditContentTest {
 
         // Verify buttons
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
 
         // Test button clicks
         composeTestRule.onNodeWithTag("time_toggle_button").performClick()
@@ -97,11 +97,11 @@ class HeadlinesEditContentTest {
         composeTestRule.onNodeWithTag("source_toggle_button").performClick()
         assert(sourceClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
         // Reset button should be disabled when both options are enabled (default state)
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -131,10 +131,10 @@ class HeadlinesEditContentTest {
         }
 
         // Assert reset button should be enabled when not all options are enabled
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
 
         // Test reset button click
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -163,7 +163,7 @@ class HeadlinesEditContentTest {
         }
 
         // Assert reset button should be enabled when not all options are enabled
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
 
         // Verify all elements still exist
         composeTestRule.onNodeWithTag("headlines_edit_screen").assertExists()
@@ -213,7 +213,7 @@ class HeadlinesEditContentTest {
 
         // Assert all tagged elements exist
         composeTestRule.onNodeWithTag("headlines_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
         composeTestRule.onNodeWithTag("edit_description").assertExists()
         composeTestRule.onNodeWithTag("time_setting_row").assertExists()
         composeTestRule.onNodeWithTag("time_text").assertExists()
@@ -231,8 +231,8 @@ class HeadlinesEditContentTest {
         composeTestRule.onNodeWithTag("source_toggle_icon").assertExists()
         composeTestRule.onNodeWithTag("source_divider").assertExists()
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
     }
 
     @Test
@@ -258,7 +258,7 @@ class HeadlinesEditContentTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
     }
 
     @Test
@@ -284,7 +284,7 @@ class HeadlinesEditContentTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -324,10 +324,10 @@ class HeadlinesEditContentTest {
         composeTestRule.onNodeWithTag("source_toggle_button").performClick()
         assert(sourceClicked)
 
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
     }
 }

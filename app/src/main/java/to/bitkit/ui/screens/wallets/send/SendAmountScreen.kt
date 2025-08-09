@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,8 +31,10 @@ import to.bitkit.models.BalanceState
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.PrimaryDisplay
+import to.bitkit.models.Toast
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.LocalCurrencies
+import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Keyboard
@@ -45,6 +48,7 @@ import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -64,6 +68,8 @@ fun SendAmountScreen(
     onEvent: (SendEvent) -> Unit,
 ) {
     val currencyVM = currencyViewModel ?: return
+    val app = appViewModel
+    val context = LocalContext.current
     var input: String by remember { mutableStateOf(uiState.amountInput) }
     var overrideSats: Long? by remember { mutableStateOf(null) }
 
@@ -90,7 +96,16 @@ fun SendAmountScreen(
         onInputChanged = { input = it },
         onEvent = onEvent,
         onBack = onBack,
-        onClickMax = { maxSats -> overrideSats = maxSats },
+        onClickMax = { maxSats ->
+            if (uiState.payMethod == SendMethod.LIGHTNING && uiState.lnurl == null) {
+                app?.toast(
+                    type = Toast.ToastType.WARNING,
+                    title = context.getString(R.string.wallet__send_max_spending__title),
+                    description = context.getString(R.string.wallet__send_max_spending__description)
+                )
+            }
+            overrideSats = maxSats
+        },
     )
 }
 
@@ -114,7 +129,7 @@ fun SendAmountContent(
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
-            .testTag("send_amount_screen")
+            .testTag("SendSheet")
     ) {
         val titleRes = when (uiState.lnurl) {
             is LnurlParams.LnurlWithdraw -> R.string.wallet__lnurl_w_title
@@ -138,7 +153,7 @@ fun SendAmountContent(
                     displayUnit = displayUnit,
                     primaryDisplay = primaryDisplay,
                     onEvent = onEvent,
-                    onMaxClick = onClickMax,
+                    onClickMax = onClickMax,
                 )
             }
 
@@ -164,7 +179,7 @@ private fun SendAmountNodeRunning(
     currencyUiState: CurrencyUiState,
     onInputChanged: (String) -> Unit,
     onEvent: (SendEvent) -> Unit,
-    onMaxClick: (Long) -> Unit,
+    onClickMax: (Long) -> Unit,
 ) {
     val isLnurlWithdraw = uiState.lnurl is LnurlParams.LnurlWithdraw
 
@@ -185,7 +200,7 @@ private fun SendAmountNodeRunning(
             primaryDisplay = primaryDisplay,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("amount_input_field")
+                .testTag("SendNumberField")
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -199,18 +214,24 @@ private fun SendAmountNodeRunning(
             else -> R.string.wallet__send_available
         }
 
-        Text13Up(
-            text = stringResource(textAvailable),
-            color = Colors.White64,
-            modifier = Modifier.testTag("available_balance")
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
         ) {
-            // TODO add onClick -> override to max amount
-            MoneySSB(sats = availableAmount)
+            Column(
+                modifier = Modifier
+                    .clickableAlpha {
+                        // TODO port the RN sendMax logic
+                        onClickMax(availableAmount)
+                    }
+                    .testTag("AvailableAmount")
+            ) {
+                Text13Up(
+                    text = stringResource(textAvailable),
+                    color = Colors.White64,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                MoneySSB(sats = availableAmount, showSymbol = true)
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -225,14 +246,18 @@ private fun SendAmountNodeRunning(
                 )
                 NumberPadActionButton(
                     text = stringResource(R.string.common__max),
-                    onClick = { onMaxClick(max) },
+                    onClick = { onClickMax(max) },
                     modifier = Modifier
                         .height(28.dp)
                         .testTag("max_amount_button")
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            UnitButton(modifier = Modifier.height(28.dp))
+            UnitButton(
+                modifier = Modifier
+                    .height(28.dp)
+                    .testTag("SendNumberPadUnit")
+            )
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
@@ -247,7 +272,7 @@ private fun SendAmountNodeRunning(
             isDecimal = currencyUiState.primaryDisplay == PrimaryDisplay.FIAT,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("amount_keyboard"),
+                .testTag("SendAmountNumberPad")
         )
 
         Spacer(modifier = Modifier.height(41.dp))
@@ -256,7 +281,7 @@ private fun SendAmountNodeRunning(
             text = stringResource(R.string.common__continue),
             enabled = uiState.isAmountInputValid,
             onClick = { onEvent(SendEvent.AmountContinue(uiState.amountInput)) },
-            modifier = Modifier.testTag("continue_button")
+            modifier = Modifier.testTag("ContinueAmount")
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -268,6 +293,11 @@ private fun PaymentMethodButton(
     uiState: SendUiState,
     onEvent: (SendEvent) -> Unit,
 ) {
+    val testId = when {
+        uiState.isUnified -> "switch"
+        uiState.payMethod == SendMethod.ONCHAIN -> "savings"
+        else -> "spending"
+    }
     NumberPadActionButton(
         text = when (uiState.payMethod) {
             SendMethod.ONCHAIN -> stringResource(R.string.wallet__savings__title)
@@ -282,7 +312,7 @@ private fun PaymentMethodButton(
         enabled = uiState.isUnified,
         modifier = Modifier
             .height(28.dp)
-            .testTag("payment_method_button")
+            .testTag("AssetButton-$testId")
     )
 }
 

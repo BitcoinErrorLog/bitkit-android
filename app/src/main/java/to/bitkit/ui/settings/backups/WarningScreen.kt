@@ -75,7 +75,7 @@ private fun WarningContent(
             PrimaryButton(
                 text = stringResource(R.string.common__ok),
                 onClick = onContinue,
-                modifier = Modifier.testTag("backup_warning_ok_button")
+                modifier = Modifier.testTag("OK")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

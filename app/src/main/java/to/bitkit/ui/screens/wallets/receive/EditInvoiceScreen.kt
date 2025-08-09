@@ -204,7 +204,6 @@ fun EditInvoiceContent(
             modifier = Modifier
                 .fillMaxSize()
                 .navigationBarsPadding()
-                .testTag("edit_invoice_screen")
         ) {
             SheetTopBar(stringResource(R.string.wallet__receive_specify)) {
                 onBack()
@@ -213,7 +212,7 @@ fun EditInvoiceContent(
             Column(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .testTag("edit_invoice_content")
+                    .testTag("ReceiveAmount")
             ) {
                 Spacer(Modifier.height(32.dp))
 
@@ -224,7 +223,7 @@ fun EditInvoiceContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickableAlpha(onClick = onClickBalance)
-                        .testTag("amount_input_field")
+                        .testTag("ReceiveNumberPadTextField")
                 )
 
                 // Animated visibility for keyboard section
@@ -240,7 +239,7 @@ fun EditInvoiceContent(
                     ) + fadeOut()
                 ) {
                     Column(
-                        modifier = Modifier.testTag("keyboard_section")
+                        modifier = Modifier.testTag("ReceiveNumberPad")
                     ) {
                         Spacer(modifier = Modifier.weight(1f))
 
@@ -249,7 +248,11 @@ fun EditInvoiceContent(
                             horizontalArrangement = Arrangement.End,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            UnitButton(modifier = Modifier.height(28.dp))
+                            UnitButton(
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .testTag("ReceiveNumberPadUnit")
+                            )
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
@@ -262,9 +265,7 @@ fun EditInvoiceContent(
                                 onInputChanged(if (input.length > 1) input.dropLast(1) else "0")
                             },
                             isDecimal = primaryDisplay == PrimaryDisplay.FIAT,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("amount_keyboard"),
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         Spacer(modifier = Modifier.height(41.dp))
@@ -272,7 +273,7 @@ fun EditInvoiceContent(
                         PrimaryButton(
                             text = stringResource(R.string.common__continue),
                             onClick = onContinueKeyboard,
-                            modifier = Modifier.testTag("keyboard_continue_button")
+                            modifier = Modifier.testTag("ReceiveNumberPadSubmit")
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -285,9 +286,7 @@ fun EditInvoiceContent(
                     enter = fadeIn(animationSpec = tween(durationMillis = 300)),
                     exit = fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
-                    Column(
-                        modifier = Modifier.testTag("note_section")
-                    ) {
+                    Column {
                         Spacer(modifier = Modifier.height(44.dp))
 
                         Caption13Up(text = stringResource(R.string.wallet__note), color = Colors.White64)
@@ -311,8 +310,7 @@ fun EditInvoiceContent(
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("note_input_field")
-
+                                .testTag("ReceiveNote")
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -345,7 +343,8 @@ fun EditInvoiceContent(
                                     tint = Colors.Brand
                                 )
                             },
-                            fullWidth = false
+                            fullWidth = false,
+                            modifier = Modifier.testTag("TagsAdd")
                         )
 
                         Spacer(modifier = Modifier.weight(1f))
@@ -353,7 +352,7 @@ fun EditInvoiceContent(
                         PrimaryButton(
                             text = stringResource(R.string.wallet__receive_show_qr),
                             onClick = onContinueGeneral,
-                            modifier = Modifier.testTag("general_continue_button")
+                            modifier = Modifier.testTag("ShowQrReceive")
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))

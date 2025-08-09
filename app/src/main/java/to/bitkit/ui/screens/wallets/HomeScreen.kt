@@ -69,6 +69,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.models.BalanceState
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.LocalBalances
@@ -80,6 +81,7 @@ import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.StatusBarSpacer
 import to.bitkit.ui.components.SuggestionCard
+import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.components.TertiaryButton
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.Title
@@ -277,9 +279,9 @@ private fun Content(
     onDismissEmptyState: () -> Unit = {},
     onDismissHighBalanceSheet: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
+    balances: BalanceState = LocalBalances.current,
 ) {
     val scope = rememberCoroutineScope()
-    val balances = LocalBalances.current
 
     Box {
         val heightStatusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -314,6 +316,7 @@ private fun Content(
                     .padding(horizontal = 16.dp)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .testTag("HomeScrollView")
             ) {
                 StatusBarSpacer()
                 TopBarSpacer()
@@ -321,7 +324,9 @@ private fun Content(
                 BalanceHeaderView(
                     sats = balances.totalSats.toLong(),
                     showEyeIcon = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("TotalBalance")
                 )
                 if (!homeUiState.showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
@@ -337,6 +342,7 @@ private fun Content(
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Savings) }
                                 .padding(vertical = 4.dp)
+                                .testTag("ActivitySavings")
                         )
                         VerticalDivider()
                         WalletBalanceView(
@@ -347,6 +353,7 @@ private fun Content(
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Spending) }
                                 .padding(vertical = 4.dp)
                                 .padding(start = 16.dp)
+                                .testTag("ActivitySpending")
                         )
                     }
 
@@ -394,24 +401,17 @@ private fun Content(
                                 color = Colors.White64
                             )
 
-                            if (homeUiState.isEditingWidgets) {
-                                IconButton(
-                                    onClick = onClickConfirmEdit
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_check),
-                                        contentDescription = null
-                                    )
-                                }
-                            } else {
-                                IconButton(
-                                    onClick = onClickEnableEdit
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_sort_ascending),
-                                        contentDescription = null
-                                    )
-                                }
+                            IconButton(
+                                onClick = onClickConfirmEdit,
+                                modifier = Modifier.testTag("WidgetsEdit")
+                            ) {
+                                Icon(
+                                    painter = when (homeUiState.isEditingWidgets) {
+                                        true -> painterResource(R.drawable.ic_check)
+                                        else -> painterResource(R.drawable.ic_sort_ascending)
+                                    },
+                                    contentDescription = null,
+                                )
                             }
                         }
 
@@ -445,7 +445,6 @@ private fun Content(
                                         WidgetType.BLOCK -> {
                                             homeUiState.currentBlock?.run {
                                                 BlockCard(
-                                                    modifier = Modifier.fillMaxWidth(),
                                                     showWidgetTitle = homeUiState.showWidgetTitles,
                                                     showBlock = homeUiState.blocksPreferences.showBlock,
                                                     showTime = homeUiState.blocksPreferences.showTime,
@@ -458,7 +457,10 @@ private fun Content(
                                                     transactions = transactionCount,
                                                     size = size,
                                                     source = source,
-                                                    block = height
+                                                    block = height,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("BlocksWidget")
                                                 )
                                             }
                                         }
@@ -467,8 +469,8 @@ private fun Content(
                                             currencyViewModel?.let {
                                                 CalculatorCard(
                                                     currencyViewModel = it,
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    showWidgetTitle = homeUiState.showWidgetTitles
+                                                    showWidgetTitle = homeUiState.showWidgetTitles,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
@@ -476,10 +478,10 @@ private fun Content(
                                         WidgetType.FACTS -> {
                                             homeUiState.currentFact?.run {
                                                 FactsCard(
-                                                    modifier = Modifier.fillMaxWidth(),
                                                     showWidgetTitle = homeUiState.showWidgetTitles,
                                                     showSource = homeUiState.factsPreferences.showSource,
                                                     headline = homeUiState.currentFact,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
@@ -487,14 +489,16 @@ private fun Content(
                                         WidgetType.NEWS -> {
                                             homeUiState.currentArticle?.run {
                                                 HeadlineCard(
-                                                    modifier = Modifier.fillMaxWidth(),
                                                     showWidgetTitle = homeUiState.showWidgetTitles,
                                                     showTime = homeUiState.headlinePreferences.showTime,
                                                     showSource = homeUiState.headlinePreferences.showSource,
                                                     headline = title,
                                                     time = timeAgo,
                                                     source = publisher,
-                                                    link = link
+                                                    link = link,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("NewsWidget")
                                                 )
                                             }
                                         }
@@ -502,10 +506,12 @@ private fun Content(
                                         WidgetType.PRICE -> {
                                             homeUiState.currentPrice?.run {
                                                 PriceCard(
-                                                    modifier = Modifier.fillMaxWidth(),
                                                     showWidgetTitle = homeUiState.showWidgetTitles,
                                                     pricePreferences = homeUiState.pricePreferences,
                                                     priceDTO = homeUiState.currentPrice,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("PriceWidget")
                                                 )
                                             }
                                         }
@@ -513,10 +519,10 @@ private fun Content(
                                         WidgetType.WEATHER -> {
                                             homeUiState.currentWeather?.run {
                                                 WeatherCard(
-                                                    modifier = Modifier.fillMaxWidth(),
                                                     showWidgetTitle = homeUiState.showWidgetTitles,
                                                     weatherModel = this,
-                                                    preferences = homeUiState.weatherPreferences
+                                                    preferences = homeUiState.weatherPreferences,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
@@ -532,10 +538,11 @@ private fun Content(
                                 Icon(
                                     painter = painterResource(R.drawable.ic_plus),
                                     contentDescription = null,
-                                    tint = Colors.White80
+                                    tint = Colors.White80,
                                 )
                             },
                             onClick = onClickAddWidget,
+                            modifier = Modifier.testTag("WidgetsAdd")
                         )
                     }
                     Spacer(modifier = Modifier.height(32.dp))
@@ -605,7 +612,9 @@ private fun TopBar(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickableAlpha(onClick = onClickProfile)
+                    modifier = Modifier
+                        .clickableAlpha(onClick = onClickProfile)
+                        .testTag("Header")
                 ) {
                     Icon(
                         imageVector = Icons.Filled.AccountCircle,
@@ -614,13 +623,19 @@ private fun TopBar(
                         modifier = Modifier.size(32.dp)
                     )
                     HorizontalSpacer(16.dp)
-                    Title(text = stringResource(R.string.slashtags__your_name_capital))
+                    Title(
+                        text = stringResource(R.string.slashtags__your_name_capital),
+                        Modifier.testTag("EmptyProfileHeader")
+                    )
                 }
             },
             actions = {
                 AppStatus(onClick = { rootNavController.navigate(Routes.AppStatus) })
                 HorizontalSpacer(4.dp)
-                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                IconButton(
+                    onClick = { scope.launch { drawerState.open() } },
+                    modifier = Modifier.testTag("HeaderMenu")
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_list),
                         contentDescription = stringResource(R.string.settings__settings),
@@ -658,12 +673,45 @@ private fun Preview() {
         Box {
             Content(
                 mainUiState = MainUiState(),
-                homeUiState = HomeUiState(),
+                homeUiState = HomeUiState(
+                    showWidgets = true,
+                ),
                 rootNavController = rememberNavController(),
                 walletNavController = rememberNavController(),
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Closed),
                 latestActivities = previewActivityItems.take(3),
+                balances = BalanceState(
+                    totalOnchainSats = 165_000u,
+                    totalLightningSats = 45_000u,
+                    totalSats = 200_000u,
+                ),
             )
+            TabBar(modifier = Modifier.align(Alignment.BottomCenter))
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewEmpty() {
+    AppThemeSurface {
+        Box {
+            Content(
+                mainUiState = MainUiState(),
+                homeUiState = HomeUiState(
+                    showEmptyState = true,
+                ),
+                rootNavController = rememberNavController(),
+                walletNavController = rememberNavController(),
+                drawerState = rememberDrawerState(initialValue = DrawerValue.Closed),
+                latestActivities = previewActivityItems.take(3),
+                balances = BalanceState(
+                    totalOnchainSats = 165_000u,
+                    totalLightningSats = 45_000u,
+                    totalSats = 200_000u,
+                )
+            )
+            TabBar(modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }

@@ -649,6 +649,7 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.Settings> {
         SettingsScreen(navController)
     }
+    // TODO: display as sheet
     composableWithDefaultTransitions<Routes.QuickPayIntro> {
         QuickPayIntroScreen(
             onBack = { navController.popBackStack() },

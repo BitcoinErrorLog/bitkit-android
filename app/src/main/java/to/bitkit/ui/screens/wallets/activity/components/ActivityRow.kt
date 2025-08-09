@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -25,6 +26,7 @@ import com.synonym.bitkitcore.PaymentType
 import to.bitkit.R
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.formatted
+import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
 import to.bitkit.ext.totalValue
 import to.bitkit.models.PrimaryDisplay
@@ -48,6 +50,7 @@ import java.time.ZoneId
 fun ActivityRow(
     item: Activity,
     onClick: (String) -> Unit,
+    testTag: String,
 ) {
     val status: PaymentState? = when (item) {
         is Activity.Lightning -> item.v1.status
@@ -68,10 +71,7 @@ fun ActivityRow(
         is Activity.Lightning -> null
         is Activity.Onchain -> item.v1.confirmed
     }
-    val isTransfer = when (item) {
-        is Activity.Lightning -> false
-        is Activity.Onchain -> item.v1.isTransfer
-    }
+    val isTransfer = item.isTransfer()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -79,6 +79,7 @@ fun ActivityRow(
             .fillMaxWidth()
             .clickableAlpha { onClick(item.rawId()) }
             .padding(vertical = 16.dp)
+            .testTag(testTag)
     ) {
         ActivityIcon(activity = item, size = 32.dp)
         Spacer(modifier = Modifier.width(16.dp))
@@ -306,6 +307,7 @@ private fun Preview(@PreviewParameter(ActivityItemsPreviewProvider::class) item:
         ActivityRow(
             item = item,
             onClick = {},
+            testTag = "Activity-",
         )
     }
 }

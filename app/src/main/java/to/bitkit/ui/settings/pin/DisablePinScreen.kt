@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -83,6 +84,7 @@ private fun DisablePinContent(
             PrimaryButton(
                 text = stringResource(R.string.security__pin_disable_button),
                 onClick = onDisableClick,
+                modifier = Modifier.testTag("DisablePin")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -90,7 +92,7 @@ private fun DisablePinContent(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {

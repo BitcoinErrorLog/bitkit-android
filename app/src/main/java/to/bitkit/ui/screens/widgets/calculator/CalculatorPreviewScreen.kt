@@ -156,7 +156,7 @@ fun CalculatorPreviewContent(
                         text = stringResource(R.string.common__delete),
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("delete_button"),
+                            .testTag("WidgetDelete"),
                         fullWidth = false,
                         onClick = onClickDelete
                     )
@@ -166,7 +166,7 @@ fun CalculatorPreviewContent(
                     text = stringResource(R.string.common__save),
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("save_button"),
+                        .testTag("WidgetSave"),
                     fullWidth = false,
                     onClick = onClickSave
                 )

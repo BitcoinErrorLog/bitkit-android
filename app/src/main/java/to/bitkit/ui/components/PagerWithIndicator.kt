@@ -19,14 +19,14 @@ fun PagerWithIndicator(
     pageContent: @Composable (PagerScope.(page: Int) -> Unit),
 ) {
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         HorizontalPager(
             state = pagerState,
             pageContent = pageContent,
             pageSpacing = 20.dp,
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.weight(1f)
+            modifier = modifier.weight(1f)
         )
         @Suppress("DEPRECATION")
         HorizontalPagerIndicator(

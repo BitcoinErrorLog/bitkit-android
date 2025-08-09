@@ -21,10 +21,8 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,11 +44,11 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.Footnote
+import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingSlidesScreen(
     currentTab: Int = 0,
@@ -155,9 +153,9 @@ fun OnboardingSlidesScreen(
         }
     }
 
-    // Toolbar (Skip and Advanced Setup buttons)
-    TopAppBar(
-        title = { },
+    AppTopBar(
+        onBackClick = null,
+        titleText = null,
         actions = {
             if (pagerState.currentPage == 4) {
                 TextButton(

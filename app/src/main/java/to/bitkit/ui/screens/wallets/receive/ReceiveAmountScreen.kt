@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -105,13 +106,14 @@ fun ReceiveAmountScreen(
                         Caption13Up(
                             text = stringResource(R.string.wallet__minimum),
                             color = Colors.White64,
+                            modifier = Modifier.testTag("ReceiveAmountMinimum")
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         MoneySSB(sats = minCjitSats.toLong())
                     }
                 } ?: CircularProgressIndicator(modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.weight(1f))
-                UnitButton()
+                UnitButton(modifier = Modifier.testTag("ReceiveNumberPadUnit"))
             }
 
             Spacer(modifier = Modifier.height(16.dp))

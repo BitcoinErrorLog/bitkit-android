@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -36,15 +37,17 @@ import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.ScreenTransitionMs
+import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.viewmodels.AddTagUiState
 import to.bitkit.viewmodels.TagsViewModel
 
 @Composable
 fun AddTagScreen(
-    viewModel: TagsViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onTagSelected: (String) -> Unit,
+    tqgInputTestTag: String,
+    addButtonTestTag: String? = null,
+    viewModel: TagsViewModel = hiltViewModel(),
 ) {
     val uiState: AddTagUiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -58,6 +61,8 @@ fun AddTagScreen(
         onTagConfirmed = { tag -> onTagSelected(tag) },
         onInputUpdated = { newText -> viewModel.onInputUpdated(newText) },
         onBack = onBack,
+        tagInputTestTag = tqgInputTestTag,
+        addButtonTestTag = addButtonTestTag,
     )
 }
 
@@ -70,11 +75,13 @@ fun AddTagContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     focusOnShow: Boolean = false,
+    tagInputTestTag: String? = null,
+    addButtonTestTag: String? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(focusOnShow) {
         if (focusOnShow) {
-            delay(ScreenTransitionMs)
+            delay(TRANSITION_SCREEN_MS)
             focusRequester.requestFocus()
         }
     }
@@ -125,6 +132,7 @@ fun AddTagContent(
                 modifier = Modifier
                     .focusRequester(focusRequester)
                     .fillMaxWidth()
+                    .then(tagInputTestTag?.let { Modifier.testTag(it) } ?: Modifier)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -133,6 +141,8 @@ fun AddTagContent(
                 text = stringResource(R.string.wallet__tags_add_button),
                 onClick = { onTagConfirmed(uiState.tagInput) },
                 enabled = uiState.tagInput.isNotBlank(),
+                modifier = Modifier
+                    .then(addButtonTestTag?.let { Modifier.testTag(it) } ?: Modifier)
             )
             Spacer(modifier = Modifier.height(16.dp))
         }

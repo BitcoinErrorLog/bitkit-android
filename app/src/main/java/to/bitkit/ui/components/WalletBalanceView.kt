@@ -16,10 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import to.bitkit.models.BITCOIN_SYMBOL
+import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.ConvertedAmount
 import to.bitkit.models.PrimaryDisplay
+import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.settingsViewModel
@@ -34,6 +38,26 @@ fun RowScope.WalletBalanceView(
     icon: Painter,
     modifier: Modifier,
 ) {
+    val isPreview = LocalInspectionMode.current
+    if (isPreview) {
+        Content(
+            modifier = modifier,
+            title = title,
+            converted = ConvertedAmount(
+                value = sats.toBigDecimal(),
+                formatted = sats.formatToModernDisplay(),
+                symbol = BITCOIN_SYMBOL,
+                currency = "USD",
+                flag = "",
+                sats = sats,
+            ),
+            icon = icon,
+            primaryDisplay = PrimaryDisplay.BITCOIN,
+            displayUnit = BitcoinDisplayUnit.MODERN,
+            hideBalance = false,
+        )
+    }
+
     val settings = settingsViewModel ?: return
     val currency = currencyViewModel ?: return
     val (_, _, _, _, _, displayUnit, primaryDisplay) = LocalCurrencies.current
@@ -41,6 +65,27 @@ fun RowScope.WalletBalanceView(
 
     val hideBalance by settings.hideBalance.collectAsStateWithLifecycle()
 
+    Content(
+        modifier = modifier,
+        title = title,
+        converted = converted,
+        icon = icon,
+        primaryDisplay = primaryDisplay,
+        displayUnit = displayUnit,
+        hideBalance = hideBalance,
+    )
+}
+
+@Composable
+private fun RowScope.Content(
+    modifier: Modifier,
+    title: String,
+    converted: ConvertedAmount?,
+    icon: Painter,
+    primaryDisplay: PrimaryDisplay,
+    displayUnit: BitcoinDisplayUnit,
+    hideBalance: Boolean,
+) {
     Column(
         modifier = Modifier
             .weight(1f)

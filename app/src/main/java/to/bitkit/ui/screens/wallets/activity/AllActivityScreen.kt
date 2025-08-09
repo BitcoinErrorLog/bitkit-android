@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -156,7 +157,7 @@ private fun AllActivityScreenContent(
                 .hazeSource(state = hazeState)
                 .zIndex(0f)
         ) {
-            ActivityListGrouped(
+                ActivityListGrouped(
                 items = filteredActivities,
                 onActivityItemClick = onActivityItemClick,
                 onEmptyActivityRowClick = onEmptyActivityRowClick,
@@ -166,7 +167,8 @@ private fun AllActivityScreenContent(
                         currentTabIndex = currentTabIndex,
                         tabCount = tabs.size,
                         onTabChange = onTabChange,
-                    )
+                        )
+                        .testTag("ActivityList")
                     .padding(horizontal = 16.dp)
             )
         }

@@ -1,6 +1,7 @@
 package to.bitkit.ui.settings.advanced
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -128,14 +130,19 @@ private fun Content(
             BodyM(stringResource(R.string.settings__es__connected_to), color = Colors.White64)
             VerticalSpacer(4.dp)
 
-            BodyM(
-                text = if (uiState.isConnected && uiState.connectedPeer != null) {
-                    "${uiState.connectedPeer.host}:${uiState.connectedPeer.port}"
-                } else {
-                    stringResource(R.string.settings__es__disconnected)
-                },
-                color = if (uiState.isConnected) Colors.Green else Colors.Red,
-            )
+            Box(
+                modifier = Modifier.testTag("ElectrumStatus")
+            ) {
+                BodyM(
+                    text = if (uiState.isConnected && uiState.connectedPeer != null) {
+                        "${uiState.connectedPeer.host}:${uiState.connectedPeer.port}"
+                    } else {
+                        stringResource(R.string.settings__es__disconnected)
+                    },
+                    color = if (uiState.isConnected) Colors.Green else Colors.Red,
+                    modifier = Modifier.testTag(if (uiState.isConnected) "Connected" else "Disconnected")
+                )
+            }
 
             VerticalSpacer(32.dp)
 
@@ -146,7 +153,9 @@ private fun Content(
                 value = uiState.host,
                 onValueChange = onChangeHost,
                 placeholder = "127.0.0.1",
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("HostInput")
             )
 
             VerticalSpacer(16.dp)
@@ -159,7 +168,9 @@ private fun Content(
                 onValueChange = onChangePort,
                 placeholder = "50001",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("PortInput")
             )
 
             VerticalSpacer(28.dp)
@@ -171,13 +182,14 @@ private fun Content(
                 title = "TCP",
                 value = SettingsButtonValue.BooleanValue(uiState.protocol == ElectrumProtocol.TCP),
                 enabled = !uiState.isLoading,
-                onClick = { onChangeProtocol(ElectrumProtocol.TCP) }
+                onClick = { onChangeProtocol(ElectrumProtocol.TCP) },
             )
             SettingsButtonRow(
                 title = "TLS",
                 value = SettingsButtonValue.BooleanValue(uiState.protocol == ElectrumProtocol.SSL),
                 enabled = !uiState.isLoading,
-                onClick = { onChangeProtocol(ElectrumProtocol.SSL) }
+                onClick = { onChangeProtocol(ElectrumProtocol.SSL) },
+                modifier = Modifier.testTag("ElectrumProtocol")
             )
 
             FillHeight()
@@ -191,7 +203,9 @@ private fun Content(
                     text = stringResource(R.string.settings__es__button_reset),
                     onClick = onClickReset,
                     enabled = !uiState.isLoading,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ResetToDefault")
                 )
 
                 PrimaryButton(
@@ -199,7 +213,9 @@ private fun Content(
                     onClick = onClickConnect,
                     enabled = !uiState.isLoading && uiState.hasEdited || !uiState.isConnected,
                     isLoading = uiState.isLoading,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ConnectToHost")
                 )
             }
             VerticalSpacer(16.dp)

@@ -16,20 +16,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -59,6 +52,7 @@ import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -67,7 +61,6 @@ import to.bitkit.utils.bip39Words
 import to.bitkit.utils.isBip39
 import to.bitkit.utils.validBip39Checksum
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestoreWalletView(
     onBackClick: () -> Unit,
@@ -121,19 +114,10 @@ fun RestoreWalletView(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.common__back),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
+            AppTopBar(
+                titleText = null,
+                onBackClick = onBackClick,
             )
         }
     ) { paddingValues ->
@@ -430,7 +414,7 @@ fun MnemonicInputField(
     value: String,
     onValueChanged: (String) -> Unit,
     onFocusChanged: (Boolean) -> Unit,
-    onPositionChanged: (Int) -> Unit
+    onPositionChanged: (Int) -> Unit,
 ) {
     OutlinedTextField(
         value = value,
@@ -466,7 +450,7 @@ private fun handlePastedWords(
     words: SnapshotStateList<String>,
     onWordCountChanged: (Boolean) -> Unit,
     onFirstWordChanged: (String) -> Unit,
-    onInvalidWords: (List<Int>) -> Unit
+    onInvalidWords: (List<Int>) -> Unit,
 ) {
     val pastedWords = pastedText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     if (pastedWords.size == 12 || pastedWords.size == 24) {
@@ -494,7 +478,7 @@ private fun updateWordValidity(
     index: Int,
     words: SnapshotStateList<String>,
     invalidWordIndices: SnapshotStateList<Int>,
-    onWordUpdate: ((String) -> Unit)? = null
+    onWordUpdate: ((String) -> Unit)? = null,
 ) {
     words[index] = newValue
     onWordUpdate?.invoke(newValue)

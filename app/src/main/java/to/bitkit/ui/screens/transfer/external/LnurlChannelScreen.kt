@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -119,26 +120,28 @@ private fun Content(
                 VerticalSpacer(32.dp)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     SecondaryButton(
                         text = stringResource(R.string.common__cancel),
                         onClick = onCancel,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f)
                     )
                     PrimaryButton(
                         text = stringResource(R.string.common__connect),
                         onClick = onConnect,
-                        modifier = Modifier.weight(1f),
                         isLoading = uiState.isConnecting,
                         enabled = !uiState.isConnecting,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ConnectButton")
                     )
                 }
             } else {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     CircularProgressIndicator()
                 }
@@ -165,7 +168,7 @@ private fun InfoRow(
     HorizontalDivider()
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
@@ -181,7 +184,7 @@ private fun Preview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewLoading() {
     AppThemeSurface {
