@@ -51,8 +51,8 @@ open class RustBuffer : Structure() {
             _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rustbuffer_alloc(size, status)
         }.also {
             if(it.data == null) {
-                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
-            }
+               throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
+           }
         }
 
         internal fun create(capacity: Int, len: Int, data: Pointer?): RustBuffer.ByValue {
@@ -175,11 +175,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun liftFromRustBuffer(rbuf: RustBuffer.ByValue): KotlinType {
         val byteBuf = rbuf.asByteBuffer()!!
         try {
-            val item = read(byteBuf)
-            if (byteBuf.hasRemaining()) {
-                throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
-            }
-            return item
+           val item = read(byteBuf)
+           if (byteBuf.hasRemaining()) {
+               throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
+           }
+           return item
         } finally {
             RustBuffer.free(rbuf)
         }
@@ -377,10 +377,10 @@ internal interface _UniFFILib : Library {
     companion object {
         internal val INSTANCE: _UniFFILib by lazy {
             loadIndirect<_UniFFILib>(componentName = "vss_rust_client_ffi")
-                .also { lib: _UniFFILib ->
-                    uniffiCheckContractApiVersion(lib)
-                    uniffiCheckApiChecksums(lib)
-                    uniffiRustFutureContinuationCallback.register(lib)
+            .also { lib: _UniFFILib ->
+                uniffiCheckContractApiVersion(lib)
+                uniffiCheckApiChecksums(lib)
+                uniffiRustFutureContinuationCallback.register(lib)
                 }
         }
     }
@@ -397,17 +397,17 @@ internal interface _UniFFILib : Library {
     ): Pointer
     fun uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(`items`: RustBuffer.ByValue,
     ): Pointer
-    fun uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_uniffi_out_err: RustCallStatus,
+    fun uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_uniffi_out_err: RustCallStatus, 
     ): Unit
     fun uniffi_vss_rust_client_ffi_fn_func_vss_store(`key`: RustBuffer.ByValue,`value`: RustBuffer.ByValue,
     ): Pointer
-    fun ffi_vss_rust_client_ffi_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_vss_rust_client_ffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_vss_rust_client_ffi_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    fun ffi_vss_rust_client_ffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_vss_rust_client_ffi_rust_future_continuation_callback_set(`callback`: UniFffiRustFutureContinuationCallbackType,
     ): Unit
@@ -417,7 +417,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_u8(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
     fun ffi_vss_rust_client_ffi_rust_future_poll_i8(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -425,7 +425,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_i8(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
     fun ffi_vss_rust_client_ffi_rust_future_poll_u16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -433,7 +433,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_u16(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
     fun ffi_vss_rust_client_ffi_rust_future_poll_i16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -441,7 +441,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_i16(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
     fun ffi_vss_rust_client_ffi_rust_future_poll_u32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -449,7 +449,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_u32(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
     fun ffi_vss_rust_client_ffi_rust_future_poll_i32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -457,7 +457,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_i32(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
     fun ffi_vss_rust_client_ffi_rust_future_poll_u64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -465,7 +465,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_u64(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
     fun ffi_vss_rust_client_ffi_rust_future_poll_i64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -473,7 +473,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_i64(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
     fun ffi_vss_rust_client_ffi_rust_future_poll_f32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -481,7 +481,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_f32(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Float
     fun ffi_vss_rust_client_ffi_rust_future_poll_f64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -489,7 +489,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_f64(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Double
     fun ffi_vss_rust_client_ffi_rust_future_poll_pointer(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -497,7 +497,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_pointer(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
     fun ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -505,7 +505,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_vss_rust_client_ffi_rust_future_poll_void(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -513,7 +513,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_vss_rust_client_ffi_rust_future_free_void(`handle`: Pointer,
     ): Unit
-    fun ffi_vss_rust_client_ffi_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_vss_rust_client_ffi_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
     fun uniffi_vss_rust_client_ffi_checksum_func_vss_delete(
     ): Short
@@ -533,7 +533,7 @@ internal interface _UniFFILib : Library {
     ): Short
     fun ffi_vss_rust_client_ffi_uniffi_contract_version(
     ): Int
-
+    
 }
 
 private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
@@ -737,10 +737,10 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
 
 
 data class KeyValue (
-    var `key`: String,
+    var `key`: String, 
     var `value`: ByteArray
 ) {
-
+    
     companion object
 }
 
@@ -753,13 +753,13 @@ public object FfiConverterTypeKeyValue: FfiConverterRustBuffer<KeyValue> {
     }
 
     override fun allocationSize(value: KeyValue) = (
-        FfiConverterString.allocationSize(value.`key`) +
+            FfiConverterString.allocationSize(value.`key`) +
             FfiConverterByteArray.allocationSize(value.`value`)
-        )
+    )
 
     override fun write(value: KeyValue, buf: ByteBuffer) {
-        FfiConverterString.write(value.`key`, buf)
-        FfiConverterByteArray.write(value.`value`, buf)
+            FfiConverterString.write(value.`key`, buf)
+            FfiConverterByteArray.write(value.`value`, buf)
     }
 }
 
@@ -767,10 +767,10 @@ public object FfiConverterTypeKeyValue: FfiConverterRustBuffer<KeyValue> {
 
 
 data class KeyVersion (
-    var `key`: String,
+    var `key`: String, 
     var `version`: Long
 ) {
-
+    
     companion object
 }
 
@@ -783,13 +783,13 @@ public object FfiConverterTypeKeyVersion: FfiConverterRustBuffer<KeyVersion> {
     }
 
     override fun allocationSize(value: KeyVersion) = (
-        FfiConverterString.allocationSize(value.`key`) +
+            FfiConverterString.allocationSize(value.`key`) +
             FfiConverterLong.allocationSize(value.`version`)
-        )
+    )
 
     override fun write(value: KeyVersion, buf: ByteBuffer) {
-        FfiConverterString.write(value.`key`, buf)
-        FfiConverterLong.write(value.`version`, buf)
+            FfiConverterString.write(value.`key`, buf)
+            FfiConverterLong.write(value.`version`, buf)
     }
 }
 
@@ -799,7 +799,7 @@ public object FfiConverterTypeKeyVersion: FfiConverterRustBuffer<KeyVersion> {
 data class ListKeyVersionsResponse (
     var `keyVersions`: List<KeyVersion>
 ) {
-
+    
     companion object
 }
 
@@ -811,11 +811,11 @@ public object FfiConverterTypeListKeyVersionsResponse: FfiConverterRustBuffer<Li
     }
 
     override fun allocationSize(value: ListKeyVersionsResponse) = (
-        FfiConverterSequenceTypeKeyVersion.allocationSize(value.`keyVersions`)
-        )
+            FfiConverterSequenceTypeKeyVersion.allocationSize(value.`keyVersions`)
+    )
 
     override fun write(value: ListKeyVersionsResponse, buf: ByteBuffer) {
-        FfiConverterSequenceTypeKeyVersion.write(value.`keyVersions`, buf)
+            FfiConverterSequenceTypeKeyVersion.write(value.`keyVersions`, buf)
     }
 }
 
@@ -823,11 +823,11 @@ public object FfiConverterTypeListKeyVersionsResponse: FfiConverterRustBuffer<Li
 
 
 data class VssItem (
-    var `key`: String,
-    var `value`: ByteArray,
+    var `key`: String, 
+    var `value`: ByteArray, 
     var `version`: Long
 ) {
-
+    
     companion object
 }
 
@@ -841,15 +841,15 @@ public object FfiConverterTypeVssItem: FfiConverterRustBuffer<VssItem> {
     }
 
     override fun allocationSize(value: VssItem) = (
-        FfiConverterString.allocationSize(value.`key`) +
+            FfiConverterString.allocationSize(value.`key`) +
             FfiConverterByteArray.allocationSize(value.`value`) +
             FfiConverterLong.allocationSize(value.`version`)
-        )
+    )
 
     override fun write(value: VssItem, buf: ByteBuffer) {
-        FfiConverterString.write(value.`key`, buf)
-        FfiConverterByteArray.write(value.`value`, buf)
-        FfiConverterLong.write(value.`version`, buf)
+            FfiConverterString.write(value.`key`, buf)
+            FfiConverterByteArray.write(value.`value`, buf)
+            FfiConverterLong.write(value.`version`, buf)
     }
 }
 
@@ -859,120 +859,120 @@ public object FfiConverterTypeVssItem: FfiConverterRustBuffer<VssItem> {
 
 sealed class VssException: Exception() {
     // Each variant is a nested class
-
+    
     class ConnectionException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class AuthException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class StoreException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class GetException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class ListException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class PutException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class DeleteException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class InvalidData(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class NetworkException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
     class UnknownException(
         val `errorDetails`: String
-    ) : VssException() {
+        ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
-
+    
 
     companion object ErrorHandler : CallStatusErrorHandler<VssException> {
         override fun lift(error_buf: RustBuffer.ByValue): VssException = FfiConverterTypeVssError.lift(error_buf)
     }
 
-
+    
 }
 
 public object FfiConverterTypeVssError : FfiConverterRustBuffer<VssException> {
     override fun read(buf: ByteBuffer): VssException {
-
+        
 
         return when(buf.getInt()) {
             1 -> VssException.ConnectionException(
                 FfiConverterString.read(buf),
-            )
+                )
             2 -> VssException.AuthException(
                 FfiConverterString.read(buf),
-            )
+                )
             3 -> VssException.StoreException(
                 FfiConverterString.read(buf),
-            )
+                )
             4 -> VssException.GetException(
                 FfiConverterString.read(buf),
-            )
+                )
             5 -> VssException.ListException(
                 FfiConverterString.read(buf),
-            )
+                )
             6 -> VssException.PutException(
                 FfiConverterString.read(buf),
-            )
+                )
             7 -> VssException.DeleteException(
                 FfiConverterString.read(buf),
-            )
+                )
             8 -> VssException.InvalidData(
                 FfiConverterString.read(buf),
-            )
+                )
             9 -> VssException.NetworkException(
                 FfiConverterString.read(buf),
-            )
+                )
             10 -> VssException.UnknownException(
                 FfiConverterString.read(buf),
-            )
+                )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -982,53 +982,53 @@ public object FfiConverterTypeVssError : FfiConverterRustBuffer<VssException> {
             is VssException.ConnectionException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.AuthException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.StoreException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.GetException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.ListException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.PutException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.DeleteException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.InvalidData -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.NetworkException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
             is VssException.UnknownException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                    + FfiConverterString.allocationSize(value.`errorDetails`)
-                )
+                + FfiConverterString.allocationSize(value.`errorDetails`)
+            )
         }
     }
 
@@ -1320,7 +1320,7 @@ suspend fun `vssNewClient`(`baseUrl`: String, `storeId`: String) {
         { future -> _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_free_void(future) },
         // lift function
         { Unit },
-
+        
         // Error FFI converter
         VssException.ErrorHandler,
     )
@@ -1342,10 +1342,10 @@ suspend fun `vssPutWithKeyPrefix`(`items`: List<KeyValue>) : List<VssItem> {
 }
 
 fun `vssShutdownClient`() =
-
+    
     rustCall() { _status ->
-        _UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_status)
-    }
+    _UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_status)
+}
 
 
 @Throws(VssException::class)
