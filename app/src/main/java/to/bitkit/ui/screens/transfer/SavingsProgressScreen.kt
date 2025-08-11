@@ -103,7 +103,9 @@ private fun SavingsProgressScreen(
                     text = when (progressState) {
                         SavingsProgressState.PROGRESS -> stringResource(R.string.lightning__transfer__nav_title)
                         SavingsProgressState.SUCCESS -> stringResource(R.string.lightning__transfer_success__nav_title)
-                        SavingsProgressState.INTERRUPTED -> stringResource(R.string.lightning__savings_interrupted__nav_title)
+                        SavingsProgressState.INTERRUPTED -> stringResource(
+                            R.string.lightning__savings_interrupted__nav_title
+                        )
                             .removeAccentTags().replace("\n", " ")
                     }
                 )

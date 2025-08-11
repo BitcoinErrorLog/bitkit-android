@@ -39,10 +39,10 @@ object BalanceAnimations {
         initialOffsetX = { if (it > 0) -it / 3 else it / 3 },
         animationSpec = tween(400)
     ) + fadeIn(animationSpec = tween(400)) togetherWith
-    slideOutHorizontally(
-        targetOffsetX = { if (it > 0) it / 3 else -it / 3 },
-        animationSpec = tween(400)
-    ) + fadeOut(animationSpec = tween(400))
+        slideOutHorizontally(
+            targetOffsetX = { if (it > 0) it / 3 else -it / 3 },
+            animationSpec = tween(400)
+        ) + fadeOut(animationSpec = tween(400))
 
     /**
      * Activity list amount transition
@@ -52,10 +52,10 @@ object BalanceAnimations {
         initialOffsetX = { if (it > 0) it / 3 else -it / 3 },
         animationSpec = tween(350)
     ) + fadeIn(animationSpec = tween(350)) togetherWith
-    slideOutHorizontally(
-        targetOffsetX = { if (it > 0) -it / 3 else it / 3 },
-        animationSpec = tween(350)
-    ) + fadeOut(animationSpec = tween(350))
+        slideOutHorizontally(
+            targetOffsetX = { if (it > 0) -it / 3 else it / 3 },
+            animationSpec = tween(350)
+        ) + fadeOut(animationSpec = tween(350))
 
     /**
      * Activity list subtitle transition
@@ -65,10 +65,10 @@ object BalanceAnimations {
         initialOffsetX = { if (it > 0) it / 4 else -it / 4 },
         animationSpec = tween(300, delayMillis = 50)
     ) + fadeIn(animationSpec = tween(300, delayMillis = 50)) togetherWith
-    slideOutHorizontally(
-        targetOffsetX = { if (it > 0) -it / 4 else it / 4 },
-        animationSpec = tween(300)
-    ) + fadeOut(animationSpec = tween(300))
+        slideOutHorizontally(
+            targetOffsetX = { if (it > 0) -it / 4 else it / 4 },
+            animationSpec = tween(300)
+        ) + fadeOut(animationSpec = tween(300))
 
     /**
      * Wallet balance view transition (savings/spending)
@@ -78,10 +78,10 @@ object BalanceAnimations {
         initialOffsetX = { if (it > 0) -it / 3 else it / 3 },
         animationSpec = tween(380)
     ) + fadeIn(animationSpec = tween(380)) togetherWith
-    slideOutHorizontally(
-        targetOffsetX = { if (it > 0) it / 3 else -it / 3 },
-        animationSpec = tween(380)
-    ) + fadeOut(animationSpec = tween(380))
+        slideOutHorizontally(
+            targetOffsetX = { if (it > 0) it / 3 else -it / 3 },
+            animationSpec = tween(380)
+        ) + fadeOut(animationSpec = tween(380))
 
     /**
      * Eye icon transition

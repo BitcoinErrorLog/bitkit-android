@@ -98,7 +98,9 @@ class LightningRepo @Inject constructor(
         // If node is not in a state that can become running, fail fast
         if (!_lightningState.value.nodeLifecycleState.canRun()) {
             return@withContext Result.failure(
-                Exception("Cannot execute $operationName: Node is ${_lightningState.value.nodeLifecycleState} and not starting")
+                Exception(
+                    "Cannot execute $operationName: Node is ${_lightningState.value.nodeLifecycleState} and not starting"
+                )
             )
         }
 
@@ -406,7 +408,6 @@ class LightningRepo @Inject constructor(
         description: String,
         expirySeconds: UInt = 86_400u,
     ): Result<String> = executeWhenNodeRunning("Create invoice") {
-
         if (coreService.shouldBlockLightning()) {
             return@executeWhenNodeRunning Result.failure(ServiceError.GeoBlocked)
         }
@@ -726,7 +727,9 @@ class LightningRepo @Inject constructor(
                 txid = originalTxId,
                 satsPerVByte = satsPerVByte,
             )
-            Logger.debug("bumpFeeByRbf success, replacementTxId: $replacementTxId originalTxId: $originalTxId, satsPerVByte: $satsPerVByte")
+            Logger.debug(
+                "bumpFeeByRbf success, replacementTxId: $replacementTxId originalTxId: $originalTxId, satsPerVByte: $satsPerVByte"
+            )
             Result.success(replacementTxId)
         } catch (e: Throwable) {
             Logger.error(
@@ -773,7 +776,9 @@ class LightningRepo @Inject constructor(
                 satsPerVByte = satsPerVByte,
                 destinationAddress = destinationAddress,
             )
-            Logger.debug("accelerateByCpfp success, newDestinationTxId: $newDestinationTxId originalTxId: $originalTxId, satsPerVByte: $satsPerVByte destinationAddress: $destinationAddress")
+            Logger.debug(
+                "accelerateByCpfp success, newDestinationTxId: $newDestinationTxId originalTxId: $originalTxId, satsPerVByte: $satsPerVByte destinationAddress: $destinationAddress"
+            )
             Result.success(newDestinationTxId)
         } catch (e: Throwable) {
             Logger.error(

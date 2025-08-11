@@ -2,12 +2,12 @@ package to.bitkit.models
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import kotlinx.serialization.Serializable
 import to.bitkit.di.json
 import to.bitkit.utils.Logger
-import androidx.core.content.edit
 
 private const val APP_PREFS = "bitkit_prefs"
 

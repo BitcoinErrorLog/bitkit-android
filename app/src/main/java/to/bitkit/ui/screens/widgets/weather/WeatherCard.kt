@@ -166,7 +166,6 @@ fun WeatherCard(
                     )
                 }
             }
-
         }
     }
 }

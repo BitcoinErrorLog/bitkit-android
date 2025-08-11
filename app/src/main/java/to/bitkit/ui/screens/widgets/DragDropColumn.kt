@@ -45,7 +45,9 @@ fun DragDropColumn(
                     .then(
                         if (isDragging) {
                             Modifier.shadow(8.dp)
-                        } else Modifier
+                        } else {
+                            Modifier
+                        }
                     )
                     .pointerInput(Unit) {
                         detectDragGesturesAfterLongPress(

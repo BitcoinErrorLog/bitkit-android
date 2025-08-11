@@ -39,7 +39,6 @@ fun FactsCard(
     showSource: Boolean = true,
     headline: String,
 ) {
-
     Box(
         modifier = modifier
             .clip(shape = MaterialTheme.shapes.medium)

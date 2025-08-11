@@ -57,9 +57,11 @@ class ReportIssueViewModel @Inject constructor(
     }
 
     private fun updateSendButton() {
-        _uiState.update { it.copy(
-            isSendEnabled = !it.errorEmail && it.emailInput.isNotBlank() && it.messageInput.isNotBlank()
-        ) }
+        _uiState.update {
+            it.copy(
+                isSendEnabled = !it.errorEmail && it.emailInput.isNotBlank() && it.messageInput.isNotBlank()
+            )
+        }
     }
 }
 

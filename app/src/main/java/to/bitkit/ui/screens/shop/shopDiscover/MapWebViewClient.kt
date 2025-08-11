@@ -1,10 +1,8 @@
 package to.bitkit.ui.screens.shop.shopDiscover
 
-import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import to.bitkit.utils.Logger

@@ -10,14 +10,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
-import to.bitkit.services.CoreService
-import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 @HiltViewModel
 class TagsViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
-): ViewModel() {
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddTagUiState())
     val uiState = _uiState.asStateFlow()

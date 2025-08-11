@@ -24,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.models.widget.FactsPreferences
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.BodyMB
 import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
@@ -34,7 +33,6 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-
 
 @Composable
 fun FactsEditScreen(
@@ -205,7 +203,6 @@ fun FactsEditContent(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

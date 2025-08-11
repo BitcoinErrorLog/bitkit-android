@@ -60,7 +60,6 @@ class WalletViewModelTest : BaseUnitTest() {
         verify(lightningRepo).setInitNodeLifecycleState()
     }
 
-
     @Test
     fun `refreshState should sync wallet`() = test {
         sut.refreshState()

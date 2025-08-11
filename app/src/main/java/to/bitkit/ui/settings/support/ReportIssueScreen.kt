@@ -39,7 +39,6 @@ object ReportIssueTestTags {
     const val CLOSE_BUTTON = "report_issue_close_button"
 }
 
-
 @Composable
 fun ReportIssueScreen(
     viewModel: ReportIssueViewModel = hiltViewModel(),
@@ -47,7 +46,6 @@ fun ReportIssueScreen(
     onClose: () -> Unit,
     navigateResultScreen: (Boolean) -> Unit,
 ) {
-
     LaunchedEffect(Unit) {
         viewModel.reportIssueEffect.collect { event ->
             when (event) {

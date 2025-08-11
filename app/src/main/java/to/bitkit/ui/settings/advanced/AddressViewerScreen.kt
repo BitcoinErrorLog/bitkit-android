@@ -182,8 +182,11 @@ private fun AddressViewerContent(
             // Address List
             val filteredAddresses = remember(uiState.addresses, uiState.searchText) {
                 uiState.addresses.filter { address ->
-                    if (uiState.searchText.isBlank()) true
-                    else address.address.contains(uiState.searchText, ignoreCase = true)
+                    if (uiState.searchText.isBlank()) {
+                        true
+                    } else {
+                        address.address.contains(uiState.searchText, ignoreCase = true)
+                    }
                 }
             }
 

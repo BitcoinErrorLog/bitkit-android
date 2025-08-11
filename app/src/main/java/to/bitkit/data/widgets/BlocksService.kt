@@ -97,7 +97,6 @@ class BlocksService @Inject constructor(
     }
 }
 
-
 /**
  * Block-specific error types
  */

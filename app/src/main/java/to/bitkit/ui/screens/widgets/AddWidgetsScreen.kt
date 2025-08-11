@@ -94,7 +94,6 @@ fun AddWidgetsScreen(
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
 private fun Preview() {

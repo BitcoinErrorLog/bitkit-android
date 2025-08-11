@@ -317,7 +317,6 @@ private fun PreviewWithSomeOptionsEnabled() {
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
 private fun PreviewWithAllDisabled() {

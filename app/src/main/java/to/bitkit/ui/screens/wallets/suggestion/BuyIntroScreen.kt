@@ -50,7 +50,6 @@ fun BuyIntroContent(
     val context = LocalContext.current
 
     ScreenColumn {
-
         AppTopBar(
             titleText = "",
             onBackClick = onBackClick,

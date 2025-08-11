@@ -66,7 +66,6 @@ class FactsViewModel @Inject constructor(
 
     // MARK: - Public Methods
 
-
     fun toggleShowSource() {
         _customPreferences.update { preferences ->
             preferences.copy(showSource = !preferences.showSource)

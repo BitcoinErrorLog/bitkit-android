@@ -158,7 +158,9 @@ fun ReceiveQrScreen(
                 Column {
                     AnimatedVisibility(!walletState.receiveOnSpendingBalance) {
                         Headline(
-                            text = stringResource(R.string.wallet__receive_text_lnfunds).withAccent(accentColor = Colors.Purple)
+                            text = stringResource(
+                                R.string.wallet__receive_text_lnfunds
+                            ).withAccent(accentColor = Colors.Purple)
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -389,7 +391,6 @@ private fun CopyAddressCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             Tooltip(
                 text = stringResource(R.string.wallet__receive_copied),
                 tooltipState = tooltipState,

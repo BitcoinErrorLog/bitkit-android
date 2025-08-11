@@ -368,9 +368,11 @@ private fun ActivityDetailContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickableAlpha(onClick = copyToClipboard(message) {
-                        onCopy(message)
-                    })
+                    .clickableAlpha(
+                        onClick = copyToClipboard(message) {
+                            onCopy(message)
+                        }
+                    )
             ) {
                 Caption13Up(
                     text = stringResource(R.string.wallet__activity_invoice_note),

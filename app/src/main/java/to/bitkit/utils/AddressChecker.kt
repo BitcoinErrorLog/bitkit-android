@@ -47,8 +47,6 @@ class AddressChecker @Inject constructor(
             throw AddressCheckerError.NetworkError(e)
         }
     }
-
-
 }
 
 @Suppress("PropertyName")

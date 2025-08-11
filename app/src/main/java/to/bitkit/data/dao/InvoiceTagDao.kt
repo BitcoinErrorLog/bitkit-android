@@ -14,7 +14,7 @@ interface InvoiceTagDao {
     suspend fun saveInvoice(invoiceTag: InvoiceTagEntity)
 
     @Query("SELECT * FROM invoice_tag WHERE paymentHash = :paymentHash LIMIT 1")
-    suspend fun searchInvoice(paymentHash: String) : InvoiceTagEntity?
+    suspend fun searchInvoice(paymentHash: String): InvoiceTagEntity?
 
     @Delete
     suspend fun deleteInvoice(invoiceTag: InvoiceTagEntity)

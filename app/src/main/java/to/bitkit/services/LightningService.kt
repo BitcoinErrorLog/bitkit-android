@@ -606,7 +606,9 @@ class LightningService @Inject constructor(
                 val paymentId = event.paymentId ?: "?"
                 val paymentHash = event.paymentHash
                 val feePaidMsat = event.feePaidMsat ?: 0
-                Logger.info("✅ Payment successful: paymentId: $paymentId paymentHash: $paymentHash feePaidMsat: $feePaidMsat")
+                Logger.info(
+                    "✅ Payment successful: paymentId: $paymentId paymentHash: $paymentHash feePaidMsat: $feePaidMsat"
+                )
             }
 
             is Event.PaymentFailed -> {
@@ -620,14 +622,18 @@ class LightningService @Inject constructor(
                 val paymentId = event.paymentId ?: "?"
                 val paymentHash = event.paymentHash
                 val amountMsat = event.amountMsat
-                Logger.info("🤑 Payment received: paymentId: $paymentId paymentHash: $paymentHash amountMsat: $amountMsat")
+                Logger.info(
+                    "🤑 Payment received: paymentId: $paymentId paymentHash: $paymentHash amountMsat: $amountMsat"
+                )
             }
 
             is Event.PaymentClaimable -> {
                 val paymentId = event.paymentId
                 val paymentHash = event.paymentHash
                 val claimableAmountMsat = event.claimableAmountMsat
-                Logger.info("🫰 Payment claimable: paymentId: $paymentId paymentHash: $paymentHash claimableAmountMsat: $claimableAmountMsat")
+                Logger.info(
+                    "🫰 Payment claimable: paymentId: $paymentId paymentHash: $paymentHash claimableAmountMsat: $claimableAmountMsat"
+                )
             }
 
             is Event.PaymentForwarded -> Unit
@@ -638,14 +644,18 @@ class LightningService @Inject constructor(
                 val formerTemporaryChannelId = event.formerTemporaryChannelId
                 val counterpartyNodeId = event.counterpartyNodeId
                 val fundingTxo = event.fundingTxo
-                Logger.info("⏳ Channel pending: channelId: $channelId userChannelId: $userChannelId formerTemporaryChannelId: $formerTemporaryChannelId counterpartyNodeId: $counterpartyNodeId fundingTxo: $fundingTxo")
+                Logger.info(
+                    "⏳ Channel pending: channelId: $channelId userChannelId: $userChannelId formerTemporaryChannelId: $formerTemporaryChannelId counterpartyNodeId: $counterpartyNodeId fundingTxo: $fundingTxo"
+                )
             }
 
             is Event.ChannelReady -> {
                 val channelId = event.channelId
                 val userChannelId = event.userChannelId
                 val counterpartyNodeId = event.counterpartyNodeId ?: "?"
-                Logger.info("👐 Channel ready: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId")
+                Logger.info(
+                    "👐 Channel ready: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId"
+                )
             }
 
             is Event.ChannelClosed -> {
@@ -653,7 +663,9 @@ class LightningService @Inject constructor(
                 val userChannelId = event.userChannelId
                 val counterpartyNodeId = event.counterpartyNodeId ?: "?"
                 val reason = event.reason
-                Logger.info("⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason")
+                Logger.info(
+                    "⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason"
+                )
             }
         }
     }

@@ -20,8 +20,8 @@ import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.KEY_DELETE
-import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.components.NumberPadSimple
+import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.navigateToChangePinConfirm
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar

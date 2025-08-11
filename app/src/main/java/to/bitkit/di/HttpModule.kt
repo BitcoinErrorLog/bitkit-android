@@ -17,7 +17,6 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import to.bitkit.utils.Logger
-import javax.inject.Qualifier
 import javax.inject.Singleton
 import io.ktor.client.plugins.logging.Logger as KtorLogger
 

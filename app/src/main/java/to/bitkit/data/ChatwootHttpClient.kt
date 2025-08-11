@@ -7,7 +7,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
-import to.bitkit.BuildConfig
 import to.bitkit.env.Env
 import to.bitkit.models.ChatwootMessage
 import to.bitkit.utils.AppError

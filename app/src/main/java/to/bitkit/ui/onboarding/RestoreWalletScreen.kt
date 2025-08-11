@@ -272,7 +272,11 @@ fun RestoreWalletView(
                     OutlinedTextField(
                         value = bip39Passphrase,
                         onValueChange = { bip39Passphrase = it },
-                        placeholder = { Text(text = stringResource(R.string.onboarding__restore_passphrase_placeholder)) },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.onboarding__restore_passphrase_placeholder)
+                            )
+                        },
                         shape = RoundedCornerShape(8.dp),
                         colors = AppTextFieldDefaults.semiTransparent,
                         singleLine = true,
@@ -302,7 +306,9 @@ fun RestoreWalletView(
 
                 AnimatedVisibility(visible = invalidWordIndices.isNotEmpty()) {
                     BodyS(
-                        text = stringResource(R.string.onboarding__restore_red_explain).withAccent(accentColor = Colors.Red),
+                        text = stringResource(
+                            R.string.onboarding__restore_red_explain
+                        ).withAccent(accentColor = Colors.Red),
                         color = Colors.White64,
                         modifier = Modifier.padding(top = 21.dp)
                     )
@@ -464,7 +470,6 @@ private fun handlePastedWords(
 ) {
     val pastedWords = pastedText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     if (pastedWords.size == 12 || pastedWords.size == 24) {
-
         val invalidWordIndices = pastedWords.withIndex()
             .filter { !it.value.isBip39() }
             .map { it.index }

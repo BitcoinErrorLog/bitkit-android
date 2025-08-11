@@ -30,7 +30,7 @@ private object ColorPalette {
         onSecondary = Color.Black,
         onBackground = Color.Black,
         onSurface = Color.Black,
-        */
+         */
     )
 
     @Stable
