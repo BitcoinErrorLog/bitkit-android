@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.vss_rust_client_ffi;
+package uniffi.vss_rust_client_ffi
 
 // Common helper code.
 //
