@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.vss_rust_client_ffi
+package uniffi.vss_rust_client_ffi;
 
 // Common helper code.
 //
@@ -51,8 +51,8 @@ open class RustBuffer : Structure() {
             _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rustbuffer_alloc(size, status)
         }.also {
             if(it.data == null) {
-               throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
-           }
+                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
+            }
         }
 
         internal fun create(capacity: Int, len: Int, data: Pointer?): RustBuffer.ByValue {
@@ -175,11 +175,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun liftFromRustBuffer(rbuf: RustBuffer.ByValue): KotlinType {
         val byteBuf = rbuf.asByteBuffer()!!
         try {
-           val item = read(byteBuf)
-           if (byteBuf.hasRemaining()) {
-               throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
-           }
-           return item
+            val item = read(byteBuf)
+            if (byteBuf.hasRemaining()) {
+                throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
+            }
+            return item
         } finally {
             RustBuffer.free(rbuf)
         }
@@ -377,10 +377,10 @@ internal interface _UniFFILib : Library {
     companion object {
         internal val INSTANCE: _UniFFILib by lazy {
             loadIndirect<_UniFFILib>(componentName = "vss_rust_client_ffi")
-            .also { lib: _UniFFILib ->
-                uniffiCheckContractApiVersion(lib)
-                uniffiCheckApiChecksums(lib)
-                uniffiRustFutureContinuationCallback.register(lib)
+                .also { lib: _UniFFILib ->
+                    uniffiCheckContractApiVersion(lib)
+                    uniffiCheckApiChecksums(lib)
+                    uniffiRustFutureContinuationCallback.register(lib)
                 }
         }
     }
@@ -753,13 +753,13 @@ public object FfiConverterTypeKeyValue: FfiConverterRustBuffer<KeyValue> {
     }
 
     override fun allocationSize(value: KeyValue) = (
-            FfiConverterString.allocationSize(value.`key`) +
+        FfiConverterString.allocationSize(value.`key`) +
             FfiConverterByteArray.allocationSize(value.`value`)
-    )
+        )
 
     override fun write(value: KeyValue, buf: ByteBuffer) {
-            FfiConverterString.write(value.`key`, buf)
-            FfiConverterByteArray.write(value.`value`, buf)
+        FfiConverterString.write(value.`key`, buf)
+        FfiConverterByteArray.write(value.`value`, buf)
     }
 }
 
@@ -783,13 +783,13 @@ public object FfiConverterTypeKeyVersion: FfiConverterRustBuffer<KeyVersion> {
     }
 
     override fun allocationSize(value: KeyVersion) = (
-            FfiConverterString.allocationSize(value.`key`) +
+        FfiConverterString.allocationSize(value.`key`) +
             FfiConverterLong.allocationSize(value.`version`)
-    )
+        )
 
     override fun write(value: KeyVersion, buf: ByteBuffer) {
-            FfiConverterString.write(value.`key`, buf)
-            FfiConverterLong.write(value.`version`, buf)
+        FfiConverterString.write(value.`key`, buf)
+        FfiConverterLong.write(value.`version`, buf)
     }
 }
 
@@ -811,11 +811,11 @@ public object FfiConverterTypeListKeyVersionsResponse: FfiConverterRustBuffer<Li
     }
 
     override fun allocationSize(value: ListKeyVersionsResponse) = (
-            FfiConverterSequenceTypeKeyVersion.allocationSize(value.`keyVersions`)
-    )
+        FfiConverterSequenceTypeKeyVersion.allocationSize(value.`keyVersions`)
+        )
 
     override fun write(value: ListKeyVersionsResponse, buf: ByteBuffer) {
-            FfiConverterSequenceTypeKeyVersion.write(value.`keyVersions`, buf)
+        FfiConverterSequenceTypeKeyVersion.write(value.`keyVersions`, buf)
     }
 }
 
@@ -841,15 +841,15 @@ public object FfiConverterTypeVssItem: FfiConverterRustBuffer<VssItem> {
     }
 
     override fun allocationSize(value: VssItem) = (
-            FfiConverterString.allocationSize(value.`key`) +
+        FfiConverterString.allocationSize(value.`key`) +
             FfiConverterByteArray.allocationSize(value.`value`) +
             FfiConverterLong.allocationSize(value.`version`)
-    )
+        )
 
     override fun write(value: VssItem, buf: ByteBuffer) {
-            FfiConverterString.write(value.`key`, buf)
-            FfiConverterByteArray.write(value.`value`, buf)
-            FfiConverterLong.write(value.`version`, buf)
+        FfiConverterString.write(value.`key`, buf)
+        FfiConverterByteArray.write(value.`value`, buf)
+        FfiConverterLong.write(value.`version`, buf)
     }
 }
 
@@ -862,70 +862,70 @@ sealed class VssException: Exception() {
 
     class ConnectionException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class AuthException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class StoreException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class GetException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class ListException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class PutException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class DeleteException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class InvalidData(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class NetworkException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
 
     class UnknownException(
         val `errorDetails`: String
-        ) : VssException() {
+    ) : VssException() {
         override val message
             get() = "errorDetails=${ `errorDetails` }"
     }
@@ -945,34 +945,34 @@ public object FfiConverterTypeVssError : FfiConverterRustBuffer<VssException> {
         return when(buf.getInt()) {
             1 -> VssException.ConnectionException(
                 FfiConverterString.read(buf),
-                )
+            )
             2 -> VssException.AuthException(
                 FfiConverterString.read(buf),
-                )
+            )
             3 -> VssException.StoreException(
                 FfiConverterString.read(buf),
-                )
+            )
             4 -> VssException.GetException(
                 FfiConverterString.read(buf),
-                )
+            )
             5 -> VssException.ListException(
                 FfiConverterString.read(buf),
-                )
+            )
             6 -> VssException.PutException(
                 FfiConverterString.read(buf),
-                )
+            )
             7 -> VssException.DeleteException(
                 FfiConverterString.read(buf),
-                )
+            )
             8 -> VssException.InvalidData(
                 FfiConverterString.read(buf),
-                )
+            )
             9 -> VssException.NetworkException(
                 FfiConverterString.read(buf),
-                )
+            )
             10 -> VssException.UnknownException(
                 FfiConverterString.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -982,53 +982,53 @@ public object FfiConverterTypeVssError : FfiConverterRustBuffer<VssException> {
             is VssException.ConnectionException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.AuthException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.StoreException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.GetException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.ListException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.PutException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.DeleteException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.InvalidData -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.NetworkException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
             is VssException.UnknownException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-                + FfiConverterString.allocationSize(value.`errorDetails`)
-            )
+                    + FfiConverterString.allocationSize(value.`errorDetails`)
+                )
         }
     }
 
@@ -1344,8 +1344,8 @@ suspend fun `vssPutWithKeyPrefix`(`items`: List<KeyValue>) : List<VssItem> {
 fun `vssShutdownClient`() =
 
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_status)
-}
+        _UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_status)
+    }
 
 
 @Throws(VssException::class)
