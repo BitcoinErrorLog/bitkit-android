@@ -19,7 +19,6 @@ import to.bitkit.ui.theme.Colors
 
 @Composable
 fun SyncNodeView(modifier: Modifier) {
-
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -48,7 +47,6 @@ fun SyncNodeView(modifier: Modifier) {
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

@@ -82,7 +82,6 @@ class BlocktankRepoTest : BaseUnitTest() {
         }
     }
 
-
     @Test
     fun `refreshOrders updates state first from cache then server`() = test {
         sut = createSut()

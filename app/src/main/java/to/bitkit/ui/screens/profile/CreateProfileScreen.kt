@@ -16,14 +16,12 @@ import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-
 @Composable
 fun CreateProfileScreen(
     onClose: () -> Unit,
     onBack: () -> Unit,
-) { //TODO IMPLEMENT
+) { // TODO IMPLEMENT
     ScreenColumn {
-
         AppTopBar(
             titleText = stringResource(R.string.slashtags__profile_create),
             onBackClick = onBack,
@@ -40,7 +38,6 @@ fun CreateProfileScreen(
                 color = Colors.White
             )
             Spacer(Modifier.weight(1f))
-
         }
     }
 }

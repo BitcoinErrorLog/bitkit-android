@@ -39,11 +39,11 @@ import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 
 @Composable
 fun ExternalConfirmScreen(
@@ -98,7 +98,9 @@ private fun Content(
             val totalFee = uiState.amount.sats + networkFee
 
             Spacer(modifier = Modifier.height(16.dp))
-            Display(text = stringResource(R.string.lightning__transfer__confirm).withAccent(accentColor = Colors.Purple))
+            Display(
+                text = stringResource(R.string.lightning__transfer__confirm).withAccent(accentColor = Colors.Purple)
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(

@@ -56,11 +56,17 @@ fun BackupSheet(
         viewModel.effects.collect { effect ->
             when (effect) {
                 BackupContract.SideEffect.NavigateToShowPassphrase -> navController.navigate(BackupRoute.ShowPassphrase)
-                BackupContract.SideEffect.NavigateToConfirmMnemonic -> navController.navigate(BackupRoute.ConfirmMnemonic)
-                BackupContract.SideEffect.NavigateToConfirmPassphrase -> navController.navigate(BackupRoute.ConfirmPassphrase)
+                BackupContract.SideEffect.NavigateToConfirmMnemonic -> navController.navigate(
+                    BackupRoute.ConfirmMnemonic
+                )
+                BackupContract.SideEffect.NavigateToConfirmPassphrase -> navController.navigate(
+                    BackupRoute.ConfirmPassphrase
+                )
                 BackupContract.SideEffect.NavigateToWarning -> navController.navigate(BackupRoute.Warning)
                 BackupContract.SideEffect.NavigateToSuccess -> navController.navigate(BackupRoute.Success)
-                BackupContract.SideEffect.NavigateToMultipleDevices -> navController.navigate(BackupRoute.MultipleDevices)
+                BackupContract.SideEffect.NavigateToMultipleDevices -> navController.navigate(
+                    BackupRoute.MultipleDevices
+                )
                 BackupContract.SideEffect.NavigateToMetadata -> navController.navigate(BackupRoute.Metadata)
                 BackupContract.SideEffect.DismissSheet -> onDismiss()
             }

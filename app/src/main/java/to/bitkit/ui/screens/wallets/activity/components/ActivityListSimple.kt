@@ -46,7 +46,6 @@ fun ActivityListSimple(
     }
 }
 
-
 @Preview
 @Composable
 private fun Preview() {

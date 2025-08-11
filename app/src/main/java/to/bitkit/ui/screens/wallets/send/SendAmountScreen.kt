@@ -92,7 +92,6 @@ fun SendAmountScreen(
         onBack = onBack,
         onClickMax = { maxSats -> overrideSats = maxSats },
     )
-
 }
 
 @Composable
@@ -231,7 +230,6 @@ private fun SendAmountNodeRunning(
                         .height(28.dp)
                         .testTag("max_amount_button")
                 )
-
             }
             Spacer(modifier = Modifier.width(8.dp))
             UnitButton(modifier = Modifier.height(28.dp))

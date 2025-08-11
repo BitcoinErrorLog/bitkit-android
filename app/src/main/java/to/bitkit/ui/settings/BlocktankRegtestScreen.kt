@@ -143,7 +143,8 @@ fun BlocktankRegtestScreen(
             // Mining Section
             Caption13Up("MINING", color = Colors.White64, modifier = Modifier.padding(top = 20.dp))
             Row(
-                verticalAlignment = CenterVertically, modifier = Modifier
+                verticalAlignment = CenterVertically,
+                modifier = Modifier
                     .padding(vertical = 4.dp)
                     .fillMaxWidth()
             ) {
@@ -222,7 +223,6 @@ fun BlocktankRegtestScreen(
                                 title = "Success",
                                 description = "Payment successful. ID: $paymentId",
                             )
-
                         } catch (e: Exception) {
                             Logger.error("Payment failed", e)
                             app.toast(
@@ -269,7 +269,9 @@ fun BlocktankRegtestScreen(
                 size = ButtonSize.Small,
                 onClick = {
                     coroutineScope.launch {
-                        Logger.debug("Initiating channel close with fundingTxId: $fundingTxId, vout: $vout, forceCloseAfter: $forceCloseAfter")
+                        Logger.debug(
+                            "Initiating channel close with fundingTxId: $fundingTxId, vout: $vout, forceCloseAfter: $forceCloseAfter"
+                        )
                         try {
                             val voutNum = vout.toUIntOrNull() ?: error("Invalid Vout: $vout")
                             val closeAfter =

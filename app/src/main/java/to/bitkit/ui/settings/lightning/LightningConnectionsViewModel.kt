@@ -22,14 +22,14 @@ import to.bitkit.R
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.createChannelDetails
+import to.bitkit.ext.filterOpen
+import to.bitkit.ext.filterPending
 import to.bitkit.models.Toast
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LogsRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.LdkNodeEventBus
-import to.bitkit.ext.filterOpen
-import to.bitkit.ext.filterPending
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger

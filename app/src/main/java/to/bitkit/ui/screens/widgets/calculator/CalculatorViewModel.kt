@@ -18,7 +18,6 @@ class CalculatorViewModel @Inject constructor(
     private val widgetsRepo: WidgetsRepo
 ) : ViewModel() {
 
-
     val isCalculatorWidgetEnabled: StateFlow<Boolean> = widgetsRepo.widgetsDataFlow
         .map { widgetsData ->
             widgetsData.widgets.any { it.type == WidgetType.CALCULATOR }

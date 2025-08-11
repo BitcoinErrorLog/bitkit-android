@@ -39,7 +39,6 @@ import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-
 @Composable
 fun HeadlinesPreviewScreen(
     headlinesViewModel: HeadlinesViewModel,
@@ -200,7 +199,6 @@ fun HeadlinesPreviewContent(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

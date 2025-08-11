@@ -17,8 +17,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
-import to.bitkit.ui.components.SearchInputIconButton
 import to.bitkit.ui.components.SearchInput
+import to.bitkit.ui.components.SearchInputIconButton
 import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable

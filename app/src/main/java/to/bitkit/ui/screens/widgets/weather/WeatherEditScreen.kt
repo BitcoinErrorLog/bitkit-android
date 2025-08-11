@@ -146,7 +146,6 @@ fun WeatherEditContent(
                     )
                 }
 
-
                 IconButton(
                     onClick = onClickShowTitle,
                     modifier = Modifier.testTag("title_toggle_button")
@@ -175,7 +174,7 @@ fun WeatherEditContent(
                     .testTag("description_setting_row")
             ) {
                 BodyM(
-                    text =weather?.description?.let { stringResource(it) }.orEmpty(),
+                    text = weather?.description?.let { stringResource(it) }.orEmpty(),
                     color = Colors.White,
                     modifier = Modifier.weight(1f).testTag("description_text")
                 )

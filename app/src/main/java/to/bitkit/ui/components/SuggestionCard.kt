@@ -105,9 +105,6 @@ private fun Preview() {
                 onClose = {},
                 onClick = {}
             )
-
         }
     }
 }
-
-

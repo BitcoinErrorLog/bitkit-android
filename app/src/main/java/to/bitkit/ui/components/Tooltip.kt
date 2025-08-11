@@ -22,7 +22,6 @@ fun Tooltip(
     modifier: Modifier = Modifier,
     content: @Composable (() -> Unit)
 ) {
-
     TooltipBox(
         modifier = modifier,
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),

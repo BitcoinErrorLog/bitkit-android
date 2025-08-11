@@ -9,6 +9,7 @@
 .cxx
 local.properties
 .cursor
+*.local.*
 
 # Secrets
 google-services.json

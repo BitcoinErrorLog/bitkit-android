@@ -14,13 +14,12 @@ data class WeatherModel(
 )
 
 fun WeatherDTO.toWeatherModel(): WeatherModel {
-
-    val title = when(condition) {
+    val title = when (condition) {
         FeeCondition.GOOD -> R.string.widgets__weather__condition__good__title
         FeeCondition.AVERAGE -> R.string.widgets__weather__condition__average__title
         FeeCondition.POOR -> R.string.widgets__weather__condition__poor__title
     }
-    val description = when(condition) {
+    val description = when (condition) {
         FeeCondition.GOOD -> R.string.widgets__weather__condition__good__description
         FeeCondition.AVERAGE -> R.string.widgets__weather__condition__average__description
         FeeCondition.POOR -> R.string.widgets__weather__condition__poor__description

@@ -46,7 +46,6 @@ fun shareQrCode(context: Context, bitmap: Bitmap, text: String) {
 
         val chooser = Intent.createChooser(intent, "Share Qr code via")
         context.startActivity(chooser)
-
     } catch (e: IOException) {
         e.printStackTrace()
         // Fallback to text-only sharing

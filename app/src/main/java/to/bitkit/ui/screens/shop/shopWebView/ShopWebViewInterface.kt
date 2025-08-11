@@ -1,9 +1,7 @@
 package to.bitkit.ui.screens.shop.shopWebView
 
-import android.util.Log
 import android.webkit.JavascriptInterface
 import kotlinx.serialization.json.Json
-import to.bitkit.ui.screens.shop.shopWebView.WebViewMessage
 import to.bitkit.utils.Logger
 
 /**

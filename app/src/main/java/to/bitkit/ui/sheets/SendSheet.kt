@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
@@ -23,6 +26,7 @@ import to.bitkit.ui.screens.wallets.send.SendConfirmScreen
 import to.bitkit.ui.screens.wallets.send.SendErrorScreen
 import to.bitkit.ui.screens.wallets.send.SendFeeCustomScreen
 import to.bitkit.ui.screens.wallets.send.SendFeeRateScreen
+import to.bitkit.ui.screens.wallets.send.SendFeeViewModel
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
@@ -65,12 +69,13 @@ fun SendSheet(
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
                     is SendEffect.NavigateToConfirm -> navController.navigate(SendRoute.Confirm)
-                    is SendEffect.PopBack -> navController.popBackStack()
+                    is SendEffect.PopBackToConfirm -> navController.popBackStack(SendRoute.Confirm, inclusive = false)
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
                     is SendEffect.NavigateToFee -> navController.navigate(SendRoute.FeeRate)
+                    is SendEffect.NavigateToFeeCustom -> navController.navigate(SendRoute.FeeCustom)
                 }
             }
         }
@@ -120,22 +125,28 @@ fun SendSheet(
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
                 )
             }
-            composableWithDefaultTransitions<SendRoute.FeeRate> {
-                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                SendFeeRateScreen(
-                    sendUiState = sendUiState,
-                    onBack = { navController.popBackStack() },
-                    onContinue = { navController.popBackStack() },
-                    onSelect = { appViewModel.setSendEvent(SendEvent.SpeedChange(it)) },
-                )
-            }
-            composableWithDefaultTransitions<SendRoute.FeeCustom> {
-                val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                SendFeeCustomScreen(
-                    uiState = sendUiState,
-                    onBack = { navController.popBackStack() },
-                    onContinue = {}, // TODO
-                )
+            navigation<SendRoute.FeeNav>(
+                startDestination = SendRoute.FeeRate,
+            ) {
+                composableWithDefaultTransitions<SendRoute.FeeRate> {
+                    val sendUiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                    val parentEntry = remember(it) { navController.getBackStackEntry(SendRoute.FeeNav) }
+                    SendFeeRateScreen(
+                        sendUiState = sendUiState,
+                        viewModel = hiltViewModel<SendFeeViewModel>(parentEntry),
+                        onBack = { navController.popBackStack() },
+                        onContinue = { navController.popBackStack() },
+                        onSelect = { speed -> appViewModel.onSelectSpeed(speed) },
+                    )
+                }
+                composableWithDefaultTransitions<SendRoute.FeeCustom> {
+                    val parentEntry = remember(it) { navController.getBackStackEntry(SendRoute.FeeNav) }
+                    SendFeeCustomScreen(
+                        viewModel = hiltViewModel<SendFeeViewModel>(parentEntry),
+                        onBack = { navController.popBackStack() },
+                        onContinue = { speed -> appViewModel.setTransactionSpeed(speed) },
+                    )
+                }
             }
             composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
@@ -258,6 +269,9 @@ sealed interface SendRoute {
 
     @Serializable
     data object QuickPay : SendRoute
+
+    @Serializable
+    data object FeeNav : SendRoute
 
     @Serializable
     data object FeeRate : SendRoute

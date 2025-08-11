@@ -90,8 +90,11 @@ fun DefaultUnitSettingsScreenContent(
             BitcoinDisplayUnit.entries.forEach { unit ->
                 SettingsButtonRow(
                     title = stringResource(
-                        if (unit == BitcoinDisplayUnit.MODERN) R.string.settings__general__denomination_modern
-                        else R.string.settings__general__denomination_classic
+                        if (unit == BitcoinDisplayUnit.MODERN) {
+                            R.string.settings__general__denomination_modern
+                        } else {
+                            R.string.settings__general__denomination_classic
+                        }
                     ),
                     value = SettingsButtonValue.BooleanValue(displayUnit == unit),
                     onClick = { onBitcoinUnitClick(unit) },

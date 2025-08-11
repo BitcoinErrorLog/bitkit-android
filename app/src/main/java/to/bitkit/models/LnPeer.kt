@@ -18,7 +18,7 @@ data class LnPeer(
 
     val address get() = "$host:$port"
 
-    override fun toString() = "$nodeId@${address}"
+    override fun toString() = "$nodeId@$address"
 
     companion object {
         fun PeerDetails.toLnPeer() = LnPeer(

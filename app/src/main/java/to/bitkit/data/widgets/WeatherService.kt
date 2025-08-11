@@ -12,7 +12,6 @@ import to.bitkit.data.dto.WeatherDTO
 import to.bitkit.env.Env
 import to.bitkit.models.WidgetType
 import to.bitkit.repositories.CurrencyRepo
-import to.bitkit.services.CurrencyService
 import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
@@ -20,7 +19,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.floor
 import kotlin.time.Duration.Companion.minutes
-
 
 @Singleton
 class WeatherService @Inject constructor(
@@ -61,7 +59,7 @@ class WeatherService @Inject constructor(
         Logger.warn(e = it, msg = "Failed to fetch weather data", context = TAG)
     }
 
-    private suspend fun getFeeEstimates(): FeeEstimates { //TODO CACHE
+    private suspend fun getFeeEstimates(): FeeEstimates { // TODO CACHE
         val response: HttpResponse = client.get("${Env.mempoolBaseUrl}/v1/fees/recommended")
         return when (response.status.isSuccess()) {
             true -> response.body<FeeEstimates>()
@@ -69,11 +67,13 @@ class WeatherService @Inject constructor(
         }
     }
 
-    private suspend fun getHistoricalFeeData(): List<BlockFeeRates> { //TODO CACHE
+    private suspend fun getHistoricalFeeData(): List<BlockFeeRates> { // TODO CACHE
         val response: HttpResponse = client.get("${Env.mempoolBaseUrl}/v1/mining/blocks/fee-rates/3m")
         return when (response.status.isSuccess()) {
             true -> response.body<List<BlockFeeRates>>()
-            else -> throw WeatherError.InvalidResponse("Failed to fetch historical fee data: ${response.status.description}")
+            else -> throw WeatherError.InvalidResponse(
+                "Failed to fetch historical fee data: ${response.status.description}"
+            )
         }
     }
 
@@ -113,6 +113,7 @@ class WeatherService @Inject constructor(
         return usdValue?.formatted.orEmpty()
     }
 }
+
 /**
  * Weather-specific error types
  */

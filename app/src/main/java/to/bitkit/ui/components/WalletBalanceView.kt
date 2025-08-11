@@ -23,8 +23,8 @@ import to.bitkit.models.PrimaryDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.settingsViewModel
-import to.bitkit.ui.shared.animations.BalanceAnimations
 import to.bitkit.ui.shared.UiConstants
+import to.bitkit.ui.shared.animations.BalanceAnimations
 import to.bitkit.ui.theme.Colors
 
 @Composable

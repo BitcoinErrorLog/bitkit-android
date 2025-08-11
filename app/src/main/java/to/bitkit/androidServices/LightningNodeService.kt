@@ -64,7 +64,10 @@ class LightningNodeService : Service() {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         // Create stop action that will close both service and app
@@ -72,7 +75,10 @@ class LightningNodeService : Service() {
             action = ACTION_STOP_SERVICE_AND_APP
         }
         val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID_NODE)

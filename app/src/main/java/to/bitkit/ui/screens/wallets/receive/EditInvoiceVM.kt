@@ -13,11 +13,15 @@ import javax.inject.Inject
 @HiltViewModel
 class EditInvoiceVM @Inject constructor(
     val walletRepo: WalletRepo
-): ViewModel() {
+) : ViewModel() {
 
     private val _editInvoiceEffect = MutableSharedFlow<EditInvoiceScreenEffects>(extraBufferCapacity = 1)
     val editInvoiceEffect = _editInvoiceEffect.asSharedFlow()
-    private fun editInvoiceEffect(effect: EditInvoiceScreenEffects) = viewModelScope.launch { _editInvoiceEffect.emit(effect) }
+    private fun editInvoiceEffect(effect: EditInvoiceScreenEffects) = viewModelScope.launch {
+        _editInvoiceEffect.emit(
+            effect
+        )
+    }
 
     fun onClickContinue() {
         viewModelScope.launch {

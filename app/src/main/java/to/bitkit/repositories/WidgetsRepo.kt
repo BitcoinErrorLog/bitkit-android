@@ -44,8 +44,8 @@ class WidgetsRepo @Inject constructor(
     private val widgetsStore: WidgetsStore,
     private val settingsStore: SettingsStore,
 ) {
-    //TODO Only refresh in loop widgets displayed in the Home
-    //TODO Perform a refresh when the preview screen is displayed
+    // TODO Only refresh in loop widgets displayed in the Home
+    // TODO Perform a refresh when the preview screen is displayed
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
     val widgetsDataFlow = widgetsStore.data

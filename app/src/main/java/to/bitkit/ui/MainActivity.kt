@@ -26,7 +26,6 @@ import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
 import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE
 import to.bitkit.ui.components.AuthCheckView
-import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.components.InactivityTracker
 import to.bitkit.ui.components.IsOnlineTracker
 import to.bitkit.ui.components.ToastOverlay
@@ -37,6 +36,7 @@ import to.bitkit.ui.onboarding.RestoreWalletView
 import to.bitkit.ui.onboarding.TermsOfUseScreen
 import to.bitkit.ui.onboarding.WarningMultipleDevicesScreen
 import to.bitkit.ui.screens.SplashScreen
+import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.enableAppEdgeToEdge
@@ -134,7 +134,11 @@ class MainActivity : FragmentActivity() {
                                         }
                                     }
                                 },
-                                onRestoreClick = { startupNavController.navigate(StartupRoutes.WarningMultipleDevices) },
+                                onRestoreClick = {
+                                    startupNavController.navigate(
+                                        StartupRoutes.WarningMultipleDevices
+                                    )
+                                },
                             )
                         }
                         composable<StartupRoutes.WarningMultipleDevices>(

@@ -19,7 +19,6 @@ class NewsService @Inject constructor(
     private val client: HttpClient,
 ) : WidgetService<List<ArticleDTO>> {
 
-
     override val widgetType = WidgetType.NEWS
     override val refreshInterval = 10.minutes
 

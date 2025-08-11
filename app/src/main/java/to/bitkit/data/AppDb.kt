@@ -31,7 +31,6 @@ import to.bitkit.data.typeConverters.StringListConverter
     ],
     version = 2,
 )
-
 @TypeConverters(StringListConverter::class)
 abstract class AppDb : RoomDatabase() {
     abstract fun configDao(): ConfigDao

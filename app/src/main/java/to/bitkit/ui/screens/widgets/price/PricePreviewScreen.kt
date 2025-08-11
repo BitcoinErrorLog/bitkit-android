@@ -62,7 +62,7 @@ fun PricePreviewScreen(
 
     LaunchedEffect(Unit) {
         priceViewModel.priceEffect.collect { effect ->
-            when(effect) {
+            when (effect) {
                 PriceEffect.NavigateHome -> onClose()
             }
         }
