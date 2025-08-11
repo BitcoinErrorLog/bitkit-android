@@ -137,6 +137,7 @@ import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
+import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.screenSlideIn
@@ -961,7 +962,7 @@ private fun NavGraphBuilder.qrScanner(
         QrScanningScreen(navController = navController) { qrCode ->
             appViewModel.onScanResult(
                 data = qrCode,
-                delayMs = 650 // slight delay for nav transition before showing send sheet
+                delayMs = TRANSITION_SHEET_MS,
             )
         }
     }

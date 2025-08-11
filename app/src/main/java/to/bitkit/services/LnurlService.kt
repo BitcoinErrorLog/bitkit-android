@@ -77,19 +77,11 @@ class LnurlService @Inject constructor(
     }
 
     suspend fun requestLnurlChannel(
-        k1: String,
-        callback: String,
-        nodeId: String,
+        url: String,
     ): Result<LnurlChannelResponse> = runCatching {
-        Logger.debug("Requesting LNURL channel request via: '$callback'")
+        Logger.debug("Requesting LNURL channel request via: '$url'")
 
-        val response = client.get(callback) {
-            url {
-                parameters["k1"] = k1
-                parameters["remoteid"] = nodeId
-                parameters["private"] = "1" // Private channel
-            }
-        }
+        val response: HttpResponse = client.get(url)
         Logger.debug("Http call: $response")
 
         if (!response.status.isSuccess()) throw Exception("HTTP error: ${response.status}")
