@@ -452,6 +452,7 @@
     <string name="security__wiped_title">Dati del portafoglio eliminati</string>
     <string name="security__wiped_message">Bitkit è stato ripristinato e tutti i dati del portafoglio sono stati eliminati.</string>
     <string name="security__authorization__success">Successo</string>
+    <string name="settings__settings">Impostazioni</string>
     <string name="settings__dev_enabled_title">Opzioni Sviluppatore Attivate</string>
     <string name="settings__dev_enabled_message">Le opzioni sviluppatore sono ora abilitate in tutta l\'app.</string>
     <string name="settings__dev_disabled_title">Opzioni Sviluppatore Disattivate</string>

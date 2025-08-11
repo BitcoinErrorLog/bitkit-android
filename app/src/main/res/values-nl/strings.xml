@@ -327,6 +327,7 @@
     <string name="security__wiped_title">Wallet gegevens verwijderd</string>
     <string name="security__wiped_message">Bitkit is gereset en alle wallet gegevens zijn verwijderd.</string>
     <string name="security__authorization__success">Succes</string>
+    <string name="settings__settings">Instellingen</string>
     <string name="settings__dev_enabled_title">Dev Instellingen ingeschakeld</string>
     <string name="settings__dev_enabled_message">Opties voor ontwikkelaars zijn nu in de hele app ingeschakeld.</string>
     <string name="settings__dev_disabled_title">Dev Instellingen Uitgeschakeld</string>
