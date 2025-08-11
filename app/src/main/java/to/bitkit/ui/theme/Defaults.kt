@@ -127,6 +127,7 @@ object AppSwitchDefaults {
 }
 
 val ScreenTransitionMs = AnimationConstants.DefaultDurationMillis.milliseconds // 300ms
+const val TRANSITION_SHEET_MS = 650L
 
 object Insets {
     val Top: Dp

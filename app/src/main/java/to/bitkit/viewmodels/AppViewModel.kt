@@ -82,6 +82,7 @@ import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
+import to.bitkit.ui.theme.ScreenTransitionMs
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -695,8 +696,12 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onScanLnurlAuth(data: LnurlAuthData, lnurl: String) {
+    private suspend fun onScanLnurlAuth(data: LnurlAuthData, lnurl: String) {
         Logger.debug("LNURL: $data", context = TAG)
+        if (!isMainScanner) {
+            hideSheet()
+            delay(ScreenTransitionMs)
+        }
         showSheet(Sheet.LnurlAuth(domain = data.domain, lnurl = lnurl, k1 = data.k1))
     }
 
