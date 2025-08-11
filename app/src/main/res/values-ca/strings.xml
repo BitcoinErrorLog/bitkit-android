@@ -306,7 +306,6 @@
     <string name="security__use_pin">Utilitzar el codi PIN</string>
     <string name="security__wiped_title">Dades de la cartera eliminades</string>
     <string name="security__authorization__success">Èxit</string>
-    <string name="settings__settings">Configuracions</string>
     <string name="settings__dev_enabled_title">Opcions de Dev activades</string>
     <string name="settings__dev_disabled_title">Opcions de Dev desactivades</string>
     <string name="settings__dev_disabled_message">Les opcions per a desenvolupadors ara estan desactivades a tota l\'aplicació.</string>
@@ -350,14 +349,6 @@
     <string name="settings__security__pin_enabled">Activat</string>
     <string name="settings__security__pin_disabled">Desactivat</string>
     <string name="settings__security__use_bio">Utilitza {biometryTypeName} enlloc</string>
-    <string name="settings__backup__status_failed">Error de còpia de seguretat: {time}</string>
-    <string name="settings__backup__status_success">Última còpia de seguretat: {time}</string>
-    <string name="settings__backup__category_connections">Connexions</string>
-    <string name="settings__backup__category_settings">Configuracions</string>
-    <string name="settings__backup__category_widgets">Ginys</string>
-    <string name="settings__backup__category_tags">Etiquetes</string>
-    <string name="settings__backup__category_profile">Perfil</string>
-    <string name="settings__backup__category_contacts">Contactes</string>
     <string name="settings__support__title">Suport</string>
     <string name="settings__support__help">Centre d\'ajuda</string>
     <string name="settings__support__status">Estat de l\'Aplicació</string>
@@ -405,8 +396,6 @@
     <string name="settings__fee__slow__description">± 1-2 hores</string>
     <string name="settings__fee__custom__label">Personalitzat</string>
     <string name="settings__fee__custom__value">Personalitzat</string>
-    <string name="settings__addr__spend_number">{count, plural, one {} other {}}</string>
-    <string name="settings__addr__spend_all">{count, plural, one {} other {}}</string>
     <string name="settings__addr__index">Index: {index}</string>
     <string name="settings__addr__private_hide">Amaga la clau privada</string>
     <string name="settings__addr__private_view">Veure la clau privada</string>
@@ -588,8 +577,6 @@
     <string name="wallet__activity_tx_id">ID de transacció</string>
     <string name="wallet__activity_payment_hash">Hash de pagament</string>
     <string name="wallet__activity_address">Adreça</string>
-    <string name="wallet__activity_input">{count, plural, one {} other {}}</string>
-    <string name="wallet__activity_output">{count, plural, one {} other {}}</string>
     <string name="wallet__activity_explorer">Obrir l\'explorador de blocs</string>
     <string name="wallet__activity_successful">Exitós</string>
     <string name="wallet__activity_invoice_note">Nota de la factura</string>
@@ -609,7 +596,6 @@
     <string name="wallet__payment_received">Rebut Bitcoin</string>
     <string name="wallet__filter_clear">Neteja</string>
     <string name="wallet__filter_apply">Aplicar</string>
-    <string name="wallet__reorg_msg_begin">{count, plural, one {} other {}} Please wait.</string>
     <string name="wallet__lnurl_w_title">Retira Bitcoin</string>
     <string name="wallet__lnurl_w_max">Disponible per a retirar</string>
     <string name="wallet__lnurl_w_text">Els fons que retiris seran dipositats al teu saldo de despesa de Bitkit.</string>

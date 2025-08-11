@@ -513,7 +513,6 @@
     <string name="security__authorization__pubky_secret_error_description">Не удалось получить ключ Pubky</string>
     <string name="security__authorization__pubky_auth_error_title">Ошибка Аутентификации Pubky</string>
     <string name="security__authorization__pubky_auth_error_description">Не удалось выполнить аутентификацию с сервисом Pubky</string>
-    <string name="settings__settings">Настройки</string>
     <string name="settings__dev_enabled_title">Режим Разработчика Включён</string>
     <string name="settings__dev_enabled_message">Опции разработчика теперь включены по всему приложению.</string>
     <string name="settings__dev_disabled_title">Режим Разработчика Выключен</string>

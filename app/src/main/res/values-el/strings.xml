@@ -65,14 +65,9 @@
     <string name="settings__fee__normal__value">Κανονικά</string>
     <string name="settings__fee__custom__label">Προσαρμοσμένο</string>
     <string name="settings__fee__custom__value">Προσαρμοσμένο</string>
-    <string name="settings__addr__spend_number">{count, plural, one {} other {}}</string>
-    <string name="settings__addr__spend_all">{count, plural, one {} other {}}</string>
     <string name="settings__gap__save">Καταχώρηση</string>
     <string name="slashtags__profile_save">Καταχώρηση</string>
     <string name="slashtags__profile_link_suggestions">Προτάσεις</string>
     <string name="slashtags__profile_delete">Διαγραφή</string>
-    <string name="wallet__activity_input">{count, plural, one {} other {}}</string>
-    <string name="wallet__activity_output">{count, plural, one {} other {}}</string>
-    <string name="wallet__reorg_msg_begin">{count, plural, one {} other {}} Please wait.</string>
     <string name="widgets__widget__edit_custom">Προσαρμοσμένο</string>
 </resources>

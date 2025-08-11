@@ -337,13 +337,6 @@
     <string name="settings__security__pin_idle">Wymagaj PIN-u po bezczynności</string>
     <string name="settings__security__pin_payments">Wymagaj PIN-u do płatności</string>
     <string name="settings__security__footer">Po włączeniu tej opcji możesz używać {biometryTypeName} zamiast kodu PIN do odblokowania portfela lub wysyłania płatności.</string>
-    <string name="settings__backup__title">Utwórz kopię zapasową lub przywróć</string>
-    <string name="settings__backup__wallet">Utwórz kopię zapasową swojego portfela</string>
-    <string name="settings__backup__failed_title">Błąd tworzenia kopii zapasowej danych</string>
-    <string name="settings__backup__category_settings">Ustawienia</string>
-    <string name="settings__backup__category_widgets">Widgety</string>
-    <string name="settings__backup__category_profile">Profil</string>
-    <string name="settings__backup__category_contacts">Kontakty</string>
     <string name="settings__support__title">Wsparcie</string>
     <string name="settings__support__text_button">Wyślij</string>
     <string name="settings__support__title_success">Wysłano pomyślnie</string>
@@ -355,8 +348,6 @@
     <string name="settings__fee__normal__value">Normalnie</string>
     <string name="settings__fee__custom__label">Własna</string>
     <string name="settings__fee__custom__value">Własna</string>
-    <string name="settings__addr__spend_number">{count, plural, one {} few {} many {} other {}}</string>
-    <string name="settings__addr__spend_all">{count, plural, one {} few {} many {} other {}}</string>
     <string name="settings__addr__copied">Skopiowano do schowka</string>
     <string name="settings__es__host">Host</string>
     <string name="settings__es__port">Port</string>
@@ -459,8 +450,6 @@
     <string name="wallet__activity_bitcoin_received">Otrzymane Bitcoiny</string>
     <string name="wallet__activity_removed_msg">Sprawdź swoją listę aktywności. {count} dotkniętych transakcji zostanie wyróżnionych na czerwono.</string>
     <string name="wallet__activity_contact">Kontakt</string>
-    <string name="wallet__activity_input">{count, plural, one {} few {} many {} other {}}</string>
-    <string name="wallet__activity_output">{count, plural, one {} few {} many {} other {}}</string>
     <string name="wallet__activity_successful">Sukces</string>
     <string name="wallet__activity_invoice">Faktura</string>
     <string name="wallet__activity_all">Cała aktywność</string>
@@ -472,7 +461,6 @@
     <string name="wallet__savings__title">Oszczędności</string>
     <string name="wallet__payment_received">Otrzymano Bitcoinów</string>
     <string name="wallet__instant_payment_received">Otrzymano bitcoin natychmiastowo</string>
-    <string name="wallet__reorg_msg_begin">{count, plural, one {} few {} many {} other {}} Please wait.</string>
     <string name="wallet__reorg_msg_end">Sprawdź swoją listę aktywności, aby zobaczyć dotknięte transakcje.</string>
     <string name="widgets__widgets">Widgety</string>
     <string name="widgets__onboarding__title">Hej,\n&lt;accent&gt;Widgety&lt;/accent&gt;</string>

@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common__delete_yes">نعم، احذف</string>
-    <string name="settings__backup__category_contacts">جهات الاتصال</string>
-    <string name="settings__addr__spend_number">{count, plural, zero {} one {} two {} few {} many {} other {}}</string>
-    <string name="settings__addr__spend_all">{count, plural, zero {} one {} two {} few {} many {} other {}}</string>
     <string name="slashtags__your_name">اسمك</string>
     <string name="slashtags__your_name_capital">اسمك</string>
     <string name="slashtags__contact_name">اسم جهة الاتصال</string>
@@ -31,7 +28,4 @@
     <string name="wallet__drawer__contacts">جهات الاتصال</string>
     <string name="wallet__recipient_contact">جهة الاتصال</string>
     <string name="wallet__activity_contact">جهة الاتصال</string>
-    <string name="wallet__activity_input">{count, plural, zero {} one {} two {} few {} many {} other {}}</string>
-    <string name="wallet__activity_output">{count, plural, zero {} one {} two {} few {} many {} other {}}</string>
-    <string name="wallet__reorg_msg_begin">{count, plural, zero {} one {} two {} few {} many {} other {}} Please wait.</string>
 </resources>

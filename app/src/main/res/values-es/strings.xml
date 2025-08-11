@@ -353,7 +353,6 @@
     <string name="security__use_pin">Utilizar código PIN</string>
     <string name="security__wiped_title">Datos de Monedero Borrados</string>
     <string name="security__wiped_message">Bitkit ha sido restaurado y todos los datos de monedero han sido borrados.</string>
-    <string name="settings__settings">Ajustes</string>
     <string name="settings__dev_enabled_title">Opciones de desarrollo activadas</string>
     <string name="settings__dev_disabled_title">Opciones de desarrollo desactivadas</string>
     <string name="settings__general_title">General</string>
@@ -484,8 +483,6 @@
     <string name="settings__addr__loading">Cargando direcciones...</string>
     <string name="settings__addr__rescan_error">Fallo en la reexploración</string>
     <string name="settings__addr__rescan_error_description">Bitkit no ha podido comprobar los saldos de las direcciones.</string>
-    <string name="settings__addr__spend_number">{count, plural, one {} many {} other {}}</string>
-    <string name="settings__addr__spend_all">{count, plural, one {} many {} other {}}</string>
     <string name="settings__addr__index">Índice: {index}</string>
     <string name="settings__addr__path">Ruta: {path}</string>
     <string name="settings__addr__private_hide">Ocultar clave privada</string>
@@ -718,7 +715,6 @@
     <string name="wallet__filter_title">Seleccione Rango</string>
     <string name="wallet__filter_apply">Aplicar</string>
     <string name="wallet__reorg_detected">Reorganización de Blockchain Detectada</string>
-    <string name="wallet__reorg_msg_begin">{count, plural, one {} many {} other {}} Please wait.</string>
     <string name="wallet__balance_hidden_title">Saldo del Monedero Oculto</string>
     <string name="wallet__balance_hidden_message">Deslice el balance del monedero para mostrarlo de nuevo.</string>
     <string name="wallet__balance_unit_switched_title">Cambió a {unit}</string>
