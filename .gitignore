@@ -10,6 +10,7 @@
 local.properties
 .cursor
 *.local.*
+CLAUDE.md
 
 # Secrets
 google-services.json
