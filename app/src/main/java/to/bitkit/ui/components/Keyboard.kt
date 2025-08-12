@@ -37,7 +37,7 @@ private val maxKeyboardHeight = 300.dp
 private val idealButtonHeight = 75.dp
 private val minButtonHeight = 50.dp
 private const val KEYBOARD_ROWS_NUMBER = 4
-private const val KEYBOARD_COLLUMNS_NUMBER = 3
+private const val KEYBOARD_COLUMNS_NUMBER = 3
 val keyButtonHaptic = HapticFeedbackType.VirtualKey
 
 @Composable
@@ -67,7 +67,7 @@ fun Keyboard(
         val totalKeyboardHeight = buttonHeight * KEYBOARD_ROWS_NUMBER
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(KEYBOARD_COLLUMNS_NUMBER),
+            columns = GridCells.Fixed(KEYBOARD_COLUMNS_NUMBER),
             userScrollEnabled = false,
             modifier = Modifier.height(totalKeyboardHeight),
         ) {
