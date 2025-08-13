@@ -32,6 +32,7 @@ import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.LocalCurrencyViewModel
+import to.bitkit.ui.LocalSettingsViewModel
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.BottomSheetPreview
@@ -44,17 +45,20 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.localizedRandom
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.CurrencyViewModel
+import to.bitkit.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewTransactionSheet(
     appViewModel: AppViewModel,
     currencyViewModel: CurrencyViewModel,
+    settingsViewModel: SettingsViewModel,
 ) {
     val currencies by currencyViewModel.uiState.collectAsState()
 
     CompositionLocalProvider(
         LocalCurrencyViewModel provides currencyViewModel,
+        LocalSettingsViewModel provides settingsViewModel,
         LocalCurrencies provides currencies,
     ) {
         BottomSheet(
