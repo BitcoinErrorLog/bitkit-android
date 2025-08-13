@@ -100,8 +100,8 @@ fun KeyIconButton(
     @DrawableRes icon: Int,
     contentDescription: String?,
     onClick: () -> Unit,
-    buttonHeight: Dp = idealButtonHeight,
     modifier: Modifier = Modifier,
+    buttonHeight: Dp = idealButtonHeight,
 ) {
     KeyButtonBox(
         onClick = onClick,

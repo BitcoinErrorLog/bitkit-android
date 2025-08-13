@@ -157,7 +157,7 @@ private fun AllActivityScreenContent(
                 .hazeSource(state = hazeState)
                 .zIndex(0f)
         ) {
-                ActivityListGrouped(
+            ActivityListGrouped(
                 items = filteredActivities,
                 onActivityItemClick = onActivityItemClick,
                 onEmptyActivityRowClick = onEmptyActivityRowClick,
@@ -167,9 +167,9 @@ private fun AllActivityScreenContent(
                         currentTabIndex = currentTabIndex,
                         tabCount = tabs.size,
                         onTabChange = onTabChange,
-                        )
-                        .testTag("ActivityList")
+                    )
                     .padding(horizontal = 16.dp)
+                    .testTag("ActivityList")
             )
         }
     }

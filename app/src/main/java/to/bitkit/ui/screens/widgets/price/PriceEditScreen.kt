@@ -244,7 +244,7 @@ private fun PriceChartOptionRow(
             modifier = Modifier
                 .padding(vertical = 21.dp)
                 .fillMaxWidth()
-                .testTag("${testTagPrefix}-setting_row")
+                .testTag("${testTagPrefix}_setting_row")
         ) {
             ChartComponent(
                 widgetData = widgetData,
@@ -253,7 +253,7 @@ private fun PriceChartOptionRow(
 
             IconButton(
                 onClick = { onClick(widgetData.period) },
-                modifier = Modifier.testTag("${testTagPrefix}-toggle_button")
+                modifier = Modifier.testTag("${testTagPrefix}_toggle_button")
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_checkmark),
@@ -261,13 +261,13 @@ private fun PriceChartOptionRow(
                     tint = if (isEnabled) Colors.Brand else Colors.White50,
                     modifier = Modifier
                         .size(32.dp)
-                        .testTag("${testTagPrefix}-toggle_icon"),
+                        .testTag("${testTagPrefix}_toggle_icon"),
                 )
             }
         }
 
         HorizontalDivider(
-            modifier = Modifier.testTag("${testTagPrefix}-divider")
+            modifier = Modifier.testTag("${testTagPrefix}_divider")
         )
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.pager.HorizontalPagerIndicator
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ext.setClipboardText
@@ -54,7 +56,6 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Headline
-import to.bitkit.ui.components.PagerWithIndicator
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
@@ -135,9 +136,13 @@ fun ReceiveQrScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 val pagerState = rememberPagerState(initialPage = 0) { 2 }
-                PagerWithIndicator(
-                    pagerState = pagerState,
-                    modifier = Modifier.testTag("ReceiveSlider")
+                HorizontalPager(
+                    state = pagerState,
+                    pageSpacing = 20.dp,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ReceiveSlider")
                 ) {
                     when (it) {
                         0 -> ReceiveQrSlide(
@@ -155,6 +160,17 @@ fun ReceiveQrScreen(
                         )
                     }
                 }
+                @Suppress("DEPRECATION")
+                HorizontalPagerIndicator(
+                    pagerState = pagerState,
+                    pageCount = pagerState.pageCount,
+                    indicatorWidth = 8.dp,
+                    spacing = 8.dp,
+                    activeColor = Colors.White,
+                    inactiveColor = Colors.White32,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                )
             }
             Spacer(modifier = Modifier.height(24.dp))
             AnimatedVisibility(walletState.nodeLifecycleState.isRunning() && walletState.channels.isEmpty()) {
