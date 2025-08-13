@@ -192,7 +192,7 @@ class AppViewModel @Inject constructor(
             ldkNodeEventBus.events.collect { event ->
                 try {
                     when (event) {
-                        is Event.PaymentReceived -> { //TODO COMMING FROM HERE
+                        is Event.PaymentReceived -> {
                             handleTags(event)
                             showNewTransactionSheet(
                                 NewTransactionSheetDetails(
