@@ -8,7 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Devices.PIXEL_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -176,12 +177,14 @@ fun EditInvoiceContent(
     onInputChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
     ) {
+        val maxHeight = this.maxHeight
+
         AnimatedVisibility(
             visible = !numericKeyboardVisible && !isSoftKeyboardVisible,
             enter = fadeIn(),
@@ -262,6 +265,7 @@ fun EditInvoiceContent(
                                 onInputChanged(if (input.length > 1) input.dropLast(1) else "0")
                             },
                             isDecimal = primaryDisplay == PrimaryDisplay.FIAT,
+                            availableHeight = maxHeight,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("amount_keyboard"),
@@ -421,6 +425,32 @@ private fun Preview2() {
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview3() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            EditInvoiceContent(
+                input = "123",
+                noteText = "Note text",
+                primaryDisplay = PrimaryDisplay.BITCOIN,
+                displayUnit = BitcoinDisplayUnit.MODERN,
+                onBack = {},
+                onTextChanged = {},
+                numericKeyboardVisible = true,
+                onClickBalance = {},
+                onInputChanged = {},
+                onContinueGeneral = {},
+                onContinueKeyboard = {},
+                tags = listOf("Team", "Dinner", "Home"),
+                onClickAddTag = {},
+                onClickTag = {},
+                isSoftKeyboardVisible = false,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+@Preview(showSystemUi = true, device = PIXEL_5)
+@Composable
+private fun Preview4() {
     AppThemeSurface {
         BottomSheetPreview {
             EditInvoiceContent(
