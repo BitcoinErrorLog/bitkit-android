@@ -242,7 +242,7 @@ private fun SendAmountNodeRunning(
                 UnitButton(modifier = Modifier.height(28.dp))
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+            HorizontalDivider(modifier = Modifier.padding(top = 24.dp))
 
             Keyboard(
                 onClick = { number ->

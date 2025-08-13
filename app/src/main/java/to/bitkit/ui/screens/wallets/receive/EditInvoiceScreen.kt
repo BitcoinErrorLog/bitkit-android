@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -255,7 +256,7 @@ fun EditInvoiceContent(
                             UnitButton(modifier = Modifier.height(28.dp))
                         }
 
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+                        HorizontalDivider(modifier = Modifier.padding(top = 24.dp))
 
                         Keyboard(
                             onClick = { number ->
@@ -271,7 +272,11 @@ fun EditInvoiceContent(
                                 .testTag("amount_keyboard"),
                         )
 
-                        Spacer(modifier = Modifier.height(41.dp))
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .sizeIn(minHeight = 16.dp, maxHeight = 41.dp)
+                        )
 
                         PrimaryButton(
                             text = stringResource(R.string.common__continue),
