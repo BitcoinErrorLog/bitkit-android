@@ -478,7 +478,6 @@ private fun PreviewLnurlPay() {
     }
 }
 
-
 @Preview(showSystemUi = true, name = "Running - Short screen", device = NEXUS_5)
 @Composable
 private fun PreviewSmallScreen() {
