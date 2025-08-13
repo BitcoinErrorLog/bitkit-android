@@ -273,7 +273,7 @@ class HomeViewModel @Inject constructor(
             balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.SPEND,
+                    Suggestion.LIGHTNING,
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -286,7 +286,7 @@ class HomeViewModel @Inject constructor(
             else -> { // Empty wallet
                 listOfNotNull(
                     Suggestion.BUY,
-                    Suggestion.SPEND,
+                    Suggestion.LIGHTNING,
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.SUPPORT,

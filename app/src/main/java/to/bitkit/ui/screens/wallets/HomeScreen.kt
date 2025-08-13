@@ -171,7 +171,7 @@ fun HomeScreen(
                     rootNavController.navigate(Routes.BuyIntro)
                 }
 
-                Suggestion.SPEND -> {
+                Suggestion.LIGHTNING -> {
                     if (!hasSeenTransferIntro) {
                         rootNavController.navigateToTransferIntro()
                     } else {
@@ -369,10 +369,10 @@ private fun Content(
                             Text13Up(stringResource(R.string.cards__suggestions), color = Colors.White64)
                             Spacer(modifier = Modifier.height(16.dp))
                             LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 state = state,
-                                flingBehavior = snapBehavior
+                                flingBehavior = snapBehavior,
+                                modifier = Modifier.fillMaxWidth().testTag("Suggestions")
                             ) {
                                 items(homeUiState.suggestions, key = { it.name }) { item ->
                                     SuggestionCard(
@@ -382,7 +382,7 @@ private fun Content(
                                         icon = item.icon,
                                         onClose = { onRemoveSuggestion(item) },
                                         onClick = { onClickSuggestion(item) },
-                                        modifier = Modifier.testTag("SUGGESTION_${item.name}")
+                                        modifier = Modifier.testTag("Suggestion-${item.name.lowercase()}")
                                     )
                                 }
                             }

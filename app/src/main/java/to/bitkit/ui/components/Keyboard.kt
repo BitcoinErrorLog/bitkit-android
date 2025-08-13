@@ -80,7 +80,14 @@ fun Keyboard(
             item { KeyTextButton(text = "7", onClick = onClick, buttonHeight = buttonHeight) }
             item { KeyTextButton(text = "8", onClick = onClick, buttonHeight = buttonHeight) }
             item { KeyTextButton(text = "9", onClick = onClick, buttonHeight = buttonHeight) }
-            item { KeyTextButton(text = if (isDecimal) "." else "000", onClick = onClick, buttonHeight = buttonHeight) }
+            item {
+                KeyTextButton(
+                    text = if (isDecimal) "." else "000",
+                    onClick = onClick,
+                    buttonHeight = buttonHeight,
+                    testTag = if (isDecimal) "NDecimal" else "N000",
+                )
+            }
             item { KeyTextButton(text = "0", onClick = onClick, buttonHeight = buttonHeight) }
             item {
                 KeyIconButton(
@@ -88,7 +95,7 @@ fun Keyboard(
                     contentDescription = stringResource(R.string.common__delete),
                     onClick = onClickBackspace,
                     buttonHeight = buttonHeight,
-                    modifier = Modifier.testTag("KeyboardButton_backspace"),
+                    modifier = Modifier.testTag("NRemove"),
                 )
             }
         }
@@ -121,11 +128,12 @@ fun KeyTextButton(
     onClick: (String) -> Unit,
     buttonHeight: Dp = idealButtonHeight,
     modifier: Modifier = Modifier,
+    testTag: String = "N$text",
 ) {
     KeyButtonBox(
         onClick = { onClick(text) },
         buttonHeight = buttonHeight,
-        modifier = modifier.testTag("KeyboardButton_$text"),
+        modifier = modifier.testTag(testTag)
     ) {
         Text(
             text = text,

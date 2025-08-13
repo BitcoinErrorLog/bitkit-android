@@ -183,6 +183,7 @@ fun BalanceHeader(
                             modifier = Modifier
                                 .size(24.dp)
                                 .clickableAlpha { onToggleHideBalance() }
+                                .testTag("ShowBalance")
                         )
                     }
                 }

@@ -354,6 +354,7 @@ private fun ActivityDetailContent(
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.testTag("ActivityTags")
                 ) {
                     tags.forEach { tag ->
                         TagButton(
@@ -444,7 +445,9 @@ private fun ActivityDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ActivityTag")
                 )
             }
             Row(
