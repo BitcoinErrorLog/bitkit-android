@@ -192,14 +192,15 @@ class AppViewModel @Inject constructor(
             ldkNodeEventBus.events.collect { event ->
                 try {
                     when (event) {
-                        is Event.PaymentReceived -> {
+                        is Event.PaymentReceived -> { //TODO COMMING FROM HERE
                             handleTags(event)
                             showNewTransactionSheet(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.RECEIVED,
                                     sats = (event.amountMsat / 1000u).toLong(),
-                                )
+                                ),
+                                event = event
                             )
                         }
 
@@ -214,7 +215,8 @@ class AppViewModel @Inject constructor(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
                                         sats = (channel.inboundCapacityMsat / 1000u).toLong(),
-                                    )
+                                    ),
+                                    event = event
                                 )
                             } else {
                                 toast(
@@ -240,7 +242,8 @@ class AppViewModel @Inject constructor(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.SENT,
                                     sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
-                                )
+                                ),
+                                event = event
                             )
                         }
 
@@ -1202,10 +1205,27 @@ class AppViewModel @Inject constructor(
         isNewTransactionSheetEnabled = enabled
     }
 
-    fun showNewTransactionSheet(details: NewTransactionSheetDetails) {
+    fun showNewTransactionSheet(
+        details: NewTransactionSheetDetails,
+        event: Event?,
+    ) = viewModelScope.launch {
         if (!isNewTransactionSheetEnabled) {
             Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
-            return
+            return@launch
+        }
+
+        if (event is Event.PaymentReceived) {
+            val activity = activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = event.paymentHash,
+                type = ActivityFilter.ALL,
+                txType = PaymentType.RECEIVED,
+                retry = false
+            ).getOrNull()
+
+            if (activity != null) {
+                Logger.verbose("Activity already exists, skipping sheet", context = TAG)
+                return@launch
+            }
         }
 
         newTransaction = details
