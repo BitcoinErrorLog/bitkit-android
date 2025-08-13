@@ -216,7 +216,8 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = any(),
                 type = any(),
-                txType = any()
+                txType = any(),
+                retry = any(),
             )
         ).thenReturn(Result.success(Activity.Onchain(v1 = newActivity)))
 
