@@ -31,7 +31,7 @@ Some internal libraries are distributed via GitHub Packages. Configure credentia
 
    - Or `~/.gradle/gradle.properties`
      - `gpr.user=YOUR_GITHUB_USERNAME`
-     - `gpr.token=YOUR_GITHUB_TOKEN`
+     - `gpr.key=YOUR_GITHUB_TOKEN`
 
 See also:
 - [bitkit-core android bindings](https://github.com/synonymdev/bitkit-core/tree/master/bindings/android#installation)
