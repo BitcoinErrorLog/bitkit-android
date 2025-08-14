@@ -35,6 +35,7 @@ Some internal libraries are distributed via GitHub Packages. Configure credentia
 
 See also:
 - [bitkit-core android bindings](https://github.com/synonymdev/bitkit-core/tree/master/bindings/android#installation)
+- [vss-rust-client-ffi android bindings](https://github.com/synonymdev/vss-rust-client-ffi/tree/master/bindings/android#installation)
 
 ### References
 
