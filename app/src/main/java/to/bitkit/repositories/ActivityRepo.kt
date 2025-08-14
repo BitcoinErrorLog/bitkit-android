@@ -100,6 +100,7 @@ class ActivityRepo @Inject constructor(
         paymentHashOrTxId: String,
         type: ActivityFilter,
         txType: PaymentType,
+        retry: Boolean = true,
     ): Result<Activity> = withContext(bgDispatcher) {
         if (paymentHashOrTxId.isEmpty()) {
             return@withContext Result.failure(
@@ -115,7 +116,7 @@ class ActivityRepo @Inject constructor(
             ).getOrNull()?.firstOrNull { it.matchesPaymentId(paymentHashOrTxId) }
 
             var activity = findActivity()
-            if (activity == null) {
+            if (activity == null && retry) {
                 Logger.warn(
                     "activity with paymentHashOrTxId:$paymentHashOrTxId not found, trying again after sync",
                     context = TAG
