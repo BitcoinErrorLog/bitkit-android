@@ -28,8 +28,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -153,22 +151,18 @@ fun BoostTransactionContent(
         )
 
         VerticalSpacer(24.dp)
-
-        when {
-            uiState.loading -> {
-                LoadingState()
-            }
-
-            uiState.isDefaultMode -> {
-                DefaultModeContent(
+        Column(
+            modifier = Modifier.testTag(if (uiState.isRbf) "RBFBoost" else "CPFPBoost")
+        ) {
+            when {
+                uiState.loading -> LoadingState()
+                uiState.isDefaultMode -> DefaultModeContent(
                     uiState = uiState,
                     onClickEdit = onClickEdit,
                     onSwipe = onSwipe,
                 )
-            }
 
-            else -> {
-                CustomModeContent(
+                else -> CustomModeContent(
                     uiState = uiState,
                     onChangeAmount = onChangeAmount,
                     onClickUseSuggestedFee = onClickUseSuggestedFee,
@@ -209,9 +203,6 @@ private fun DefaultModeContent(
                 .fillMaxWidth()
                 .clickableAlpha { onClickEdit() }
                 .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
-                .semantics {
-                    contentDescription = "Edit fee settings"
-                },
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_timer_alt_yellow),
@@ -243,10 +234,9 @@ private fun DefaultModeContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
-                        ?.withAccent(defaultColor = Colors.White)
-                        ?.toString()
-                        .orEmpty()
+                    val feeText =
+                        rememberMoneyText(sats = uiState.totalFeeSats.toLong())?.withAccent(defaultColor = Colors.White)
+                            ?.toString().orEmpty()
 
                     BodyMSB(
                         text = feeText,
@@ -266,9 +256,7 @@ private fun DefaultModeContent(
                 val feeTextSecondary = rememberMoneyText(
                     sats = uiState.totalFeeSats.toLong(),
                     reversed = true
-                )?.withAccent(defaultColor = Colors.White64)
-                    ?.toString()
-                    .orEmpty()
+                )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                 BodySSB(
                     text = feeTextSecondary,
@@ -323,10 +311,9 @@ private fun CustomModeContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                val rateText = rememberMoneyText(sats = uiState.feeRate.toLong())
-                    ?.withAccent(defaultColor = Colors.White)
-                    ?.toString()
-                    .orEmpty()
+                val rateText =
+                    rememberMoneyText(sats = uiState.feeRate.toLong())?.withAccent(defaultColor = Colors.White)
+                        ?.toString().orEmpty()
 
                 BodyMSB(
                     text = "$rateText/vbyte ($BITCOIN_SYMBOL ${uiState.totalFeeSats})",
@@ -340,9 +327,7 @@ private fun CustomModeContent(
                     val feeTextSecondary = rememberMoneyText(
                         sats = uiState.totalFeeSats.toLong(),
                         reversed = true
-                    )?.withAccent(defaultColor = Colors.White64)
-                        ?.toString()
-                        .orEmpty()
+                    )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                     BodySSB(
                         text = feeTextSecondary,
@@ -439,7 +424,7 @@ object BoostTransactionTestTags {
     const val DESCRIPTION_TEXT = "description_text"
     const val LOADING_INDICATOR = "loading_indicator"
     const val CUSTOM_MODE_CONTENT = "custom_mode_content"
-    const val EDIT_FEE_ROW = "edit_fee_row"
+    const val EDIT_FEE_ROW = "CustomFeeButton"
     const val EDIT_FEE_ICON = "edit_fee_icon"
     const val TIMER_ICON = "timer_icon"
     const val BOOST_TITLE = "boost_title"
@@ -447,10 +432,12 @@ object BoostTransactionTestTags {
     const val TOTAL_FEE_PRIMARY = "total_fee_primary"
     const val TOTAL_FEE_SECONDARY = "total_fee_secondary"
     const val SWIPE_TO_CONFIRM = "swipe_to_confirm"
-    const val DECREASE_FEE_BUTTON = "decrease_fee_button"
-    const val INCREASE_FEE_BUTTON = "increase_fee_button"
+    const val DECREASE_FEE_BUTTON = "Minus"
+    const val INCREASE_FEE_BUTTON = "Plus"
     const val FEE_RATE_TEXT = "fee_rate_text"
-    const val USE_SUGGESTED_FEE_BUTTON = "use_suggested_fee_button"
+
+    @Suppress("SpellCheckingInspection")
+    const val USE_SUGGESTED_FEE_BUTTON = "RecomendedFeeButton"
 }
 
 @Preview(showSystemUi = true, name = "Default mode")

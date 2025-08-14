@@ -29,18 +29,6 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 
-object AdvancedSettingsTestTags {
-    const val SCREEN = "advanced_settings_screen"
-    const val COIN_SELECTION_BUTTON = "coin_selection_button"
-    const val LIGHTNING_CONNECTIONS_BUTTON = "lightning_connections_button"
-    const val LIGHTNING_NODE_BUTTON = "lightning_node_button"
-    const val ELECTRUM_SERVER_BUTTON = "electrum_server_button"
-    const val RGS_SERVER_BUTTON = "rgs_server_button"
-    const val ADDRESS_VIEWER_BUTTON = "address_viewer_button"
-    const val SUGGESTIONS_RESET_BUTTON = "suggestions_reset_button"
-    const val RESET_SUGGESTIONS_DIALOG = "reset_suggestions_dialog"
-}
-
 @Composable
 fun AdvancedSettingsScreen(
     navController: NavController,
@@ -106,7 +94,7 @@ private fun Content(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .testTag(AdvancedSettingsTestTags.SCREEN)
+                .testTag("advanced_settings_screen")
         ) {
             // Payments Section
             SectionHeader(title = stringResource(R.string.settings__adv__section_payments))
@@ -114,7 +102,7 @@ private fun Content(
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__coin_selection),
                 onClick = onCoinSelectionClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.COIN_SELECTION_BUTTON),
+                modifier = Modifier.testTag("CoinSelectPreference"),
             )
 
             // Networks Section
@@ -123,25 +111,25 @@ private fun Content(
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__lightning_connections),
                 onClick = onLightningConnectionsClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.LIGHTNING_CONNECTIONS_BUTTON),
+                modifier = Modifier.testTag("Channels"),
             )
 
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__lightning_node),
                 onClick = onLightningNodeClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.LIGHTNING_NODE_BUTTON),
+                modifier = Modifier.testTag("LightningNodeInfo"),
             )
 
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__electrum_server),
                 onClick = onElectrumServerClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.ELECTRUM_SERVER_BUTTON),
+                modifier = Modifier.testTag("ElectrumConfig"),
             )
 
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__rgs_server),
                 onClick = onRgsServerClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.RGS_SERVER_BUTTON),
+                modifier = Modifier.testTag("RGSServer"),
             )
 
             // Other Section
@@ -150,13 +138,13 @@ private fun Content(
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__address_viewer),
                 onClick = onAddressViewerClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.ADDRESS_VIEWER_BUTTON),
+                modifier = Modifier.testTag("AddressViewer"),
             )
 
             SettingsButtonRow(
                 title = stringResource(R.string.settings__adv__suggestions_reset),
                 onClick = onSuggestionsResetClick,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.SUGGESTIONS_RESET_BUTTON),
+                modifier = Modifier.testTag("ResetSuggestions"),
             )
 
             VerticalSpacer(32.dp)
@@ -169,7 +157,7 @@ private fun Content(
                 confirmText = stringResource(R.string.settings__adv__reset_confirm),
                 onConfirm = onResetSuggestionsDialogConfirm,
                 onDismiss = onResetSuggestionsDialogCancel,
-                modifier = Modifier.testTag(AdvancedSettingsTestTags.RESET_SUGGESTIONS_DIALOG),
+                modifier = Modifier.testTag("reset_suggestions_dialog"),
             )
         }
     }

@@ -101,7 +101,7 @@ fun PriceEditContent(
                 .padding(horizontal = 16.dp)
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .testTag("main_content")
+                .testTag("WidgetEditScrollView")
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -124,7 +124,7 @@ fun PriceEditContent(
                     onClick = {
                         onClickTradingPair(data.pair)
                     },
-                    testTagPrefix = data.pair.displayName
+                    testTagPrefix = data.pair.displayName,
                 )
             }
 
@@ -133,7 +133,7 @@ fun PriceEditContent(
                     widgetData = priceData,
                     isEnabled = priceData.period == preferences.period,
                     onClick = onClickGraph,
-                    testTagPrefix = priceData.period.name
+                    testTagPrefix = priceData.period.value,
                 )
             }
 
@@ -142,35 +142,35 @@ fun PriceEditContent(
                 value = priceModel.source,
                 isEnabled = preferences.showSource,
                 onClick = onClickSource,
-                testTagPrefix = "source"
+                testTagPrefix = "showSource",
             )
         }
 
         Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .padding(vertical = 21.dp, horizontal = 16.dp)
                 .fillMaxWidth()
-                .testTag("buttons_row"),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .testTag("buttons_row")
         ) {
             SecondaryButton(
                 text = stringResource(R.string.common__reset),
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("reset_button"),
                 enabled = preferences != PricePreferences(),
                 fullWidth = false,
-                onClick = onClickReset
+                onClick = onClickReset,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("WidgetEditReset")
             )
 
             PrimaryButton(
                 text = stringResource(R.string.common__preview),
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("preview_button"),
                 fullWidth = false,
                 isLoading = isLoading,
-                onClick = onClickPreview
+                onClick = onClickPreview,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("WidgetEditPreview")
             )
         }
     }
@@ -211,7 +211,7 @@ private fun PriceEditOptionRow(
 
             IconButton(
                 onClick = onClick,
-                modifier = Modifier.testTag("${testTagPrefix}_toggle_button")
+                modifier = Modifier.testTag("WidgetEditField-$testTagPrefix")
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_checkmark),
@@ -219,7 +219,7 @@ private fun PriceEditOptionRow(
                     tint = if (isEnabled) Colors.Brand else Colors.White50,
                     modifier = Modifier
                         .size(32.dp)
-                        .testTag("${testTagPrefix}_toggle_icon"),
+                        .testTag("${testTagPrefix}_toggle_icon")
                 )
             }
         }

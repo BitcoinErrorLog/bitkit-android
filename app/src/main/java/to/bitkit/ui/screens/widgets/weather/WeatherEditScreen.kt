@@ -94,7 +94,7 @@ fun WeatherEditContent(
                 .padding(horizontal = 16.dp)
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .testTag("main_content")
+                .testTag("WidgetEditScrollView")
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -228,7 +228,7 @@ fun WeatherEditContent(
                 text = stringResource(R.string.common__reset),
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("reset_button"),
+                    .testTag("WidgetEditReset"),
                 enabled = weatherPreferences != WeatherPreferences(),
                 fullWidth = false,
                 onClick = onClickReset
@@ -241,7 +241,7 @@ fun WeatherEditContent(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("preview_button"),
+                    .testTag("WidgetEditPreview"),
                 fullWidth = false,
                 onClick = onClickPreview
             )

@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,6 +71,7 @@ fun SpendingAdvancedScreen(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .imePadding()
+                .testTag("SpendingAdvanced")
         ) {
             var receivingSatsAmount by rememberSaveable { mutableLongStateOf(0) }
             var overrideSats: Long? by remember { mutableStateOf(null) }
@@ -117,6 +119,7 @@ fun SpendingAdvancedScreen(
                     receivingSatsAmount = sats
                     overrideSats = null
                 },
+                modifier = Modifier.testTag("SpendingAdvancedNumberField")
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -153,6 +156,7 @@ fun SpendingAdvancedScreen(
                     onClick = {
                         overrideSats = transferValues.minLspBalance.toLong()
                     },
+                    modifier = Modifier.testTag("SpendingAdvancedMin")
                 )
                 // Default Button
                 NumberPadActionButton(
@@ -161,6 +165,7 @@ fun SpendingAdvancedScreen(
                     onClick = {
                         overrideSats = transferValues.defaultLspBalance.toLong()
                     },
+                    modifier = Modifier.testTag("SpendingAdvancedDefault")
                 )
                 // Max Button
                 NumberPadActionButton(
@@ -169,6 +174,7 @@ fun SpendingAdvancedScreen(
                     onClick = {
                         overrideSats = transferValues.maxLspBalance.toLong()
                     },
+                    modifier = Modifier.testTag("SpendingAdvancedMax")
                 )
             }
             HorizontalDivider()
@@ -195,6 +201,7 @@ fun SpendingAdvancedScreen(
                 },
                 enabled = !isLoading && isValid,
                 isLoading = isLoading,
+                modifier = Modifier.testTag("SpendingAdvancedContinue")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

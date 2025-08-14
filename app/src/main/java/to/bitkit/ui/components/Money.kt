@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.formatToModernDisplay
@@ -24,7 +25,9 @@ fun MoneyDisplay(
     rememberMoneyText(sats)?.let { text ->
         Display(
             text = text.withAccent(accentColor = Colors.White64),
-            modifier = Modifier.clickableAlpha(onClick = onClick)
+            modifier = Modifier
+                .clickableAlpha(onClick = onClick)
+                .testTag("MoneyText")
         )
     }
 }
@@ -36,12 +39,13 @@ fun MoneySSB(
     unit: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
     color: Color = MaterialTheme.colorScheme.primary,
     accent: Color = Colors.White64,
+    showSymbol: Boolean = false,
 ) {
-    rememberMoneyText(sats = sats, unit = unit)?.let { text ->
+    rememberMoneyText(sats = sats, unit = unit, showSymbol = showSymbol)?.let { text ->
         BodySSB(
             text = text.withAccent(accentColor = accent),
             color = color,
-            modifier = modifier,
+            modifier = modifier.testTag("MoneyText")
         )
     }
 }
@@ -58,7 +62,7 @@ fun MoneyMSB(
         BodyMSB(
             text = text.withAccent(accentColor = accent),
             color = color,
-            modifier = modifier,
+            modifier = modifier.testTag("MoneyText")
         )
     }
 }
@@ -96,7 +100,7 @@ fun MoneyCaptionB(
         CaptionB(
             text = text.withAccent(accentColor = symbolColor),
             color = color,
-            modifier = modifier,
+            modifier = modifier.testTag("MoneyText")
         )
     }
 }
@@ -107,23 +111,33 @@ fun rememberMoneyText(
     reversed: Boolean = false,
     currencies: CurrencyUiState = LocalCurrencies.current,
     unit: PrimaryDisplay = if (reversed) currencies.primaryDisplay.not() else currencies.primaryDisplay,
+    showSymbol: Boolean = unit == PrimaryDisplay.FIAT,
 ): String? {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
         val symbol = if (unit == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else "$"
-        return "<accent>$symbol</accent> ${sats.formatToModernDisplay()}"
+        return buildString {
+            if (showSymbol) append("<accent>$symbol</accent> ")
+            append(sats.formatToModernDisplay())
+        }
     }
 
     val currency = currencyViewModel ?: return null
 
-    return remember(currencies, sats, reversed) {
+    return remember(currencies, sats, unit) {
         val converted = currency.convert(sats) ?: return@remember null
 
         if (unit == PrimaryDisplay.BITCOIN) {
             val btcComponents = converted.bitcoinDisplay(currencies.displayUnit)
-            "<accent>${btcComponents.symbol}</accent> ${btcComponents.value}"
+            buildString {
+                if (showSymbol) append("<accent>${btcComponents.symbol}</accent> ")
+                append(btcComponents.value)
+            }
         } else {
-            "<accent>${converted.symbol}</accent> ${converted.formatted}"
+            buildString {
+                if (showSymbol) append("<accent>${converted.symbol}</accent> ")
+                append(converted.formatted)
+            }
         }
     }
 }

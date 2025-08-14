@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -110,6 +111,7 @@ private fun CustomFeeSettingsContent(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
+                .testTag("CustomFee")
         ) {
             Caption13Up(text = stringResource(R.string.common__sat_vbyte), color = Colors.White64)
 
@@ -136,6 +138,7 @@ private fun CustomFeeSettingsContent(
                 onClick = onContinue,
                 enabled = isValid,
                 text = stringResource(R.string.common__continue),
+                modifier = Modifier.testTag("Continue")
             )
             Spacer(modifier = Modifier.height(16.dp))
         }

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.data.dto.PendingBoostActivity
+import to.bitkit.ext.BoostType
+import to.bitkit.ext.boostType
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.ActivityRepo
@@ -56,7 +58,12 @@ class BoostTransactionViewModel @Inject constructor(
         Logger.debug("Setup activity $activity", context = TAG)
         this.activity = activity
 
-        _uiState.update { it.copy(loading = true) }
+        _uiState.update {
+            it.copy(
+                loading = true,
+                isRbf = activity.boostType() == BoostType.RBF,
+            )
+        }
 
         initializeFeeEstimates()
     }
@@ -437,4 +444,5 @@ data class BoostTransactionUiState(
     val boosting: Boolean = false,
     val loading: Boolean = false,
     val estimateTime: String = "±10-20 minutes", // TODO: Implement dynamic time estimation
+    val isRbf: Boolean = false,
 )

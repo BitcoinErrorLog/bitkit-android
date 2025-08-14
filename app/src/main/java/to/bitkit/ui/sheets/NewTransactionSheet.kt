@@ -40,7 +40,6 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.localizedRandom
@@ -153,10 +152,10 @@ fun NewTransactionSheetView(
 
             BalanceHeaderView(
                 sats = details.sats,
+                onClick = { onDetailClick },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickableAlpha { onDetailClick() }
-                    .testTag("balance_header")
+                    .testTag("ReceivedTransaction")
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -187,7 +186,7 @@ fun NewTransactionSheetView(
                 PrimaryButton(
                     text = localizedRandom(R.string.common__ok_random),
                     onClick = onCloseClick,
-                    modifier = Modifier.testTag("ok_button")
+                    modifier = Modifier.testTag("ReceivedTransactionButton")
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))

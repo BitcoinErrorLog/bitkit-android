@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -118,37 +119,44 @@ fun SettingsScreenContent(
                 title = stringResource(R.string.settings__general_title),
                 iconRes = R.drawable.ic_settings_general,
                 onClick = onGeneralClick,
+                modifier = Modifier.testTag("GeneralSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__security_title),
                 iconRes = R.drawable.ic_settings_security,
                 onClick = onSecurityClick,
+                modifier = Modifier.testTag("SecuritySettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__backup_title),
                 iconRes = R.drawable.ic_settings_backup,
                 onClick = onBackupClick,
+                modifier = Modifier.testTag("BackupSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__advanced_title),
                 iconRes = R.drawable.ic_settings_advanced,
                 onClick = onAdvancedClick,
+                modifier = Modifier.testTag("AdvancedSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__support_title),
                 iconRes = R.drawable.ic_settings_support,
                 onClick = onSupportClick,
+                modifier = Modifier.testTag("Support")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__about_title),
                 iconRes = R.drawable.ic_settings_about,
                 onClick = onAboutClick,
+                modifier = Modifier.testTag("About")
             )
             if (isDevModeEnabled) {
                 SettingsButtonRow(
                     title = stringResource(R.string.settings__dev_title),
                     iconRes = R.drawable.ic_settings_dev,
                     onClick = onDevClick,
+                    modifier = Modifier.testTag("DevSettings")
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -159,6 +167,7 @@ fun SettingsScreenContent(
                     .fillMaxWidth()
                     .height(256.dp)
                     .clickableAlpha(1f) { onCogTap() }
+                    .testTag("DevOptions")
             )
             Spacer(Modifier.weight(1f))
         }

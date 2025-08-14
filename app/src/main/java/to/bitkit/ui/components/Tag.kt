@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ fun TagButton(
         BodySSB(
             text = text,
             color = textColor,
+            modifier = Modifier.testTag("Tag-$text")
         )
 
         if (displayIconClose) {
@@ -53,7 +55,9 @@ fun TagButton(
                 painter = icon,
                 contentDescription = null,
                 tint = Colors.White64,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier
+                    .size(16.dp)
+                    .testTag("Tag-$text-delete")
             )
         }
     }

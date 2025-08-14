@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -98,6 +99,7 @@ private fun Content(
 
             StatusItem(
                 statusUi = StatusUi(
+                    id = "internet",
                     title = stringResource(R.string.settings__status__internet__title),
                     subtitle = when (uiState.health.internet) {
                         HealthState.READY -> stringResource(R.string.settings__status__internet__ready)
@@ -112,6 +114,7 @@ private fun Content(
 
             StatusItem(
                 statusUi = StatusUi(
+                    id = "electrum",
                     title = stringResource(R.string.settings__status__electrum__title),
                     subtitle = when (uiState.health.electrum) {
                         HealthState.READY -> stringResource(R.string.settings__status__electrum__ready)
@@ -126,6 +129,7 @@ private fun Content(
 
             StatusItem(
                 statusUi = StatusUi(
+                    id = "lightning_node",
                     title = stringResource(R.string.settings__status__lightning_node__title),
                     subtitle = uiState.nodeSubtitle.ifEmpty {
                         when (uiState.health.node) {
@@ -142,6 +146,7 @@ private fun Content(
 
             StatusItem(
                 statusUi = StatusUi(
+                    id = "lightning_connection",
                     title = stringResource(R.string.settings__status__lightning_connection__title),
                     subtitle = when (uiState.health.channels) {
                         HealthState.READY -> stringResource(R.string.settings__status__lightning_connection__ready)
@@ -156,6 +161,7 @@ private fun Content(
 
             StatusItem(
                 statusUi = StatusUi(
+                    id = "backup",
                     title = stringResource(R.string.settings__status__backup__title),
                     subtitle = uiState.backupSubtitle.ifEmpty {
                         when (uiState.health.backups) {
@@ -200,6 +206,7 @@ private fun StatusItem(
                 .fillMaxWidth()
                 .height(72.dp)
                 .clickableAlpha { onClick() }
+                .testTag("Status-${statusUi.id}")
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -238,6 +245,7 @@ private fun StatusItem(
 }
 
 private data class StatusUi(
+    val id: String,
     val title: String,
     val subtitle: String,
     @DrawableRes val iconRes: Int,

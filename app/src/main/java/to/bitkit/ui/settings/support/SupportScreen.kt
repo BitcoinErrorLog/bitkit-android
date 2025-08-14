@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,7 +74,11 @@ private fun Content(
 
             SettingsButtonRow(title = stringResource(R.string.settings__support__report), onClick = onClickReportIssue)
             SettingsButtonRow(title = stringResource(R.string.settings__support__help), onClick = onClickHelpCenter)
-            SettingsButtonRow(title = stringResource(R.string.settings__support__status), onClick = onClickAppStatus)
+            SettingsButtonRow(
+                title = stringResource(R.string.settings__support__status),
+                onClick = onClickAppStatus,
+                modifier = Modifier.testTag("AppStatus")
+            )
 
             Image(
                 painter = painterResource(R.drawable.question_mark),

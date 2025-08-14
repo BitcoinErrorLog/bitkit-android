@@ -5,7 +5,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import to.bitkit.R
 
@@ -44,6 +43,20 @@ val Typography = Typography(
 )
 
 object AppTextStyles {
+    val Display = TextStyle(
+        fontWeight = FontWeight.Black,
+        fontSize = 44.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-1).sp,
+        fontFamily = InterFontFamily,
+    )
+    val Headline = TextStyle(
+        fontWeight = FontWeight.Black,
+        fontSize = 30.sp,
+        lineHeight = 30.sp,
+        letterSpacing = (-1).sp,
+        fontFamily = InterFontFamily,
+    )
     val Title = TextStyle(
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
@@ -57,13 +70,12 @@ object AppTextStyles {
         letterSpacing = 0.4.sp,
         fontFamily = InterFontFamily,
     )
-    val BodyS = TextStyle(
+    val BodyM = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.4.sp,
         fontFamily = InterFontFamily,
-        textAlign = TextAlign.Start,
     )
     val BodyMSB = TextStyle(
         fontWeight = FontWeight.SemiBold,
@@ -71,7 +83,20 @@ object AppTextStyles {
         lineHeight = 22.sp,
         letterSpacing = 0.4.sp,
         fontFamily = InterFontFamily,
-        textAlign = TextAlign.Start,
+    )
+    val BodyMB = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 17.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
+    )
+    val BodyS = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
     )
     val BodySSB = TextStyle(
         fontWeight = FontWeight.SemiBold,
@@ -79,6 +104,40 @@ object AppTextStyles {
         lineHeight = 20.sp,
         letterSpacing = 0.4.sp,
         fontFamily = InterFontFamily,
-        textAlign = TextAlign.Start,
+    )
+    val BodySB = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
+    )
+    val Caption = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
+    )
+    val CaptionM = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
+    )
+    val CaptionB = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
+    )
+    val FootnoteM = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.4.sp,
+        fontFamily = InterFontFamily,
     )
 }

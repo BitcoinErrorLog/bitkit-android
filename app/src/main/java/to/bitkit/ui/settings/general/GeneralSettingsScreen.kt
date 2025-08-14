@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,6 +88,7 @@ private fun GeneralSettingsContent(
                 title = stringResource(R.string.settings__general__currency_local),
                 value = SettingsButtonValue.StringValue(selectedCurrency),
                 onClick = onLocalCurrencyClick,
+                modifier = Modifier.testTag("CurrenciesSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__general__unit),
@@ -97,24 +99,29 @@ private fun GeneralSettingsContent(
                     }
                 ),
                 onClick = onDefaultUnitClick,
+                modifier = Modifier.testTag("UnitSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__general__speed),
                 value = SettingsButtonValue.StringValue(defaultTransactionSpeed.transactionSpeedUiText()),
                 onClick = onTransactionSpeedClick,
+                modifier = Modifier.testTag("TransactionSpeedSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__widgets__nav_title),
                 onClick = onWidgetsClick,
+                modifier = Modifier.testTag("WidgetsSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__quickpay__nav_title),
                 onClick = onQuickPayClick,
+                modifier = Modifier.testTag("QuickpaySettings")
             )
             if (showTagsButton) {
                 SettingsButtonRow(
                     title = stringResource(R.string.settings__general__tags),
                     onClick = onTagsClick,
+                    modifier = Modifier.testTag("TagsSettings")
                 )
             }
         }

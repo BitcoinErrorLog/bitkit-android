@@ -68,7 +68,7 @@ fun NumberPadSimple(
                 onClick = { onPress(KEY_DELETE) },
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("KeyboardButton_backspace")
+                    .testTag("NRemove")
             )
         }
     }

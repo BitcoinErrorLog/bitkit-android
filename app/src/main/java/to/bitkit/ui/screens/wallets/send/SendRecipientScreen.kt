@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,7 +63,7 @@ fun SendRecipientScreen(
                         modifier = Modifier.size(28.dp),
                     )
                 },
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 4.dp).testTag("RecipientContact")
             ) {
                 scope.launch {
                     app?.toast(Exception("Coming soon: Contact"))
@@ -79,7 +80,7 @@ fun SendRecipientScreen(
                         modifier = Modifier.size(28.dp),
                     )
                 },
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 4.dp).testTag("RecipientInvoice")
             ) {
                 onEvent(SendEvent.Paste)
             }
@@ -94,7 +95,7 @@ fun SendRecipientScreen(
                         modifier = Modifier.size(28.dp),
                     )
                 },
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 4.dp).testTag("RecipientManual")
             ) {
                 onEvent(SendEvent.EnterManually)
             }
@@ -109,6 +110,7 @@ fun SendRecipientScreen(
                         modifier = Modifier.size(28.dp),
                     )
                 },
+                modifier = Modifier.testTag("RecipientScan")
             ) {
                 onEvent(SendEvent.Scan)
             }

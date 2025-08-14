@@ -25,6 +25,7 @@ fun ExternalSuccessScreen(
         buttonText = localizedRandom(R.string.common__ok_random),
         onButtonClick = onContinue,
         onCloseClick = onClose,
+        testTag = "ExternalSuccess",
     )
 }
 

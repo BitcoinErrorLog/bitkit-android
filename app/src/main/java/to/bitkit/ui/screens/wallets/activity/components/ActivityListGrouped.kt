@@ -67,7 +67,7 @@ fun ActivityListGrouped(
                         }
 
                         is Activity -> {
-                            ActivityRow(item, onActivityItemClick)
+                            ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
                             val hasNextItem =
                                 index < groupedItems.size - 1 && groupedItems[index + 1] !is String
                             if (hasNextItem) {

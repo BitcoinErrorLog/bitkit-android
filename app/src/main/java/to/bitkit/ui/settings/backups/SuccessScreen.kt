@@ -77,7 +77,7 @@ private fun SuccessContent(
             PrimaryButton(
                 text = stringResource(R.string.common__ok),
                 onClick = onContinue,
-                modifier = Modifier.testTag("backup_success_ok_button")
+                modifier = Modifier.testTag("OK")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

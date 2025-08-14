@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -78,6 +79,7 @@ private fun Content(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .imePadding()
+                .testTag("ExternalAmount")
         ) {
             val totalOnchainSats = LocalBalances.current.totalOnchainSats
 
@@ -136,6 +138,7 @@ private fun Content(
                 text = stringResource(R.string.common__continue),
                 onClick = { onContinueClick() },
                 enabled = amountState.sats != 0L,
+                modifier = Modifier.testTag("ExternalAmountContinue")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
