@@ -33,7 +33,7 @@ class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepo,
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
-    private val currencyRepo: CurrencyRepo
+    private val currencyRepo: CurrencyRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -273,7 +273,7 @@ class HomeViewModel @Inject constructor(
             balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.SPEND,
+                    Suggestion.SPEND, // TODO Replace with LIGHTNING_SETTING_UP when the spending balance is confirming
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
