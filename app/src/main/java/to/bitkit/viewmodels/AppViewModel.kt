@@ -191,7 +191,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             ldkNodeEventBus.events.collect { event ->
                 try {
-                    when (event) {
+                    when (event) { //TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
                             handleTags(event)
                             showNewTransactionSheet(
@@ -1222,8 +1222,9 @@ class AppViewModel @Inject constructor(
                 retry = false
             ).getOrNull()
 
+            //TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
             if (activity != null) {
-                Logger.verbose("Activity already exists, skipping sheet", context = TAG)
+                Logger.warn("Activity already exists, skipping sheet", context = TAG)
                 return@launch
             }
         }
