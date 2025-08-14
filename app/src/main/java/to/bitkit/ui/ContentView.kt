@@ -183,7 +183,7 @@ fun ContentView(
 
                     val pendingTransaction = NewTransactionSheetDetails.load(context)
                     if (pendingTransaction != null) {
-                        appViewModel.showNewTransactionSheet(pendingTransaction)
+                        appViewModel.showNewTransactionSheet(details = pendingTransaction, event = null)
                         NewTransactionSheetDetails.clear(context)
                     }
 
@@ -329,7 +329,7 @@ fun ContentView(
                                 onComplete = { txSheet ->
                                     appViewModel.hideSheet()
                                     appViewModel.clearClipboardForAutoRead()
-                                    txSheet?.let { appViewModel.showNewTransactionSheet(it) }
+                                    txSheet?.let { appViewModel.showNewTransactionSheet(details = it, event = null) }
                                 }
                             )
                         }

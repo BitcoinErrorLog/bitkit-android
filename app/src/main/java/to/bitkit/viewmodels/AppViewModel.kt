@@ -191,7 +191,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             ldkNodeEventBus.events.collect { event ->
                 try {
-                    when (event) {
+                    when (event) { // TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
                             handleTags(event)
                             showNewTransactionSheet(
@@ -199,7 +199,8 @@ class AppViewModel @Inject constructor(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.RECEIVED,
                                     sats = (event.amountMsat / 1000u).toLong(),
-                                )
+                                ),
+                                event = event
                             )
                         }
 
@@ -214,7 +215,8 @@ class AppViewModel @Inject constructor(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
                                         sats = (channel.inboundCapacityMsat / 1000u).toLong(),
-                                    )
+                                    ),
+                                    event = event
                                 )
                             } else {
                                 toast(
@@ -240,7 +242,8 @@ class AppViewModel @Inject constructor(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.SENT,
                                     sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
-                                )
+                                ),
+                                event = event
                             )
                         }
 
@@ -1208,10 +1211,28 @@ class AppViewModel @Inject constructor(
         isNewTransactionSheetEnabled = enabled
     }
 
-    fun showNewTransactionSheet(details: NewTransactionSheetDetails) {
+    fun showNewTransactionSheet(
+        details: NewTransactionSheetDetails,
+        event: Event?,
+    ) = viewModelScope.launch {
         if (!isNewTransactionSheetEnabled) {
             Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
-            return
+            return@launch
+        }
+
+        if (event is Event.PaymentReceived) {
+            val activity = activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = event.paymentHash,
+                type = ActivityFilter.ALL,
+                txType = PaymentType.RECEIVED,
+                retry = false
+            ).getOrNull()
+
+            // TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
+            if (activity != null) {
+                Logger.warn("Activity ${activity.rawId()} already exists, skipping sheet", context = TAG)
+                return@launch
+            }
         }
 
         newTransaction = details
