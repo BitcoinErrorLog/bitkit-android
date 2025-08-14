@@ -1222,9 +1222,9 @@ class AppViewModel @Inject constructor(
                 retry = false
             ).getOrNull()
 
-            //TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
+            // TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
             if (activity != null) {
-                Logger.warn("Activity already exists, skipping sheet", context = TAG)
+                Logger.warn("Activity ${activity.rawId()} already exists, skipping sheet", context = TAG)
                 return@launch
             }
         }
