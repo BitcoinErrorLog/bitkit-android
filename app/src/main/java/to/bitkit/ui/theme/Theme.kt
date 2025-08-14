@@ -11,9 +11,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
-val Gray100 = Color(0xFFF4F4F4)
-val Gray900 = Color(0xFF212121)
-
 private object ColorPalette {
     @Stable
     val Light = lightColorScheme(
@@ -21,9 +18,9 @@ private object ColorPalette {
         secondary = Colors.White64,
         background = Colors.Black,
         surface = Color.White,
-        surfaceVariant = Gray100,
-        outline = Gray100,
-        outlineVariant = Gray100, // divider default
+        surfaceVariant = Colors.Gray1,
+        outline = Colors.Gray1,
+        outlineVariant = Colors.Gray1, // divider default
         // Other default colors to override
         /*
         onPrimary = Color.White,
@@ -41,8 +38,9 @@ private object ColorPalette {
         surface = Colors.Black, // Color(0xFF101010),
         onBackground = Colors.White,
         onSurface = Colors.White, // Colors.Gray6,
-        surfaceVariant = Gray900,
+        surfaceVariant = Colors.Gray6,
         surfaceContainer = Colors.White16,
+        surfaceContainerHighest = Colors.White16, // card default
         onPrimary = Colors.Black,
         onSecondary = Colors.White,
         outlineVariant = Colors.White10, // divider default
