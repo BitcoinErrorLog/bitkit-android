@@ -69,7 +69,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         initNotificationChannel()
-        initNotificationChannel( // TODO EXTRACT TO Strings
+        initNotificationChannel(
+            // TODO EXTRACT TO Strings
             id = CHANNEL_ID_NODE,
             name = "Lightning node notification",
             desc = "Channel for LightningNodeService",
@@ -257,7 +258,11 @@ class MainActivity : FragmentActivity() {
                 )
 
                 if (appViewModel.showNewTransaction) {
-                    NewTransactionSheet(appViewModel = appViewModel, currencyViewModel = currencyViewModel)
+                    NewTransactionSheet(
+                        appViewModel = appViewModel,
+                        currencyViewModel = currencyViewModel,
+                        settingsViewModel = settingsViewModel,
+                    )
                 }
 
                 SplashScreen(appViewModel.splashVisible)
