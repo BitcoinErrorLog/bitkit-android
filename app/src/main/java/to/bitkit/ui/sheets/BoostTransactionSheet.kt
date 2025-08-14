@@ -177,10 +177,12 @@ fun BoostTransactionContent(
 @Composable
 private fun LoadingState() {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(32.dp)
     ) {
         CircularProgressIndicator(
-            color = Colors.Yellow, modifier = Modifier
+            color = Colors.Yellow,
+            modifier = Modifier
                 .size(32.dp)
                 .testTag(BoostTransactionTestTags.LOADING_INDICATOR)
         )
@@ -200,7 +202,8 @@ private fun DefaultModeContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickableAlpha { onClickEdit() }
-                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)) {
+                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
+        ) {
             Image(
                 painter = painterResource(R.drawable.ic_timer_alt_yellow),
                 contentDescription = null,
@@ -228,7 +231,8 @@ private fun DefaultModeContent(
                 horizontalAlignment = Alignment.End,
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     val feeText =
                         rememberMoneyText(sats = uiState.totalFeeSats.toLong())?.withAccent(defaultColor = Colors.White)
@@ -250,7 +254,8 @@ private fun DefaultModeContent(
                 }
 
                 val feeTextSecondary = rememberMoneyText(
-                    sats = uiState.totalFeeSats.toLong(), reversed = true
+                    sats = uiState.totalFeeSats.toLong(),
+                    reversed = true
                 )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                 BodySSB(
@@ -288,7 +293,8 @@ private fun CustomModeContent(
         modifier = Modifier.testTag(BoostTransactionTestTags.CUSTOM_MODE_CONTENT),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             QuantityButton(
                 icon = painterResource(R.drawable.ic_minus),
@@ -319,7 +325,8 @@ private fun CustomModeContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val feeTextSecondary = rememberMoneyText(
-                        sats = uiState.totalFeeSats.toLong(), reversed = true
+                        sats = uiState.totalFeeSats.toLong(),
+                        reversed = true
                     )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                     BodySSB(
@@ -390,12 +397,15 @@ fun QuantityButton(
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
             }
-        }, enabled = enabled, colors = IconButtonDefaults.iconButtonColors(
+        },
+        enabled = enabled,
+        colors = IconButtonDefaults.iconButtonColors(
             containerColor = backgroundColor,
             contentColor = iconColor,
             disabledContainerColor = Colors.Gray3,
             disabledContentColor = Colors.Gray1
-        ), modifier = modifier
+        ),
+        modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
     ) {

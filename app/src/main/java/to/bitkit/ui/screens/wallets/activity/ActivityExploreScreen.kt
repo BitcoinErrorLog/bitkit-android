@@ -197,7 +197,8 @@ private fun LightningDetails(
             modifier = Modifier.clickableAlpha(
                 onClick = copyToClipboard(preimage) {
                     onCopy(preimage)
-                }),
+                }
+            ),
         )
     }
     Section(
@@ -206,7 +207,8 @@ private fun LightningDetails(
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(paymentHash) {
                 onCopy(paymentHash)
-            }),
+            }
+        ),
     )
     Section(
         title = stringResource(R.string.wallet__activity_invoice),
@@ -214,7 +216,8 @@ private fun LightningDetails(
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(invoice) {
                 onCopy(invoice)
-            }),
+            }
+        ),
     )
 }
 
@@ -227,12 +230,16 @@ private fun ColumnScope.OnchainDetails(
 ) {
     val txId = onchain.v1.txId
     Section(
-        title = stringResource(R.string.wallet__activity_tx_id), value = txId, modifier = Modifier
+        title = stringResource(R.string.wallet__activity_tx_id),
+        value = txId,
+        modifier = Modifier
             .clickableAlpha(
                 onClick = copyToClipboard(txId) {
                     onCopy(txId)
-                })
-            .testTag("TXID"))
+                }
+            )
+            .testTag("TXID")
+    )
     if (txDetails != null) {
         Section(
             title = localizedPlural(R.string.wallet__activity_input, mapOf("count" to txDetails.vin.size)),
@@ -274,16 +281,19 @@ private fun ColumnScope.OnchainDetails(
         val isRbf = onchain.boostType() == BoostType.RBF
         Section(
             title = stringResource(
-            if (isRbf) R.string.wallet__activity_boosted_rbf else R.string.wallet__activity_boosted_cpfp
-        ).replace("{num}", "${index + 1}"), valueContent = {
-            Column {
-                BodySSB(text = parent, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
-            }
-        }, modifier = Modifier
+                if (isRbf) R.string.wallet__activity_boosted_rbf else R.string.wallet__activity_boosted_cpfp
+            ).replace("{num}", "${index + 1}"),
+            valueContent = {
+                Column {
+                    BodySSB(text = parent, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                }
+            },
+            modifier = Modifier
                 .clickableAlpha {
                     onClickParent(parent)
                 }
-                .testTag(if (isRbf) "RBFBoosted" else "CPFPBoosted"))
+                .testTag(if (isRbf) "RBFBoosted" else "CPFPBoosted")
+        )
     }
 }
 
