@@ -102,6 +102,7 @@ private fun Content(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .imePadding()
+                .testTag("SpendingAmount")
         ) {
             VerticalSpacer(32.dp)
             Display(
@@ -139,12 +140,14 @@ private fun Content(
                     text = stringResource(R.string.lightning__spending_amount__quarter),
                     color = Colors.Purple,
                     onClick = onClickQuarter,
+                    modifier = Modifier.testTag("SpendingAmountQuarter")
                 )
                 // Max Button
                 NumberPadActionButton(
                     text = stringResource(R.string.common__max),
                     color = Colors.Purple,
                     onClick = onClickMaxAmount,
+                    modifier = Modifier.testTag("SpendingAmountMax")
                 )
             }
             HorizontalDivider()

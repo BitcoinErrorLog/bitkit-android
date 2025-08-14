@@ -1,6 +1,9 @@
 ## RN e2e testIDs vs Android Compose testTags
 
-Legend: ✅ = present in Android, ❌ = missing in Android
+Legend: 
+- ✅ = present in Android
+- ❌ = missing in Android
+- 🚫 = Descoped in Anroid
 
 ### backup.e2e.js
 | RN testID | Android Status |
@@ -42,8 +45,8 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | BoostDisabled | ✅ |
 | BoostedButton | ✅ |
 | BoostingIcon | ✅ |
-| CPFPBoost | ❌ |
-| CPFPBoosted | ❌ |
+| CPFPBoost | ✅ |
+| CPFPBoosted | ✅ |
 | Close | ✅ |
 | ContinueAmount | ✅ |
 | CustomFeeButton | ✅ |
@@ -62,9 +65,9 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | NavigationClose | ✅ |
 | Plus | ✅ |
 | QRCode | ✅ |
-| RBF | ❌ |
-| RBFBoost | ❌ |
-| RBFBoosted | ❌ |
+| RBF | 🚫 |
+| RBFBoost | ✅ |
+| RBFBoosted | ✅ |
 | Receive | ✅ |
 | ReceivedTransaction | ✅ |
 | ReceivedTransactionButton | ✅ |
@@ -424,7 +427,7 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | About | ✅ |
 | AboutLogo | ✅ |
 | Address-0 | ✅ |
-| AddressTypePreference | ❌ |
+| AddressTypePreference | 🚫 |
 | AddressViewer | ✅ |
 | AdvancedSettings | ✅ |
 | AppStatus | ✅ |
@@ -432,13 +435,13 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | BackupWallet | ✅ |
 | Bitcoin | ✅ |
 | ConnectToHost | ✅ |
-| ConnectToUrl | ❌ |
+| ConnectToUrl | 🚫 |
 | Connected | ✅ |
 | ConnectedUrl | ✅ |
 | Continue | ✅ |
 | ContinueConfirmMnemonic | ✅ |
 | ContinueShowMnemonic | ✅ |
-| CopyNodeId | ❌ |
+| CopyNodeId | 🚫 |
 | CurrenciesSettings | ✅ |
 | CustomFee | ✅ |
 | DenominationClassic | ✅ |
@@ -450,12 +453,12 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | ElectrumConfig | ✅ |
 | ElectrumProtocol | ✅ |
 | ElectrumStatus | ✅ |
-| ErrorReport | ❌ |
+| ErrorReport | 🚫 |
 | GeneralSettings | ✅ |
 | HeaderMenu | ✅ |
 | HideBalanceOnOpen | ✅ |
 | HostInput | ✅ |
-| LDKDebug | ❌ |
+| LDKDebug | 🚫 |
 | LightningNodeInfo | ✅ |
 | MoneyFiatSymbol | ✅ |
 | MoneyText | ✅ |
@@ -470,15 +473,15 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | QRInput | ❌ |
 | RGSServer | ✅ |
 | RGSUrl | ✅ |
-| RebroadcastLDKTXS | ❌ |
+| RebroadcastLDKTXS | 🚫 |
 | Receive | ✅ |
 | ReceiveScreen | ✅ |
 | ReceiveTagsSubmit | ✅ |
-| RefreshLDK | ❌ |
+| RefreshLDK | 🚫 |
 | ResetAndRestore | ✅ |
 | ResetSuggestions | ✅ |
 | ResetToDefault | ✅ |
-| RestartLDK | ❌ |
+| RestartLDK | 🚫 |
 | ScanPrompt | ❌ |
 | SecuritySettings | ✅ |
 | SeedContaider | ✅ |
@@ -501,19 +504,19 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | TapToReveal | ✅ |
 | TotalBalance | ✅ |
 | TransactionSpeedSettings | ✅ |
-| TriggerRenderError | ❌ |
+| TriggerRenderError | 🚫 |
 | USD | ✅ |
 | UnitSettings | ✅ |
-| UrlInput | ❌ |
+| UrlInput | 🚫 |
 | Value | ✅ |
-| WebRelay | ❌ |
-| WebRelayStatus | ❌ |
+| WebRelay | 🚫 |
+| WebRelayStatus | 🚫 |
 | Word-${word} | ✅ |
 | custom | ✅ |
 | fast | ✅ |
 | normal | ✅ |
-| p2pkh | ❌ |
-| p2wpkh | ❌ |
+| p2pkh | 🚫 |
+| p2wpkh | 🚫 |
 
 ### slashtags.e2e.js
 | RN testID | Android Status |
@@ -568,7 +571,7 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | AvailabilityContinue | ✅ |
 | BoostButton | ✅ |
 | BoostingIcon | ✅ |
-| CPFPBoost | ❌ |
+| CPFPBoost | ✅ |
 | Channel | ✅ |
 | ChannelScrollView | ✅ |
 | Channels | ✅ |
@@ -618,20 +621,20 @@ Legend: ✅ = present in Android, ❌ = missing in Android
 | SendAmountNumberPad | ✅ |
 | SendSuccess | ✅ |
 | SetCustomFee | ✅ |
-| SpendingAdvanced | ❌ |
-| SpendingAdvancedContinue | ❌ |
-| SpendingAdvancedDefault | ❌ |
-| SpendingAdvancedMax | ❌ |
-| SpendingAdvancedMin | ❌ |
-| SpendingAdvancedNumberField | ❌ |
-| SpendingAmount | ❌ |
-| SpendingAmountContinue | ❌ |
-| SpendingAmountMax | ❌ |
-| SpendingAmountQuarter | ❌ |
-| SpendingConfirmAdvanced | ❌ |
-| SpendingConfirmChannel | ❌ |
-| SpendingConfirmDefault | ❌ |
-| SpendingConfirmMore | ❌ |
+| SpendingAdvanced | ✅ |
+| SpendingAdvancedContinue | ✅ |
+| SpendingAdvancedDefault | ✅ |
+| SpendingAdvancedMax | ✅ |
+| SpendingAdvancedMin | ✅ |
+| SpendingAdvancedNumberField | ✅ |
+| SpendingAmount |  |
+| SpendingAmountContinue | ✅ |
+| SpendingAmountMax | ✅ |
+| SpendingAmountQuarter | ✅ |
+| SpendingConfirmAdvanced | ✅ |
+| SpendingConfirmChannel | ✅ |
+| SpendingConfirmDefault | ✅ |
+| SpendingConfirmMore | ✅ |
 | SpendingIntro-button | ✅ |
 | StatusBoosting | ✅ |
 | StatusTransfer | ✅ |

@@ -26,9 +26,9 @@ fun LightningChannel(
     capacity: Long,
     localBalance: Long,
     remoteBalance: Long,
+    modifier: Modifier = Modifier,
     status: ChannelStatusUi = ChannelStatusUi.PENDING,
     showLabels: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val spendingColor = if (status == ChannelStatusUi.CLOSED) Colors.Gray5 else Colors.Purple50
     val spendingAvailableColor = if (status == ChannelStatusUi.CLOSED) Colors.Gray3 else Colors.Purple

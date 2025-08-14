@@ -151,22 +151,18 @@ fun BoostTransactionContent(
         )
 
         VerticalSpacer(24.dp)
-
-        when {
-            uiState.loading -> {
-                LoadingState()
-            }
-
-            uiState.isDefaultMode -> {
-                DefaultModeContent(
+        Column(
+            modifier = Modifier.testTag(if (uiState.isRbf) "RBFBoost" else "CPFPBoost")
+        ) {
+            when {
+                uiState.loading -> LoadingState()
+                uiState.isDefaultMode -> DefaultModeContent(
                     uiState = uiState,
                     onClickEdit = onClickEdit,
                     onSwipe = onSwipe,
                 )
-            }
 
-            else -> {
-                CustomModeContent(
+                else -> CustomModeContent(
                     uiState = uiState,
                     onChangeAmount = onChangeAmount,
                     onClickUseSuggestedFee = onClickUseSuggestedFee,
@@ -181,12 +177,10 @@ fun BoostTransactionContent(
 @Composable
 private fun LoadingState() {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(32.dp)
+        horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)
     ) {
         CircularProgressIndicator(
-            color = Colors.Yellow,
-            modifier = Modifier
+            color = Colors.Yellow, modifier = Modifier
                 .size(32.dp)
                 .testTag(BoostTransactionTestTags.LOADING_INDICATOR)
         )
@@ -206,8 +200,7 @@ private fun DefaultModeContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickableAlpha { onClickEdit() }
-                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)
-        ) {
+                .testTag(BoostTransactionTestTags.EDIT_FEE_ROW)) {
             Image(
                 painter = painterResource(R.drawable.ic_timer_alt_yellow),
                 contentDescription = null,
@@ -235,13 +228,11 @@ private fun DefaultModeContent(
                 horizontalAlignment = Alignment.End,
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val feeText = rememberMoneyText(sats = uiState.totalFeeSats.toLong())
-                        ?.withAccent(defaultColor = Colors.White)
-                        ?.toString()
-                        .orEmpty()
+                    val feeText =
+                        rememberMoneyText(sats = uiState.totalFeeSats.toLong())?.withAccent(defaultColor = Colors.White)
+                            ?.toString().orEmpty()
 
                     BodyMSB(
                         text = feeText,
@@ -259,11 +250,8 @@ private fun DefaultModeContent(
                 }
 
                 val feeTextSecondary = rememberMoneyText(
-                    sats = uiState.totalFeeSats.toLong(),
-                    reversed = true
-                )?.withAccent(defaultColor = Colors.White64)
-                    ?.toString()
-                    .orEmpty()
+                    sats = uiState.totalFeeSats.toLong(), reversed = true
+                )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                 BodySSB(
                     text = feeTextSecondary,
@@ -300,8 +288,7 @@ private fun CustomModeContent(
         modifier = Modifier.testTag(BoostTransactionTestTags.CUSTOM_MODE_CONTENT),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
         ) {
             QuantityButton(
                 icon = painterResource(R.drawable.ic_minus),
@@ -318,10 +305,9 @@ private fun CustomModeContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                val rateText = rememberMoneyText(sats = uiState.feeRate.toLong())
-                    ?.withAccent(defaultColor = Colors.White)
-                    ?.toString()
-                    .orEmpty()
+                val rateText =
+                    rememberMoneyText(sats = uiState.feeRate.toLong())?.withAccent(defaultColor = Colors.White)
+                        ?.toString().orEmpty()
 
                 BodyMSB(
                     text = "$rateText/vbyte ($BITCOIN_SYMBOL ${uiState.totalFeeSats})",
@@ -333,11 +319,8 @@ private fun CustomModeContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val feeTextSecondary = rememberMoneyText(
-                        sats = uiState.totalFeeSats.toLong(),
-                        reversed = true
-                    )?.withAccent(defaultColor = Colors.White64)
-                        ?.toString()
-                        .orEmpty()
+                        sats = uiState.totalFeeSats.toLong(), reversed = true
+                    )?.withAccent(defaultColor = Colors.White64)?.toString().orEmpty()
 
                     BodySSB(
                         text = feeTextSecondary,
@@ -407,15 +390,12 @@ fun QuantityButton(
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
             }
-        },
-        enabled = enabled,
-        colors = IconButtonDefaults.iconButtonColors(
+        }, enabled = enabled, colors = IconButtonDefaults.iconButtonColors(
             containerColor = backgroundColor,
             contentColor = iconColor,
             disabledContainerColor = Colors.Gray3,
             disabledContentColor = Colors.Gray1
-        ),
-        modifier = modifier
+        ), modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
     ) {
@@ -445,6 +425,8 @@ object BoostTransactionTestTags {
     const val DECREASE_FEE_BUTTON = "Minus"
     const val INCREASE_FEE_BUTTON = "Plus"
     const val FEE_RATE_TEXT = "fee_rate_text"
+
+    @Suppress("SpellCheckingInspection")
     const val USE_SUGGESTED_FEE_BUTTON = "RecomendedFeeButton"
 }
 

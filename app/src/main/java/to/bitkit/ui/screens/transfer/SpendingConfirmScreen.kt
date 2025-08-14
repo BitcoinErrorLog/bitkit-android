@@ -172,6 +172,7 @@ private fun Content(
                         remoteBalance = lspBalance.toLong(),
                         status = ChannelStatusUi.OPEN,
                         showLabels = true,
+                        modifier = Modifier.testTag("SpendingConfirmChannel")
                     )
                 }
 
@@ -182,6 +183,7 @@ private fun Content(
                         size = ButtonSize.Small,
                         fullWidth = false,
                         onClick = onLearnMoreClick,
+                        modifier = Modifier.testTag("SpendingConfirmMore")
                     )
                     PrimaryButton(
                         text = stringResource(
@@ -196,6 +198,9 @@ private fun Content(
                                 onAdvancedClick()
                             }
                         },
+                        modifier = Modifier.testTag(
+                            if (isAdvanced) "SpendingConfirmDefault" else "SpendingConfirmAdvanced"
+                        )
                     )
                 }
                 VerticalSpacer(16.dp)
@@ -215,7 +220,6 @@ private fun Content(
                             onConfirm()
                         }
                     },
-                    modifier = Modifier.testTag("SpendingConfirmAdvanced")
                 )
                 VerticalSpacer(16.dp)
             }
