@@ -57,6 +57,7 @@ class ActivityRepo @Inject constructor(
                     syncLdkNodePayments(payments = payments)
                     updateActivitiesMetadata()
                     boostPendingActivities()
+                    updateInProgressTransfers()
                     isSyncingLdkNodePayments = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -318,6 +319,18 @@ class ActivityRepo @Inject constructor(
                     }
 
                     is Activity.Lightning -> Unit
+                }
+            }
+        }
+    }
+
+    private suspend fun updateInProgressTransfers() {
+        cacheStore.data.first().inProgressTransfers.forEach { transfer ->
+            getActivity(transfer.activityId).onSuccess { activity ->
+                (activity as? Onchain)?.let { onChain ->
+                    if (onChain.v1.confirmed) {
+                        cacheStore.removeInProgressTransfer(transfer)
+                    }
                 }
             }
         }
