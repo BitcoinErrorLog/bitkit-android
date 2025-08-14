@@ -18,7 +18,7 @@ enum class Suggestion(
         color = Colors.Brand,
         icon = R.drawable.b_emboss
     ),
-    SPEND( //Lightning ready from RN
+    SPEND( // Lightning ready from RN
         title = R.string.cards__lightning__title,
         description = R.string.cards__lightning__description,
         color = Colors.Purple,
