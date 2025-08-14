@@ -20,6 +20,7 @@ import to.bitkit.models.toSuggestionOrNull
 import to.bitkit.models.widget.ArticleModel
 import to.bitkit.models.widget.toArticleModel
 import to.bitkit.models.widget.toBlockModel
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
@@ -34,6 +35,7 @@ class HomeViewModel @Inject constructor(
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
