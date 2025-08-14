@@ -132,7 +132,7 @@ class CacheStore @Inject constructor(
     }
 
     suspend fun addInProgressTransfer(item: InProgressTransfer) {
-        if (item.activityId in store.data.first().inProgressTransfers.map { it.activityId }) return
+        if (item in store.data.first().inProgressTransfers) return
 
         store.updateData {
             it.copy(inProgressTransfers = it.inProgressTransfers + item)
@@ -140,7 +140,7 @@ class CacheStore @Inject constructor(
     }
 
     suspend fun removeInProgressTransfer(item: InProgressTransfer) {
-        if (item.activityId !in store.data.first().inProgressTransfers.map { it.activityId }) return
+        if (item in store.data.first().inProgressTransfers) return
 
         store.updateData {
             it.copy(inProgressTransfers = it.inProgressTransfers - item)
