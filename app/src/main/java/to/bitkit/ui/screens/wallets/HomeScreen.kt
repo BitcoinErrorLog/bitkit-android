@@ -106,6 +106,7 @@ import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
+import to.bitkit.ui.sheets.PinRoute.Prompt
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -221,6 +222,11 @@ fun HomeScreen(
                         rootNavController.navigate(Routes.QuickPaySettings)
                     }
                 }
+
+                Suggestion.TRANSFER_PENDING -> Unit
+                Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
+                Suggestion.LIGHTNING_SETTING_UP -> TODO()
+                Suggestion.LIGHTNING_READY -> TODO()
             }
         },
         onClickAddWidget = {
