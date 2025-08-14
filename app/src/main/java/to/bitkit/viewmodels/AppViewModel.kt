@@ -191,7 +191,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             ldkNodeEventBus.events.collect { event ->
                 try {
-                    when (event) { //TODO Create individual sheet for each type of event
+                    when (event) { // TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
                             handleTags(event)
                             showNewTransactionSheet(
