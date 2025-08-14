@@ -8,6 +8,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,8 +30,8 @@ fun ActivityListSimple(
         modifier = Modifier.fillMaxWidth()
     ) {
         if (items != null && items.isNotEmpty()) {
-            items.forEach { item ->
-                ActivityRow(item, onActivityItemClick)
+            items.forEachIndexed { index, item ->
+                ActivityRow(item, onActivityItemClick, testTag = "ActivityShort-$index")
                 HorizontalDivider()
             }
             TertiaryButton(
@@ -39,6 +40,7 @@ fun ActivityListSimple(
                 modifier = Modifier
                     .wrapContentWidth()
                     .padding(top = 8.dp)
+                    .testTag("ActivityShowAll")
             )
         } else {
             EmptyActivityRow(onClick = onEmptyActivityRowClick)

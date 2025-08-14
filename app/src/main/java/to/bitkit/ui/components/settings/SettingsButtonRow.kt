@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -123,7 +124,7 @@ fun SettingsButtonRow(
                     }
 
                     is SettingsButtonValue.StringValue -> {
-                        BodyM(text = value.value)
+                        BodyM(text = value.value, modifier = Modifier.testTag("Value"))
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             painter = painterResource(R.drawable.ic_chevron_right),

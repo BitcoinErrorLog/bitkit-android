@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,7 +29,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.Title
+import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
@@ -87,7 +85,6 @@ fun SavingsProgressScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SavingsProgressScreen(
     progressState: SavingsProgressState,
@@ -95,25 +92,17 @@ private fun SavingsProgressScreen(
     onCloseClick: () -> Unit = {},
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
-
     ScreenColumn {
-        CenterAlignedTopAppBar(
-            title = {
-                Title(
-                    text = when (progressState) {
-                        SavingsProgressState.PROGRESS -> stringResource(R.string.lightning__transfer__nav_title)
-                        SavingsProgressState.SUCCESS -> stringResource(R.string.lightning__transfer_success__nav_title)
-                        SavingsProgressState.INTERRUPTED -> stringResource(
-                            R.string.lightning__savings_interrupted__nav_title
-                        )
-                            .removeAccentTags().replace("\n", " ")
-                    }
-                )
+        AppTopBar(
+            titleText = when (progressState) {
+                SavingsProgressState.PROGRESS -> stringResource(R.string.lightning__transfer__nav_title)
+                SavingsProgressState.SUCCESS -> stringResource(R.string.lightning__transfer_success__nav_title)
+                SavingsProgressState.INTERRUPTED -> stringResource(R.string.lightning__savings_interrupted__nav_title)
+                    .removeAccentTags().replace("\n", " ")
             },
+            onBackClick = null,
             actions = {
-                if (inProgress) {
-                    CloseNavIcon(onCloseClick)
-                }
+                if (inProgress) CloseNavIcon(onCloseClick)
             },
         )
         Column(

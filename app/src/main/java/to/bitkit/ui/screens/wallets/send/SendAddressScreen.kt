@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,7 +30,7 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.ScreenTransitionMs
+import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendUiState
 
@@ -42,7 +43,7 @@ fun SendAddressScreen(
 ) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        delay(ScreenTransitionMs)
+        delay(TRANSITION_SCREEN_MS)
         focusRequester.requestFocus()
     }
     Column(
@@ -59,7 +60,10 @@ fun SendAddressScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             VerticalSpacer(16.dp)
-            Caption13Up(stringResource(R.string.wallet__send_to), color = Colors.White64)
+            Caption13Up(
+                stringResource(R.string.wallet__send_to),
+                color = Colors.White64,
+            )
             VerticalSpacer(8.dp)
             TextInput(
                 placeholder = stringResource(R.string.wallet__send_address_placeholder),
@@ -71,12 +75,14 @@ fun SendAddressScreen(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .weight(1f)
+                    .testTag("RecipientInput")
             )
             VerticalSpacer(16.dp)
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
                 enabled = uiState.isAddressInputValid,
                 onClick = { onEvent(SendEvent.AddressContinue(uiState.addressInput)) },
+                modifier = Modifier.testTag("AddressContinue")
             )
             Spacer(modifier = Modifier.height(16.dp))
         }

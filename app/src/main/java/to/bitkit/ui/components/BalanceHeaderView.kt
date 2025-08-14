@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -15,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,10 +38,12 @@ import to.bitkit.ui.theme.Colors
 fun BalanceHeaderView(
     sats: Long,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     prefix: String? = null,
     showBitcoinSymbol: Boolean = true,
-    forceShowBalance: Boolean = false,
+    useSwipeToHide: Boolean = true,
     showEyeIcon: Boolean = false,
+    testTag: String = "",
 ) {
     val isPreview = LocalInspectionMode.current
 
@@ -59,6 +61,7 @@ fun BalanceHeaderView(
             showEyeIcon = showEyeIcon,
             onClick = {},
             onToggleHideBalance = {},
+            testTag = testTag,
         )
         return
     }
@@ -70,7 +73,8 @@ fun BalanceHeaderView(
 
     val isSwipeToHideEnabled by settings.enableSwipeToHideBalance.collectAsStateWithLifecycle()
     val hideBalance by settings.hideBalance.collectAsStateWithLifecycle()
-    val shouldHideBalance = hideBalance && !forceShowBalance
+    val shouldHideBalance = useSwipeToHide && hideBalance
+    val allowSwipeToHide = useSwipeToHide && isSwipeToHideEnabled
 
     converted?.let { converted ->
         val btcComponents = converted.bitcoinDisplay(displayUnit)
@@ -80,15 +84,18 @@ fun BalanceHeaderView(
                 modifier = modifier,
                 smallRowSymbol = converted.symbol,
                 smallRowText = converted.formatted,
+                smallRowModifier = Modifier.testTag("$testTag-secondary"),
                 largeRowPrefix = prefix,
                 largeRowText = btcComponents.value,
                 largeRowSymbol = btcComponents.symbol,
+                largeRowModifier = Modifier.testTag("$testTag-primary"),
                 showSymbol = showBitcoinSymbol,
                 hideBalance = shouldHideBalance,
-                isSwipeToHideEnabled = isSwipeToHideEnabled,
+                isSwipeToHideEnabled = allowSwipeToHide,
                 showEyeIcon = showEyeIcon,
-                onClick = { currency.togglePrimaryDisplay() },
+                onClick = onClick ?: { currency.togglePrimaryDisplay() },
                 onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
+                testTag = testTag,
             )
         } else {
             BalanceHeader(
@@ -100,10 +107,11 @@ fun BalanceHeaderView(
                 largeRowSymbol = converted.symbol,
                 showSymbol = true,
                 hideBalance = shouldHideBalance,
-                isSwipeToHideEnabled = isSwipeToHideEnabled,
+                isSwipeToHideEnabled = allowSwipeToHide,
                 showEyeIcon = showEyeIcon,
                 onClick = { currency.togglePrimaryDisplay() },
                 onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
+                testTag = testTag,
             )
         }
     }
@@ -114,15 +122,18 @@ fun BalanceHeader(
     modifier: Modifier = Modifier,
     smallRowSymbol: String? = null,
     smallRowText: String,
+    smallRowModifier: Modifier = Modifier,
     largeRowPrefix: String? = null,
     largeRowText: String,
     largeRowSymbol: String,
+    largeRowModifier: Modifier = Modifier,
     showSymbol: Boolean,
     hideBalance: Boolean = false,
     isSwipeToHideEnabled: Boolean = false,
     showEyeIcon: Boolean = false,
     onClick: () -> Unit,
     onToggleHideBalance: () -> Unit = {},
+    testTag: String? = null,
 ) {
     Column(
         verticalArrangement = Arrangement.Center,
@@ -133,14 +144,16 @@ fun BalanceHeader(
                 onSwipe = onToggleHideBalance,
             )
             .clickableAlpha { onClick() }
+            .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
     ) {
         SmallRow(
             symbol = smallRowSymbol,
             text = smallRowText,
-            hideBalance = hideBalance
+            hideBalance = hideBalance,
+            modifier = smallRowModifier,
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        VerticalSpacer(12.dp)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +163,8 @@ fun BalanceHeader(
                 text = largeRowText,
                 symbol = largeRowSymbol,
                 showSymbol = showSymbol,
-                hideBalance = hideBalance
+                hideBalance = hideBalance,
+                modifier = largeRowModifier,
             )
 
             if (showEyeIcon) {
@@ -169,6 +183,7 @@ fun BalanceHeader(
                             modifier = Modifier
                                 .size(24.dp)
                                 .clickableAlpha { onToggleHideBalance() }
+                                .testTag("ShowBalance")
                         )
                     }
                 }
@@ -183,55 +198,72 @@ fun LargeRow(
     text: String,
     symbol: String,
     showSymbol: Boolean,
-    hideBalance: Boolean = false
+    modifier: Modifier = Modifier,
+    hideBalance: Boolean = false,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
     ) {
         if (!hideBalance && prefix != null) {
             Display(
                 text = prefix,
                 color = Colors.White64,
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .testTag("MoneySign")
             )
         }
         if (showSymbol) {
             Display(
                 text = symbol,
                 color = Colors.White64,
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .testTag("MoneyFiatSymbol")
             )
         }
         AnimatedContent(
             targetState = hideBalance,
             transitionSpec = { BalanceAnimations.mainBalanceTransition },
-            label = "largeRowTextAnimation"
+            label = "largeRowTextAnimation",
         ) { isHidden ->
-            Display(text = if (isHidden) UiConstants.HIDE_BALANCE_LONG else text)
+            Display(
+                text = if (isHidden) UiConstants.HIDE_BALANCE_LONG else text,
+                modifier = Modifier.testTag("MoneyText")
+            )
         }
     }
 }
 
 @Composable
-private fun SmallRow(symbol: String?, text: String, hideBalance: Boolean = false) {
+private fun SmallRow(
+    symbol: String?,
+    text: String,
+    modifier: Modifier = Modifier,
+    hideBalance: Boolean = false,
+) {
     Row(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier,
     ) {
         if (symbol != null) {
             Caption13Up(
                 text = symbol,
                 color = Colors.White64,
+                modifier = Modifier.testTag("MoneyFiatSymbol")
             )
         }
         AnimatedContent(
             targetState = hideBalance,
             transitionSpec = { BalanceAnimations.secondaryBalanceTransition },
-            label = "smallRowTextAnimation"
+            label = "smallRowTextAnimation",
         ) { isHidden ->
             Caption13Up(
                 text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else text,
                 color = Colors.White64,
+                modifier = Modifier.testTag("MoneyText")
             )
         }
     }

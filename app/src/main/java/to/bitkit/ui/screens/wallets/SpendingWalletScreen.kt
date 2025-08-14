@@ -21,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
+import to.bitkit.ext.createChannelDetails
+import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.components.BalanceHeaderView
@@ -47,8 +50,8 @@ fun SpendingWalletScreen(
     onEmptyActivityRowClick: () -> Unit,
     onTransferToSavingsClick: () -> Unit,
     onBackClick: () -> Unit,
+    balances: BalanceState = LocalBalances.current,
 ) {
-    val balances = LocalBalances.current
     val showEmptyState by remember(balances.totalLightningSats) {
         // TODO use && hasLnActivity + LN spendingSats
         mutableStateOf(balances.totalLightningSats == 0uL)
@@ -83,22 +86,27 @@ fun SpendingWalletScreen(
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                BalanceHeaderView(sats = balances.totalLightningSats.toLong(), modifier = Modifier.fillMaxWidth())
-
+                BalanceHeaderView(
+                    sats = balances.totalLightningSats.toLong(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("TotalBalance")
+                )
                 if (!showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
 
                     if (canTransfer) {
                         SecondaryButton(
                             onClick = onTransferToSavingsClick,
-                            text = stringResource(R.string.lightning__savings_confirm__label),
+                            text = "Transfer To Savings", // TODO add missing localized text
                             icon = {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_transfer),
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
                                 )
-                            }
+                            },
+                            modifier = Modifier.testTag("TransferToSavings")
                         )
                     }
 
@@ -127,7 +135,25 @@ fun SpendingWalletScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun SpendingWalletScreenPreview() {
+private fun Preview() {
+    AppThemeSurface {
+        SpendingWalletScreen(
+            uiState = MainUiState(
+                channels = listOf(createChannelDetails())
+            ),
+            onAllActivityButtonClick = {},
+            onActivityItemClick = {},
+            onEmptyActivityRowClick = {},
+            onTransferToSavingsClick = {},
+            onBackClick = {},
+            balances = BalanceState(totalLightningSats = 50_000u),
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewEmpty() {
     AppThemeSurface {
         SpendingWalletScreen(
             uiState = MainUiState(),

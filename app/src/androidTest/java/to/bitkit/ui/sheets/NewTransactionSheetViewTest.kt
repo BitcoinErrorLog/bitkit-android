@@ -110,7 +110,7 @@ class NewTransactionSheetViewTest {
         composeTestRule.onNodeWithTag("sent_buttons_row").assertDoesNotExist()
 
         // Verify only OK button exists for received transactions
-        composeTestRule.onNodeWithTag("ok_button").assertExists().performClick()
+        composeTestRule.onNodeWithTag("ReceivedTransactionButton").assertExists().performClick()
         composeTestRule.waitForIdle()
         assert(closeClicked)
     }

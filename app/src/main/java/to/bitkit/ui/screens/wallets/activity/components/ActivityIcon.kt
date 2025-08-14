@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -25,6 +26,7 @@ import com.synonym.bitkitcore.PaymentType
 import to.bitkit.R
 import to.bitkit.ext.isBoosted
 import to.bitkit.ext.isFinished
+import to.bitkit.ext.isTransfer
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -52,7 +54,7 @@ fun ActivityIcon(
                 iconColor = Colors.Yellow,
                 backgroundColor = Colors.Yellow16,
                 size = size,
-                modifier = modifier,
+                modifier = modifier.testTag("BoostingIcon"),
             )
         }
 
@@ -91,15 +93,12 @@ fun ActivityIcon(
         }
 
         else -> {
-            val isTransfer = (activity as? Activity.Onchain)?.v1?.isTransfer == true
-            val onChainIcon = if (isTransfer) painterResource(R.drawable.ic_transfer) else arrowIcon
-
             CircularIcon(
-                icon = onChainIcon,
+                icon = if (activity.isTransfer()) painterResource(R.drawable.ic_transfer) else arrowIcon,
                 iconColor = Colors.Brand,
                 backgroundColor = Colors.Brand16,
                 size = size,
-                modifier = modifier,
+                modifier = modifier.testTag(if (activity.isTransfer()) "TransferIcon" else "ActivityIcon"),
             )
         }
     }

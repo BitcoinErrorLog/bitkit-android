@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -141,6 +142,7 @@ private fun Menu(
             onClick = {
                 scope.launch { drawerState.close() }
             },
+            modifier = Modifier.testTag("DrawerWallet")
         )
 
         DrawerItem(
@@ -150,18 +152,21 @@ private fun Menu(
                 walletNavController.navigate(HomeRoutes.AllActivity)
                 scope.launch { drawerState.close() }
             },
+            modifier = Modifier.testTag("DrawerActivity")
         )
 
         DrawerItem(
             label = stringResource(R.string.wallet__drawer__contacts),
             iconRes = R.drawable.ic_users,
             onClick = null, // TODO IMPLEMENT CONTACTS
+            modifier = Modifier.testTag("DrawerContacts")
         )
 
         DrawerItem(
             label = stringResource(R.string.wallet__drawer__profile),
             iconRes = R.drawable.ic_user_square,
             onClick = null, // TODO IMPLEMENT PROFILE
+            modifier = Modifier.testTag("DrawerProfile")
         )
 
         DrawerItem(
@@ -170,7 +175,8 @@ private fun Menu(
             onClick = {
                 onClickAddWidget()
                 scope.launch { drawerState.close() }
-            }
+            },
+            modifier = Modifier.testTag("DrawerWidgets")
         )
 
         DrawerItem(
@@ -179,7 +185,8 @@ private fun Menu(
             onClick = {
                 onClickShop()
                 scope.launch { drawerState.close() }
-            }
+            },
+            modifier = Modifier.testTag("DrawerShop")
         )
 
         DrawerItem(
@@ -189,6 +196,7 @@ private fun Menu(
                 rootNavController.navigateToSettings()
                 scope.launch { drawerState.close() }
             },
+            modifier = Modifier.testTag("DrawerSettings")
         )
 
         FillHeight()
@@ -206,7 +214,7 @@ private fun Menu(
                 showText = true,
                 showReady = true,
                 color = Colors.Black,
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.padding(vertical = 16.dp).testTag("DrawerAppStatus")
             )
         }
     }

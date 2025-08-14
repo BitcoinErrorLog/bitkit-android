@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -138,8 +139,9 @@ private fun PinPad(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.testTag("PinPad")
     ) {
-        AppTopBar(titleText = " ", onBackClick = onBack)
+        AppTopBar(titleText = null, onBackClick = onBack)
         Box(
             contentAlignment = Alignment.BottomCenter,
             modifier = Modifier.weight(1f)
@@ -161,7 +163,9 @@ private fun PinPad(
                     text = stringResource(R.string.security__pin_last_attempt),
                     color = Colors.Brand,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .testTag("LastAttempt")
                 )
             } else {
                 BodyS(
@@ -169,7 +173,9 @@ private fun PinPad(
                         .replace("{attemptsRemaining}", "$attemptsRemaining"),
                     color = Colors.Brand,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.clickableAlpha { onClickForgotPin() }
+                    modifier = Modifier
+                        .clickableAlpha { onClickForgotPin() }
+                        .testTag("AttemptsRemaining")
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))

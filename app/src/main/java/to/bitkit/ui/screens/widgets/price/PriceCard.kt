@@ -107,7 +107,7 @@ fun PriceCard(
                         color = Colors.White64,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("price_card_pair_label_${widgetData.pair}")
+                            .testTag("PriceWidgetRow-${widgetData.pair.displayName}")
                     )
 
                     BodySB(
@@ -144,10 +144,10 @@ fun PriceCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("source_row"),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .testTag("PriceWidgetSource")
                 ) {
                     CaptionB(
                         text = stringResource(R.string.widgets__widget__source),

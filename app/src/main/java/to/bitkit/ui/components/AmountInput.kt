@@ -34,6 +34,7 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun AmountInput(
+    modifier: Modifier = Modifier,
     defaultValue: Long = 0,
     primaryDisplay: PrimaryDisplay,
     showConversion: Boolean = false,
@@ -191,7 +192,9 @@ fun AmountInput(
 
         // Visible balance display
         currency.convert(sats)?.let { converted ->
-            Column(modifier = Modifier.clickableAlpha { currency.togglePrimaryDisplay() }) {
+            Column(
+                modifier = modifier.clickableAlpha { currency.togglePrimaryDisplay() }
+            ) {
                 if (showConversion) {
                     val captionText = if (primaryDisplay == PrimaryDisplay.BITCOIN) {
                         "${converted.symbol} ${converted.formatted}"

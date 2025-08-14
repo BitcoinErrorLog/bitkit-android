@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,12 +37,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.pager.HorizontalPagerIndicator
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ext.setClipboardText
@@ -53,7 +56,6 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Headline
-import to.bitkit.ui.components.PagerWithIndicator
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
@@ -87,15 +89,21 @@ fun ReceiveQrScreen(
         val originalBrightness = window?.attributes?.screenBrightness
         val originalFlags = window?.attributes?.flags
 
-        window?.attributes = window.attributes.apply {
-            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
-            flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        window?.let { win ->
+            win.attributes?.let { attrs ->
+                attrs.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+                attrs.flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                win.attributes = attrs
+            }
         }
 
         onDispose {
-            window?.attributes = window.attributes.apply {
-                originalBrightness?.let { screenBrightness = originalBrightness }
-                originalFlags?.let { flags = originalFlags }
+            window?.let { win ->
+                win.attributes?.let { attrs ->
+                    if (originalBrightness != null) attrs.screenBrightness = originalBrightness
+                    if (originalFlags != null) attrs.flags = originalFlags
+                    win.attributes = attrs
+                }
             }
         }
     }
@@ -128,7 +136,14 @@ fun ReceiveQrScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 val pagerState = rememberPagerState(initialPage = 0) { 2 }
-                PagerWithIndicator(pagerState) {
+                HorizontalPager(
+                    state = pagerState,
+                    pageSpacing = 20.dp,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ReceiveSlider")
+                ) {
                     when (it) {
                         0 -> ReceiveQrSlide(
                             uri = uri,
@@ -145,6 +160,17 @@ fun ReceiveQrScreen(
                         )
                     }
                 }
+                @Suppress("DEPRECATION")
+                HorizontalPagerIndicator(
+                    pagerState = pagerState,
+                    pageCount = pagerState.pageCount,
+                    indicatorWidth = 8.dp,
+                    spacing = 8.dp,
+                    activeColor = Colors.White,
+                    inactiveColor = Colors.White32,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                )
             }
             Spacer(modifier = Modifier.height(24.dp))
             AnimatedVisibility(walletState.nodeLifecycleState.isRunning() && walletState.channels.isEmpty()) {
@@ -180,6 +206,7 @@ fun ReceiveQrScreen(
                             checked = walletState.receiveOnSpendingBalance,
                             onCheckedChange = { onClickReceiveOnSpending() },
                             colors = AppSwitchDefaults.colorsPurple,
+                            modifier = Modifier.testTag("ReceiveInstantlySwitch")
                         )
                     }
                 }
@@ -250,6 +277,7 @@ private fun ReceiveQrSlide(
             logoPainter = qrLogoPainter,
             tipMessage = stringResource(R.string.wallet__receive_copied),
             modifier = Modifier.weight(1f, fill = false),
+            testTag = "QRCode",
             onBitmapGenerated = { bitmap ->
                 qrBitmap = bitmap
             }
@@ -273,7 +301,8 @@ private fun ReceiveQrSlide(
                         tint = Colors.Brand,
                         modifier = Modifier.size(18.dp)
                     )
-                }
+                },
+                modifier = Modifier.testTag("SpecifyInvoiceButton")
             )
             Tooltip(
                 text = stringResource(R.string.wallet__receive_copied),
@@ -295,7 +324,8 @@ private fun ReceiveQrSlide(
                             tint = Colors.Brand,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
+                    },
+                    modifier = Modifier.testTag("ReceiveCopyQR")
                 )
             }
             PrimaryButton(
@@ -315,7 +345,7 @@ private fun ReceiveQrSlide(
                         tint = Colors.Brand,
                         modifier = Modifier.size(18.dp)
                     )
-                }
+                },
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -339,6 +369,7 @@ private fun CopyValuesSlide(
                     title = stringResource(R.string.wallet__receive_bitcoin_invoice),
                     address = onchainAddress,
                     type = CopyAddressType.ONCHAIN,
+                    testTag = "ReceiveOnchainAddress",
                 )
             }
             if (bolt11.isNotEmpty() && receiveOnSpendingBalance) {
@@ -346,12 +377,14 @@ private fun CopyValuesSlide(
                     title = stringResource(R.string.wallet__receive_lightning_invoice),
                     address = bolt11,
                     type = CopyAddressType.LIGHTNING,
+                    testTag = "ReceiveLightningAddress",
                 )
             } else if (cjitInvoice != null) {
                 CopyAddressCard(
                     title = stringResource(R.string.wallet__receive_lightning_invoice),
                     address = cjitInvoice,
                     type = CopyAddressType.LIGHTNING,
+                    testTag = "ReceiveLightningAddress",
                 )
             }
         }
@@ -366,6 +399,7 @@ private fun CopyAddressCard(
     title: String,
     address: String,
     type: CopyAddressType,
+    testTag: String? = null,
 ) {
     val context = LocalContext.current
 
@@ -386,7 +420,10 @@ private fun CopyAddressCard(
             Icon(painter = painterResource(iconRes), contentDescription = null, tint = Colors.White64)
         }
         Spacer(modifier = Modifier.height(16.dp))
-        BodyS(text = address.truncate(32).uppercase())
+        BodyS(
+            text = address.truncate(32).uppercase(),
+            modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -411,7 +448,7 @@ private fun CopyAddressCard(
                             tint = if (type == CopyAddressType.ONCHAIN) Colors.Brand else Colors.Purple,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
+                    },
                 )
             }
             PrimaryButton(

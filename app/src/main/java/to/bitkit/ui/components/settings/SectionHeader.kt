@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.components.Caption13Up
@@ -17,6 +18,7 @@ import to.bitkit.ui.theme.Colors
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
+    color: Color = Colors.White64,
 ) {
     Column(
         verticalArrangement = Arrangement.Center,
@@ -25,7 +27,7 @@ fun SectionHeader(
             .padding(top = 16.dp)
             .height(50.dp)
     ) {
-        Caption13Up(text = title, color = Colors.White64)
+        Caption13Up(text = title, color = color)
     }
 }
 

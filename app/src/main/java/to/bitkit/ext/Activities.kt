@@ -43,7 +43,21 @@ fun Activity.isFinished() = when (this) {
     is Activity.Lightning -> v1.status != PaymentState.PENDING
 }
 
+fun Activity.isSent() = when (this) {
+    is Activity.Lightning -> v1.txType == PaymentType.SENT
+    is Activity.Onchain -> v1.txType == PaymentType.SENT
+}
+
 fun Activity.matchesPaymentId(paymentHashOrTxId: String): Boolean = when (this) {
     is Activity.Lightning -> paymentHashOrTxId == v1.id
     is Activity.Onchain -> paymentHashOrTxId == v1.txId
 }
+
+fun Activity.isTransfer() = this is Activity.Onchain && this.v1.isTransfer
+
+fun Activity.Onchain.boostType() = when (this.v1.txType) {
+    PaymentType.SENT -> BoostType.RBF
+    PaymentType.RECEIVED -> BoostType.CPFP
+}
+
+enum class BoostType { RBF, CPFP }

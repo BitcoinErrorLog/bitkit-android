@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
@@ -30,7 +29,7 @@ import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.Title
+import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.transfer.components.ProgressSteps
@@ -87,7 +86,6 @@ fun SettingUpScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingUpScreen(
     lightningSetupStep: Int,
@@ -95,18 +93,16 @@ private fun SettingUpScreen(
     onCloseClick: () -> Unit = {},
 ) {
     val inProgress = lightningSetupStep < 3
-    ScreenColumn {
-        CenterAlignedTopAppBar(
-            title = {
-                Title(
-                    text = if (inProgress) {
-                        stringResource(R.string.lightning__transfer__nav_title)
-                    } else {
-                        stringResource(R.string.lightning__transfer_success__nav_title)
-                    }
-                )
+    ScreenColumn(
+        modifier = Modifier.testTag(if (inProgress) "LightningSettingUp" else "TransferSuccess")
+    ) {
+        AppTopBar(
+            titleText = when {
+                inProgress -> stringResource(R.string.lightning__transfer__nav_title)
+                else -> stringResource(R.string.lightning__transfer_success__nav_title)
             },
-            actions = { CloseNavIcon(onCloseClick) },
+            onBackClick = null,
+            actions = { if (inProgress) CloseNavIcon(onCloseClick) },
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -178,6 +174,7 @@ private fun SettingUpScreen(
                     randomOkText
                 },
                 onClick = onContinueClick,
+                modifier = Modifier.testTag("TransferSuccess-button")
             )
             Spacer(modifier = Modifier.height(16.dp))
         }

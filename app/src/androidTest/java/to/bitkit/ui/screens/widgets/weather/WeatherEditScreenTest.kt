@@ -60,7 +60,7 @@ class WeatherEditScreenTest {
 
         // Assert main elements exist
         composeTestRule.onNodeWithTag("weather_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
 
         // Verify description
         composeTestRule.onNodeWithTag("edit_description").assertExists()
@@ -76,18 +76,18 @@ class WeatherEditScreenTest {
 
         // Verify buttons
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
 
         // Test button clicks
         composeTestRule.onNodeWithTag("title_toggle_button").performClick()
         assert(titleClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
         // Reset button should be disabled with default preferences
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -121,10 +121,10 @@ class WeatherEditScreenTest {
         }
 
         // Assert reset button should be enabled when preferences are customized
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
 
         // Test reset button click
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -150,7 +150,7 @@ class WeatherEditScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("preview_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertIsEnabled()
     }
 
     @Test
@@ -180,7 +180,7 @@ class WeatherEditScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("preview_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertIsNotEnabled()
     }
 
     @Test
@@ -230,10 +230,10 @@ class WeatherEditScreenTest {
         composeTestRule.onNodeWithTag("next_block_fee_toggle_button").performClick()
         assert(nextBlockFeeClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -298,7 +298,7 @@ class WeatherEditScreenTest {
 
         // Assert all tagged elements exist
         composeTestRule.onNodeWithTag("weather_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
         composeTestRule.onNodeWithTag("edit_description").assertExists()
 
         listOf("title", "description", "current_fee", "next_block_fee").forEach { prefix ->
@@ -309,8 +309,8 @@ class WeatherEditScreenTest {
         }
 
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
     }
 
     @Test

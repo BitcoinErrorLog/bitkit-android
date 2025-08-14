@@ -88,7 +88,7 @@ fun HeadlinesEditContent(
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .testTag("main_content")
+                .testTag("WidgetEditScrollView")
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -224,7 +224,7 @@ fun HeadlinesEditContent(
                     text = stringResource(R.string.common__reset),
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("reset_button"),
+                        .testTag("WidgetEditReset"),
                     enabled = !headlinePreferences.showSource || !headlinePreferences.showTime,
                     fullWidth = false,
                     onClick = onClickReset
@@ -234,7 +234,7 @@ fun HeadlinesEditContent(
                     text = stringResource(R.string.common__preview),
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("preview_button"),
+                        .testTag("WidgetEditPreview"),
                     fullWidth = false,
                     onClick = onClickPreview
                 )

@@ -11,6 +11,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -88,6 +89,7 @@ fun AboutScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp)
                     .weight(1f)
+                    .testTag("AboutLogo")
             )
 
             Links(modifier = Modifier.fillMaxWidth())

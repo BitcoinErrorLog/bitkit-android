@@ -44,7 +44,7 @@ class FactsEditContentTest {
 
         // Assert main elements exist
         composeTestRule.onNodeWithTag("facts_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
 
         // Verify description
         composeTestRule.onNodeWithTag("edit_description").assertExists()
@@ -68,18 +68,18 @@ class FactsEditContentTest {
 
         // Verify buttons
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
 
         // Test button clicks
         composeTestRule.onNodeWithTag("source_toggle_button").performClick()
         assert(sourceClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
         // Reset button should be disabled when source is enabled (default state)
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -105,10 +105,10 @@ class FactsEditContentTest {
         }
 
         // Assert reset button should be enabled when source is enabled
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
 
         // Test reset button click
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -152,7 +152,7 @@ class FactsEditContentTest {
 
         // Assert all tagged elements exist
         composeTestRule.onNodeWithTag("facts_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
         composeTestRule.onNodeWithTag("edit_description").assertExists()
         composeTestRule.onNodeWithTag("title_setting_row").assertExists()
         composeTestRule.onNodeWithTag("title_text").assertExists()
@@ -166,8 +166,8 @@ class FactsEditContentTest {
         composeTestRule.onNodeWithTag("source_toggle_icon", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithTag("source_divider").assertExists()
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
     }
 
     @Test
@@ -189,7 +189,7 @@ class FactsEditContentTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
     }
 
     @Test
@@ -211,7 +211,7 @@ class FactsEditContentTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -243,10 +243,10 @@ class FactsEditContentTest {
         composeTestRule.onNodeWithTag("source_toggle_button").performClick()
         assert(sourceClicked)
 
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
     }
 }

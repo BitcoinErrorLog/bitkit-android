@@ -2,21 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>AnnotationSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(FfiConverterOptionalString.lower(`prefix`),)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(FfiConverterSequenceTypeKeyValue.lower(`items`),)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(FfiConverterString.lower(`baseUrl`),FfiConverterString.lower(`storeId`),)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(FfiConverterString.lower(`key`),FfiConverterByteArray.lower(`value`),)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`baseUrl`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`items`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`key`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`prefix`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`storeId`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(`value`)</ID>
-    <ID>ArgumentListWrapping:vss_rust_client_ffi.kt$(future, continuation)</ID>
-    <ID>ChainWrapping:vss_rust_client_ffi.kt$FfiConverterTypeVssError$+</ID>
-    <ID>ClassNaming:vss_rust_client_ffi.kt$_UniFFILib : Library</ID>
-    <ID>ClassNaming:vss_rust_client_ffi.kt$uniffiRustFutureContinuationCallback : UniFffiRustFutureContinuationCallbackType</ID>
     <ID>ComplexCondition:AuthCheckView.kt$(showBio &amp;&amp; isBiometrySupported &amp;&amp; !requirePin) || requireBiometrics</ID>
     <ID>ComplexCondition:ElectrumConfigViewModel.kt$ElectrumConfigViewModel$currentState.host.isBlank() || port == null || port &lt;= 0 || protocol == null</ID>
     <ID>ComplexCondition:HomeViewModel.kt$HomeViewModel$thresholdReached &amp;&amp; isTimeOutOver &amp;&amp; belowMaxWarnings &amp;&amp; !_uiState.value.highBalanceSheetVisible</ID>
@@ -26,7 +11,6 @@
     <ID>ComposableParamOrder:ActivityExploreScreen.kt$ActivityExploreScreen</ID>
     <ID>ComposableParamOrder:ActivityIcon.kt$ActivityIcon</ID>
     <ID>ComposableParamOrder:ActivityIcon.kt$CircularIcon</ID>
-    <ID>ComposableParamOrder:AddTagScreen.kt$AddTagScreen</ID>
     <ID>ComposableParamOrder:AmountInput.kt$AmountInput</ID>
     <ID>ComposableParamOrder:AppStatus.kt$AppStatus</ID>
     <ID>ComposableParamOrder:AuthCheckView.kt$AuthCheckView</ID>
@@ -44,7 +28,7 @@
     <ID>ComposableParamOrder:HeadlineCard.kt$HeadlineCard</ID>
     <ID>ComposableParamOrder:HomeScreen.kt$Content</ID>
     <ID>ComposableParamOrder:InfoScreenContent.kt$InfoScreenContent</ID>
-    <ID>ComposableParamOrder:LightningChannel.kt$LightningChannel</ID>
+    <ID>ComposableParamOrder:Keyboard.kt$KeyTextButton</ID>
     <ID>ComposableParamOrder:Money.kt$MoneyCaptionB</ID>
     <ID>ComposableParamOrder:NumberPadTextField.kt$MoneyAmount</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
@@ -87,26 +71,28 @@
     <ID>ConstructorParameterNaming:AddressChecker.kt$TxStatus$val block_hash: String? = null</ID>
     <ID>ConstructorParameterNaming:AddressChecker.kt$TxStatus$val block_height: Int? = null</ID>
     <ID>ConstructorParameterNaming:AddressChecker.kt$TxStatus$val block_time: Long? = null</ID>
-    <ID>CyclomaticComplexMethod:ActivityDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun ActivityDetailContent( item: Activity, tags: List&lt;String&gt;, onRemoveTag: (String) -&gt; Unit, onAddTagClick: () -&gt; Unit, onClickBoost: () -&gt; Unit, onExploreClick: (String) -&gt; Unit, onCopy: (String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ActivityDetailScreen.kt$@Composable private fun ActivityDetailContent( item: Activity, tags: List&lt;String&gt;, onRemoveTag: (String) -&gt; Unit, onAddTagClick: () -&gt; Unit, onClickBoost: () -&gt; Unit, onExploreClick: (String) -&gt; Unit, onCopy: (String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ActivityIcon.kt$@Composable fun ActivityIcon( activity: Activity, size: Dp = 32.dp, modifier: Modifier = Modifier, )</ID>
     <ID>CyclomaticComplexMethod:ActivityListGrouped.kt$private fun groupActivityItems(activityItems: List&lt;Activity&gt;): List&lt;Any&gt;</ID>
-    <ID>CyclomaticComplexMethod:ActivityRow.kt$@Composable fun ActivityRow( item: Activity, onClick: (String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ActivityRow.kt$@Composable fun ActivityRow( item: Activity, onClick: (String) -&gt; Unit, testTag: String, )</ID>
     <ID>CyclomaticComplexMethod:ActivityRow.kt$@Composable private fun TransactionStatusText( txType: PaymentType, isLightning: Boolean, status: PaymentState?, isTransfer: Boolean, )</ID>
-    <ID>CyclomaticComplexMethod:AmountInput.kt$@Composable fun AmountInput( defaultValue: Long = 0, primaryDisplay: PrimaryDisplay, showConversion: Boolean = false, overrideSats: Long? = null, onSatsChange: (Long) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:AmountInput.kt$@Composable fun AmountInput( modifier: Modifier = Modifier, defaultValue: Long = 0, primaryDisplay: PrimaryDisplay, showConversion: Boolean = false, overrideSats: Long? = null, onSatsChange: (Long) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AppStatusScreen.kt$@Composable private fun Content( uiState: AppStatusUiState = AppStatusUiState(), onBack: () -&gt; Unit = {}, onClose: () -&gt; Unit = {}, onInternetClick: () -&gt; Unit = {}, onElectrumClick: () -&gt; Unit = {}, onNodeClick: () -&gt; Unit = {}, onChannelsClick: () -&gt; Unit = {}, onBackupClick: () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:AppViewModel.kt$AppViewModel$private fun observeSendEvents()</ID>
     <ID>CyclomaticComplexMethod:BlocktankRegtestScreen.kt$@Composable fun BlocktankRegtestScreen( navController: NavController, viewModel: BlocktankRegtestViewModel = hiltViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:ChannelDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Content( channel: ChannelUi, blocktankOrders: List&lt;IBtOrder&gt; = emptyList(), cjitEntries: List&lt;IcJitEntry&gt; = emptyList(), txDetails: TxDetails? = null, isRefreshing: Boolean = false, onBack: () -&gt; Unit = {}, onClose: () -&gt; Unit = {}, onRefresh: () -&gt; Unit = {}, onCopyText: (String) -&gt; Unit = {}, onOpenUrl: (String) -&gt; Unit = {}, onSupport: (Any) -&gt; Unit = {}, onCloseConnection: () -&gt; Unit = {}, )</ID>
-    <ID>CyclomaticComplexMethod:ConfirmMnemonicScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ConfirmMnemonicScreen( uiState: BackupContract.UiState, onContinue: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ConfirmMnemonicScreen.kt$@Composable fun ConfirmMnemonicScreen( uiState: BackupContract.UiState, onContinue: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ContentView.kt$@Composable fun ContentView( appViewModel: AppViewModel, walletViewModel: WalletViewModel, blocktankViewModel: BlocktankViewModel, currencyViewModel: CurrencyViewModel, activityListViewModel: ActivityListViewModel, transferViewModel: TransferViewModel, settingsViewModel: SettingsViewModel, backupsViewModel: BackupsViewModel, )</ID>
     <ID>CyclomaticComplexMethod:CoreService.kt$ActivityService$suspend fun syncLdkNodePayments(payments: List&lt;PaymentDetails&gt;, forceUpdate: Boolean = false)</ID>
     <ID>CyclomaticComplexMethod:HealthRepo.kt$HealthRepo$private fun collectState()</ID>
     <ID>CyclomaticComplexMethod:HomeScreen.kt$@Composable fun HomeScreen( mainUiState: MainUiState, drawerState: DrawerState, rootNavController: NavController, walletNavController: NavHostController, settingsViewModel: SettingsViewModel, walletViewModel: WalletViewModel, appViewModel: AppViewModel, activityListViewModel: ActivityListViewModel, homeViewModel: HomeViewModel = hiltViewModel(), )</ID>
-    <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class) @Composable private fun Content( mainUiState: MainUiState, homeUiState: HomeUiState, rootNavController: NavController, walletNavController: NavController, drawerState: DrawerState, hazeState: HazeState = rememberHazeState(), latestActivities: List&lt;Activity&gt;?, onClickProfile: () -&gt; Unit = {}, onRefresh: () -&gt; Unit = {}, onRemoveSuggestion: (Suggestion) -&gt; Unit = {}, onClickSuggestion: (Suggestion) -&gt; Unit = {}, onClickAddWidget: () -&gt; Unit = {}, onClickEnableEdit: () -&gt; Unit = {}, onClickConfirmEdit: () -&gt; Unit = {}, onClickEditWidget: (WidgetType) -&gt; Unit = {}, onClickDeleteWidget: (WidgetType) -&gt; Unit = {}, onMoveWidget: (Int, Int) -&gt; Unit = { _, _ -&gt; }, onDismissEmptyState: () -&gt; Unit = {}, onDismissHighBalanceSheet: () -&gt; Unit = {}, onClickEmptyActivityRow: () -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class) @Composable private fun Content( mainUiState: MainUiState, homeUiState: HomeUiState, rootNavController: NavController, walletNavController: NavController, drawerState: DrawerState, hazeState: HazeState = rememberHazeState(), latestActivities: List&lt;Activity&gt;?, onClickProfile: () -&gt; Unit = {}, onRefresh: () -&gt; Unit = {}, onRemoveSuggestion: (Suggestion) -&gt; Unit = {}, onClickSuggestion: (Suggestion) -&gt; Unit = {}, onClickAddWidget: () -&gt; Unit = {}, onClickEnableEdit: () -&gt; Unit = {}, onClickConfirmEdit: () -&gt; Unit = {}, onClickEditWidget: (WidgetType) -&gt; Unit = {}, onClickDeleteWidget: (WidgetType) -&gt; Unit = {}, onMoveWidget: (Int, Int) -&gt; Unit = { _, _ -&gt; }, onDismissEmptyState: () -&gt; Unit = {}, onDismissHighBalanceSheet: () -&gt; Unit = {}, onClickEmptyActivityRow: () -&gt; Unit = {}, balances: BalanceState = LocalBalances.current, )</ID>
     <ID>CyclomaticComplexMethod:InactivityTracker.kt$@Composable fun InactivityTracker( app: AppViewModel, settings: SettingsViewModel, modifier: Modifier = Modifier, content: @Composable () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:LightningService.kt$LightningService$private fun logEvent(event: Event)</ID>
     <ID>CyclomaticComplexMethod:NumberPadTextField.kt$@Composable fun AmountInputHandler( input: String, primaryDisplay: PrimaryDisplay, displayUnit: BitcoinDisplayUnit, onInputChanged: (String) -&gt; Unit, onAmountCalculated: (String) -&gt; Unit, currencyVM: CurrencyViewModel, overrideSats: Long? = null, )</ID>
     <ID>CyclomaticComplexMethod:NumberPadTextField.kt$@Composable fun NumberPadTextField( input: String, displayUnit: BitcoinDisplayUnit, primaryDisplay: PrimaryDisplay, modifier: Modifier = Modifier, )</ID>
-    <ID>CyclomaticComplexMethod:RestoreWalletScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RestoreWalletView( onBackClick: () -&gt; Unit, onRestoreClick: (mnemonic: String, passphrase: String?) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ReceiveQrScreen.kt$@Composable fun ReceiveQrScreen( cjitInvoice: MutableState&lt;String?&gt;, cjitActive: MutableState&lt;Boolean&gt;, walletState: MainUiState, onCjitToggle: (Boolean) -&gt; Unit, onClickEditInvoice: () -&gt; Unit, onClickReceiveOnSpending: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:RestoreWalletScreen.kt$@Composable fun RestoreWalletView( onBackClick: () -&gt; Unit, onRestoreClick: (mnemonic: String, passphrase: String?) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:SendSheet.kt$@Composable fun SendSheet( appViewModel: AppViewModel, walletViewModel: WalletViewModel, startDestination: SendRoute = SendRoute.Recipient, onComplete: (NewTransactionSheetDetails?) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:SettingsButtonRow.kt$@Composable fun SettingsButtonRow( title: String, modifier: Modifier = Modifier, subtitle: String? = null, value: SettingsButtonValue = SettingsButtonValue.None, description: String? = null, iconRes: Int? = null, iconTint: Color = Color.Unspecified, iconSize: Dp = 32.dp, maxLinesSubtitle: Int = Int.MAX_VALUE, enabled: Boolean = true, loading: Boolean = false, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:Slider.kt$@Composable fun StepSlider( value: Int, steps: List&lt;Int&gt;, onValueChange: (Int) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
@@ -126,9 +112,7 @@
     <ID>EnumNaming:BlocktankNotificationType.kt$BlocktankNotificationType$mutualClose</ID>
     <ID>EnumNaming:BlocktankNotificationType.kt$BlocktankNotificationType$orderPaymentConfirmed</ID>
     <ID>EnumNaming:BlocktankNotificationType.kt$BlocktankNotificationType$wakeToTimeout</ID>
-    <ID>Filename:vss_rust_client_ffi.kt$uniffi.vss_rust_client_ffi.vss_rust_client_ffi.kt</ID>
     <ID>ForbiddenComment:ActivityDetailScreen.kt$/* TODO: Implement assign functionality */</ID>
-    <ID>ForbiddenComment:ActivityDetailScreen.kt$// TODO: handle isTransfer</ID>
     <ID>ForbiddenComment:ActivityListViewModel.kt$ActivityListViewModel$// TODO: sync only on specific events for better performance</ID>
     <ID>ForbiddenComment:ActivityRow.kt$// TODO: calculate confirmsIn text</ID>
     <ID>ForbiddenComment:AppViewModel.kt$AppViewModel$// TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.</ID>
@@ -137,6 +121,7 @@
     <ID>ForbiddenComment:BackupRepo.kt$BackupRepo$// TODO: Add other backup categories as they get implemented:</ID>
     <ID>ForbiddenComment:BoostTransactionViewModel.kt$BoostTransactionUiState$// TODO: Implement dynamic time estimation</ID>
     <ID>ForbiddenComment:ChannelStatusView.kt$// TODO: handle closed channels marking &amp; detection</ID>
+    <ID>ForbiddenComment:ContentView.kt$// TODO: display as sheet</ID>
     <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: find address</ID>
     <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: get from linked order</ID>
     <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: get from somewhere</ID>
@@ -149,143 +134,14 @@
     <ID>ForbiddenComment:SuccessScreen.kt$// TODO: verify backup</ID>
     <ID>ForbiddenComment:TransferIntroScreen.kt$// TODO: show on first LN suggestion card click</ID>
     <ID>ForbiddenComment:TransferViewModel.kt$TransferViewModel$// TODO: showBottomSheet: forceTransfer</ID>
-    <ID>ForbiddenComment:vss_rust_client_ffi.kt$UniFfiHandleMap$// TODO: refactor callbacks to use this class</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssDelete`(`key`: String) : Boolean</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssGet`(`key`: String) : VssItem?</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssListKeys`(`prefix`: String?) : List&lt;KeyVersion&gt;</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssList`(`prefix`: String?) : List&lt;VssItem&gt;</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssNewClient`(`baseUrl`: String, `storeId`: String)</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssPutWithKeyPrefix`(`items`: List&lt;KeyValue&gt;) : List&lt;VssItem&gt;</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssStore`(`key`: String, `value`: ByteArray) : VssItem</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_f32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_f64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_i16(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_i32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_i64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_i8(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_pointer(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_rust_buffer(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_u16(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_u32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_u64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_u8(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_cancel_void(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Float</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Double</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Int</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Long</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Byte</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): RustBuffer.ByValue</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Int</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Long</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Byte</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_continuation_callback_set(`callback`: UniFffiRustFutureContinuationCallbackType, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_f32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_f64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_i16(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_i32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_i64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_i8(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_pointer(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_rust_buffer(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_u16(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_u32(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_u64(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_u8(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_free_void(`handle`: Pointer, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_f32(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_f64(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_i16(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_i32(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_i64(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_i8(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_pointer(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_u16(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_u32(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_u64(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_u8(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rust_future_poll_void(`handle`: Pointer,`uniffiCallback`: USize, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus, ): RustBuffer.ByValue</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, ): RustBuffer.ByValue</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, ): RustBuffer.ByValue</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun ffi_vss_rust_client_ffi_uniffi_contract_version( ): Int</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_delete( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_get( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_list( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_list_keys( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_new_client( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_put_with_key_prefix( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_shutdown_client( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_checksum_func_vss_store( ): Short</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_delete(`key`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_get(`key`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_list(`prefix`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(`prefix`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_new_client(`baseUrl`: RustBuffer.ByValue,`storeId`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(`items`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_shutdown_client(_uniffi_out_err: RustCallStatus, ): Unit</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$_UniFFILib$fun uniffi_vss_rust_client_ffi_fn_func_vss_store(`key`: RustBuffer.ByValue,`value`: RustBuffer.ByValue, ): Pointer</ID>
-    <ID>FunctionNaming:vss_rust_client_ffi.kt$fun `vssShutdownClient`()</ID>
     <ID>FunctionOnlyReturningConstant:RepoModule.kt$RepoModule$@Provides @Named("enablePolling") fun provideEnablePolling(): Boolean</ID>
     <ID>FunctionOnlyReturningConstant:ShopWebViewInterface.kt$ShopWebViewInterface$@JavascriptInterface fun isReady(): Boolean</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$CallStatusErrorHandler$error_buf: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$_uniffi_out_err: RustCallStatus</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`additional`: Int</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`baseUrl`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`buf`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`bytes`: ForeignBytes.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`callback`: UniFffiRustFutureContinuationCallbackType</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`handle`: Pointer</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`items`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`key`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`prefix`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`size`: Int</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`storeId`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`uniffiCallback`: USize</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$_UniFFILib$`value`: RustBuffer.ByValue</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`baseUrl`: String</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`items`: List&lt;KeyValue&gt;</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`key`: String</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`prefix`: String?</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`storeId`: String</ID>
-    <ID>FunctionParameterNaming:vss_rust_client_ffi.kt$`value`: ByteArray</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssDelete`(`key`: String) : Boolean</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssGet`(`key`: String) : VssItem?</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssListKeys`(`prefix`: String?) : List&lt;KeyVersion&gt;</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssList`(`prefix`: String?) : List&lt;VssItem&gt;</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssPutWithKeyPrefix`(`items`: List&lt;KeyValue&gt;) : List&lt;VssItem&gt;</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssStore`(`key`: String, `value`: ByteArray) : VssItem</ID>
-    <ID>FunctionReturnTypeSpacing:vss_rust_client_ffi.kt$USize.Companion$fun readFromBuffer(buf: ByteBuffer) : USize</ID>
     <ID>ImplicitDefaultLocale:BlocksService.kt$BlocksService$String.format("%.2f", blockInfo.difficulty / 1_000_000_000_000.0)</ID>
     <ID>ImplicitDefaultLocale:PriceService.kt$PriceService$String.format("%.2f", price)</ID>
-    <ID>ImportOrdering:vss_rust_client_ffi.kt$import com.sun.jna.Library import com.sun.jna.IntegerType import com.sun.jna.Native import com.sun.jna.Pointer import com.sun.jna.Structure import com.sun.jna.Callback import com.sun.jna.ptr.* import java.nio.ByteBuffer import java.nio.ByteOrder import java.nio.CharBuffer import java.nio.charset.CodingErrorAction import java.util.concurrent.ConcurrentHashMap import kotlin.coroutines.resume import kotlinx.coroutines.CancellableContinuation import kotlinx.coroutines.suspendCancellableCoroutine</ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverter$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverterTypeKeyValue$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverterTypeKeyVersion$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverterTypeListKeyVersionsResponse$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$FfiConverterTypeVssItem$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$RustBuffer.Companion$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.AuthException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.ConnectionException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.DeleteException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.GetException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.InvalidData$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.ListException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.NetworkException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.PutException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.StoreException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$VssException.UnknownException$ </ID>
-    <ID>Indentation:vss_rust_client_ffi.kt$_UniFFILib.Companion$ </ID>
     <ID>InstanceOfCheckForException:LightningService.kt$LightningService$e is NodeException</ID>
+    <ID>LambdaParameterEventTrailing:AmountInput.kt$onSatsChange</ID>
     <ID>LambdaParameterEventTrailing:CalculatorCard.kt$onFiatChange</ID>
+    <ID>LambdaParameterEventTrailing:QrScanningScreen.kt$onSubmitDebug</ID>
     <ID>LambdaParameterEventTrailing:ReceiveQrScreen.kt$onClickEditInvoice</ID>
     <ID>LambdaParameterEventTrailing:SettingsButtonRow.kt$onClick</ID>
     <ID>LambdaParameterEventTrailing:SuggestionCard.kt$onClick</ID>
@@ -349,7 +205,6 @@
     <ID>LongParameterList:TransferViewModel.kt$TransferViewModel$( @ApplicationContext private val context: Context, private val lightningRepo: LightningRepo, private val blocktankRepo: BlocktankRepo, private val walletRepo: WalletRepo, private val currencyRepo: CurrencyRepo, private val settingsStore: SettingsStore, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:WalletRepo.kt$WalletRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val db: AppDb, private val keychain: Keychain, private val coreService: CoreService, private val settingsStore: SettingsStore, private val addressChecker: AddressChecker, private val lightningRepo: LightningRepo, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:WidgetsRepo.kt$WidgetsRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val newsService: NewsService, private val factsService: FactsService, private val blocksService: BlocksService, private val weatherService: WeatherService, private val priceService: PriceService, private val widgetsStore: WidgetsStore, private val settingsStore: SettingsStore, )</ID>
-    <ID>LongParameterList:vss_rust_client_ffi.kt$( rustFuture: Pointer, pollFunc: (Pointer, USize) -&gt; Unit, completeFunc: (Pointer, RustCallStatus) -&gt; F, freeFunc: (Pointer) -&gt; Unit, liftFunc: (F) -&gt; T, errorHandler: CallStatusErrorHandler&lt;E&gt; )</ID>
     <ID>LoopWithTooManyJumpStatements:CoreService.kt$ActivityService$for</ID>
     <ID>LoopWithTooManyJumpStatements:MonetaryVisualTransformation.kt$MonetaryVisualTransformation.&lt;no name provided&gt;$for</ID>
     <ID>LoopWithTooManyJumpStatements:TransferViewModel.kt$TransferViewModel$while</ID>
@@ -421,7 +276,6 @@
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$12</ID>
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$24</ID>
     <ID>MagicNumber:ConfirmMnemonicScreen.kt$300</ID>
-    <ID>MagicNumber:ConfirmMnemonicScreen.kt$6</ID>
     <ID>MagicNumber:ContentView.kt$100</ID>
     <ID>MagicNumber:ContentView.kt$500</ID>
     <ID>MagicNumber:Context.kt$1024</ID>
@@ -454,7 +308,6 @@
     <ID>MagicNumber:InitializingWalletView.kt$500</ID>
     <ID>MagicNumber:InitializingWalletView.kt$99.9</ID>
     <ID>MagicNumber:Keyboard.kt$0.2f</ID>
-    <ID>MagicNumber:Keyboard.kt$3</ID>
     <ID>MagicNumber:LightningChannel.kt$0.5f</ID>
     <ID>MagicNumber:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$10</ID>
     <ID>MagicNumber:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$500</ID>
@@ -535,31 +388,7 @@
     <ID>MagicNumber:TransferViewModel.kt$TransferViewModel$450</ID>
     <ID>MagicNumber:TransferViewModel.kt$TransferViewModel$495</ID>
     <ID>MagicNumber:WalletRepo.kt$WalletRepo$0.9</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$24</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterByteArray$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterSequenceTypeKeyValue$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterSequenceTypeKeyVersion$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterSequenceTypeVssItem$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterString$3</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterString$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$10</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$3</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$5</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$6</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$7</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$8</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$FfiConverterTypeVssError$9</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$RustBufferByReference$16</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$RustBufferByReference$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$RustBufferByReference$8</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$USize$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$USize$8</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$USize.Companion$4</ID>
-    <ID>MagicNumber:vss_rust_client_ffi.kt$USize.Companion$8</ID>
     <ID>MatchingDeclarationName:AddressType.kt$AddressTypeInfo</ID>
-    <ID>MatchingDeclarationName:AdvancedSettingsScreen.kt$AdvancedSettingsTestTags</ID>
-    <ID>MatchingDeclarationName:BackupSettingsScreen.kt$BackupSettingsTestTags</ID>
     <ID>MatchingDeclarationName:Button.kt$ButtonSize</ID>
     <ID>MatchingDeclarationName:CoinSelectPreferenceScreen.kt$CoinSelectPreferenceTestTags</ID>
     <ID>MatchingDeclarationName:LightningChannel.kt$ChannelStatusUi</ID>
@@ -568,7 +397,6 @@
     <ID>MatchingDeclarationName:ReportIssueScreen.kt$ReportIssueTestTags</ID>
     <ID>MatchingDeclarationName:ResetAndRestoreScreen.kt$ResetAndRestoreTestTags</ID>
     <ID>MatchingDeclarationName:SavingsProgressScreen.kt$SavingsProgressState</ID>
-    <ID>MatchingDeclarationName:SecuritySettingsScreen.kt$SecuritySettingsTestTags</ID>
     <ID>MatchingDeclarationName:SettingsButtonRow.kt$SettingsButtonValue</ID>
     <ID>MaxLineLength:ActivityDetailScreen.kt$description = "Unable to increase the fee any further. Otherwise, it will exceed half the current input balance"</ID>
     <ID>MaxLineLength:AppViewModel.kt$AppViewModel$// TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.</ID>
@@ -612,18 +440,6 @@
     <ID>MaxLineLength:SettingsScreen.kt$if (newValue) R.string.settings__dev_enabled_message else R.string.settings__dev_disabled_message</ID>
     <ID>MaxLineLength:VssStoreIdProvider.kt$VssStoreIdProvider$"Do not run this on mainnet until VSS auth is implemented. Below hack is a temporary fix and not safe for mainnet."</ID>
     <ID>MaxLineLength:WeatherService.kt$WeatherService$val avgFeeUsd = currencyRepo.convertSatsToFiat(avgFeeSats.toLong(), currency = USD_CURRENCY).getOrNull() ?: return FeeCondition.AVERAGE</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$_UniFFILib$fun</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$_UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_list_keys(FfiConverterOptionalString.lower(`prefix`),)</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$_UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_new_client(FfiConverterString.lower(`baseUrl`),FfiConverterString.lower(`storeId`),)</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$_UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_put_with_key_prefix(FfiConverterSequenceTypeKeyValue.lower(`items`),)</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$_UniFFILib.INSTANCE.uniffi_vss_rust_client_ffi_fn_func_vss_store(FfiConverterString.lower(`key`),FfiConverterByteArray.lower(`value`),)</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt$private inline</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_i8(future, continuation) }</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_rust_buffer(future, continuation) }</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_complete_void(future, continuation) }</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_i8(future, continuation) }</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_rust_buffer(future, continuation) }</ID>
-    <ID>MaxLineLength:vss_rust_client_ffi.kt${ future, continuation -&gt; _UniFFILib.INSTANCE.ffi_vss_rust_client_ffi_rust_future_poll_void(future, continuation) }</ID>
     <ID>MaximumLineLength:ActivityDetailScreen.kt$ </ID>
     <ID>MaximumLineLength:Bip39Test.kt$Bip39Test$ </ID>
     <ID>MaximumLineLength:Bip39Utils.kt$ </ID>
@@ -643,9 +459,6 @@
     <ID>MaximumLineLength:SettingsScreen.kt$ </ID>
     <ID>MaximumLineLength:VssStoreIdProvider.kt$VssStoreIdProvider$ </ID>
     <ID>MaximumLineLength:WeatherService.kt$WeatherService$ </ID>
-    <ID>MaximumLineLength:vss_rust_client_ffi.kt$ </ID>
-    <ID>MaximumLineLength:vss_rust_client_ffi.kt$_UniFFILib$ </ID>
-    <ID>MaximumLineLength:vss_rust_client_ffi.kt$private</ID>
     <ID>MayBeConst:Env.kt$Env$val walletSyncIntervalSecs = 10_uL // TODO review</ID>
     <ID>MayBeConst:Env.kt$Env.TransactionDefaults$/** * Minimum value in sats for an output. Outputs below the dust limit may not be processed because the fees * required to include them in a block would be greater than the value of the transaction itself. * */ val dustLimit = 546u</ID>
     <ID>MayBeConst:Env.kt$Env.TransactionDefaults$/** Total recommended tx base fee in sats */ val recommendedBaseFee = 256u</ID>
@@ -653,20 +466,13 @@
     <ID>ModifierComposed:AllActivityScreen.kt$swipeToChangeTab</ID>
     <ID>ModifierComposed:Modifiers.kt$clickableAlpha</ID>
     <ID>ModifierComposed:SheetHeight.kt$sheetHeight</ID>
-    <ID>ModifierListSpacing:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend</ID>
     <ID>ModifierMissing:AboutScreen.kt$AboutScreen</ID>
     <ID>ModifierMissing:ActivityAddTagSheet.kt$ActivityAddTagSheet</ID>
     <ID>ModifierMissing:ActivityDetailScreen.kt$ActivityDetailScreen</ID>
     <ID>ModifierMissing:ActivityListSimple.kt$ActivityListSimple</ID>
     <ID>ModifierMissing:ActivityRow.kt$ActivityRow</ID>
     <ID>ModifierMissing:AddWidgetsScreen.kt$AddWidgetsScreen</ID>
-    <ID>ModifierMissing:AmountInput.kt$AmountInput</ID>
-    <ID>ModifierMissing:AppTopBar.kt$AppTopBar</ID>
-    <ID>ModifierMissing:AppTopBar.kt$BackNavIcon</ID>
-    <ID>ModifierMissing:AppTopBar.kt$CloseNavIcon</ID>
-    <ID>ModifierMissing:AppTopBar.kt$ScanNavIcon</ID>
     <ID>ModifierMissing:BackupSheet.kt$BackupSheet</ID>
-    <ID>ModifierMissing:BalanceHeaderView.kt$LargeRow</ID>
     <ID>ModifierMissing:BiometricsView.kt$BiometricsView</ID>
     <ID>ModifierMissing:BlocksEditScreen.kt$BlocksEditContent</ID>
     <ID>ModifierMissing:BlocksPreviewScreen.kt$BlocksPreviewContent</ID>
@@ -736,16 +542,13 @@
     <ID>ModifierMissing:WeatherEditScreen.kt$WeatherEditContent</ID>
     <ID>ModifierMissing:WeatherPreviewScreen.kt$WeatherPreviewContent</ID>
     <ID>ModifierMissing:WidgetsIntroScreen.kt$WidgetsIntroScreen</ID>
-    <ID>ModifierNotUsedAtRoot:QrScanningScreen.kt$modifier = modifier .fillMaxWidth() .clip(RoundedCornerShape(16.dp)) .weight(1f)</ID>
+    <ID>ModifierNotUsedAtRoot:AmountInput.kt$modifier = modifier.clickableAlpha { currency.togglePrimaryDisplay() }</ID>
     <ID>ModifierNotUsedAtRoot:SettingsTextButtonRow.kt$modifier = modifier.then(if (!enabled) Modifier.alpha(0.5f) else Modifier)</ID>
-    <ID>ModifierReused:QrScanningScreen.kt$Box( modifier = modifier .fillMaxWidth() .clip(RoundedCornerShape(16.dp)) .weight(1f) ) { AndroidView( modifier = Modifier .fillMaxSize() .clipToBounds(), factory = { previewView.apply { setLayerType(LAYER_TYPE_HARDWARE, null) } } ) IconButton( onClick = onClickGallery, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopStart) ) { Icon( painter = painterResource(R.drawable.ic_image_square), contentDescription = null, tint = Colors.White ) } IconButton( onClick = onClickFlashlight, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopEnd) ) { Icon( painter = painterResource(R.drawable.ic_flashlight), contentDescription = null, tint = Colors.White ) } }</ID>
-    <ID>ModifierReused:QrScanningScreen.kt$Column( modifier = modifier .fillMaxSize() .padding(horizontal = 16.dp) ) { Box( modifier = modifier .fillMaxWidth() .clip(RoundedCornerShape(16.dp)) .weight(1f) ) { AndroidView( modifier = Modifier .fillMaxSize() .clipToBounds(), factory = { previewView.apply { setLayerType(LAYER_TYPE_HARDWARE, null) } } ) IconButton( onClick = onClickGallery, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopStart) ) { Icon( painter = painterResource(R.drawable.ic_image_square), contentDescription = null, tint = Colors.White ) } IconButton( onClick = onClickFlashlight, modifier = Modifier .padding(16.dp) .clip(CircleShape) .background(Colors.White64) .size(48.dp) .align(Alignment.TopEnd) ) { Icon( painter = painterResource(R.drawable.ic_flashlight), contentDescription = null, tint = Colors.White ) } } Spacer(modifier = Modifier.height(16.dp)) PrimaryButton( icon = { Icon( painterResource(R.drawable.ic_clipboard_text_simple), contentDescription = stringResource(R.string.other__qr_paste), ) }, text = stringResource(R.string.other__qr_paste), onClick = onPasteFromClipboard ) Spacer(modifier = Modifier.height(16.dp)) }</ID>
     <ID>ModifierWithoutDefault:ReceiveQrScreen.kt$modifier</ID>
     <ID>ModifierWithoutDefault:SyncNodeView.kt$modifier</ID>
     <ID>ModifierWithoutDefault:WalletBalanceView.kt$modifier</ID>
     <ID>MultipleEmitters:ActivityExploreScreen.kt$LightningDetails</ID>
     <ID>MultipleEmitters:DrawerMenu.kt$DrawerMenu</ID>
-    <ID>MultipleEmitters:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
     <ID>MultipleEmitters:SendConfirmScreen.kt$LnurlCommentSection</ID>
     <ID>MultipleEmitters:SendConfirmScreen.kt$TagsSection</ID>
     <ID>MutableStateAutoboxing:DragDropColumn.kt$mutableStateOf(0f)</ID>
@@ -755,44 +558,7 @@
     <ID>NestedBlockDepth:LogsRepo.kt$LogsRepo$private fun createZipBase64(logFiles: List&lt;LogFile&gt;): String</ID>
     <ID>NestedBlockDepth:MonetaryVisualTransformation.kt$MonetaryVisualTransformation$private fun createOffsetMapping(original: String, transformed: String): OffsetMapping</ID>
     <ID>NestedBlockDepth:ShopWebViewInterface.kt$ShopWebViewInterface$@JavascriptInterface fun postMessage(message: String)</ID>
-    <ID>NoBlankLineBeforeRbrace:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
-    <ID>NoBlankLineBeforeRbrace:vss_rust_client_ffi.kt$VssException$ </ID>
-    <ID>NoBlankLineBeforeRbrace:vss_rust_client_ffi.kt$_UniFFILib$ </ID>
-    <ID>NoConsecutiveBlankLines:vss_rust_client_ffi.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
-    <ID>NoConsecutiveBlankLines:vss_rust_client_ffi.kt$VssException$ </ID>
-    <ID>NoEmptyFirstLineInMethodBlock:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
-    <ID>NoSemicolons:vss_rust_client_ffi.kt$;</ID>
-    <ID>NoSemicolons:vss_rust_client_ffi.kt$CallStatusErrorHandler$;</ID>
-    <ID>NoSemicolons:vss_rust_client_ffi.kt$UniFffiRustFutureContinuationCallbackType$;</ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$FfiConverterTypeVssError$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$KeyValue$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$KeyVersion$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$ListKeyVersionsResponse$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$VssException$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$VssItem$ </ID>
-    <ID>NoTrailingSpaces:vss_rust_client_ffi.kt$_UniFFILib$ </ID>
     <ID>NoWildcardImports:LightningChannel.kt$import androidx.compose.foundation.layout.*</ID>
-    <ID>NoWildcardImports:vss_rust_client_ffi.kt$import com.sun.jna.ptr.*</ID>
-    <ID>PackageName:vss_rust_client_ffi.kt$package uniffi.vss_rust_client_ffi;</ID>
-    <ID>PackageNaming:vss_rust_client_ffi.kt$package uniffi.vss_rust_client_ffi;</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$(RustCallStatus)</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$(errorHandler: CallStatusErrorHandler&lt;E&gt;, callback: (RustCallStatus) -&gt; U)</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(_uniffi_out_err: RustCallStatus, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`baseUrl`: RustBuffer.ByValue,`storeId`: RustBuffer.ByValue, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`callback`: UniFffiRustFutureContinuationCallbackType, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`handle`: Pointer, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`handle`: Pointer,_uniffi_out_err: RustCallStatus, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`handle`: Pointer,`uniffiCallback`: USize, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`items`: RustBuffer.ByValue, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`key`: RustBuffer.ByValue, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`key`: RustBuffer.ByValue,`value`: RustBuffer.ByValue, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`prefix`: RustBuffer.ByValue, )</ID>
-    <ID>ParameterListWrapping:vss_rust_client_ffi.kt$_UniFFILib$(`size`: Int,_uniffi_out_err: RustCallStatus, )</ID>
     <ID>ParameterNaming:AddTagScreen.kt$onInputUpdated</ID>
     <ID>ParameterNaming:AddTagScreen.kt$onTagConfirmed</ID>
     <ID>ParameterNaming:AddTagScreen.kt$onTagSelected</ID>
@@ -842,62 +608,10 @@
     <ID>ReturnCount:ChannelStatusView.kt$@Composable private fun getStatusInfo( channel: ChannelUi, blocktankOrder: IBtOrder?, ): StatusInfo</ID>
     <ID>ReturnCount:FcmService.kt$FcmService$private fun decryptPayload(response: EncryptedNotification)</ID>
     <ID>ReturnCount:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$private fun findUpdatedChannel( currentChannel: ChannelDetails, allChannels: List&lt;ChannelDetails&gt;, ): ChannelDetails?</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterBoolean$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterByteArray$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterLong$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterOptionalString$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterOptionalTypeVssItem$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterRustBuffer$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterSequenceTypeKeyValue$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterSequenceTypeKeyVersion$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterSequenceTypeVssItem$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterString$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterTypeKeyValue$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterTypeKeyVersion$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterTypeListKeyVersionsResponse$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterTypeVssFilterType$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$FfiConverterTypeVssItem$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$NullCallStatusErrorHandler$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$RustBuffer.ByReference$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$RustBuffer.ByValue$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$RustCallStatus.ByValue$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$USize.Companion$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$UniFfiHandleMap$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$VssException$:</ID>
-    <ID>SpacingAroundColon:vss_rust_client_ffi.kt$uniffiRustFutureContinuationCallback$:</ID>
-    <ID>SpacingAroundComma:vss_rust_client_ffi.kt$,</ID>
-    <ID>SpacingAroundComma:vss_rust_client_ffi.kt$VssFilterType.PREFIX$,</ID>
-    <ID>SpacingAroundComma:vss_rust_client_ffi.kt$_UniFFILib$,</ID>
-    <ID>SpacingAroundKeyword:vss_rust_client_ffi.kt$FfiConverterTypeVssError$when</ID>
-    <ID>SpacingAroundKeyword:vss_rust_client_ffi.kt$RustBuffer.Companion$if</ID>
-    <ID>SpacingAroundParens:vss_rust_client_ffi.kt$KeyValue$(</ID>
-    <ID>SpacingAroundParens:vss_rust_client_ffi.kt$KeyVersion$(</ID>
-    <ID>SpacingAroundParens:vss_rust_client_ffi.kt$ListKeyVersionsResponse$(</ID>
-    <ID>SpacingAroundParens:vss_rust_client_ffi.kt$VssItem$(</ID>
-    <ID>SpacingAroundParens:vss_rust_client_ffi.kt$_UniFFILib$(</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssGet`(`key`: String) : VssItem?</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssListKeys`(`prefix`: String?) : List&lt;KeyVersion&gt;</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssList`(`prefix`: String?) : List&lt;VssItem&gt;</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssNewClient`(`baseUrl`: String, `storeId`: String)</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$@Throws(VssException::class) @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE") suspend fun `vssPutWithKeyPrefix`(`items`: List&lt;KeyValue&gt;) : List&lt;VssItem&gt;</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$ForeignBytes$@JvmField var data: Pointer? = null</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$RustBuffer$@JvmField var data: Pointer? = null</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$RustBuffer$@JvmField var len: Int = 0</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$RustCallStatus : Structure</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$RustCallStatus$@JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()</ID>
-    <ID>SpacingBetweenDeclarationsWithAnnotations:vss_rust_client_ffi.kt$USize$@Deprecated("`toInt().toChar()` is deprecated") override fun toChar()</ID>
-    <ID>SpacingBetweenDeclarationsWithComments:vss_rust_client_ffi.kt$FfiConverter$// The FfiConverter interface handles converter types to and from the FFI</ID>
-    <ID>SpacingBetweenDeclarationsWithComments:vss_rust_client_ffi.kt$RustCallStatus$// A handful of classes and functions to support the generated data structures.</ID>
-    <ID>SpacingBetweenDeclarationsWithComments:vss_rust_client_ffi.kt$USize$// Needed until https://youtrack.jetbrains.com/issue/KT-47902 is fixed.</ID>
-    <ID>SpacingBetweenDeclarationsWithComments:vss_rust_client_ffi.kt$UniFfiHandleMap$// Use AtomicInteger for our counter, since we may be on a 32-bit system. 4 billion possible</ID>
     <ID>SpreadOperator:RestoreWalletScreen.kt$(*Array(24) { "" })</ID>
-    <ID>StringTemplate:vss_rust_client_ffi.kt$RustBuffer.Companion$${size}</ID>
     <ID>SwallowedException:Crypto.kt$Crypto$e: Exception</ID>
     <ID>SwallowedException:FcmService.kt$FcmService$e: SerializationException</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:ActivityRepo.kt$ActivityRepo$Exception()</ID>
-    <ID>ThrowsCount:vss_rust_client_ffi.kt$@Suppress("UNUSED_PARAMETER") private fun uniffiCheckApiChecksums(lib: _UniFFILib)</ID>
-    <ID>ThrowsCount:vss_rust_client_ffi.kt$private fun&lt;E: Exception&gt; checkCallStatus(errorHandler: CallStatusErrorHandler&lt;E&gt;, status: RustCallStatus)</ID>
     <ID>TooGenericExceptionCaught:ActivityDetailViewModel.kt$ActivityDetailViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ActivityDetailViewModel.kt$ActivityDetailViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ActivityListViewModel.kt$ActivityListViewModel$e: Exception</ID>
@@ -943,21 +657,11 @@
     <ID>TooGenericExceptionCaught:WakeNodeWorker.kt$WakeNodeWorker$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WalletRepo.kt$WalletRepo$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WalletRepo.kt$WalletRepo$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:vss_rust_client_ffi.kt$FfiConverter$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:vss_rust_client_ffi.kt$FfiConverterTypeVssFilterType$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionThrown:BlocktankHttpClient.kt$BlocktankHttpClient$throw Exception("Http error: ${response.status}")</ID>
     <ID>TooGenericExceptionThrown:FileSystem.kt$throw Error("Cannot create path: $this")</ID>
     <ID>TooGenericExceptionThrown:LnurlService.kt$LnurlService$throw Exception("HTTP error: ${response.status}")</ID>
     <ID>TooGenericExceptionThrown:LnurlService.kt$LnurlService$throw Exception("LNURL channel error: ${parsedResponse.reason}")</ID>
     <ID>TooGenericExceptionThrown:LnurlService.kt$LnurlService$throw Exception("LNURL error: ${withdrawResponse.reason}")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$FfiConverter$throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$FfiConverterTypeVssError$throw RuntimeException("invalid error enum value, something is very wrong!!")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$FfiConverterTypeVssFilterType$throw RuntimeException("invalid enum value, something is very wrong!!", e)</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$RustBuffer.Companion$throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$USize$throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$USize.Companion$throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")</ID>
-    <ID>TooGenericExceptionThrown:vss_rust_client_ffi.kt$throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")</ID>
     <ID>TooManyFunctions:ActivityListViewModel.kt$ActivityListViewModel : ViewModel</ID>
     <ID>TooManyFunctions:ActivityRepo.kt$ActivityRepo</ID>
     <ID>TooManyFunctions:AppViewModel.kt$AppViewModel : ViewModel</ID>
@@ -983,6 +687,7 @@
     <ID>TooManyFunctions:Logger.kt$Logger</ID>
     <ID>TooManyFunctions:NodeInfoScreen.kt$to.bitkit.ui.NodeInfoScreen.kt</ID>
     <ID>TooManyFunctions:NumberPadTextField.kt$to.bitkit.ui.components.NumberPadTextField.kt</ID>
+    <ID>TooManyFunctions:SendAmountScreen.kt$to.bitkit.ui.screens.wallets.send.SendAmountScreen.kt</ID>
     <ID>TooManyFunctions:SendConfirmScreen.kt$to.bitkit.ui.screens.wallets.send.SendConfirmScreen.kt</ID>
     <ID>TooManyFunctions:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
     <ID>TooManyFunctions:TOS.kt$to.bitkit.ui.onboarding.TOS.kt</ID>
@@ -993,20 +698,13 @@
     <ID>TooManyFunctions:WalletViewModel.kt$WalletViewModel : ViewModel</ID>
     <ID>TooManyFunctions:WidgetsRepo.kt$WidgetsRepo</ID>
     <ID>TooManyFunctions:WidgetsStore.kt$WidgetsStore</ID>
-    <ID>TooManyFunctions:vss_rust_client_ffi.kt$_UniFFILib : Library</ID>
-    <ID>TooManyFunctions:vss_rust_client_ffi.kt$uniffi.vss_rust_client_ffi.vss_rust_client_ffi.kt</ID>
     <ID>TopLevelPropertyNaming:DrawerMenu.kt$private const val zIndexMenu = 11f</ID>
     <ID>TopLevelPropertyNaming:DrawerMenu.kt$private const val zIndexScrim = 10f</ID>
-    <ID>UnnecessaryParenthesesBeforeTrailingLambda:vss_rust_client_ffi.kt$()</ID>
-    <ID>UnnecessaryParenthesesBeforeTrailingLambda:vss_rust_client_ffi.kt$RustBuffer.Companion$()</ID>
+    <ID>UnusedParameter:HomeScreen.kt$onClickEnableEdit: () -&gt; Unit = {}</ID>
     <ID>UnusedPrivateProperty:ActivityListViewModel.kt$ActivityListViewModel$private val lightningRepo: LightningRepo</ID>
     <ID>UnusedPrivateProperty:ActivityRepoTest.kt$ActivityRepoTest$private val testOnChainActivity = mock&lt;Activity.Onchain&gt; { on { v1 } doReturn testOnChainActivityV1 }</ID>
     <ID>UnusedPrivateProperty:CurrencyRepoTest.kt$CurrencyRepoTest$private val toastEventBus: ToastEventBus = mock()</ID>
     <ID>UseCheckOrError:CurrencyRepo.kt$CurrencyRepo$throw IllegalStateException( "Rate not found for currency: $targetCurrency. Available currencies: ${ _currencyState.value.rates.joinToString { it.quote } }" )</ID>
-    <ID>VariableNaming:vss_rust_client_ffi.kt$RustCallStatus$@JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()</ID>
-    <ID>VariableNaming:vss_rust_client_ffi.kt$val bindings_contract_version = 24</ID>
-    <ID>VariableNaming:vss_rust_client_ffi.kt$val return_value = callback(status)</ID>
-    <ID>VariableNaming:vss_rust_client_ffi.kt$val scaffolding_contract_version = lib.ffi_vss_rust_client_ffi_uniffi_contract_version()</ID>
     <ID>ViewModelForwarding:ActivityDetailScreen.kt$ActivityAddTagSheet( listViewModel = listViewModel, activityViewModel = detailViewModel, onDismiss = { showAddTagSheet = false }, )</ID>
     <ID>ViewModelForwarding:ContentView.kt$BackupSheet(sheet, appViewModel)</ID>
     <ID>ViewModelForwarding:ContentView.kt$LnurlAuthSheet(sheet, appViewModel)</ID>
@@ -1022,7 +720,5 @@
     <ID>ViewModelForwarding:HomeNav.kt$NavContent( walletNavController = walletNavController, rootNavController = rootNavController, mainUiState = uiState, drawerState = drawerState, settingsViewModel = settingsViewModel, appViewModel = appViewModel, walletViewModel = walletViewModel, activityListViewModel = activityListViewModel, )</ID>
     <ID>ViewModelForwarding:HomeScreen.kt$DeleteWidgetAlert(type, homeViewModel)</ID>
     <ID>WildcardImport:LightningChannel.kt$import androidx.compose.foundation.layout.*</ID>
-    <ID>WildcardImport:vss_rust_client_ffi.kt$import com.sun.jna.ptr.*</ID>
-    <ID>Wrapping:vss_rust_client_ffi.kt$_UniFFILib$(</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -192,6 +193,7 @@ private fun Content(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .navigationBarsPadding()
+                    .testTag("ChannelScrollView")
             ) {
                 // Channel Display Section
                 VerticalSpacer(16.dp)
@@ -328,7 +330,8 @@ private fun Content(
                     name = stringResource(R.string.lightning__total_size),
                     valueContent = {
                         MoneyCaptionB(sats = capacity, symbol = true)
-                    }
+                    },
+                    modifier = Modifier.testTag("TotalSize")
                 )
 
                 // Fees Section
@@ -360,6 +363,9 @@ private fun Content(
                         CaptionB(
                             text = stringResource(
                                 if (channel.details.isUsable) R.string.common__yes else R.string.common__no
+                            ),
+                            modifier = Modifier.testTag(
+                                if (channel.details.isUsable) "IsUsableYes" else "IsUsableNo"
                             )
                         )
                     }
@@ -469,7 +475,9 @@ private fun Content(
                         PrimaryButton(
                             text = stringResource(R.string.lightning__close_conn),
                             onClick = onCloseConnection,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("CloseConnection")
                         )
                     }
                 }
@@ -490,12 +498,13 @@ private fun SectionTitle(text: String) {
 private fun SectionRow(
     name: String,
     valueContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(50.dp)
             .clickableAlpha(onClick = onClick)

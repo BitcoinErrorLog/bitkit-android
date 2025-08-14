@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,18 +83,19 @@ fun SavingsAvailabilityScreen(
                 PrimaryButton(
                     text = stringResource(R.string.common__continue),
                     onClick = onContinueClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("AvailabilityContinue")
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
-private fun SavingsAvailabilityScreenPreview() {
+private fun Preview() {
     AppThemeSurface {
         SavingsAvailabilityScreen()
     }

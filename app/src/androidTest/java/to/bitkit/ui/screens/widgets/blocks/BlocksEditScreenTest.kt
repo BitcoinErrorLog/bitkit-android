@@ -63,7 +63,7 @@ class BlocksEditScreenTest {
 
         // Assert main elements exist
         composeTestRule.onNodeWithTag("blocks_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
 
         // Verify description
         composeTestRule.onNodeWithTag("edit_description").assertExists()
@@ -82,18 +82,18 @@ class BlocksEditScreenTest {
 
         // Verify buttons
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
 
         // Test button clicks
         composeTestRule.onNodeWithTag("block_toggle_button").performClick()
         assert(blockClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
         // Reset button should be disabled with default preferences
-        composeTestRule.onNodeWithTag("reset_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsNotEnabled()
     }
 
     @Test
@@ -128,10 +128,10 @@ class BlocksEditScreenTest {
         }
 
         // Assert reset button should be enabled when preferences are customized
-        composeTestRule.onNodeWithTag("reset_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertIsEnabled()
 
         // Test reset button click
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -159,7 +159,7 @@ class BlocksEditScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("preview_button").assertIsEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertIsEnabled()
     }
 
     @Test
@@ -193,7 +193,7 @@ class BlocksEditScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("preview_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertIsNotEnabled()
     }
 
     @Test
@@ -255,10 +255,10 @@ class BlocksEditScreenTest {
         composeTestRule.onNodeWithTag("source_toggle_button").performClick()
         assert(sourceClicked)
 
-        composeTestRule.onNodeWithTag("preview_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").performClick()
         assert(previewClicked)
 
-        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEditReset").performClick()
         assert(resetClicked)
     }
 
@@ -330,7 +330,7 @@ class BlocksEditScreenTest {
 
         // Assert all tagged elements exist
         composeTestRule.onNodeWithTag("blocks_edit_screen").assertExists()
-        composeTestRule.onNodeWithTag("main_content").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditScrollView").assertExists()
         composeTestRule.onNodeWithTag("edit_description").assertExists()
 
         listOf("block", "time", "date", "transactions", "size", "source").forEach { prefix ->
@@ -342,8 +342,8 @@ class BlocksEditScreenTest {
         }
 
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("reset_button").assertExists()
-        composeTestRule.onNodeWithTag("preview_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditReset").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEditPreview").assertExists()
     }
 }
 

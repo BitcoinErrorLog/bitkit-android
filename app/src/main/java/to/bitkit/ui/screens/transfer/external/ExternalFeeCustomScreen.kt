@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -160,12 +161,15 @@ private fun Content(
 
             NumberPadSimple(
                 onPress = onKeyPress,
-                modifier = Modifier.height(350.dp)
+                modifier = Modifier
+                    .height(350.dp)
+                    .testTag("FeeCustomNumberPad")
             )
 
             PrimaryButton(
                 onClick = onContinue,
-                text = stringResource(R.string.common__continue)
+                text = stringResource(R.string.common__continue),
+                modifier = Modifier.testTag("FeeCustomContinue")
             )
             VerticalSpacer(16.dp)
         }

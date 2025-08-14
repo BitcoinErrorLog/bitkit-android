@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -137,7 +138,8 @@ private fun AddressViewerContent(
                     BodyS(
                         text = stringResource(R.string.settings__addr__path)
                             .replace("{path}", uiState.selectedAddress?.path.orEmpty()),
-                        color = Colors.White80
+                        color = Colors.White80,
+                        modifier = Modifier.testTag("Path")
                     )
                     BodyS(
                         text = stringResource(R.string.wallet__activity_explorer),
@@ -279,14 +281,14 @@ private fun AddressItem(
             .clickableAlpha { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Caption(text = "$index:", color = textColorAlt)
-
         Caption(
-            text = address,
+            text = "$index: $address",
             color = textColor,
             maxLines = 1,
             overflow = TextOverflow.MiddleEllipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .testTag("Address-$index")
         )
 
         CaptionB(text = balance.formatToModernDisplay(), color = textColorAlt)

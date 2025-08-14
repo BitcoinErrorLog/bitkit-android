@@ -8,14 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.roundToInt
@@ -154,6 +154,7 @@ fun SwipeToConfirm(
                             )
                         }
                     }
+                    .testTag("GRAB")
             ) {
                 Box(
                     modifier = Modifier
@@ -212,20 +213,14 @@ fun SwipeToConfirm(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun SwipeToConfirmPreview() {
+private fun Preview() {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     AppThemeSurface {
-        Column(
+        ScreenColumn(
             verticalArrangement = Arrangement.Bottom,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .systemBarsPadding()
+            modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            )
             SwipeToConfirm(
                 text = stringResource(R.string.wallet__send_swipe),
                 color = Colors.Green,

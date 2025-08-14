@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -113,6 +114,7 @@ private fun Content(
                         .weight(1f)
                         .padding(top = 16.dp)
                         .clickableAlpha(onClick = onNetworkFeeClick)
+                        .testTag("SetCustomFee")
                 ) {
                     Caption13Up(
                         text = stringResource(R.string.lightning__spending_confirm__network_fee),

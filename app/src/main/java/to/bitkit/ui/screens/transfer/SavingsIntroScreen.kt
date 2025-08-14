@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -68,6 +69,7 @@ fun SavingsIntroScreen(
             PrimaryButton(
                 text = stringResource(R.string.lightning__savings_intro__button),
                 onClick = onContinueClick,
+                modifier = Modifier.testTag("SavingsIntro-button")
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
