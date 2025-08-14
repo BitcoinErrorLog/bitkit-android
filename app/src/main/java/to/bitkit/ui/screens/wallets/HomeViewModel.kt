@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.TransferType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
@@ -257,7 +258,8 @@ class HomeViewModel @Inject constructor(
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,
-    ) { balanceState, settings ->
+        activityRepo.inProgressTransfers
+    ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
@@ -275,7 +277,9 @@ class HomeViewModel @Inject constructor(
             balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.SPEND, // TODO Replace with LIGHTNING_SETTING_UP when the spending balance is confirming
+                    Suggestion.SPEND.takeIf {
+                        !transfers.any { it.type == TransferType.TO_SPENDING }
+                    } ?: Suggestion.LIGHTNING_SETTING_UP,
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,

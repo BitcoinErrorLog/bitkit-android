@@ -7,10 +7,8 @@ import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.CacheStore
@@ -36,8 +34,7 @@ class ActivityRepo @Inject constructor(
 
     var isSyncingLdkNodePayments = false
 
-    private val _pendingTransfers: MutableStateFlow<List<Activity.Onchain>> = MutableStateFlow(emptyList())
-    val pendingTransfers = _pendingTransfers.asStateFlow()
+    val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
 
     suspend fun syncActivities(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("syncActivities called", context = TAG)
