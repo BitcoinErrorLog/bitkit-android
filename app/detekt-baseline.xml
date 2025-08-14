@@ -29,7 +29,6 @@
     <ID>ComposableParamOrder:HomeScreen.kt$Content</ID>
     <ID>ComposableParamOrder:InfoScreenContent.kt$InfoScreenContent</ID>
     <ID>ComposableParamOrder:Keyboard.kt$KeyTextButton</ID>
-    <ID>ComposableParamOrder:LightningChannel.kt$LightningChannel</ID>
     <ID>ComposableParamOrder:Money.kt$MoneyCaptionB</ID>
     <ID>ComposableParamOrder:NumberPadTextField.kt$MoneyAmount</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
@@ -77,7 +76,7 @@
     <ID>CyclomaticComplexMethod:ActivityListGrouped.kt$private fun groupActivityItems(activityItems: List&lt;Activity&gt;): List&lt;Any&gt;</ID>
     <ID>CyclomaticComplexMethod:ActivityRow.kt$@Composable fun ActivityRow( item: Activity, onClick: (String) -&gt; Unit, testTag: String, )</ID>
     <ID>CyclomaticComplexMethod:ActivityRow.kt$@Composable private fun TransactionStatusText( txType: PaymentType, isLightning: Boolean, status: PaymentState?, isTransfer: Boolean, )</ID>
-    <ID>CyclomaticComplexMethod:AmountInput.kt$@Composable fun AmountInput( defaultValue: Long = 0, primaryDisplay: PrimaryDisplay, showConversion: Boolean = false, overrideSats: Long? = null, onSatsChange: (Long) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:AmountInput.kt$@Composable fun AmountInput( modifier: Modifier = Modifier, defaultValue: Long = 0, primaryDisplay: PrimaryDisplay, showConversion: Boolean = false, overrideSats: Long? = null, onSatsChange: (Long) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AppStatusScreen.kt$@Composable private fun Content( uiState: AppStatusUiState = AppStatusUiState(), onBack: () -&gt; Unit = {}, onClose: () -&gt; Unit = {}, onInternetClick: () -&gt; Unit = {}, onElectrumClick: () -&gt; Unit = {}, onNodeClick: () -&gt; Unit = {}, onChannelsClick: () -&gt; Unit = {}, onBackupClick: () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:AppViewModel.kt$AppViewModel$private fun observeSendEvents()</ID>
     <ID>CyclomaticComplexMethod:BlocktankRegtestScreen.kt$@Composable fun BlocktankRegtestScreen( navController: NavController, viewModel: BlocktankRegtestViewModel = hiltViewModel(), )</ID>
@@ -140,7 +139,9 @@
     <ID>ImplicitDefaultLocale:BlocksService.kt$BlocksService$String.format("%.2f", blockInfo.difficulty / 1_000_000_000_000.0)</ID>
     <ID>ImplicitDefaultLocale:PriceService.kt$PriceService$String.format("%.2f", price)</ID>
     <ID>InstanceOfCheckForException:LightningService.kt$LightningService$e is NodeException</ID>
+    <ID>LambdaParameterEventTrailing:AmountInput.kt$onSatsChange</ID>
     <ID>LambdaParameterEventTrailing:CalculatorCard.kt$onFiatChange</ID>
+    <ID>LambdaParameterEventTrailing:QrScanningScreen.kt$onSubmitDebug</ID>
     <ID>LambdaParameterEventTrailing:ReceiveQrScreen.kt$onClickEditInvoice</ID>
     <ID>LambdaParameterEventTrailing:SettingsButtonRow.kt$onClick</ID>
     <ID>LambdaParameterEventTrailing:SuggestionCard.kt$onClick</ID>
@@ -471,7 +472,6 @@
     <ID>ModifierMissing:ActivityListSimple.kt$ActivityListSimple</ID>
     <ID>ModifierMissing:ActivityRow.kt$ActivityRow</ID>
     <ID>ModifierMissing:AddWidgetsScreen.kt$AddWidgetsScreen</ID>
-    <ID>ModifierMissing:AmountInput.kt$AmountInput</ID>
     <ID>ModifierMissing:BackupSheet.kt$BackupSheet</ID>
     <ID>ModifierMissing:BiometricsView.kt$BiometricsView</ID>
     <ID>ModifierMissing:BlocksEditScreen.kt$BlocksEditContent</ID>
@@ -542,6 +542,7 @@
     <ID>ModifierMissing:WeatherEditScreen.kt$WeatherEditContent</ID>
     <ID>ModifierMissing:WeatherPreviewScreen.kt$WeatherPreviewContent</ID>
     <ID>ModifierMissing:WidgetsIntroScreen.kt$WidgetsIntroScreen</ID>
+    <ID>ModifierNotUsedAtRoot:AmountInput.kt$modifier = modifier.clickableAlpha { currency.togglePrimaryDisplay() }</ID>
     <ID>ModifierNotUsedAtRoot:SettingsTextButtonRow.kt$modifier = modifier.then(if (!enabled) Modifier.alpha(0.5f) else Modifier)</ID>
     <ID>ModifierWithoutDefault:ReceiveQrScreen.kt$modifier</ID>
     <ID>ModifierWithoutDefault:SyncNodeView.kt$modifier</ID>
