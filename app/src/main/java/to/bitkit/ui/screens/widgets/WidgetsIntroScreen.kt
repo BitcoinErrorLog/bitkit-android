@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,14 +56,15 @@ fun WidgetsIntroScreen(
             Spacer(Modifier.height(32.dp))
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
-                onClick = onContinue
+                onClick = onContinue,
+                modifier = Modifier.testTag("WidgetsOnboarding-button")
             )
             Spacer(Modifier.height(16.dp))
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {

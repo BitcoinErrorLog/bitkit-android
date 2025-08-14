@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -101,6 +102,7 @@ private fun Content(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .imePadding()
+                .testTag("SpendingAmount")
         ) {
             VerticalSpacer(32.dp)
             Display(
@@ -138,12 +140,14 @@ private fun Content(
                     text = stringResource(R.string.lightning__spending_amount__quarter),
                     color = Colors.Purple,
                     onClick = onClickQuarter,
+                    modifier = Modifier.testTag("SpendingAmountQuarter")
                 )
                 // Max Button
                 NumberPadActionButton(
                     text = stringResource(R.string.common__max),
                     color = Colors.Purple,
                     onClick = onClickMaxAmount,
+                    modifier = Modifier.testTag("SpendingAmountMax")
                 )
             }
             HorizontalDivider()
@@ -154,6 +158,7 @@ private fun Content(
                 onClick = onConfirmAmount,
                 enabled = uiState.satsAmount != 0L && uiState.satsAmount <= uiState.maxAllowedToSend,
                 isLoading = uiState.isLoading,
+                modifier = Modifier.testTag("SpendingAmountContinue")
             )
 
             VerticalSpacer(16.dp)

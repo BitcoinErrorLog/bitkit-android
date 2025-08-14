@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -83,7 +84,9 @@ private fun ChangePinContent(
 ) {
     val isLastAttempt = attemptsRemaining == 1
 
-    ScreenColumn {
+    ScreenColumn(
+        modifier = Modifier.testTag("ChangePIN")
+    ) {
         AppTopBar(
             titleText = stringResource(R.string.security__cp_title),
             onBackClick = onBackClick,
@@ -107,16 +110,17 @@ private fun ChangePinContent(
                         text = stringResource(R.string.security__pin_last_attempt),
                         color = Colors.Brand,
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.testTag("LastAttempt")
                     )
                 } else {
                     BodyS(
-                        text = stringResource(R.string.security__pin_attempts).replace(
-                            "{attemptsRemaining}",
-                            "$attemptsRemaining"
-                        ),
+                        text = stringResource(R.string.security__pin_attempts)
+                            .replace("{attemptsRemaining}", "$attemptsRemaining"),
                         color = Colors.Brand,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.clickableAlpha { onClickForgotPin() }
+                        modifier = Modifier
+                            .clickableAlpha { onClickForgotPin() }
+                            .testTag("AttemptsRemaining")
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))

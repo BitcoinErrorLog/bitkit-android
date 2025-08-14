@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -94,6 +95,7 @@ fun FundingScreen(
                         },
                         enabled = canTransfer && !isGeoBlocked,
                         onClick = onTransfer,
+                        modifier = Modifier.testTag("FundTransfer")
                     )
                     if (balances.totalOnchainSats == 0uL) {
                         Box(
@@ -103,10 +105,9 @@ fun FundingScreen(
                                     enabled = balances.totalOnchainSats == 0uL,
                                     interactionSource = null,
                                     indication = null,
-                                    onClick = {
-                                        showNoFundsAlert = true
-                                    }
+                                    onClick = { showNoFundsAlert = true }
                                 )
+                                .testTag("FundTransfer")
                         )
                     }
                 }
@@ -122,6 +123,7 @@ fun FundingScreen(
                     },
                     enabled = !isGeoBlocked,
                     onClick = onFund,
+                    modifier = Modifier.testTag("FundReceive")
                 )
                 RectangleButton(
                     label = stringResource(R.string.lightning__funding__button3),
@@ -134,12 +136,13 @@ fun FundingScreen(
                         )
                     },
                     onClick = onAdvanced,
+                    modifier = Modifier.testTag("FundCustom")
                 )
             }
         }
         if (showNoFundsAlert) {
             AlertDialog(
-                onDismissRequest = { showNoFundsAlert = false }, // Dismiss the alert
+                onDismissRequest = { showNoFundsAlert = false },
                 confirmButton = {
                     TextButton(onClick = { showNoFundsAlert = false }) {
                         BodyM(text = stringResource(R.string.common__ok), color = Colors.Purple)

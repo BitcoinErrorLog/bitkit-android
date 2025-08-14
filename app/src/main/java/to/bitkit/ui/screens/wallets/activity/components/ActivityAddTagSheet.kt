@@ -62,6 +62,8 @@ fun ActivityAddTagSheet(
             onInputUpdated = { newText -> tagsViewModel.onInputUpdated(newText) },
             onBack = onDismiss,
             focusOnShow = true,
+            tagInputTestTag = "TagInput",
+            addButtonTestTag = "ActivityTagsSubmit",
             modifier = Modifier
                 .sheetHeight(SheetSize.SMALL, isModal = true)
                 .gradientBackground()

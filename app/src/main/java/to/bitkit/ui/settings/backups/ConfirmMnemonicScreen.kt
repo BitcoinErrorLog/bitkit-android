@@ -2,7 +2,6 @@ package to.bitkit.ui.settings.backups
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,7 +39,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.bip39Words
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ConfirmMnemonicScreen(
     uiState: BackupContract.UiState,
@@ -102,7 +100,6 @@ fun ConfirmMnemonicScreen(
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConfirmMnemonicContent(
     originalSeed: List<String>,
@@ -165,7 +162,7 @@ private fun ConfirmMnemonicContent(
                         fullWidth = false,
                         size = ButtonSize.Small,
                         onClick = { onWordPress(word, index) },
-                        modifier = Modifier.testTag("backup_shuffled_word_button_$index")
+                        modifier = Modifier.testTag("Word-$word")
                     )
                 }
             }
@@ -211,7 +208,7 @@ private fun ConfirmMnemonicContent(
                 text = stringResource(R.string.common__continue),
                 onClick = onContinue,
                 enabled = isComplete,
-                modifier = Modifier.testTag("backup_confirm_mnemonic_continue_button")
+                modifier = Modifier.testTag("ContinueConfirmMnemonic")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -235,17 +232,16 @@ private fun SelectedWordItem(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
-    val testWords = bip39Words.take(24)
-
+    val testWords = bip39Words.take(12)
     AppThemeSurface {
         ConfirmMnemonicContent(
             originalSeed = testWords,
             shuffledWords = testWords.shuffled(),
-            selectedWords = arrayOfNulls(24),
-            pressedStates = BooleanArray(24) { false },
+            selectedWords = arrayOfNulls(testWords.size),
+            pressedStates = BooleanArray(testWords.size) { false },
             isComplete = false,
             onWordPress = { _, _ -> },
             onContinue = {},
@@ -254,17 +250,17 @@ private fun Preview() {
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview2() {
-    val testWords = bip39Words.take(24)
-
+    val testWords = bip39Words.take(12)
+    val half = testWords.size / 2
     AppThemeSurface {
         ConfirmMnemonicContent(
             originalSeed = testWords,
             shuffledWords = testWords.shuffled(),
-            selectedWords = testWords.take(12).toTypedArray<String?>() + arrayOfNulls<String>(12),
-            pressedStates = BooleanArray(24) { it < 12 },
+            selectedWords = testWords.take(half).toTypedArray<String?>() + arrayOfNulls<String>(half),
+            pressedStates = BooleanArray(testWords.size) { it < half },
             isComplete = false,
             onWordPress = { _, _ -> },
             onContinue = {},
@@ -273,17 +269,17 @@ private fun Preview2() {
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview12Words() {
-    val testWords = bip39Words.take(12)
-
+private fun Preview24Words() {
+    val testWords = bip39Words.take(24)
+    val half = testWords.size / 2
     AppThemeSurface {
         ConfirmMnemonicContent(
             originalSeed = testWords,
             shuffledWords = testWords.shuffled(),
-            selectedWords = testWords.take(6).toTypedArray<String?>() + arrayOfNulls<String>(6),
-            pressedStates = BooleanArray(6) { it < 6 },
+            selectedWords = testWords.take(half).toTypedArray<String?>() + arrayOfNulls<String>(half),
+            pressedStates = BooleanArray(testWords.size) { it < half },
             isComplete = false,
             onWordPress = { _, _ -> },
             onContinue = {},

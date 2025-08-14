@@ -50,7 +50,7 @@ class SendAmountContentTest {
         composeTestRule.onNodeWithTag("send_amount_screen").assertExists()
 //        composeTestRule.onNodeWithTag("amount_input_field").assertExists() doesn't displayed because of viewmodel injection
         composeTestRule.onNodeWithTag("available_balance").assertExists()
-        composeTestRule.onNodeWithTag("payment_method_button").assertExists()
+        composeTestRule.onNodeWithTag("AssetButton-switch").assertExists()
         composeTestRule.onNodeWithTag("continue_button").assertExists()
         composeTestRule.onNodeWithTag("amount_keyboard").assertExists()
     }
@@ -98,7 +98,7 @@ class SendAmountContentTest {
             )
         }
 
-        composeTestRule.onNodeWithTag("payment_method_button")
+        composeTestRule.onNodeWithTag("AssetButton-switch")
             .performClick()
 
         assert(eventTriggered)

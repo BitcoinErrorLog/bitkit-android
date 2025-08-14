@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -191,13 +192,20 @@ private fun Content(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                BalanceHeaderView(sats = uiState.amount.toLong(), modifier = Modifier.fillMaxWidth())
+                BalanceHeaderView(
+                    sats = uiState.amount.toLong(),
+                    useSwipeToHide = false,
+                    onClick = { onEvent(SendEvent.BackToAmount) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("ReviewAmount")
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 when (uiState.payMethod) {
                     SendMethod.ONCHAIN -> OnChainDescription(uiState = uiState, onEvent = onEvent)
-                    SendMethod.LIGHTNING -> LightningDescription(uiState = uiState)
+                    SendMethod.LIGHTNING -> LightningDescription(uiState = uiState, onEvent = onEvent)
                 }
 
                 if (isLnurlPay) {
@@ -239,6 +247,7 @@ private fun Content(
                     onEvent(SendEvent.DismissAmountWarning)
                     onBack()
                 },
+                modifier = Modifier.testTag(dialog.testTag),
             )
         }
     }
@@ -259,7 +268,7 @@ private fun LnurlCommentSection(
         onValueChange = { onEvent(SendEvent.CommentChange(it)) },
         minLines = 3,
         maxLines = 3,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().testTag("CommentInput")
     )
 }
 
@@ -299,6 +308,7 @@ private fun TagsSection(
             )
         },
         fullWidth = false,
+        modifier = Modifier.testTag("TagsAddSend")
     )
     HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
 }
@@ -312,7 +322,14 @@ private fun OnChainDescription(
     Column(modifier = Modifier.fillMaxWidth()) {
         Caption13Up(text = stringResource(R.string.wallet__send_to), color = Colors.White64)
         Spacer(modifier = Modifier.height(8.dp))
-        BodySSB(text = uiState.address, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+        BodySSB(
+            text = uiState.address,
+            maxLines = 1,
+            overflow = TextOverflow.MiddleEllipsis,
+            modifier = Modifier
+                .clickableAlpha { onEvent(SendEvent.NavToAddress) }
+                .testTag("ReviewUri")
+        )
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
 
         Row(
@@ -400,6 +417,7 @@ private fun OnChainDescription(
 @Composable
 private fun LightningDescription(
     uiState: SendUiState,
+    onEvent: (SendEvent) -> Unit,
 ) {
     val isLnurlPay = uiState.lnurl is LnurlParams.LnurlPay
     val expirySeconds = uiState.decodedInvoice?.expirySeconds
@@ -416,7 +434,14 @@ private fun LightningDescription(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        BodySSB(text = destination, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+        BodySSB(
+            text = destination,
+            maxLines = 1,
+            overflow = TextOverflow.MiddleEllipsis,
+            modifier = Modifier
+                .clickableAlpha { onEvent(SendEvent.NavToAddress) }
+                .testTag("ReviewUri")
+        )
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
 
         Row(

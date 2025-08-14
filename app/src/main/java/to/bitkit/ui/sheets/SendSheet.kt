@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -59,6 +60,7 @@ fun SendSheet(
             .fillMaxWidth()
             .sheetHeight()
             .imePadding()
+            .testTag("SendSheet")
     ) {
         val navController = rememberNavController()
         LaunchedEffect(appViewModel, navController) {
@@ -69,7 +71,7 @@ fun SendSheet(
                     is SendEffect.NavigateToScan -> navController.navigate(SendRoute.QrScanner)
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
                     is SendEffect.NavigateToConfirm -> navController.navigate(SendRoute.Confirm)
-                    is SendEffect.PopBackToConfirm -> navController.popBackStack(SendRoute.Confirm, inclusive = false)
+                    is SendEffect.PopBack -> navController.popBackStack(it.route, inclusive = false)
                     is SendEffect.PaymentSuccess -> onComplete(it.sheet)
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
@@ -188,6 +190,7 @@ fun SendSheet(
                         appViewModel.addTagToSelected(tag)
                         navController.popBackStack()
                     },
+                    tqgInputTestTag = "TagInputSend",
                 )
             }
             composableWithDefaultTransitions<SendRoute.PinCheck> {

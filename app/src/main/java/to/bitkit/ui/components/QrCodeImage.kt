@@ -26,11 +26,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,6 +42,7 @@ import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ext.setClipboardText
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -54,9 +55,10 @@ fun QrCodeImage(
     logoPainter: Painter? = null,
     tipMessage: String = "",
     size: Dp = LocalConfiguration.current.screenWidthDp.dp,
-    onBitmapGenerated: (Bitmap?) -> Unit = {}
+    onBitmapGenerated: (Bitmap?) -> Unit = {},
+    testTag: String? = null,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     val tooltipState = rememberTooltipState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -79,16 +81,14 @@ fun QrCodeImage(
                     painter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) },
                     contentDescription = null,
                     contentScale = ContentScale.Inside,
-                    modifier = if (tipMessage.isNotBlank()) {
-                        Modifier.clickable {
+                    modifier = Modifier
+                        .clickable(enabled = tipMessage.isNotBlank()) {
                             coroutineScope.launch {
-                                clipboard.setText(AnnotatedString(content))
+                                context.setClipboardText(content)
                                 tooltipState.show()
                             }
                         }
-                    } else {
-                        Modifier
-                    }
+                        .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
                 )
             }
 

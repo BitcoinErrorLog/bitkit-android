@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,6 +48,7 @@ fun PinPromptScreen(
             .gradientBackground()
             .padding(horizontal = 16.dp)
             .navigationBarsPadding()
+            .testTag("SecureWallet")
     ) {
         SheetTopBar(stringResource(R.string.security__pin_security_header))
 
@@ -89,7 +91,9 @@ fun PinPromptScreen(
                     SecondaryButton(
                         text = stringResource(R.string.common__later),
                         onClick = onLater,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("SecureWallet-button-continue")
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -98,7 +102,9 @@ fun PinPromptScreen(
                 PrimaryButton(
                     text = stringResource(R.string.security__pin_security_button),
                     onClick = onContinue,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("SecureWallet-button-continue")
                 )
             }
 

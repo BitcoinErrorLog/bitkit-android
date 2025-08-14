@@ -54,23 +54,23 @@ class FactsPreviewContentTest {
         composeTestRule.onNodeWithTag("widget_description").assertExists()
 
         // Verify settings and preview section
-        composeTestRule.onNodeWithTag("edit_settings_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEdit").assertExists()
         composeTestRule.onNodeWithTag("preview_label").assertExists()
         composeTestRule.onNodeWithTag("fact_card").assertExists()
 
         // Verify buttons
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("delete_button").assertExists()
-        composeTestRule.onNodeWithTag("save_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetDelete").assertExists()
+        composeTestRule.onNodeWithTag("WidgetSave").assertExists()
 
         // Test button clicks
-        composeTestRule.onNodeWithTag("edit_settings_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetEdit").performClick()
         assert(editClicked)
 
-        composeTestRule.onNodeWithTag("delete_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetDelete").performClick()
         assert(deleteClicked)
 
-        composeTestRule.onNodeWithTag("save_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetSave").performClick()
         assert(saveClicked)
     }
 
@@ -105,11 +105,11 @@ class FactsPreviewContentTest {
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
 
         // Delete button should not exist when widget is disabled
-        composeTestRule.onNodeWithTag("delete_button").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("save_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetDelete").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("WidgetSave").assertExists()
 
         // Test save button click
-        composeTestRule.onNodeWithTag("save_button").performClick()
+        composeTestRule.onNodeWithTag("WidgetSave").performClick()
         assert(saveClicked)
     }
 
@@ -137,7 +137,7 @@ class FactsPreviewContentTest {
 
         // Assert that all elements still exist with custom preferences
         composeTestRule.onNodeWithTag("facts_preview_screen").assertExists()
-        composeTestRule.onNodeWithTag("edit_settings_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEdit").assertExists()
         composeTestRule.onNodeWithTag("fact_card").assertExists()
     }
 
@@ -168,12 +168,12 @@ class FactsPreviewContentTest {
         composeTestRule.onNodeWithTag("widget_icon").assertExists()
         composeTestRule.onNodeWithTag("widget_description").assertExists()
         composeTestRule.onNodeWithTag("divider").assertExists()
-        composeTestRule.onNodeWithTag("edit_settings_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEdit").assertExists()
         composeTestRule.onNodeWithTag("preview_label").assertExists()
         composeTestRule.onNodeWithTag("fact_card").assertExists()
         composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("delete_button").assertExists()
-        composeTestRule.onNodeWithTag("save_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetDelete").assertExists()
+        composeTestRule.onNodeWithTag("WidgetSave").assertExists()
     }
 
     @Test
@@ -226,8 +226,8 @@ class FactsPreviewContentTest {
         // Assert core elements still exist
         composeTestRule.onNodeWithTag("facts_preview_screen").assertExists()
         composeTestRule.onNodeWithTag("fact_card").assertExists()
-        composeTestRule.onNodeWithTag("save_button").assertExists()
-        composeTestRule.onNodeWithTag("delete_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("WidgetSave").assertExists()
+        composeTestRule.onNodeWithTag("WidgetDelete").assertDoesNotExist()
     }
 
     @Test
@@ -276,6 +276,6 @@ class FactsPreviewContentTest {
         }
 
         // Assert edit button shows custom state
-        composeTestRule.onNodeWithTag("edit_settings_button").assertExists()
+        composeTestRule.onNodeWithTag("WidgetEdit").assertExists()
     }
 }

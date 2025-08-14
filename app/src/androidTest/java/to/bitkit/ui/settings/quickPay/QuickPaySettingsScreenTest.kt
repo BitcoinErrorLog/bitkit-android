@@ -36,7 +36,7 @@ class QuickPaySettingsScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("quickpay_toggle_switch").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("QuickpayToggle").assertIsDisplayed()
         composeTestRule.onNodeWithTag("quickpay_amount_slider").assertIsDisplayed()
     }
 
@@ -58,7 +58,7 @@ class QuickPaySettingsScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("quickpay_toggle_switch")
+        composeTestRule.onNodeWithTag("QuickpayToggle")
             .performClick()
 
         assert(toggleCalled)

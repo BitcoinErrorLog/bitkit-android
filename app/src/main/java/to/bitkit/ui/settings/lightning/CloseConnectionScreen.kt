@@ -109,7 +109,7 @@ private fun Content(
                     onClick = onBack,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("cancel_button")
+                        .testTag("CloseConnectionCancel")
                 )
 
                 PrimaryButton(
@@ -118,7 +118,7 @@ private fun Content(
                     isLoading = isLoading,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("close_button")
+                        .testTag("CloseConnectionButton")
                 )
             }
             VerticalSpacer(16.dp)

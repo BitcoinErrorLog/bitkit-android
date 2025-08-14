@@ -76,7 +76,7 @@ fun QuickPaySettingsScreenContent(
                 title = stringResource(R.string.settings__quickpay__settings__toggle),
                 isChecked = isQuickPayEnabled,
                 onClick = { onToggleQuickPay(!isQuickPayEnabled) },
-                modifier = Modifier.testTag("quickpay_toggle_switch")
+                modifier = Modifier.testTag("QuickpayToggle")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

@@ -35,20 +35,25 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ext.setClipboardText
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -61,7 +66,7 @@ fun ShowMnemonicScreen(
     onRevealClick: () -> Unit,
     onContinueClick: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     val mnemonicWords = remember(uiState.bip39Mnemonic) {
         uiState.bip39Mnemonic.split(" ").filter { it.isNotBlank() }
     }
@@ -72,7 +77,7 @@ fun ShowMnemonicScreen(
         showMnemonic = uiState.showMnemonic,
         onRevealClick = onRevealClick,
         onCopyClick = {
-            clipboard.setText(AnnotatedString(uiState.bip39Mnemonic))
+            context.setClipboardText(uiState.bip39Mnemonic)
         },
         onContinueClick = onContinueClick,
     )
@@ -86,6 +91,7 @@ private fun ShowMnemonicContent(
     onRevealClick: () -> Unit,
     onCopyClick: () -> Unit,
     onContinueClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val blurRadius by animateFloatAsState(
         targetValue = if (showMnemonic) 0f else 10f,
@@ -115,7 +121,7 @@ private fun ShowMnemonicContent(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
@@ -169,8 +175,11 @@ private fun ShowMnemonicContent(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .matchParentSize()
+                            .testTag("SeedContainer")
+                            .semantics {
+                                contentDescription = mnemonic
+                            }
                     ) {
                         PrimaryButton(
                             text = stringResource(R.string.security__mnemonic_reveal),
@@ -179,7 +188,7 @@ private fun ShowMnemonicContent(
                             color = Colors.Black50,
                             modifier = Modifier
                                 .alpha(buttonAlpha)
-                                .testTag("backup_reveal_mnemonic_button")
+                                .testTag("TapToReveal")
                         )
                     }
                 }
@@ -199,7 +208,7 @@ private fun ShowMnemonicContent(
                 text = stringResource(R.string.common__continue),
                 onClick = onContinueClick,
                 enabled = showMnemonic,
-                modifier = Modifier.testTag("backup_show_mnemonic_continue_button")
+                modifier = Modifier.testTag("ContinueShowMnemonic")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -273,47 +282,56 @@ private fun WordItem(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ShowMnemonicContent(
-            mnemonic = bip39Words.take(24).joinToString(" "),
-            mnemonicWords = bip39Words.take(24),
-            showMnemonic = false,
-            onRevealClick = {},
-            onCopyClick = {},
-            onContinueClick = {},
-        )
+        BottomSheetPreview {
+            ShowMnemonicContent(
+                mnemonic = bip39Words.take(12).joinToString(" "),
+                mnemonicWords = bip39Words.take(12),
+                showMnemonic = false,
+                onRevealClick = {},
+                onCopyClick = {},
+                onContinueClick = {},
+                modifier = Modifier.sheetHeight(SheetSize.MEDIUM, isModal = true)
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewShown() {
     AppThemeSurface {
-        ShowMnemonicContent(
-            mnemonic = bip39Words.take(24).joinToString(" "),
-            mnemonicWords = bip39Words.take(24),
-            showMnemonic = true,
-            onRevealClick = {},
-            onCopyClick = {},
-            onContinueClick = {},
-        )
+        BottomSheetPreview {
+            ShowMnemonicContent(
+                mnemonic = bip39Words.take(12).joinToString(" "),
+                mnemonicWords = bip39Words.take(12),
+                showMnemonic = true,
+                onRevealClick = {},
+                onCopyClick = {},
+                onContinueClick = {},
+                modifier = Modifier.sheetHeight(SheetSize.MEDIUM, isModal = true)
+            )
+        }
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
-private fun Preview12Words() {
+private fun Preview24Words() {
     AppThemeSurface {
-        ShowMnemonicContent(
-            mnemonic = bip39Words.take(12).joinToString(" "),
-            mnemonicWords = bip39Words.take(12),
-            showMnemonic = true,
-            onRevealClick = {},
-            onCopyClick = {},
-            onContinueClick = {},
-        )
+        BottomSheetPreview {
+            ShowMnemonicContent(
+                mnemonic = bip39Words.take(24).joinToString(" "),
+                mnemonicWords = bip39Words.take(24),
+                showMnemonic = true,
+                onRevealClick = {},
+                onCopyClick = {},
+                onContinueClick = {},
+                modifier = Modifier.sheetHeight(SheetSize.MEDIUM, isModal = true)
+            )
+        }
     }
 }

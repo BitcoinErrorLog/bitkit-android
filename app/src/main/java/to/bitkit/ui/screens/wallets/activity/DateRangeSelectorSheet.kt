@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -103,13 +104,17 @@ private fun Content(
                 onClick = onClearClick,
                 text = stringResource(R.string.wallet__filter_clear),
                 enabled = hasSelection,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("CalendarClearButton")
             )
             PrimaryButton(
                 onClick = onApplyClick,
                 text = stringResource(R.string.wallet__filter_apply),
                 enabled = hasSelection,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("CalendarApplyButton")
             )
         }
         Spacer(modifier = Modifier.height(16.dp))

@@ -73,7 +73,7 @@ private fun MultipleDevicesContent(
             PrimaryButton(
                 text = stringResource(R.string.common__ok),
                 onClick = onContinue,
-                modifier = Modifier.testTag("multiple_devices_ok_button")
+                modifier = Modifier.testTag("OK")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

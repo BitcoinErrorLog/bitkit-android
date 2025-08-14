@@ -277,7 +277,7 @@ class HomeViewModel @Inject constructor(
             balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.SPEND.takeIf {
+                    Suggestion.LIGHTNING.takeIf {
                         !transfers.any { it.type == TransferType.TO_SPENDING }
                     } ?: Suggestion.LIGHTNING_SETTING_UP,
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
@@ -292,7 +292,7 @@ class HomeViewModel @Inject constructor(
             else -> { // Empty wallet
                 listOfNotNull(
                     Suggestion.BUY,
-                    Suggestion.SPEND,
+                    Suggestion.LIGHTNING,
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.SUPPORT,

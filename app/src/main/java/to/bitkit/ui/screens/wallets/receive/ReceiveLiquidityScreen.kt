@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -86,6 +87,7 @@ fun ReceiveLiquidityScreen(
             PrimaryButton(
                 text = stringResource(R.string.common__understood),
                 onClick = onContinue,
+                modifier = Modifier.testTag("LiquidityContinue")
             )
             Spacer(modifier = Modifier.height(32.dp))
         }

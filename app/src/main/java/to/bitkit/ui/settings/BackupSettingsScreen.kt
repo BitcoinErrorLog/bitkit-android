@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
+import to.bitkit.env.Env
 import to.bitkit.ext.toLocalizedTimestamp
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -37,9 +38,11 @@ import to.bitkit.ui.appViewModel
 import to.bitkit.ui.backupsViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyMSB
+import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.CaptionB
+import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.components.settings.SectionHeader
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.navigateToAuthCheck
 import to.bitkit.ui.navigateToHome
@@ -53,12 +56,6 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.BackupCategoryUiState
 import to.bitkit.viewmodels.BackupStatusUiState
 import to.bitkit.viewmodels.toUiState
-
-object BackupSettingsTestTags {
-    const val SCREEN = "backup_settings_screen"
-    const val BACKUP_BUTTON = "backup_settings_backup_button"
-    const val RESTORE_BUTTON = "backup_settings_restore_button"
-}
 
 @Composable
 fun BackupSettingsScreen(
@@ -96,6 +93,7 @@ private fun BackupSettingsScreenContent(
     onBack: () -> Unit,
     onClose: () -> Unit,
 ) {
+    val allSynced = uiState.categories.all { it.status.synced >= it.status.required }
     ScreenColumn {
         AppTopBar(
             titleText = stringResource(R.string.settings__backup__title),
@@ -106,20 +104,40 @@ private fun BackupSettingsScreenContent(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
-                .testTag(BackupSettingsTestTags.SCREEN)
+                .testTag("BackupScrollView")
         ) {
             SettingsButtonRow(
                 title = stringResource(R.string.settings__backup__wallet),
                 onClick = onBackupClick,
-                modifier = Modifier.testTag(BackupSettingsTestTags.BACKUP_BUTTON),
+                modifier = Modifier.testTag("BackupWallet"),
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__backup__reset),
                 onClick = onResetAndRestoreClick,
-                modifier = Modifier.testTag(BackupSettingsTestTags.RESTORE_BUTTON),
+                modifier = Modifier.testTag("ResetAndRestore"),
             )
+            VerticalSpacer(28.dp)
 
-            SectionHeader(title = stringResource(R.string.settings__backup__latest))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Caption13Up(
+                    text = stringResource(R.string.settings__backup__latest),
+                    color = Colors.White64,
+                )
+                FillWidth()
+                @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
+                if (Env.isE2eTest && allSynced) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_check_circle),
+                        contentDescription = "All Synced",
+                        tint = Colors.Green,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(16.dp)
+                            .testTag("AllSynced")
+                    )
+                }
+            }
+            VerticalSpacer(12.dp)
 
             uiState.categories.map { categoryUiState ->
                 BackupStatusItem(

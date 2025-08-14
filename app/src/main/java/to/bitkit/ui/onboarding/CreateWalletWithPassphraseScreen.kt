@@ -10,20 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults.MediumAppBarCollapsedHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,13 +36,15 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.HighlightLabel
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.TopBarSpacer
 import to.bitkit.ui.components.mainRectHeight
+import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.TopBarHeight
 import to.bitkit.ui.utils.withAccent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateWalletWithPassphraseScreen(
     onBackClick: () -> Unit,
@@ -62,27 +56,18 @@ fun CreateWalletWithPassphraseScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.common__back),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
+            AppTopBar(
+                titleText = null,
+                onBackClick = onBackClick,
                 modifier = Modifier.weight(1f)
             )
 
             HighlightLabel(
                 stringResource(R.string.onboarding__advanced).uppercase(),
-                Modifier
-                    .padding(top = MediumAppBarCollapsedHeight / 2 - (mainRectHeight / 2))
+                Modifier.padding(top = TopBarHeight / 2 - (mainRectHeight / 2))
             )
         }
         Column(
@@ -93,7 +78,7 @@ fun CreateWalletWithPassphraseScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(MediumAppBarCollapsedHeight))
+            TopBarSpacer()
             Image(
                 painter = painterResource(id = R.drawable.padlock2),
                 contentDescription = null,
@@ -139,7 +124,7 @@ fun CreateWalletWithPassphraseScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun CreateWalletWithPassphraseScreenPreview() {
+private fun Preview() {
     AppThemeSurface {
         CreateWalletWithPassphraseScreen(
             onBackClick = {},

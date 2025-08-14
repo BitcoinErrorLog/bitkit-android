@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,11 +52,11 @@ private val buttonRightShape = RoundedCornerShape(topEndPercent = 50, bottomEndP
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun TabBar(
-    hazeState: HazeState,
-    onSendClick: () -> Unit,
-    onReceiveClick: () -> Unit,
-    onScanClick: () -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState = rememberHazeState(),
+    onSendClick: () -> Unit = {},
+    onReceiveClick: () -> Unit = {},
+    onScanClick: () -> Unit = {},
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -93,6 +94,7 @@ fun TabBar(
                         )
                     )
                     .clickable { onSendClick() }
+                    .testTag("Send")
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -119,6 +121,7 @@ fun TabBar(
                     )
                     .background(buttonBgOverlay)
                     .clickable { onReceiveClick() }
+                    .testTag("Receive")
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -151,6 +154,7 @@ fun TabBar(
                 )
                 .clickable { onScanClick() }
                 .padding(2.dp)
+                .testTag("Scan")
         )
         // Inner Content
         Box(

@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -15,7 +14,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.theme.InterFontFamily
 
 @Composable
 fun Display(
@@ -23,17 +21,13 @@ fun Display(
     modifier: Modifier = Modifier,
     fontWeight: FontWeight = FontWeight.Black,
     fontSize: TextUnit = 44.sp,
-    lineHeight: TextUnit = 44.sp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
     Text(
         text = text.uppercase(),
-        style = TextStyle(
+        style = AppTextStyles.Display.merge(
             fontWeight = fontWeight,
             fontSize = fontSize,
-            lineHeight = lineHeight,
-            letterSpacing = (-1).sp,
-            fontFamily = InterFontFamily,
             color = color,
         ),
         modifier = modifier,
@@ -44,19 +38,11 @@ fun Display(
 fun Display(
     text: AnnotatedString,
     modifier: Modifier = Modifier,
-    fontWeight: FontWeight = FontWeight.Black,
-    fontSize: TextUnit = 44.sp,
-    lineHeight: TextUnit = 44.sp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
     Text(
         text = text.toUpperCase(),
-        style = TextStyle(
-            fontWeight = fontWeight,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            letterSpacing = (-1).sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.Display.merge(
             color = color,
         ),
         modifier = modifier,
@@ -67,17 +53,11 @@ fun Display(
 fun Headline(
     text: AnnotatedString,
     modifier: Modifier = Modifier,
-    lineHeight: TextUnit = 30.sp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
     Text(
         text = text.toUpperCase(),
-        style = TextStyle(
-            fontWeight = FontWeight.Black,
-            fontSize = 30.sp,
-            lineHeight = lineHeight,
-            letterSpacing = (-1).sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.Headline.merge(
             color = color,
         ),
         modifier = modifier,
@@ -88,17 +68,14 @@ fun Headline(
 fun Headline20(
     text: AnnotatedString,
     modifier: Modifier = Modifier,
-    lineHeight: TextUnit = 20.sp,
-    color: Color = Colors.White,
+    color: Color = MaterialTheme.colorScheme.primary,
 ) {
     Text(
         text = text.toUpperCase(),
-        style = TextStyle(
-            fontWeight = FontWeight.Black,
+        style = AppTextStyles.Headline.merge(
             fontSize = 20.sp,
-            lineHeight = lineHeight,
+            lineHeight = 20.sp,
             letterSpacing = (-.5).sp,
-            fontFamily = InterFontFamily,
             color = color,
         ),
         modifier = modifier,
@@ -173,12 +150,7 @@ fun BodyM(
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.Normal,
-            fontSize = 17.sp,
-            lineHeight = 22.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.BodyM.merge(
             color = color,
             textAlign = textAlign,
         ),
@@ -239,12 +211,7 @@ fun BodyMB(
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.Bold,
-            fontSize = 17.sp,
-            lineHeight = 22.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.BodyMB.merge(
             color = color,
             textAlign = textAlign,
         ),
@@ -327,17 +294,13 @@ fun BodySB(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            lineHeight = 20.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.BodySB.merge(
             color = color,
-            textAlign = TextAlign.Start,
+            textAlign = textAlign,
         ),
         modifier = modifier,
     )
@@ -348,17 +311,13 @@ fun Text13Up(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     Text(
         text = text.uppercase(),
-        style = TextStyle(
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.CaptionM.merge(
             color = color,
-            textAlign = TextAlign.Start,
+            textAlign = textAlign,
         ),
         modifier = modifier,
     )
@@ -375,12 +334,7 @@ fun Caption(
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.Normal,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.Caption.merge(
             color = color,
             textAlign = textAlign,
         ),
@@ -420,12 +374,7 @@ fun CaptionB(
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.CaptionB.merge(
             color = color,
             textAlign = textAlign,
         ),
@@ -444,12 +393,7 @@ fun Caption13Up(
 ) {
     Text(
         text = text.uppercase(),
-        style = TextStyle(
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.CaptionM.merge(
             color = color,
             textAlign = textAlign,
         ),
@@ -468,12 +412,7 @@ fun Footnote(
 ) {
     Text(
         text = text,
-        style = TextStyle(
-            fontWeight = FontWeight.Medium,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-            letterSpacing = 0.4.sp,
-            fontFamily = InterFontFamily,
+        style = AppTextStyles.FootnoteM.merge(
             color = color,
             textAlign = textAlign,
         ),

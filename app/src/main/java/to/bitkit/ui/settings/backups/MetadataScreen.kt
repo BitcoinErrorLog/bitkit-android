@@ -91,7 +91,7 @@ private fun MetadataContent(
             PrimaryButton(
                 text = stringResource(R.string.common__ok),
                 onClick = onDismiss,
-                modifier = Modifier.testTag("backup_metadata_ok_button")
+                modifier = Modifier.testTag("OK")
             )
 
             Spacer(modifier = Modifier.height(16.dp))

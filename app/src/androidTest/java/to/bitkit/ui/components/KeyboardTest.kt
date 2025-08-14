@@ -28,18 +28,18 @@ class KeyboardTest {
             Keyboard(onClick = {}, onClickBackspace = {})
         }
 
-        composeTestRule.onNodeWithTag("KeyboardButton_1").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_2").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_3").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_4").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_5").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_6").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_7").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_8").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_9").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_.").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_0").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("KeyboardButton_backspace").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N2").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N3").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N4").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N5").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N6").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N7").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N8").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N9").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("NRemove").assertIsDisplayed()
     }
 
     @Test
@@ -47,7 +47,7 @@ class KeyboardTest {
         composeTestRule.setContent {
             Keyboard(onClick = {}, isDecimal = false, onClickBackspace = {})
         }
-        composeTestRule.onNodeWithTag("KeyboardButton_000").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N000").assertIsDisplayed()
     }
 
     @Test
@@ -55,7 +55,7 @@ class KeyboardTest {
         composeTestRule.setContent {
             Keyboard(onClick = {}, isDecimal = true, onClickBackspace = {})
         }
-        composeTestRule.onNodeWithTag("KeyboardButton_.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("N.").assertIsDisplayed()
     }
 
     @Test
@@ -65,13 +65,13 @@ class KeyboardTest {
             Keyboard(onClick = { clickedValue = it }, onClickBackspace = {})
         }
 
-        composeTestRule.onNodeWithTag("KeyboardButton_5").performClick()
+        composeTestRule.onNodeWithTag("N5").performClick()
         assert(clickedValue == "5")
 
-        composeTestRule.onNodeWithTag("KeyboardButton_.").performClick()
+        composeTestRule.onNodeWithTag("N.").performClick()
         assert(clickedValue == ".")
 
-        composeTestRule.onNodeWithTag("KeyboardButton_0").performClick()
+        composeTestRule.onNodeWithTag("N0").performClick()
         assert(clickedValue == "0")
 
     }
@@ -83,7 +83,7 @@ class KeyboardTest {
             Keyboard(onClick = { clickedValue = it }, onClickBackspace = {}, isDecimal = false)
         }
 
-        composeTestRule.onNodeWithTag("KeyboardButton_000").performClick()
+        composeTestRule.onNodeWithTag("N000").performClick()
         assert(clickedValue == "000")
     }
 

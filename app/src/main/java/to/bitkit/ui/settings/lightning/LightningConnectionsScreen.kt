@@ -65,7 +65,6 @@ import to.bitkit.ui.theme.Colors
 
 object LightningConnectionsTestTags {
     const val SCREEN = "lightning_connections_screen"
-    const val ADD_CONNECTION_ICON = "add_connection_icon"
     const val ADD_CONNECTION_BUTTON = "add_connection_button"
     const val EXPORT_LOGS_BUTTON = "export_logs_button"
     const val SHOW_CLOSED_BUTTON = "show_closed_button"
@@ -123,7 +122,7 @@ private fun Content(
             actions = {
                 IconButton(
                     onClick = onClickAddConnection,
-                    modifier = Modifier.testTag(LightningConnectionsTestTags.ADD_CONNECTION_ICON)
+                    modifier = Modifier.testTag("NavigationAction")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -198,7 +197,7 @@ private fun Content(
                         onClick = { showClosed = !showClosed },
                         modifier = Modifier
                             .wrapContentWidth()
-                            .testTag(LightningConnectionsTestTags.SHOW_CLOSED_BUTTON)
+                            .testTag("ChannelsClosed")
                     )
                 }
 
@@ -294,7 +293,7 @@ private fun ChannelItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickableAlpha { onClick() }
-            .testTag("${LightningConnectionsTestTags.CHANNEL_ITEM_PREFIX}_${channelUi.details.channelId}")
+            .testTag("Channel")
     ) {
         VerticalSpacer(16.dp)
         Row(

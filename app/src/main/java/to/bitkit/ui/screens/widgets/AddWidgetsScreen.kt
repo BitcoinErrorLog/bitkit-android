@@ -39,7 +39,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.PRICE) },
-                modifier = Modifier.testTag("Button_${WidgetType.PRICE}")
+                modifier = Modifier.testTag("WidgetListItem-price")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.widgets__news__name),
@@ -48,7 +48,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.NEWS) },
-                modifier = Modifier.testTag("Button_${WidgetType.NEWS}")
+                modifier = Modifier.testTag("WidgetListItem-news")
 
             )
             SettingsButtonRow(
@@ -58,7 +58,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.BLOCK) },
-                modifier = Modifier.testTag("Button_${WidgetType.BLOCK}")
+                modifier = Modifier.testTag("WidgetListItem-blocks")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.widgets__facts__name),
@@ -67,7 +67,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.FACTS) },
-                modifier = Modifier.testTag("Button_${WidgetType.FACTS}")
+                modifier = Modifier.testTag("WidgetListItem-facts")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.widgets__weather__name),
@@ -76,7 +76,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.WEATHER) },
-                modifier = Modifier.testTag("Button_${WidgetType.WEATHER}")
+                modifier = Modifier.testTag("WidgetListItem-weather")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.widgets__calculator__name),
@@ -88,7 +88,7 @@ fun AddWidgetsScreen(
                 iconSize = 48.dp,
                 maxLinesSubtitle = 1,
                 onClick = { onWidgetSelected(WidgetType.CALCULATOR) },
-                modifier = Modifier.testTag("Button_${WidgetType.CALCULATOR}")
+                modifier = Modifier.testTag("WidgetListItem-calculator")
             )
         }
     }

@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -136,6 +137,7 @@ private fun AskForBiometricsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickableAlpha { shouldEnableBiometrics = !shouldEnableBiometrics }
+                        .testTag("ToggleBiometrics")
                 ) {
                     BodyMSB(
                         text = run {
@@ -157,6 +159,7 @@ private fun AskForBiometricsContent(
                     onClick = {
                         onContinue(shouldEnableBiometrics)
                     },
+                    modifier = Modifier.testTag("ContinueButton")
                 )
             }
         }
@@ -201,16 +204,17 @@ private fun ColumnScope.BioNotAvailableView(
             SecondaryButton(
                 text = stringResource(R.string.common__skip),
                 onClick = onSkip,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("SkipButton")
             )
 
             PrimaryButton(
                 text = stringResource(R.string.security__bio_phone_settings),
                 onClick = {
-                    val intent = Intent(Settings.ACTION_SETTINGS)
-                    context.startActivity(intent)
+                    context.startActivity(Intent(Settings.ACTION_SETTINGS))
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
         }
     }

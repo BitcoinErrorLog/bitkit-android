@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -54,6 +55,7 @@ fun ReceiveSheet(
             .fillMaxWidth()
             .sheetHeight()
             .imePadding()
+            .testTag("ReceiveScreen")
     ) {
         NavHost(
             navController = navController,
@@ -194,7 +196,9 @@ fun ReceiveSheet(
                     onTagSelected = { tag ->
                         wallet.addTagToSelected(tag)
                         navController.popBackStack()
-                    }
+                    },
+                    tqgInputTestTag = "TagInputReceive",
+                    addButtonTestTag = "ReceiveTagsSubmit",
                 )
             }
         }

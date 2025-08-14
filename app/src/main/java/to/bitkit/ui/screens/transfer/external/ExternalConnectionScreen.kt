@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -148,7 +149,9 @@ private fun ExternalConnectionContent(
                     imeAction = ImeAction.Done,
                     capitalization = KeyboardCapitalization.None,
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("NodeIdInput")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -164,7 +167,9 @@ private fun ExternalConnectionContent(
                     imeAction = ImeAction.Done,
                     capitalization = KeyboardCapitalization.None,
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("HostInput")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -181,7 +186,9 @@ private fun ExternalConnectionContent(
                     imeAction = ImeAction.Done,
                     capitalization = KeyboardCapitalization.None,
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("PortInput")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -216,7 +223,7 @@ private fun ExternalConnectionContent(
                     onClick = { onContinueClick(LnPeer(nodeId = nodeId, host = host, port = port)) },
                     enabled = isValid,
                     isLoading = uiState.isLoading,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).testTag("ExternalContinue")
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))

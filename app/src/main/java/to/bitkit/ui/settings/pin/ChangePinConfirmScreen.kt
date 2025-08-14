@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -83,7 +84,9 @@ private fun ChangePinConfirmContent(
     onBackClick: () -> Unit,
     onCloseClick: () -> Unit,
 ) {
-    ScreenColumn {
+    ScreenColumn(
+        modifier = Modifier.testTag("ChangePIN2")
+    ) {
         AppTopBar(
             titleText = stringResource(R.string.security__cp_retype_title),
             onBackClick = onBackClick,
@@ -103,10 +106,12 @@ private fun ChangePinConfirmContent(
 
             AnimatedVisibility(visible = showError) {
                 BodyS(
-                    text = stringResource(R.string.security__pin_not_match),
+                    text = stringResource(R.string.security__cp_try_again),
                     textAlign = TextAlign.Center,
                     color = Colors.Brand,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("WrongPIN")
                 )
             }
 
