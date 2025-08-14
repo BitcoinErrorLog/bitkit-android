@@ -21,10 +21,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -65,10 +64,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import to.bitkit.R
+import to.bitkit.env.Env
 import to.bitkit.ext.getClipboardText
 import to.bitkit.models.Toast
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.TextInput
+import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.util.gradientBackground
@@ -231,7 +235,8 @@ fun QrScanningScreen(
                             galleryLauncher.launch("image/*")
                         }
                     },
-                    onPasteFromClipboard = handlePaste(context, app, setScanResult)
+                    onPasteFromClipboard = handlePaste(context, app, setScanResult),
+                    onSubmitDebug = setScanResult,
                 )
             }
         }
@@ -262,6 +267,7 @@ private fun Content(
     onClickGallery: () -> Unit,
     onPasteFromClipboard: () -> Unit,
     modifier: Modifier = Modifier,
+    onSubmitDebug: (String?) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -313,7 +319,7 @@ private fun Content(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        VerticalSpacer(16.dp)
         PrimaryButton(
             icon = {
                 Icon(
@@ -324,7 +330,35 @@ private fun Content(
             text = stringResource(R.string.other__qr_paste),
             onClick = onPasteFromClipboard,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
+        @Suppress("KotlinConstantConditions")
+        if (Env.isE2eTest) {
+            var showDialog by remember { mutableStateOf(false) }
+            var debugValue by remember { mutableStateOf("") }
+            VerticalSpacer(16.dp)
+            SecondaryButton(
+                text = "Enter QRCode String",
+                onClick = { showDialog = true },
+                modifier = Modifier.testTag("ScanPrompt")
+            )
+            if (showDialog) {
+                AppAlertDialog(
+                    title = "",
+                    confirmText = stringResource(R.string.common__yes_proceed),
+                    onConfirm = { onSubmitDebug(debugValue) },
+                    onDismiss = { showDialog = false },
+                    modifier = Modifier.testTag("QRDialog")
+                ) {
+                    TextInput(
+                        value = debugValue,
+                        onValueChange = { debugValue = it },
+                        modifier = Modifier.testTag("QRInput")
+                    )
+                }
+            }
+        }
+
+        VerticalSpacer(16.dp)
     }
 }
 

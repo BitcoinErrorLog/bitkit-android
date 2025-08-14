@@ -33,6 +33,34 @@ fun AppAlertDialog(
         dismissOnBackPress = false,
     ),
 ) {
+    AppAlertDialog(
+        title = title,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        modifier = modifier,
+        confirmText = confirmText,
+        dismissText = dismissText,
+        onDismissRequest = onDismissRequest,
+        properties = properties,
+        textContent = { BodyM(text = text, color = Colors.White64) },
+    )
+}
+
+@Composable
+fun AppAlertDialog(
+    title: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmText: String = stringResource(R.string.common__ok),
+    dismissText: String = stringResource(R.string.common__dialog_cancel),
+    onDismissRequest: () -> Unit = onDismiss,
+    properties: DialogProperties = DialogProperties(
+        dismissOnClickOutside = false,
+        dismissOnBackPress = false,
+    ),
+    textContent: @Composable () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = {
@@ -52,7 +80,7 @@ fun AppAlertDialog(
             }
         },
         title = { Title(text = title) },
-        text = { BodyM(text = text, color = Colors.White64) },
+        text = textContent,
         shape = MaterialTheme.shapes.medium,
         properties = properties,
         containerColor = Colors.Gray5,
