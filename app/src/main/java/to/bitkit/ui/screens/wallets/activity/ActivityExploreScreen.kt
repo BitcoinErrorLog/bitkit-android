@@ -36,7 +36,11 @@ import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import to.bitkit.R
+import to.bitkit.ext.BoostType
+import to.bitkit.ext.boostType
 import to.bitkit.ext.ellipsisMiddle
+import to.bitkit.ext.isBoosted
+import to.bitkit.ext.isSent
 import to.bitkit.ext.rawId
 import to.bitkit.ext.totalValue
 import to.bitkit.models.Toast
@@ -70,8 +74,7 @@ fun ActivityExploreScreen(
     onCloseClick: () -> Unit,
 ) {
     val activities by listViewModel.filteredActivities.collectAsStateWithLifecycle()
-    val item = activities?.find { it.rawId() == route.id }
-        ?: return
+    val item = activities?.find { it.rawId() == route.id } ?: return
 
     val app = appViewModel ?: return
     val context = LocalContext.current
@@ -113,6 +116,13 @@ fun ActivityExploreScreen(
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 context.startActivity(intent)
             },
+            onClickParent = { id ->
+                app.toast(
+                    type = Toast.ToastType.WARNING,
+                    title = "TODO",
+                    description = "Navigate to Activity Detail for: $id",
+                )
+            },
         )
     }
 }
@@ -123,6 +133,7 @@ private fun ActivityExploreContent(
     txDetails: TxDetails? = null,
     onCopy: (String) -> Unit = {},
     onClickExplore: (String) -> Unit = {},
+    onClickParent: (String) -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -130,21 +141,15 @@ private fun ActivityExploreContent(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Header
         Row(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
         ) {
-            val isSent = when (item) {
-                is Activity.Lightning -> item.v1.txType == PaymentType.SENT
-                is Activity.Onchain -> item.v1.txType == PaymentType.SENT
-            }
-            val amountPrefix = if (isSent) "-" else "+"
             BalanceHeaderView(
                 sats = item.totalValue().toLong(),
-                prefix = amountPrefix,
+                prefix = if (item.isSent()) "-" else "+",
                 showBitcoinSymbol = false,
                 modifier = Modifier.weight(1f),
             )
@@ -155,7 +160,12 @@ private fun ActivityExploreContent(
 
         when (item) {
             is Activity.Onchain -> {
-                OnchainDetails(onchain = item, onCopy = onCopy, txDetails = txDetails)
+                OnchainDetails(
+                    onchain = item,
+                    onCopy = onCopy,
+                    txDetails = txDetails,
+                    onClickParent = onClickParent,
+                )
                 Spacer(modifier = Modifier.weight(1f))
                 PrimaryButton(
                     text = stringResource(R.string.wallet__activity_explorer),
@@ -187,8 +197,7 @@ private fun LightningDetails(
             modifier = Modifier.clickableAlpha(
                 onClick = copyToClipboard(preimage) {
                     onCopy(preimage)
-                }
-            ),
+                }),
         )
     }
     Section(
@@ -197,8 +206,7 @@ private fun LightningDetails(
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(paymentHash) {
                 onCopy(paymentHash)
-            }
-        ),
+            }),
     )
     Section(
         title = stringResource(R.string.wallet__activity_invoice),
@@ -206,8 +214,7 @@ private fun LightningDetails(
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(invoice) {
                 onCopy(invoice)
-            }
-        ),
+            }),
     )
 }
 
@@ -216,19 +223,16 @@ private fun ColumnScope.OnchainDetails(
     onchain: Activity.Onchain,
     onCopy: (String) -> Unit,
     txDetails: TxDetails?,
+    onClickParent: (String) -> Unit,
 ) {
     val txId = onchain.v1.txId
     Section(
-        title = stringResource(R.string.wallet__activity_tx_id),
-        value = txId,
-        modifier = Modifier
+        title = stringResource(R.string.wallet__activity_tx_id), value = txId, modifier = Modifier
             .clickableAlpha(
                 onClick = copyToClipboard(txId) {
                     onCopy(txId)
-                }
-            )
-            .testTag("TXID")
-    )
+                })
+            .testTag("TXID"))
     if (txDetails != null) {
         Section(
             title = localizedPlural(R.string.wallet__activity_input, mapOf("count" to txDetails.vin.size)),
@@ -256,12 +260,31 @@ private fun ColumnScope.OnchainDetails(
         CircularProgressIndicator(
             strokeWidth = 2.dp,
             modifier = Modifier
-                .size(16.dp)
                 .padding(vertical = 16.dp)
-                .align(Alignment.CenterHorizontally),
+                .size(16.dp)
+                .align(Alignment.CenterHorizontally)
         )
+    } // TODO use real boosted parents from bitkit-core/ldk-node when available
+    val boostedParents = listOfNotNull(
+        "todo_first_parent_txid".takeIf { onchain.isBoosted() && !onchain.v1.confirmed },
+        "todo_second_parent_txid".takeIf { onchain.isBoosted() && onchain.v1.confirmed },
+    )
+
+    boostedParents.forEachIndexed { index, parent ->
+        val isRbf = onchain.boostType() == BoostType.RBF
+        Section(
+            title = stringResource(
+            if (isRbf) R.string.wallet__activity_boosted_rbf else R.string.wallet__activity_boosted_cpfp
+        ).replace("{num}", "${index + 1}"), valueContent = {
+            Column {
+                BodySSB(text = parent, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+            }
+        }, modifier = Modifier
+                .clickableAlpha {
+                    onClickParent(parent)
+                }
+                .testTag(if (isRbf) "RBFBoosted" else "CPFPBoosted"))
     }
-    // TODO add boosted parents info if boosted
 }
 
 @Composable

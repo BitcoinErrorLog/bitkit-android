@@ -44,6 +44,7 @@ import to.bitkit.R
 import to.bitkit.ext.canBeBoosted
 import to.bitkit.ext.ellipsisMiddle
 import to.bitkit.ext.isBoosted
+import to.bitkit.ext.isSent
 import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
 import to.bitkit.ext.toActivityItemDate
@@ -187,10 +188,7 @@ private fun ActivityDetailContent(
 ) {
     val isLightning = item is Activity.Lightning
     val accentColor = if (isLightning) Colors.Purple else Colors.Brand
-    val isSent = when (item) {
-        is Activity.Lightning -> item.v1.txType == PaymentType.SENT
-        is Activity.Onchain -> item.v1.txType == PaymentType.SENT
-    }
+    val isSent = item.isSent()
     val amountPrefix = if (isSent) "-" else "+"
     val timestamp = when (item) {
         is Activity.Lightning -> item.v1.timestamp
