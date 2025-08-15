@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 pluginManagement {
     repositories {
         google()
@@ -16,8 +19,22 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://maven.pkg.github.com/synonymdev/bitkit-core")
             credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
-                password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+
+                val localPropertiesFile = File(rootDir, "gradle.properties")
+                val localProperties = Properties()
+
+                if (localPropertiesFile.exists()) {
+                    localProperties.load(FileInputStream(localPropertiesFile))
+                }
+
+                username = System.getenv("GITHUB_ACTOR")
+                    ?: localProperties.getProperty("github.user")
+                        ?: providers.gradleProperty("gpr.user").orNull
+
+
+                password = System.getenv("GITHUB_TOKEN")
+                    ?: localProperties.getProperty("github.token")
+                        ?: providers.gradleProperty("gpr.key").orNull
             }
         }
     }
