@@ -5,30 +5,34 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import to.bitkit.R
 import to.bitkit.ui.theme.Colors
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 enum class Suggestion(
     @StringRes val title: Int,
     @StringRes val description: Int,
     @DrawableRes val icon: Int,
     val color: Color,
+    val dismissible: Boolean = true,
+    val duration: Duration? = null,
 ) {
     BUY(
         title = R.string.cards__buyBitcoin__title,
         description = R.string.cards__buyBitcoin__description,
         color = Colors.Brand24,
-        icon = R.drawable.b_emboss
+        icon = R.drawable.b_emboss,
     ),
     LIGHTNING( // Lightning ready from RN
         title = R.string.cards__lightning__title,
         description = R.string.cards__lightning__description,
         color = Colors.Purple24,
-        icon = R.drawable.lightning
+        icon = R.drawable.lightning,
     ),
     BACK_UP(
         title = R.string.cards__backupSeedPhrase__title,
         description = R.string.cards__backupSeedPhrase__description,
         color = Colors.Blue24,
-        icon = R.drawable.safe
+        icon = R.drawable.safe,
     ),
     SECURE(
         title = R.string.cards__pin__title,
@@ -72,7 +76,8 @@ enum class Suggestion(
         title = R.string.cards__lightningSettingUp__title,
         description = R.string.cards__transferPending__description,
         color = Colors.Purple24,
-        icon = R.drawable.transfer
+        icon = R.drawable.transfer,
+        dismissible = false
     ),
 
     /**When the LN channel could not be cooped closed immediately*/
@@ -80,7 +85,8 @@ enum class Suggestion(
         title = R.string.cards__transferClosingChannel__title,
         description = R.string.cards__transferClosingChannel__description,
         color = Colors.Red24,
-        icon = R.drawable.transfer
+        icon = R.drawable.transfer,
+        dismissible = false
     ),
 
     /**Replaces LIGHTNING when the transfer to spending balance is in progress*/
@@ -88,13 +94,16 @@ enum class Suggestion(
         title = R.string.cards__lightningSettingUp__title,
         description = R.string.cards__lightningSettingUp__description,
         color = Colors.Purple24,
-        icon = R.drawable.transfer
+        icon = R.drawable.transfer,
+        dismissible = false
     ),
     LIGHTNING_READY(
         title = R.string.cards__lightningReady__title,
         description = R.string.cards__lightningReady__description,
         color = Colors.Purple24,
-        icon = R.drawable.transfer
+        icon = R.drawable.transfer,
+        dismissible = false,
+        duration = 5.seconds
     ),
 }
 

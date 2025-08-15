@@ -116,6 +116,7 @@ import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModel
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun HomeScreen(
@@ -226,8 +227,8 @@ fun HomeScreen(
 
                 Suggestion.TRANSFER_PENDING -> Unit
                 Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
-                Suggestion.LIGHTNING_SETTING_UP -> TODO()
-                Suggestion.LIGHTNING_READY -> TODO()
+                Suggestion.LIGHTNING_SETTING_UP -> Unit
+                Suggestion.LIGHTNING_READY -> Unit
             }
         },
         onClickAddWidget = {
@@ -377,7 +378,9 @@ private fun Content(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 state = state,
                                 flingBehavior = snapBehavior,
-                                modifier = Modifier.fillMaxWidth().testTag("Suggestions")
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("Suggestions")
                             ) {
                                 items(homeUiState.suggestions, key = { it.name }) { item ->
                                     SuggestionCard(
@@ -385,8 +388,9 @@ private fun Content(
                                         title = stringResource(item.title),
                                         description = stringResource(item.description),
                                         icon = item.icon,
-                                        onClose = { onRemoveSuggestion(item) },
+                                        onClose = { onRemoveSuggestion(item) }.takeIf { item.dismissible },
                                         onClick = { onClickSuggestion(item) },
+                                        duration = item.duration,
                                         modifier = Modifier.testTag("Suggestion-${item.name.lowercase()}")
                                     )
                                 }
