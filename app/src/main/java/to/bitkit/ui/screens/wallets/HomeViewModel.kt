@@ -264,6 +264,9 @@ class HomeViewModel @Inject constructor(
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
+                    Suggestion.LIGHTNING_SETTING_UP.takeIf { transfers.any { it.type == TransferType.TO_SPENDING } },
+                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
+                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -278,21 +281,25 @@ class HomeViewModel @Inject constructor(
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.LIGHTNING.takeIf {
-                        !transfers.any { it.type == TransferType.TO_SPENDING }
+                        transfers.all { it.type != TransferType.TO_SPENDING }
                     } ?: Suggestion.LIGHTNING_SETTING_UP,
+                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
+                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
                     Suggestion.INVITE,
                     Suggestion.SHOP,
-                    Suggestion.PROFILE,
+                    Suggestion.PROFILE, // TODO IMPLEMENT ALSO LIGHTNING_READY
                 )
             }
 
             else -> { // Empty wallet
                 listOfNotNull(
                     Suggestion.BUY,
-                    Suggestion.LIGHTNING,
+                    Suggestion.LIGHTNING.takeIf {
+                        transfers.all { it.type != TransferType.TO_SPENDING }
+                    } ?: Suggestion.LIGHTNING_SETTING_UP,
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.SUPPORT,

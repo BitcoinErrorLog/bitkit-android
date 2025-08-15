@@ -83,7 +83,7 @@ enum class Suggestion(
         icon = R.drawable.transfer
     ),
 
-    /**Replaces SPEND when the transfer to spending balance is in progress*/
+    /**Replaces LIGHTNING when the transfer to spending balance is in progress*/
     LIGHTNING_SETTING_UP(
         title = R.string.cards__lightningSettingUp__title,
         description = R.string.cards__lightningSettingUp__description,
