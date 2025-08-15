@@ -1,7 +1,15 @@
 package to.bitkit.ui.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +21,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ShapeDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -48,6 +63,7 @@ fun SuggestionCard(
     duration: Duration? = null,
     size: Int = 152,
     captionColor: Color = Colors.White64,
+    dismissable: Boolean = true,
     onClick: () -> Unit,
 ) {
     LaunchedEffect(Unit) {
@@ -57,57 +73,195 @@ fun SuggestionCard(
         }
     }
 
-    Box(
-        modifier = modifier
-            .size(size.dp)
-            .clip(ShapeDefaults.Large)
-            .gradientBackground(gradientColor)
-            .clickableAlpha { onClick() }
-    ) {
-        Column(
+    Box(modifier = modifier) {
+        if (!dismissable) {
+            GlowEffect(
+                size = size,
+                color = gradientColor,
+                modifier = Modifier.size(size.dp)
+            )
+        }
+
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .size(size.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .then(
+                    if (dismissable) {
+                        Modifier.gradientBackground(gradientColor)
+                    } else {
+                        Modifier
+                            .border(
+                                width = 1.dp,
+                                color = getBorderColorForGradient(gradientColor),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .gradientBackground(gradientColor)
+                    }
+                )
+                .clickableAlpha { onClick() }
         ) {
-            Row(
+            // Shade effect for dismissable cards (similar to the Shade component in RN)
+            if (dismissable) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.6f)
+                                ),
+                                startY = size * 0.4f,
+                                endY = size.toFloat()
+                            )
+                        )
+                )
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Image(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillHeight,
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    Image(
+                        painter = painterResource(icon),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillHeight,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (duration == null && onClose != null && dismissable) {
+                        IconButton(
+                            onClick = onClose,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .testTag("SuggestionDismiss")
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_x),
+                                contentDescription = null,
+                                tint = Colors.White,
+                            )
+                        }
+                    }
+                }
+
+                Headline20(
+                    text = AnnotatedString(title),
+                    color = Colors.White,
                 )
 
-                if (duration == null && onClose != null) {
-                    IconButton(
-                        onClick = onClose,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .testTag("SuggestionDismiss")
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_x),
-                            contentDescription = null,
-                            tint = Colors.White,
+                CaptionB(
+                    text = description,
+                    color = captionColor,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GlowEffect(
+    size: Int,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "glowTransition")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
+    val (shadowColor, _, radialGradientColor) = getGlowColors(color)
+
+    Box(modifier = modifier) {
+        // Outer glow with animated opacity
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(glowAlpha)
+                .drawBehind {
+                    drawIntoCanvas { canvas ->
+                        val paint = android.graphics.Paint().apply {
+                            this.color = shadowColor.toArgb()
+                            setShadowLayer(15f, 0f, 0f, shadowColor.toArgb())
+                            isAntiAlias = true
+                        }
+
+                        val rect = android.graphics.RectF(
+                            5f,
+                            5f,
+                            size.toFloat() - 5f,
+                            size.toFloat() - 5f
+                        )
+
+                        canvas.nativeCanvas.drawRoundRect(
+                            rect,
+                            16f,
+                            16f,
+                            paint
                         )
                     }
                 }
-            }
+        )
 
-            Headline20(
-                text = AnnotatedString(title),
-                color = Colors.White,
-            )
+        // Static radial gradient overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(0.4f)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(radialGradientColor, color),
+                        center = androidx.compose.ui.geometry.Offset(
+                            size / 2f,
+                            size / 2f
+                        ),
+                        radius = size / 2f
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        )
+    }
+}
 
-            CaptionB(
-                text = description,
-                color = captionColor,
-            )
-        }
+private fun getGlowColors(color: Color): Triple<Color, Color, Color> {
+    return when (color) {
+        Colors.Brand24 -> Triple(
+            Color(200, 48, 0), // shadowColor
+            Color(255, 68, 0), // borderColor
+            Color(100, 24, 0)  // radialGradientColor
+        )
+
+        else -> Triple(
+            Color(130, 65, 175), // shadowColor (default purple)
+            Color(185, 92, 232), // borderColor
+            Color(65, 32, 80)    // radialGradientColor
+        )
+    }
+}
+
+private fun getBorderColorForGradient(color: Color): Color {
+    return when (color) {
+        Colors.Brand24 -> Color(255, 68, 0)
+        Colors.Purple24 -> Color(185, 92, 232)
+        Colors.Blue24 -> Color(92, 185, 232)
+        Colors.Green24 -> Color(92, 232, 185)
+        Colors.Yellow24 -> Color(232, 185, 92)
+        Colors.Red24 -> Color(232, 92, 92)
+        else -> Color(185, 92, 232)
     }
 }
 
@@ -127,6 +281,7 @@ private fun Preview() {
                 icon = item.icon,
                 onClose = {},
                 onClick = {},
+                dismissable = item != Suggestion.LIGHTNING_READY,
                 duration = 5.seconds.takeIf { item == Suggestion.LIGHTNING_READY }
             )
         }
