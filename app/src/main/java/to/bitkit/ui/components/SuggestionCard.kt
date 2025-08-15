@@ -6,9 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ShapeDefaults
@@ -31,6 +35,7 @@ import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.Colors
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun SuggestionCard(
@@ -56,7 +61,7 @@ fun SuggestionCard(
         modifier = modifier
             .size(size.dp)
             .clip(ShapeDefaults.Large)
-            .gradientBackground(gradientColor.copy(alpha = 0.30f))
+            .gradientBackground(gradientColor)
             .clickableAlpha { onClick() }
     ) {
         Column(
@@ -106,18 +111,23 @@ fun SuggestionCard(
     }
 }
 
-@Preview()
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Suggestion.entries.map { item ->
+    LazyVerticalGrid(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        items(Suggestion.entries) { item ->
             SuggestionCard(
                 gradientColor = item.color,
                 title = stringResource(item.title),
                 description = stringResource(item.description),
                 icon = item.icon,
                 onClose = {},
-                onClick = {}
+                onClick = {},
+                duration = 5.seconds.takeIf { item == Suggestion.LIGHTNING_READY }
             )
         }
     }
