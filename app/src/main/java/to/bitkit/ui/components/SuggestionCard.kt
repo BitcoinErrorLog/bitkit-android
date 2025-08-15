@@ -63,9 +63,10 @@ fun SuggestionCard(
     duration: Duration? = null,
     size: Int = 152,
     captionColor: Color = Colors.White64,
-    dismissable: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val dismissable = onClose != null
+
     LaunchedEffect(Unit) {
         duration?.let {
             delay(it)
@@ -137,7 +138,7 @@ fun SuggestionCard(
                         modifier = Modifier.weight(1f)
                     )
 
-                    if (duration == null && onClose != null && dismissable) {
+                    if (duration == null && onClose != null) {
                         IconButton(
                             onClick = onClose,
                             modifier = Modifier
@@ -281,7 +282,6 @@ private fun Preview() {
                 icon = item.icon,
                 onClose = {},
                 onClick = {},
-                dismissable = item != Suggestion.LIGHTNING_READY,
                 duration = 5.seconds.takeIf { item == Suggestion.LIGHTNING_READY }
             )
         }
