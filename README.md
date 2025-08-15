@@ -13,12 +13,33 @@ This repository contains a **new native Android app** which is **not ready for p
 
 ## Development
 
-**Prerequisites**  
-1. Download `google-services.json` to `app/` from FCM Console.
+### Prerequisites
+
+#### 1. Download `google-services.json` to `app/` from FCM Console.
+
+#### 2. GitHub Packages setup
+
+Some internal libraries are distributed via GitHub Packages. Configure credentials so Gradle can resolve them.
+
+1) Create a GitHub token with `read:packages` scope.
+
+2) Provide credentials for Gradle (choose one):
+
+   - Environment variables
+     - `GITHUB_ACTOR` (your username)
+     - `GITHUB_TOKEN` (token with `read:packages`)
+
+   - Or `~/.gradle/local.properties`
+     - `gpr.user=YOUR_GITHUB_USERNAME`
+     - `gpr.key=YOUR_GITHUB_TOKEN`
+
+See also:
+- [bitkit-core android bindings](https://github.com/synonymdev/bitkit-core/tree/master/bindings/android#installation)
 
 ### References
 
 - For LNURL dev testing see [bitkit-docker](https://github.com/ovitrif/bitkit-docker)
+- Bitkit Core Android bindings README: [synonymdev/bitkit-core — bindings/android/README.md](https://github.com/synonymdev/bitkit-core/blob/master/bindings/android/README.md)
 
 ### Linting
 

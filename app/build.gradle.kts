@@ -197,7 +197,7 @@ dependencies {
     // Crypto
     implementation(libs.bouncycastle.provider.jdk)
     implementation(libs.ldk.node.android) { exclude(group = "net.java.dev.jna", module = "jna") }
-    implementation(libs.bitkitcore) { exclude(group = "net.java.dev.jna", module = "jna") }
+    implementation(libs.bitkitcore)
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

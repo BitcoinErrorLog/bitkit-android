@@ -41,6 +41,8 @@ jobs:
 
       - name: Build debug app
         env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHATWOOT_API: ${{ secrets.CHATWOOT_API }}
         run: ./gradlew assembleDevDebug
 
