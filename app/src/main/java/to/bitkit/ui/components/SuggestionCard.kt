@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -23,11 +24,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import to.bitkit.R
 import to.bitkit.models.Suggestion
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.Colors
+import kotlin.time.Duration
 
 @Composable
 fun SuggestionCard(
@@ -37,10 +40,18 @@ fun SuggestionCard(
     description: String,
     @DrawableRes icon: Int,
     onClose: (() -> Unit)? = null,
+    duration: Duration? = null,
     size: Int = 152,
     captionColor: Color = Colors.White64,
     onClick: () -> Unit,
 ) {
+    LaunchedEffect(Unit) {
+        duration?.let {
+            delay(it)
+            onClose?.invoke()
+        }
+    }
+
     Box(
         modifier = modifier
             .size(size.dp)
@@ -66,9 +77,9 @@ fun SuggestionCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                onClose?.let {
+                if (duration == null && onClose != null) {
                     IconButton(
-                        onClick = it,
+                        onClick = onClose,
                         modifier = Modifier
                             .size(16.dp)
                             .testTag("SuggestionDismiss")
