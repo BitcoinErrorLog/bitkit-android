@@ -28,12 +28,12 @@ dependencyResolutionManagement {
                 }
 
                 username = System.getenv("GITHUB_ACTOR")
-                    ?: localProperties.getProperty("github.user")
+                    ?: localProperties.getProperty("gpr.user")
                         ?: providers.gradleProperty("gpr.user").orNull
 
 
                 password = System.getenv("GITHUB_TOKEN")
-                    ?: localProperties.getProperty("github.token")
+                    ?: localProperties.getProperty("gpr.key")
                         ?: providers.gradleProperty("gpr.key").orNull
             }
         }
