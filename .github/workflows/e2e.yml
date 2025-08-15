@@ -37,6 +37,8 @@ jobs:
 
       - name: Build debug app
         env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHATWOOT_API: ${{ secrets.CHATWOOT_API }}
           E2E: true
         run: ./gradlew assembleDevDebug
@@ -123,7 +125,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
             # adb port forwarding for regtest
-            adb reverse tcp:60001 tcp:60001 
+            adb reverse tcp:60001 tcp:60001
             cd bitkit-e2e-tests && npm run e2e:android -- --mochaOpts.grep "Can start onboarding"
         env:
           RECORD_VIDEO: true
