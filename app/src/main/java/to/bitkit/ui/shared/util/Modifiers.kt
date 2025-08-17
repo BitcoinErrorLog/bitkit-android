@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import to.bitkit.ui.theme.Colors
 
 /**
@@ -65,13 +66,31 @@ fun Modifier.clickableAlpha(
         )
 }
 
-fun Modifier.gradientBackground(startColor: Color = Colors.Gray6, endColor: Color = Colors.Black): Modifier {
+fun Modifier.gradientLinearBackground(startColor: Color = Colors.Gray6, endColor: Color = Colors.Black): Modifier {
     return this.background(
         brush = Brush.verticalGradient(
             colors = listOf(startColor, endColor)
         )
     )
 }
+
+fun Modifier.gradientRadialBackground(
+    centerColor: Color,
+    glowAlpha: Float = 1f,
+): Modifier {
+    return this
+        .background(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    centerColor.copy(alpha = glowAlpha * 0.10f),
+                    centerColor.copy(alpha = glowAlpha * 0.50f),
+                    centerColor.copy(alpha = glowAlpha * 0.80f),
+                    centerColor.copy(alpha = glowAlpha),
+                ),
+            )
+        )
+}
+
 
 fun Modifier.blockPointerInputPassthrough(): Modifier {
     return this.pointerInput(Unit) {
