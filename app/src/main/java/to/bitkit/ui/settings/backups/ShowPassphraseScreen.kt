@@ -23,7 +23,7 @@ import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -50,7 +50,7 @@ private fun ShowPassphraseContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
             .testTag("backup_show_passphrase_screen")
     ) {

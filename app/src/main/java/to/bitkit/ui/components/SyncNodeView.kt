@@ -13,7 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -55,7 +55,7 @@ private fun Preview() {
         SyncNodeView(
             modifier = Modifier
                 .fillMaxSize()
-                .gradientBackground()
+                .gradientLinearBackground()
                 .padding(horizontal = 16.dp)
         )
     }

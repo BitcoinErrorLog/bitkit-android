@@ -67,7 +67,7 @@ import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.rememberBiometricAuthSupported
@@ -171,7 +171,7 @@ private fun Content(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .gradientBackground()
+                .gradientLinearBackground()
                 .navigationBarsPadding()
         ) {
             val isLnurlPay = uiState.lnurl is LnurlParams.LnurlPay

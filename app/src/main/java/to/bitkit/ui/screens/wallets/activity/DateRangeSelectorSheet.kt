@@ -31,7 +31,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.time.Duration.Companion.days
@@ -79,7 +79,7 @@ private fun Content(
         modifier = Modifier
             .fillMaxWidth()
             .sheetHeight(SheetSize.CALENDAR)
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {

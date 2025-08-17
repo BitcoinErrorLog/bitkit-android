@@ -21,7 +21,7 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -34,7 +34,7 @@ fun LocationBlockScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin), onBack = onBackPressed)

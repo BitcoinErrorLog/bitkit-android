@@ -27,7 +27,7 @@ import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -81,7 +81,7 @@ private fun Content(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__send_quickpay__nav_title))

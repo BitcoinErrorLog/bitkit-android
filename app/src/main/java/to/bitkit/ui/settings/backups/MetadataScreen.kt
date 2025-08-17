@@ -24,7 +24,7 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withBold
@@ -53,7 +53,7 @@ private fun MetadataContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
             .testTag("backup_metadata_screen")
     ) {

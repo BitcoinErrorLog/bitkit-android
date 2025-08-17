@@ -15,7 +15,7 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.screens.wallets.send.AddTagContent
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.viewmodels.ActivityDetailViewModel
 import to.bitkit.viewmodels.ActivityListViewModel
@@ -66,7 +66,7 @@ fun ActivityAddTagSheet(
             addButtonTestTag = "ActivityTagsSubmit",
             modifier = Modifier
                 .sheetHeight(SheetSize.SMALL, isModal = true)
-                .gradientBackground()
+                .gradientLinearBackground()
         )
     }
 }
@@ -86,7 +86,7 @@ private fun Preview() {
                 onBack = {},
                 modifier = Modifier
                     .sheetHeight(SheetSize.SMALL, isModal = true)
-                    .gradientBackground()
+                    .gradientLinearBackground()
             )
         }
     }

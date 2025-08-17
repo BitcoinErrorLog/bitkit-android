@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -107,7 +107,7 @@ private fun Preview() {
             Column(
                 modifier = Modifier
                     .sheetHeight(isModal = true)
-                    .gradientBackground()
+                    .gradientLinearBackground()
                     .padding(horizontal = 16.dp)
             ) {
                 SheetTopBar("Sheet Title")
