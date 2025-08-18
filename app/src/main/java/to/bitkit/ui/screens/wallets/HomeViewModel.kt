@@ -264,7 +264,7 @@ class HomeViewModel @Inject constructor(
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    // The previous list had LIGHTNING_SETTING_UP and the current don't
+                    // The previous list has LIGHTNING_SETTING_UP and the current don't
                     Suggestion.LIGHTNING_READY.takeIf {
                         Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
                             transfers.all { it.type != TransferType.TO_SPENDING }
