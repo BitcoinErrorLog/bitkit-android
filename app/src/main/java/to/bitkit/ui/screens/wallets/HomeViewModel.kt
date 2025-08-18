@@ -296,7 +296,7 @@ class HomeViewModel @Inject constructor(
                     Suggestion.SUPPORT,
                     Suggestion.INVITE,
                     Suggestion.SHOP,
-                    Suggestion.PROFILE, // TODO IMPLEMENT ALSO LIGHTNING_READY
+                    Suggestion.PROFILE,
                 )
             }
 
