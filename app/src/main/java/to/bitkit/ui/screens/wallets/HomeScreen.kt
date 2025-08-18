@@ -116,7 +116,6 @@ import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModel
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun HomeScreen(

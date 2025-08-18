@@ -80,7 +80,6 @@ fun SuggestionCard(
                 if (isDismissible || disableGlow) {
                     Modifier.gradientLinearBackground(gradientColor)
                 } else {
-
                     val (shadowColor, borderColor, gradientSelectedColor) = when (gradientColor) {
                         Colors.Purple24 -> Triple(
                             Color(130, 65, 175),
@@ -154,7 +153,6 @@ fun SuggestionCard(
         }
     }
 }
-
 
 @Preview(showSystemUi = true)
 @Composable
