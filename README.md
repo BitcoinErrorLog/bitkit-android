@@ -29,12 +29,13 @@ Some internal libraries are distributed via GitHub Packages. Configure credentia
      - `GITHUB_ACTOR` (your username)
      - `GITHUB_TOKEN` (token with `read:packages`)
 
-   - Or `~/.gradle/local.properties`
+   - `PROJECT_ROOT/local.properties` or `~/.gradle/gradle.properties`
      - `gpr.user=YOUR_GITHUB_USERNAME`
      - `gpr.key=YOUR_GITHUB_TOKEN`
 
 See also:
 - [bitkit-core android bindings](https://github.com/synonymdev/bitkit-core/tree/master/bindings/android#installation)
+- [vss-rust-client-ffi android bindings](https://github.com/synonymdev/vss-rust-client-ffi/tree/master/bindings/android#installation)
 
 ### References
 

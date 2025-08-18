@@ -176,7 +176,6 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 }
 
 dependencies {
-    implementation(project(":libs:vss-client"))
     implementation(fileTree("libs") { include("*.aar") })
     implementation(libs.jna) { artifact { type = "aar" } }
     implementation(platform(libs.kotlin.bom))
@@ -198,6 +197,7 @@ dependencies {
     implementation(libs.bouncycastle.provider.jdk)
     implementation(libs.ldk.node.android) { exclude(group = "net.java.dev.jna", module = "jna") }
     implementation(libs.bitkitcore)
+    implementation(libs.vss)
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
@@ -227,7 +227,6 @@ dependencies {
     implementation(libs.charts)
     implementation(libs.haze)
     implementation(libs.haze.materials)
-
     // Compose Navigation
     implementation(libs.navigation.compose)
     androidTestImplementation(libs.navigation.testing)
