@@ -194,7 +194,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun removeSuggestion(suggestion: Suggestion) {
-        // TODO HANDLE TRANSFER
         viewModelScope.launch {
             settingsStore.addDismissedSuggestion(suggestion)
         }
