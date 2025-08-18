@@ -55,6 +55,7 @@ fun SuggestionCard(
     onClose: (() -> Unit)? = null,
     duration: Duration? = null,
     size: Int = 152,
+    disableGlow: Boolean = false,
     captionColor: Color = Colors.White64,
     onClick: () -> Unit,
 ) {
@@ -84,7 +85,7 @@ fun SuggestionCard(
             .size(size.dp)
             .clip(ShapeDefaults.Large)
             .then(
-                if (isDismissible) {
+                if (isDismissible || disableGlow) {
                     Modifier.gradientLinearBackground(gradientColor)
                 } else {
                     Modifier
