@@ -1,5 +1,9 @@
 package to.bitkit.data.backup
 
+import com.synonym.vssclient.VssItem
+import com.synonym.vssclient.vssGet
+import com.synonym.vssclient.vssNewClient
+import com.synonym.vssclient.vssStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -7,10 +11,6 @@ import kotlinx.coroutines.withTimeout
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.utils.Logger
-import uniffi.vss_rust_client_ffi.VssItem
-import uniffi.vss_rust_client_ffi.vssGet
-import uniffi.vss_rust_client_ffi.vssNewClient
-import uniffi.vss_rust_client_ffi.vssStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds

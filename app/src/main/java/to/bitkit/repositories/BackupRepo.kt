@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import android.content.Context
+import com.synonym.vssclient.VssItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -29,7 +30,6 @@ import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.Toast
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
-import uniffi.vss_rust_client_ffi.VssItem
 import javax.inject.Inject
 import javax.inject.Singleton
 
