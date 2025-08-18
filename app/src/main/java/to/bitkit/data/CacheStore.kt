@@ -140,7 +140,7 @@ class CacheStore @Inject constructor(
     }
 
     suspend fun removeInProgressTransfer(item: InProgressTransfer) {
-        if (item in store.data.first().inProgressTransfers) return
+        if (item !in store.data.first().inProgressTransfers) return
 
         store.updateData {
             it.copy(inProgressTransfers = it.inProgressTransfers - item)
