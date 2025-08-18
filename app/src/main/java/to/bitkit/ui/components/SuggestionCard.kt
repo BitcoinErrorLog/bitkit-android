@@ -45,6 +45,10 @@ import to.bitkit.ui.theme.Colors
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+private const val GLOW_ANIMATION_MILLIS = 1100
+private const val MIN_ALPHA_GRADIENT = 0.24f
+private const val MAX_ALPHA_GRADIENT = 0.9f
+
 @Composable
 fun SuggestionCard(
     modifier: Modifier = Modifier,
@@ -71,10 +75,10 @@ fun SuggestionCard(
     // Glow animation for non-dismissible cards
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.24f,
-        targetValue = 1f,
+        initialValue = MIN_ALPHA_GRADIENT,
+        targetValue = MAX_ALPHA_GRADIENT,
         animationSpec = infiniteRepeatable(
-            animation = tween(1100),
+            animation = tween(GLOW_ANIMATION_MILLIS),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glow_alpha"
@@ -88,9 +92,30 @@ fun SuggestionCard(
                 if (isDismissible || disableGlow) {
                     Modifier.gradientLinearBackground(gradientColor)
                 } else {
+
+                    val (shadowColor, borderColor, gradientSelectedColor) = when (gradientColor) {
+                        Colors.Purple24 -> Triple(
+                            Color(130, 65, 175),
+                            Color(185, 92, 232),
+                            Color(65, 32, 80)
+                        )
+
+                        Colors.Red24 -> Triple(
+                            Color(200, 48, 0),
+                            Color(255, 68, 0),
+                            Color(100, 24, 0)
+                        )
+
+                        else -> Triple(
+                            gradientColor,
+                            gradientColor,
+                            gradientColor.copy(alpha = MIN_ALPHA_GRADIENT)
+                        )
+                    }
+
                     Modifier
-                        .gradientRadialBackground(gradientColor, glowAlpha)
-                        .border(width = 1.dp, color = gradientColor, shape = ShapeDefaults.Large)
+                        .gradientRadialBackground(gradientSelectedColor, glowAlpha)
+                        .border(width = 1.dp, color = borderColor, shape = ShapeDefaults.Large)
                 }
             )
             .clickableAlpha { onClick() }
