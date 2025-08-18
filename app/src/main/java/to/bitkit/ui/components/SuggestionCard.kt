@@ -74,7 +74,7 @@ fun SuggestionCard(
         initialValue = 0.24f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000),
+            animation = tween(1100),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glow_alpha"
