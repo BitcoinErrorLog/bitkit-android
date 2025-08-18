@@ -83,8 +83,6 @@ fun Modifier.gradientRadialBackground(
             brush = Brush.radialGradient(
                 colors = listOf(
                     centerColor.copy(alpha = glowAlpha * 0.10f),
-                    centerColor.copy(alpha = glowAlpha * 0.50f),
-                    centerColor.copy(alpha = glowAlpha * 0.80f),
                     centerColor.copy(alpha = glowAlpha),
                 ),
             )
