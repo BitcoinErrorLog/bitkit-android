@@ -227,7 +227,7 @@ fun HomeScreen(
 
                 Suggestion.TRANSFER_PENDING -> Unit
                 Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
-                Suggestion.LIGHTNING_SETTING_UP -> Unit
+                Suggestion.LIGHTNING_SETTING_UP -> Unit // TODO Navigate to transfer
                 Suggestion.LIGHTNING_READY -> Unit
             }
         },
