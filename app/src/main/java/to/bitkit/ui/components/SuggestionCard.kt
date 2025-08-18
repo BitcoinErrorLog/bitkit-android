@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,15 +34,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import to.bitkit.R
 import to.bitkit.models.Suggestion
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.shared.util.gradientRadialBackground
 import to.bitkit.ui.theme.Colors
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 private const val GLOW_ANIMATION_MILLIS = 1100
 private const val MIN_ALPHA_GRADIENT = 0.24f
@@ -57,19 +53,11 @@ fun SuggestionCard(
     description: String,
     @DrawableRes icon: Int,
     onClose: (() -> Unit)? = null,
-    duration: Duration? = null,
     size: Int = 152,
     disableGlow: Boolean = false,
     captionColor: Color = Colors.White64,
     onClick: () -> Unit,
 ) {
-    LaunchedEffect(Unit) {
-        duration?.let {
-            delay(it)
-            onClose?.invoke()
-        }
-    }
-
     val isDismissible = onClose != null
 
     // Glow animation for non-dismissible cards
@@ -138,7 +126,7 @@ fun SuggestionCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (duration == null && onClose != null) {
+                if (onClose != null) {
                     IconButton(
                         onClick = onClose,
                         modifier = Modifier
@@ -184,7 +172,6 @@ private fun Preview() {
                 icon = item.icon,
                 onClose = {},
                 onClick = {}, // All cards are clickable
-                duration = 5.seconds.takeIf { item == Suggestion.LIGHTNING_READY }
             )
         }
     }

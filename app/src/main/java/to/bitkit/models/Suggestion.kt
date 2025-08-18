@@ -5,8 +5,6 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import to.bitkit.R
 import to.bitkit.ui.theme.Colors
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 enum class Suggestion(
     @StringRes val title: Int,
@@ -14,7 +12,6 @@ enum class Suggestion(
     @DrawableRes val icon: Int,
     val color: Color,
     val dismissible: Boolean = true,
-    val duration: Duration? = null,
 ) {
     BUY(
         title = R.string.cards__buyBitcoin__title,
@@ -22,7 +19,8 @@ enum class Suggestion(
         color = Colors.Brand24,
         icon = R.drawable.b_emboss,
     ),
-    LIGHTNING( // Lightning ready from RN
+    LIGHTNING(
+        // Lightning ready from RN
         title = R.string.cards__lightning__title,
         description = R.string.cards__lightning__description,
         color = Colors.Purple24,
@@ -103,7 +101,6 @@ enum class Suggestion(
         color = Colors.Purple24,
         icon = R.drawable.transfer,
         dismissible = false,
-        duration = 5.seconds
     ),
 }
 

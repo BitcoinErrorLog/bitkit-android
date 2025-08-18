@@ -390,7 +390,6 @@ private fun Content(
                                         icon = item.icon,
                                         onClose = { onRemoveSuggestion(item) }.takeIf { item.dismissible },
                                         onClick = { onClickSuggestion(item) },
-                                        duration = item.duration,
                                         modifier = Modifier.testTag("Suggestion-${item.name.lowercase()}")
                                     )
                                 }
