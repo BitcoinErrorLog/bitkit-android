@@ -325,13 +325,10 @@ class ActivityRepo @Inject constructor(
         cacheStore.data.first().inProgressTransfers.forEach { transfer ->
             getActivity(transfer.activityId).onSuccess { activity ->
                 (activity as? Onchain)?.let { onChain ->
-                    Logger.debug("Transfer found! confirmed:${onChain.v1.confirmed} $onChain", context = TAG)
                     if (onChain.v1.confirmed) {
                         cacheStore.removeInProgressTransfer(transfer)
                     }
                 }
-            }.onFailure { e ->
-                Logger.debug("Couldn't find activity ${transfer.activityId}, ${e.stackTraceToString()}", context = TAG)
             }
         }
     }
