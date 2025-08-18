@@ -220,7 +220,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onClickEditWidget() {
+    fun onClickEditWidgetList() {
         if (_uiState.value.isEditingWidgets) {
             viewModelScope.launch {
                 val widgets = _uiState.value.widgetsWithPosition
