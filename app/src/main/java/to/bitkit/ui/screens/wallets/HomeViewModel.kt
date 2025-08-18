@@ -266,8 +266,8 @@ class HomeViewModel @Inject constructor(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     // The previous list had LIGHTNING_SETTING_UP and the current don't
                     Suggestion.LIGHTNING_READY.takeIf {
-                        Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions
-                            && transfers.all { it.type != TransferType.TO_SPENDING }
+                        Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
+                            transfers.all { it.type != TransferType.TO_SPENDING }
                     },
                     Suggestion.LIGHTNING_SETTING_UP.takeIf { transfers.any { it.type == TransferType.TO_SPENDING } },
                     Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
