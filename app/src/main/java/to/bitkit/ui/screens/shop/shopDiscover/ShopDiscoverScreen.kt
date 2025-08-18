@@ -124,7 +124,7 @@ private fun ShopTabContent(
                 val title = stringResource(R.string.other__shop__discover__gift_cards__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Green,
+                    gradientColor = Colors.Green24,
                     title = title,
                     description = stringResource(R.string.other__shop__discover__gift_cards__description),
                     icon = R.drawable.gift,
@@ -138,7 +138,7 @@ private fun ShopTabContent(
                 val title2 = stringResource(R.string.other__shop__discover__esims__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Yellow,
+                    gradientColor = Colors.Yellow24,
                     title = title2,
                     description = stringResource(R.string.other__shop__discover__esims__description),
                     icon = R.drawable.globe,
@@ -159,7 +159,7 @@ private fun ShopTabContent(
                 val title = stringResource(R.string.other__shop__discover__refill__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Purple,
+                    gradientColor = Colors.Purple24,
                     title = title,
                     description = stringResource(R.string.other__shop__discover__refill__description),
                     icon = R.drawable.phone,
@@ -173,7 +173,7 @@ private fun ShopTabContent(
                 val title2 = stringResource(R.string.other__shop__discover__travel__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Red,
+                    gradientColor = Colors.Red24,
                     title = title2,
                     description = stringResource(R.string.other__shop__discover__travel__description),
                     icon = R.drawable.rocket_2,
