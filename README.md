@@ -29,7 +29,7 @@ Some internal libraries are distributed via GitHub Packages. Configure credentia
      - `GITHUB_ACTOR` (your username)
      - `GITHUB_TOKEN` (token with `read:packages`)
 
-   - Or `local.properties`
+   - `PROJECT_ROOT/local.properties` or `~/.gradle/gradle.properties`
      - `gpr.user=YOUR_GITHUB_USERNAME`
      - `gpr.key=YOUR_GITHUB_TOKEN`
 

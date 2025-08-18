@@ -1,6 +1,25 @@
-import java.io.FileInputStream
-import java.util.Properties
+import java.util.*
 
+val localProperties by lazy {
+    Properties().apply {
+        val file = rootDir.resolve("local.properties")
+        if (file.exists()) {
+            file.inputStream().use { load(it) }
+        }
+    }
+}
+fun getGithubCredentials(
+    passKey: String = "gpr.key",
+    userKey: String = "gpr.user",
+): Pair<String?, String?> {
+    val user = System.getenv("GITHUB_ACTOR")
+        ?: providers.gradleProperty(userKey).orNull
+        ?: localProperties.getProperty(userKey)
+    val key = System.getenv("GITHUB_TOKEN")
+        ?: providers.gradleProperty(passKey).orNull
+        ?: localProperties.getProperty(passKey)
+    return user to key
+}
 pluginManagement {
     repositories {
         google()
@@ -19,29 +38,17 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://maven.pkg.github.com/synonymdev/bitkit-core")
             credentials {
-
-                val localPropertiesFile = File(rootDir, "gradle.properties")
-                val localProperties = Properties()
-
-                if (localPropertiesFile.exists()) {
-                    localProperties.load(FileInputStream(localPropertiesFile))
-                }
-
-                username = System.getenv("GITHUB_ACTOR")
-                    ?: localProperties.getProperty("gpr.user")
-                        ?: providers.gradleProperty("gpr.user").orNull
-
-
-                password = System.getenv("GITHUB_TOKEN")
-                    ?: localProperties.getProperty("gpr.key")
-                        ?: providers.gradleProperty("gpr.key").orNull
+                val (user, pass) = getGithubCredentials()
+                username = user
+                password = pass
             }
         }
         maven {
             url = uri("https://maven.pkg.github.com/synonymdev/vss-rust-client-ffi")
             credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
-                password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+                val (user, pass) = getGithubCredentials()
+                username = user
+                password = pass
             }
         }
     }
