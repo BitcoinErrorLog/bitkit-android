@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,7 +87,9 @@ fun SuggestionCard(
                 if (isDismissible) {
                     Modifier.gradientLinearBackground(gradientColor)
                 } else {
-                    Modifier.gradientRadialBackground(gradientColor, glowAlpha)
+                    Modifier
+                        .gradientRadialBackground(gradientColor, glowAlpha)
+                        .border(width = 1.dp, color = gradientColor, shape = ShapeDefaults.Large)
                 }
             )
             .clickableAlpha { onClick() }
