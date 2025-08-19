@@ -205,14 +205,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun enableEditMode() {
-        _uiState.update { it.copy(isEditingWidgets = true) }
-    }
-
-    fun disableEditMode() {
-        _uiState.update { it.copy(isEditingWidgets = false) }
-    }
-
     fun moveWidget(fromIndex: Int, toIndex: Int) {
         val currentWidgets = _uiState.value.widgetsWithPosition.toMutableList()
         if (fromIndex in currentWidgets.indices && toIndex in currentWidgets.indices) {
@@ -228,11 +220,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun confirmWidgetOrder() {
-        viewModelScope.launch {
-            val widgets = _uiState.value.widgetsWithPosition
-            widgetsRepo.updateWidgets(widgets)
-            disableEditMode()
+    fun onClickEditWidgetList() {
+        if (_uiState.value.isEditingWidgets) {
+            viewModelScope.launch {
+                val widgets = _uiState.value.widgetsWithPosition
+                widgetsRepo.updateWidgets(widgets)
+                disableEditMode()
+            }
+        } else {
+            enableEditMode()
         }
     }
 
@@ -253,6 +249,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(deleteWidgetAlert = null) }
         }
+    }
+
+    private fun enableEditMode() {
+        _uiState.update { it.copy(isEditingWidgets = true) }
+    }
+
+    private fun disableEditMode() {
+        _uiState.update { it.copy(isEditingWidgets = false) }
     }
 
     private fun createSuggestionsFlow() = combine(

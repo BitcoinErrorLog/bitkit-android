@@ -237,8 +237,7 @@ fun HomeScreen(
                 rootNavController.navigate(Routes.AddWidget)
             }
         },
-        onClickEnableEdit = homeViewModel::enableEditMode,
-        onClickConfirmEdit = homeViewModel::confirmWidgetOrder,
+        onClickEditWidgetList = homeViewModel::onClickEditWidgetList,
         onClickEditWidget = { widgetType ->
             when (widgetType) {
                 WidgetType.BLOCK -> rootNavController.navigate(Routes.BlocksPreview)
@@ -276,8 +275,7 @@ private fun Content(
     onRemoveSuggestion: (Suggestion) -> Unit = {},
     onClickSuggestion: (Suggestion) -> Unit = {},
     onClickAddWidget: () -> Unit = {},
-    onClickEnableEdit: () -> Unit = {},
-    onClickConfirmEdit: () -> Unit = {},
+    onClickEditWidgetList: () -> Unit = {},
     onClickEditWidget: (WidgetType) -> Unit = {},
     onClickDeleteWidget: (WidgetType) -> Unit = {},
     onMoveWidget: (Int, Int) -> Unit = { _, _ -> },
@@ -409,7 +407,7 @@ private fun Content(
                             )
 
                             IconButton(
-                                onClick = onClickConfirmEdit,
+                                onClick = onClickEditWidgetList,
                                 modifier = Modifier.testTag("WidgetsEdit")
                             ) {
                                 Icon(
