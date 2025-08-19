@@ -43,7 +43,9 @@ import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.Footnote
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -212,9 +214,9 @@ fun OnboardingTab(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(264.dp)
                 .align(Alignment.BottomCenter),
         ) {
+            FillHeight()
             Display(text = title.withAccent(accentColor = titleAccentColor))
             Spacer(modifier = Modifier.height(8.dp))
             BodyM(
@@ -225,6 +227,7 @@ fun OnboardingTab(
                 Spacer(modifier = Modifier.height(6.5.dp))
                 Footnote(text = it)
             }
+            VerticalSpacer(40.dp) //y offset + dots height
         }
     }
 }
