@@ -13,9 +13,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -77,16 +74,14 @@ fun SpendingAmountScreen(
         }
     }
 
-    var input: String by remember { mutableStateOf(uiState.input) }
-
     AmountInputHandler(
-        input = input,
+        input = uiState.input,
         overrideSats = uiState.overrideSats,
         primaryDisplay = currencies.primaryDisplay,
         displayUnit = currencies.displayUnit,
-        onInputChanged = { newInput -> input = newInput },
+        onInputChanged = viewModel::onInputChanged,
         onAmountCalculated = { sats ->
-            viewModel.onAmountChanged(sats.toLongOrDefault(0))
+            viewModel.handleCalculatedAmount(sats.toLongOrDefault(0))
         },
     )
 
@@ -98,7 +93,7 @@ fun SpendingAmountScreen(
         onClickQuarter = viewModel::onClickQuarter,
         onClickMaxAmount = viewModel::onClickMaxAmount,
         onConfirmAmount = viewModel::onConfirmAmount,
-        onInputChanged = { newInput -> input = newInput },
+        onInputChanged = viewModel::onInputChanged,
     )
 }
 
