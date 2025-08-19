@@ -121,12 +121,12 @@ private fun Content(
                 .imePadding()
                 .testTag("SpendingAmount")
         ) {
-            VerticalSpacer(32.dp)
+            VerticalSpacer(16.dp)
             Display(
                 text = stringResource(R.string.lightning__spending_amount__title)
                     .withAccent(accentColor = Colors.Purple)
             )
-            VerticalSpacer(8.dp)
+            VerticalSpacer(4.dp)
 
             NumberPadTextField(
                 input = uiState.input,
@@ -135,7 +135,7 @@ private fun Content(
                 primaryDisplay = currencies.primaryDisplay,
                 modifier = Modifier
                     .fillMaxWidth()
-                    // .testTag("SendNumberField")
+                // .testTag("SendNumberField")
             )
 
             FillHeight()
@@ -188,7 +188,7 @@ private fun Content(
                     .fillMaxWidth()
             )
 
-            VerticalSpacer(16.dp)
+            VerticalSpacer(8.dp)
 
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
@@ -219,6 +219,7 @@ private fun Preview() {
         )
     }
 }
+
 @Preview(showBackground = true, device = NEXUS_5)
 @Composable
 private fun Preview2() {
