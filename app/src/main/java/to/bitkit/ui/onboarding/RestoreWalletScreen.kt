@@ -203,7 +203,8 @@ fun RestoreWalletView(
                                 },
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
-                                }
+                                },
+                                index = index,
                             )
                         }
                     }
@@ -246,7 +247,8 @@ fun RestoreWalletView(
                                 },
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
-                                }
+                                },
+                                index = index,
                             )
                         }
                     }
@@ -415,6 +417,7 @@ fun MnemonicInputField(
     onValueChanged: (String) -> Unit,
     onFocusChanged: (Boolean) -> Unit,
     onPositionChanged: (Int) -> Unit,
+    index: Int,
 ) {
     OutlinedTextField(
         value = value,
@@ -437,6 +440,7 @@ fun MnemonicInputField(
             capitalization = KeyboardCapitalization.None,
         ),
         modifier = Modifier
+            .testTag("Word-$index")
             .onFocusChanged { onFocusChanged(it.isFocused) }
             .onGloballyPositioned { coordinates ->
                 val position = coordinates.positionInParent().y.toInt() * 2 // double the scroll to ensure enough space
