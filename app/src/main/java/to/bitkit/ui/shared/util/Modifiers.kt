@@ -65,29 +65,13 @@ fun Modifier.clickableAlpha(
         )
 }
 
-fun Modifier.gradientLinearBackground(startColor: Color = Colors.Gray6, endColor: Color = Colors.Black): Modifier {
+fun Modifier.gradientBackground(startColor: Color = Colors.Gray6, endColor: Color = Colors.Black): Modifier {
     return this.background(
         brush = Brush.verticalGradient(
             colors = listOf(startColor, endColor)
         )
     )
 }
-
-fun Modifier.gradientRadialBackground(
-    centerColor: Color,
-    glowAlpha: Float = 1f,
-): Modifier {
-    return this
-        .background(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    centerColor.copy(alpha = glowAlpha * 0.10f),
-                    centerColor.copy(alpha = glowAlpha),
-                ),
-            )
-        )
-}
-
 
 fun Modifier.blockPointerInputPassthrough(): Modifier {
     return this.pointerInput(Unit) {

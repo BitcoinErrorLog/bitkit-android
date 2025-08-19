@@ -25,7 +25,7 @@ import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.SendUiState
@@ -41,7 +41,7 @@ fun WithdrawErrorScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.other__lnurl_withdr_error)) {

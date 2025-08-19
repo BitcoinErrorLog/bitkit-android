@@ -25,7 +25,7 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -61,7 +61,7 @@ private fun ConfirmPassphraseContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
             .imePadding()
             .testTag("backup_confirm_passphrase_screen")

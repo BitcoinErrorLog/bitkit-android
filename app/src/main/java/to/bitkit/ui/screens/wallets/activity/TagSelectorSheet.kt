@@ -28,7 +28,7 @@ import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
@@ -64,7 +64,7 @@ private fun Content(
         modifier = Modifier
             .fillMaxWidth()
             .sheetHeight(SheetSize.SMALL)
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {

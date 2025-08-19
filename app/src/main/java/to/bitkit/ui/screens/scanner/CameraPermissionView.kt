@@ -34,7 +34,7 @@ import to.bitkit.ui.components.Title
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withBold
@@ -70,7 +70,7 @@ fun DeniedContent(
 ) {
     Column(
         modifier = Modifier
-            .then(if (inSheet) Modifier.gradientLinearBackground() else Modifier.background(Colors.Black))
+            .then(if (inSheet) Modifier.gradientBackground() else Modifier.background(Colors.Black))
             .then(if (inSheet) Modifier.navigationBarsPadding() else Modifier.systemBarsPadding())
     ) {
         if (!inSheet) {

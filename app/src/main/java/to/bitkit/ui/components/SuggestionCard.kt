@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -37,8 +39,7 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.models.Suggestion
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientLinearBackground
-import to.bitkit.ui.shared.util.gradientRadialBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.Colors
 
 private const val GLOW_ANIMATION_MILLIS = 1100
@@ -78,7 +79,7 @@ fun SuggestionCard(
             .clip(ShapeDefaults.Large)
             .then(
                 if (isDismissible || disableGlow) {
-                    Modifier.gradientLinearBackground(gradientColor)
+                    Modifier.gradientBackground(gradientColor)
                 } else {
                     val (shadowColor, borderColor, gradientSelectedColor) = when (gradientColor) {
                         Colors.Purple24 -> Triple(
@@ -152,6 +153,21 @@ fun SuggestionCard(
             )
         }
     }
+}
+
+private fun Modifier.gradientRadialBackground(
+    centerColor: Color,
+    glowAlpha: Float = 1f,
+): Modifier {
+    return this
+        .background(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    centerColor.copy(alpha = glowAlpha * 0.10f),
+                    centerColor.copy(alpha = glowAlpha),
+                ),
+            )
+        )
 }
 
 @Preview(showSystemUi = true)
