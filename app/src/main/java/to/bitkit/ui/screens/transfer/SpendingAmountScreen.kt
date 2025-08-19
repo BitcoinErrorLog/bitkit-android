@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -20,11 +21,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
+import to.bitkit.models.PrimaryDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.components.AmountInput
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
+import to.bitkit.ui.components.Keyboard
 import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.NumberPadActionButton
 import to.bitkit.ui.components.PrimaryButton
@@ -76,7 +79,8 @@ fun SpendingAmountScreen(
         onClickQuarter = viewModel::onClickQuarter,
         onClickMaxAmount = viewModel::onClickMaxAmount,
         onConfirmAmount = viewModel::onConfirmAmount,
-        onAmountChanged = viewModel::onAmountChanged
+        onAmountChanged = viewModel::onAmountChanged,
+        onInputChanged = { input -> } //TODO IMPLEMENT
     )
 }
 
@@ -90,6 +94,7 @@ private fun Content(
     onClickMaxAmount: () -> Unit,
     onConfirmAmount: () -> Unit,
     onAmountChanged: (Long) -> Unit,
+    onInputChanged: (String) -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -151,6 +156,22 @@ private fun Content(
                 )
             }
             HorizontalDivider()
+
+            VerticalSpacer(16.dp)
+
+            Keyboard(
+                onClick = { number ->
+                    onInputChanged(if (uiState.input == "0") number else uiState.input + number)
+                },
+                onClickBackspace = {
+                    onInputChanged(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
+                },
+                isDecimal = currencies.primaryDisplay == PrimaryDisplay.FIAT,
+                // availableHeight = maxHeight,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
             VerticalSpacer(16.dp)
 
             PrimaryButton(
@@ -179,6 +200,7 @@ private fun Preview() {
             onClickMaxAmount = {},
             onConfirmAmount = {},
             onAmountChanged = {},
+            onInputChanged = {},
         )
     }
 }

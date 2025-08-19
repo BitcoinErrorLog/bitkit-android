@@ -545,6 +545,7 @@ data class TransferToSpendingUiState(
     val maxAllowedToSend: Long = 0,
     val balanceAfterFee: Long = 0,
     val isLoading: Boolean = false,
+    val input: String = "",
 )
 
 data class TransferValues(
