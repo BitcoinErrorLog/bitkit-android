@@ -216,18 +216,17 @@ fun OnboardingTab(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
         ) {
-            FillHeight()
             Display(text = title.withAccent(accentColor = titleAccentColor))
             Spacer(modifier = Modifier.height(8.dp))
             BodyM(
                 text = text,
                 color = Colors.White64,
+                minLines = 3
             )
             disclaimerText?.let {
-                Spacer(modifier = Modifier.height(6.5.dp))
                 Footnote(text = it)
             }
-            VerticalSpacer(40.dp) //y offset + dots height
+            VerticalSpacer(70.dp)
         }
     }
 }
