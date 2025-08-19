@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.toLongOrDefault
 import to.bitkit.models.BITCOIN_SYMBOL
@@ -39,6 +40,7 @@ fun NumberPadTextField(
     displayUnit: BitcoinDisplayUnit,
     primaryDisplay: PrimaryDisplay,
     modifier: Modifier = Modifier,
+    showSecondaryField: Boolean = true,
 ) {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
@@ -48,6 +50,7 @@ fun NumberPadTextField(
             unit = primaryDisplay,
             placeholder = "",
             showPlaceholder = true,
+            showSecondaryField = showSecondaryField,
             satoshis = 0,
             currencySymbol = if (primaryDisplay == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else "$"
         )
@@ -129,6 +132,7 @@ fun NumberPadTextField(
         value = value,
         unit = primaryDisplay,
         placeholder = placeholder,
+        showSecondaryField = showSecondaryField,
         showPlaceholder = true,
         satoshis = satoshis.toLongOrNull() ?: 0,
         currencySymbol = currency.getCurrencySymbol()
@@ -142,7 +146,7 @@ fun AmountInputHandler(
     displayUnit: BitcoinDisplayUnit,
     onInputChanged: (String) -> Unit,
     onAmountCalculated: (String) -> Unit,
-    currencyVM: CurrencyViewModel,
+    currencyVM: CurrencyViewModel = hiltViewModel(),
     overrideSats: Long? = null,
 ) {
     var lastDisplay by rememberSaveable { mutableStateOf(primaryDisplay) }
@@ -219,14 +223,17 @@ fun MoneyAmount(
     showPlaceholder: Boolean,
     satoshis: Long,
     currencySymbol: String,
+    showSecondaryField: Boolean = true,
 ) {
     Column(
         modifier = modifier.semantics { contentDescription = value },
         horizontalAlignment = Alignment.Start
     ) {
-        MoneySSB(sats = satoshis, unit = unit.not(), color = Colors.White64)
+        if (showSecondaryField) {
+            MoneySSB(sats = satoshis, unit = unit.not(), color = Colors.White64)
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
