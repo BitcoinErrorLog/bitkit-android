@@ -20,7 +20,6 @@ enum class Suggestion(
         icon = R.drawable.b_emboss,
     ),
     LIGHTNING(
-        // Lightning ready from RN
         title = R.string.cards__lightning__title,
         description = R.string.cards__lightning__description,
         color = Colors.Purple24,
@@ -69,7 +68,7 @@ enum class Suggestion(
         icon = R.drawable.fast_forward
     ),
 
-    /**Replaces SPEND when a LN channel is being force closed*/
+    /**Replaces LIGHTNING when a LN channel is being force closed*/
     TRANSFER_PENDING(
         title = R.string.cards__lightningSettingUp__title,
         description = R.string.cards__transferPending__description,

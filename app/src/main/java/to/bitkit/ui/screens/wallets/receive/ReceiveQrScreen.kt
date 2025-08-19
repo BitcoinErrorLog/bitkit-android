@@ -61,7 +61,7 @@ import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.theme.AppShapes
@@ -123,7 +123,7 @@ fun ReceiveQrScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin))
@@ -537,7 +537,7 @@ private fun PreviewSlide2() {
     AppThemeSurface {
         Column(
             modifier = Modifier
-                .gradientLinearBackground()
+                .gradientBackground()
                 .padding(16.dp)
         ) {
             CopyValuesSlide(

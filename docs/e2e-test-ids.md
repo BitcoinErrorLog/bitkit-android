@@ -3,7 +3,7 @@
 Legend: 
 - ✅ = present in Android
 - ❌ = missing in Android
-- 🚫 = Descoped in Anroid
+- 🚫 = Descoped in Android
 
 ### backup.e2e.js
 | RN testID | Android Status |
@@ -562,7 +562,7 @@ Legend:
 
 ### transfer.e2e.js
 | RN testID | Android Status |
-| - | - |
+| - |  |
 | ActivitySavings | ✅ |
 | ActivityShort-1 | ✅ |
 | ActivitySpending | ✅ |
@@ -639,7 +639,7 @@ Legend:
 | StatusBoosting | ✅ |
 | StatusTransfer | ✅ |
 | Suggestion-lightning | ✅ |
-| Suggestion-lightningSettingUp | ❌ |
+| Suggestion-lightningSettingUp | Suggestion-lightning_setting_up |
 | TotalBalance | ✅ |
 | TotalSize | ✅ |
 | TransferIntro-button | ✅ |

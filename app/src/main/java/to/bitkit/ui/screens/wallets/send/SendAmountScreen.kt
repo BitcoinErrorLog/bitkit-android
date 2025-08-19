@@ -55,7 +55,7 @@ import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.CurrencyUiState
@@ -133,7 +133,7 @@ fun SendAmountContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
             .testTag("send_amount_screen")
     ) {

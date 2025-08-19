@@ -40,7 +40,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.localizedRandom
 import to.bitkit.viewmodels.AppViewModel
@@ -85,7 +85,7 @@ fun NewTransactionSheetView(
     Box(
         modifier = Modifier
             .sheetHeight(isModal = true)
-            .gradientLinearBackground()
+            .gradientBackground()
             .testTag("new_transaction_sheet")
     ) {
         if (details.direction == NewTransactionSheetDirection.RECEIVED) {

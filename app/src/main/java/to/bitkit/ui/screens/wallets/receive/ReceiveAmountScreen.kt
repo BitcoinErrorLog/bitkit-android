@@ -42,7 +42,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientLinearBackground
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.walletViewModel
 import to.bitkit.utils.Logger
@@ -71,7 +71,7 @@ fun ReceiveAmountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .gradientLinearBackground()
+            .gradientBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin), onBack = onBack)
