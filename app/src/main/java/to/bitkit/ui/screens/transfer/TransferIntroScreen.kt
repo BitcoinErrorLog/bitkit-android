@@ -28,7 +28,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-// TODO: show on first LN suggestion card click
 @Composable
 fun TransferIntroScreen(
     onContinueClick: () -> Unit = {},
