@@ -270,3 +270,17 @@ private fun OnboardingViewPreview3() {
         )
     }
 }
+
+@Preview(showSystemUi = true)
+@Composable
+private fun OnboardingViewPreview4() {
+    AppThemeSurface {
+        OnboardingSlidesScreen(
+            currentTab = 4,
+            onAdvancedSetupClick = {},
+            onCreateClick = {},
+            onRestoreClick = {},
+            isGeoBlocked = false
+        )
+    }
+}
