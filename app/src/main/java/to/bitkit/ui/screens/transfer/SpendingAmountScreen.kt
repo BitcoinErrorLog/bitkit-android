@@ -13,23 +13,29 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import okhttp3.internal.toLongOrDefault
 import to.bitkit.R
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.ui.LocalCurrencies
-import to.bitkit.ui.components.AmountInput
+import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.Keyboard
 import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.NumberPadActionButton
+import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.UnitButton
@@ -71,6 +77,19 @@ fun SpendingAmountScreen(
         }
     }
 
+    var input: String by remember { mutableStateOf(uiState.input) }
+
+    AmountInputHandler(
+        input = input,
+        overrideSats = uiState.overrideSats,
+        primaryDisplay = currencies.primaryDisplay,
+        displayUnit = currencies.displayUnit,
+        onInputChanged = { newInput -> input = newInput },
+        onAmountCalculated = { sats ->
+            viewModel.onAmountChanged(sats.toLongOrDefault(0))
+        },
+    )
+
     Content(
         uiState = uiState,
         currencies = currencies,
@@ -79,8 +98,7 @@ fun SpendingAmountScreen(
         onClickQuarter = viewModel::onClickQuarter,
         onClickMaxAmount = viewModel::onClickMaxAmount,
         onConfirmAmount = viewModel::onConfirmAmount,
-        onAmountChanged = viewModel::onAmountChanged,
-        onInputChanged = { input -> } //TODO IMPLEMENT
+        onInputChanged = { newInput -> input = newInput },
     )
 }
 
@@ -93,7 +111,6 @@ private fun Content(
     onClickQuarter: () -> Unit,
     onClickMaxAmount: () -> Unit,
     onConfirmAmount: () -> Unit,
-    onAmountChanged: (Long) -> Unit,
     onInputChanged: (String) -> Unit,
 ) {
     ScreenColumn {
@@ -114,12 +131,16 @@ private fun Content(
                 text = stringResource(R.string.lightning__spending_amount__title)
                     .withAccent(accentColor = Colors.Purple)
             )
-            VerticalSpacer(32.dp)
+            VerticalSpacer(8.dp)
 
-            AmountInput(
+            NumberPadTextField(
+                input = uiState.input,
+                displayUnit = currencies.displayUnit,
+                showSecondaryField = false,
                 primaryDisplay = currencies.primaryDisplay,
-                overrideSats = uiState.overrideSats,
-                onSatsChange = onAmountChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // .testTag("SendNumberField")
             )
 
             FillHeight()
@@ -192,14 +213,29 @@ private fun Content(
 private fun Preview() {
     AppThemeSurface {
         Content(
-            uiState = TransferToSpendingUiState(),
+            uiState = TransferToSpendingUiState(input = "5 000"),
             currencies = CurrencyUiState(),
             onBackClick = {},
             onCloseClick = {},
             onClickQuarter = {},
             onClickMaxAmount = {},
             onConfirmAmount = {},
-            onAmountChanged = {},
+            onInputChanged = {},
+        )
+    }
+}
+@Preview(showBackground = true, device = NEXUS_5)
+@Composable
+private fun Preview2() {
+    AppThemeSurface {
+        Content(
+            uiState = TransferToSpendingUiState(input = "5 000"),
+            currencies = CurrencyUiState(),
+            onBackClick = {},
+            onCloseClick = {},
+            onClickQuarter = {},
+            onClickMaxAmount = {},
+            onConfirmAmount = {},
             onInputChanged = {},
         )
     }
