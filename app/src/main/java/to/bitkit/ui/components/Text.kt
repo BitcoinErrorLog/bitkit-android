@@ -127,6 +127,7 @@ fun BodyM(
     color: Color = MaterialTheme.colorScheme.primary,
     textAlign: TextAlign = TextAlign.Start,
     maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
     overflow: TextOverflow = if (maxLines == 1) TextOverflow.Ellipsis else TextOverflow.Clip,
 ) {
     BodyM(
@@ -135,6 +136,7 @@ fun BodyM(
         modifier = modifier,
         textAlign = textAlign,
         maxLines = maxLines,
+        minLines = minLines,
         overflow = overflow,
     )
 }
@@ -146,6 +148,7 @@ fun BodyM(
     color: Color = MaterialTheme.colorScheme.primary,
     textAlign: TextAlign = TextAlign.Start,
     maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
     overflow: TextOverflow = if (maxLines == 1) TextOverflow.Ellipsis else TextOverflow.Clip,
 ) {
     Text(
@@ -155,6 +158,7 @@ fun BodyM(
             textAlign = textAlign,
         ),
         maxLines = maxLines,
+        minLines = minLines,
         overflow = overflow,
         modifier = modifier,
     )

@@ -44,6 +44,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.Footnote
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -212,7 +213,6 @@ fun OnboardingTab(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(264.dp)
                 .align(Alignment.BottomCenter),
         ) {
             Display(text = title.withAccent(accentColor = titleAccentColor))
@@ -220,11 +220,12 @@ fun OnboardingTab(
             BodyM(
                 text = text,
                 color = Colors.White64,
+                minLines = 3
             )
             disclaimerText?.let {
-                Spacer(modifier = Modifier.height(6.5.dp))
                 Footnote(text = it)
             }
+            VerticalSpacer(70.dp)
         }
     }
 }
@@ -263,6 +264,20 @@ private fun OnboardingViewPreview3() {
     AppThemeSurface {
         OnboardingSlidesScreen(
             currentTab = 1,
+            onAdvancedSetupClick = {},
+            onCreateClick = {},
+            onRestoreClick = {},
+            isGeoBlocked = false
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun OnboardingViewPreview4() {
+    AppThemeSurface {
+        OnboardingSlidesScreen(
+            currentTab = 4,
             onAdvancedSetupClick = {},
             onCreateClick = {},
             onRestoreClick = {},

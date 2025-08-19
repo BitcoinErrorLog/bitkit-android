@@ -19,13 +19,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -52,11 +55,11 @@ fun CreateWalletScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(264.dp)
                 .align(Alignment.BottomCenter),
         ) {
+            FillHeight()
             Display(text = stringResource(R.string.onboarding__slide4_header).withAccent())
-            Spacer(modifier = Modifier.height(8.dp))
+            VerticalSpacer(8.dp)
             BodyM(
                 text = stringResource(R.string.onboarding__slide4_text).withAccent(
                     defaultColor = Colors.White64,
@@ -64,7 +67,8 @@ fun CreateWalletScreen(
                 ),
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            VerticalSpacer(32.dp)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -92,6 +96,17 @@ fun CreateWalletScreen(
 @Preview(showSystemUi = true)
 @Composable
 private fun CreateWalletScreenPreview() {
+    AppThemeSurface {
+        CreateWalletScreen(
+            onCreateClick = {},
+            onRestoreClick = {}
+        )
+    }
+}
+
+@Preview(showSystemUi = true, device = NEXUS_5)
+@Composable
+private fun CreateWalletScreenPreview2() {
     AppThemeSurface {
         CreateWalletScreen(
             onCreateClick = {},
