@@ -8,10 +8,13 @@ import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.CacheStore
+import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
+import to.bitkit.data.dto.TransferType
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.rawId
@@ -31,6 +34,8 @@ class ActivityRepo @Inject constructor(
 
     var isSyncingLdkNodePayments = false
 
+    val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
+
     suspend fun syncActivities(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("syncActivities called", context = TAG)
 
@@ -49,6 +54,7 @@ class ActivityRepo @Inject constructor(
                     syncLdkNodePayments(payments = payments)
                     updateActivitiesMetadata()
                     boostPendingActivities()
+                    updateInProgressTransfers()
                     isSyncingLdkNodePayments = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -278,25 +284,50 @@ class ActivityRepo @Inject constructor(
 
                 when (activityToUpdate) {
                     is Activity.Onchain -> {
+                        val onChainActivity = activityToUpdate.v1.copy(
+                            feeRate = activityMetaData.feeRate.toULong(),
+                            address = activityMetaData.address,
+                            isTransfer = activityMetaData.isTransfer,
+                            channelId = activityMetaData.channelId,
+                            transferTxId = activityMetaData.transferTxId
+                        )
                         val updatedActivity = Onchain(
-                            v1 = activityToUpdate.v1.copy(
-                                feeRate = activityMetaData.feeRate.toULong(),
-                                address = activityMetaData.address,
-                                isTransfer = activityMetaData.isTransfer,
-                                channelId = activityMetaData.channelId,
-                                transferTxId = activityMetaData.transferTxId
-                            )
+                            v1 = onChainActivity
                         )
 
                         updateActivity(
                             id = updatedActivity.v1.id,
                             activity = updatedActivity
                         ).onSuccess {
+                            if (onChainActivity.isTransfer && onChainActivity.doesExist) {
+                                cacheStore.addInProgressTransfer(
+                                    InProgressTransfer(
+                                        activityId = updatedActivity.v1.id,
+                                        type = if (onChainActivity.txType == PaymentType.SENT) {
+                                            TransferType.TO_SPENDING
+                                        } else {
+                                            TransferType.TO_SAVINGS
+                                        }
+                                    )
+                                )
+                            }
                             cacheStore.removeTransactionMetadata(activityMetaData)
                         }
                     }
 
                     is Activity.Lightning -> Unit
+                }
+            }
+        }
+    }
+
+    private suspend fun updateInProgressTransfers() {
+        cacheStore.data.first().inProgressTransfers.forEach { transfer ->
+            getActivity(transfer.activityId).onSuccess { activity ->
+                (activity as? Onchain)?.let { onChain ->
+                    if (onChain.v1.confirmed) {
+                        cacheStore.removeInProgressTransfer(transfer)
+                    }
                 }
             }
         }

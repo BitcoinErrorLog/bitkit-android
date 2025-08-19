@@ -50,7 +50,7 @@ import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -127,7 +127,7 @@ fun BoostTransactionContent(
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .sheetHeight(SheetSize.SMALL)
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
             .testTag(BoostTransactionTestTags.BOOST_TRANSACTION_CONTENT)

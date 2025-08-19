@@ -22,7 +22,7 @@ import to.bitkit.ui.components.LightningChannel
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.round
@@ -45,7 +45,7 @@ fun ReceiveLiquidityScreen(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
     ) {
         SheetTopBar(

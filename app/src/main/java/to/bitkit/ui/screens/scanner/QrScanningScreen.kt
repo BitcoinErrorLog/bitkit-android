@@ -75,7 +75,7 @@ import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.AppViewModel
@@ -213,7 +213,7 @@ fun QrScanningScreen(
         grantedContent = {
             Column(
                 modifier = Modifier
-                    .then(if (inSheet) Modifier.gradientBackground() else Modifier)
+                    .then(if (inSheet) Modifier.gradientLinearBackground() else Modifier)
                     .then(if (inSheet) Modifier.navigationBarsPadding() else Modifier.systemBarsPadding())
             ) {
                 if (inSheet) {

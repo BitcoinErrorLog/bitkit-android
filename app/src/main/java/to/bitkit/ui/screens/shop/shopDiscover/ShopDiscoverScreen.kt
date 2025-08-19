@@ -49,11 +49,13 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.clickableAlpha
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
 import to.bitkit.ui.utils.configureForBasicWebContent
+
+private const val SHOP_CARD_SIZE = 164
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +71,7 @@ fun ShopDiscoverScreen(
     )
 
     ScreenColumn(
-        modifier = Modifier.gradientBackground(),
+        modifier = Modifier.gradientLinearBackground(),
     ) {
         AppTopBar(
             titleText = stringResource(R.string.other__shop__discover__nav_title),
@@ -122,12 +124,13 @@ private fun ShopTabContent(
                 val title = stringResource(R.string.other__shop__discover__gift_cards__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Green,
+                    gradientColor = Colors.Green24,
                     title = title,
                     description = stringResource(R.string.other__shop__discover__gift_cards__description),
                     icon = R.drawable.gift,
                     captionColor = Colors.Gray1,
-                    size = 164,
+                    size = SHOP_CARD_SIZE,
+                    disableGlow = true,
                     onClick = {
                         navigateWebView("gift-cards", title)
                     },
@@ -135,12 +138,13 @@ private fun ShopTabContent(
                 val title2 = stringResource(R.string.other__shop__discover__esims__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Yellow,
+                    gradientColor = Colors.Yellow24,
                     title = title2,
                     description = stringResource(R.string.other__shop__discover__esims__description),
                     icon = R.drawable.globe,
                     captionColor = Colors.Gray1,
-                    size = 164,
+                    size = SHOP_CARD_SIZE,
+                    disableGlow = true,
                     onClick = {
                         navigateWebView("esims", title2)
                     },
@@ -155,12 +159,13 @@ private fun ShopTabContent(
                 val title = stringResource(R.string.other__shop__discover__refill__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Purple,
+                    gradientColor = Colors.Purple24,
                     title = title,
                     description = stringResource(R.string.other__shop__discover__refill__description),
                     icon = R.drawable.phone,
                     captionColor = Colors.Gray1,
-                    size = 164,
+                    size = SHOP_CARD_SIZE,
+                    disableGlow = true,
                     onClick = {
                         navigateWebView("refill", title)
                     },
@@ -168,11 +173,12 @@ private fun ShopTabContent(
                 val title2 = stringResource(R.string.other__shop__discover__travel__title)
                 SuggestionCard(
                     modifier = Modifier.weight(1f),
-                    gradientColor = Colors.Red,
+                    gradientColor = Colors.Red24,
                     title = title2,
                     description = stringResource(R.string.other__shop__discover__travel__description),
                     icon = R.drawable.rocket_2,
-                    size = 164,
+                    size = SHOP_CARD_SIZE,
+                    disableGlow = true,
                     captionColor = Colors.Gray1,
                     onClick = {
                         navigateWebView("buy/travel", title2)

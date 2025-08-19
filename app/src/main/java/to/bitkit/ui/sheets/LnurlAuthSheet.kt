@@ -25,7 +25,7 @@ import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.AppViewModel
@@ -58,7 +58,7 @@ private fun Content(
     Column(
         modifier = modifier
             .sheetHeight(SheetSize.MEDIUM)
-            .gradientBackground()
+            .gradientLinearBackground()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {

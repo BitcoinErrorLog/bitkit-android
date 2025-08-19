@@ -23,7 +23,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.gradientLinearBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -53,7 +53,7 @@ private fun Content(
         modifier = modifier
             .fillMaxWidth()
             .sheetHeight(isModal = true)
-            .gradientBackground()
+            .gradientLinearBackground()
             .padding(horizontal = 16.dp)
     ) {
         SheetTopBar(stringResource(R.string.security__pin_forgot_title))

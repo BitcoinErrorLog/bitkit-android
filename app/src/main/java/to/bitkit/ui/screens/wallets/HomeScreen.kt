@@ -223,6 +223,11 @@ fun HomeScreen(
                         rootNavController.navigate(Routes.QuickPaySettings)
                     }
                 }
+
+                Suggestion.TRANSFER_PENDING -> Unit
+                Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
+                Suggestion.LIGHTNING_SETTING_UP -> Unit // TODO Navigate to transfer
+                Suggestion.LIGHTNING_READY -> Unit
             }
         },
         onClickAddWidget = {
@@ -372,7 +377,9 @@ private fun Content(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 state = state,
                                 flingBehavior = snapBehavior,
-                                modifier = Modifier.fillMaxWidth().testTag("Suggestions")
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("Suggestions")
                             ) {
                                 items(homeUiState.suggestions, key = { it.name }) { item ->
                                     SuggestionCard(
@@ -380,7 +387,7 @@ private fun Content(
                                         title = stringResource(item.title),
                                         description = stringResource(item.description),
                                         icon = item.icon,
-                                        onClose = { onRemoveSuggestion(item) },
+                                        onClose = { onRemoveSuggestion(item) }.takeIf { item.dismissible },
                                         onClick = { onClickSuggestion(item) },
                                         modifier = Modifier.testTag("Suggestion-${item.name.lowercase()}")
                                     )

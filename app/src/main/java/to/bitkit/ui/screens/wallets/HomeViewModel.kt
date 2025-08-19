@@ -14,12 +14,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.TransferType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
 import to.bitkit.models.widget.ArticleModel
 import to.bitkit.models.widget.toArticleModel
 import to.bitkit.models.widget.toBlockModel
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
@@ -33,7 +35,8 @@ class HomeViewModel @Inject constructor(
     private val walletRepo: WalletRepo,
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
-    private val currencyRepo: CurrencyRepo
+    private val currencyRepo: CurrencyRepo,
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -255,11 +258,20 @@ class HomeViewModel @Inject constructor(
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,
-    ) { balanceState, settings ->
+        activityRepo.inProgressTransfers
+    ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
+                    // The previous list has LIGHTNING_SETTING_UP and the current don't
+                    Suggestion.LIGHTNING_READY.takeIf {
+                        Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
+                            transfers.all { it.type != TransferType.TO_SPENDING }
+                    },
+                    Suggestion.LIGHTNING_SETTING_UP.takeIf { transfers.any { it.type == TransferType.TO_SPENDING } },
+                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
+                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -273,7 +285,11 @@ class HomeViewModel @Inject constructor(
             balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.LIGHTNING,
+                    Suggestion.LIGHTNING.takeIf {
+                        transfers.all { it.type != TransferType.TO_SPENDING }
+                    } ?: Suggestion.LIGHTNING_SETTING_UP,
+                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
+                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -286,7 +302,9 @@ class HomeViewModel @Inject constructor(
             else -> { // Empty wallet
                 listOfNotNull(
                     Suggestion.BUY,
-                    Suggestion.LIGHTNING,
+                    Suggestion.LIGHTNING.takeIf {
+                        transfers.all { it.type != TransferType.TO_SPENDING }
+                    } ?: Suggestion.LIGHTNING_SETTING_UP,
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.SUPPORT,

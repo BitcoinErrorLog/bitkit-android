@@ -10,61 +10,97 @@ enum class Suggestion(
     @StringRes val title: Int,
     @StringRes val description: Int,
     @DrawableRes val icon: Int,
-    val color: Color
+    val color: Color,
+    val dismissible: Boolean = true,
 ) {
     BUY(
         title = R.string.cards__buyBitcoin__title,
         description = R.string.cards__buyBitcoin__description,
-        color = Colors.Brand,
-        icon = R.drawable.b_emboss
+        color = Colors.Brand24,
+        icon = R.drawable.b_emboss,
     ),
     LIGHTNING(
+        // Lightning ready from RN
         title = R.string.cards__lightning__title,
         description = R.string.cards__lightning__description,
-        color = Colors.Purple,
-        icon = R.drawable.lightning
+        color = Colors.Purple24,
+        icon = R.drawable.lightning,
     ),
     BACK_UP(
         title = R.string.cards__backupSeedPhrase__title,
         description = R.string.cards__backupSeedPhrase__description,
-        color = Colors.Blue,
-        icon = R.drawable.safe
+        color = Colors.Blue24,
+        icon = R.drawable.safe,
     ),
     SECURE(
         title = R.string.cards__pin__title,
         description = R.string.cards__pin__description,
-        color = Colors.Green,
+        color = Colors.Green24,
         icon = R.drawable.shield
     ),
     SUPPORT(
         title = R.string.cards__support__title,
         description = R.string.cards__support__description,
-        color = Colors.Yellow,
+        color = Colors.Yellow24,
         icon = R.drawable.lightbulb
     ),
     INVITE(
         title = R.string.cards__invite__title,
         description = R.string.cards__invite__description,
-        color = Colors.Blue,
+        color = Colors.Blue24,
         icon = R.drawable.group
     ),
     PROFILE(
         title = R.string.cards__slashtagsProfile__title,
         description = R.string.cards__slashtagsProfile__description,
-        color = Colors.Brand,
+        color = Colors.Brand24,
         icon = R.drawable.crown
     ),
     SHOP(
         title = R.string.cards__shop__title,
         description = R.string.cards__shop__description,
-        color = Colors.Yellow,
+        color = Colors.Yellow24,
         icon = R.drawable.shopping_bag
     ),
     QUICK_PAY(
         title = R.string.cards__quickpay__title,
         description = R.string.cards__quickpay__description,
-        color = Colors.Green,
+        color = Colors.Green24,
         icon = R.drawable.fast_forward
+    ),
+
+    /**Replaces SPEND when a LN channel is being force closed*/
+    TRANSFER_PENDING(
+        title = R.string.cards__lightningSettingUp__title,
+        description = R.string.cards__transferPending__description,
+        color = Colors.Purple24,
+        icon = R.drawable.transfer,
+        dismissible = false
+    ),
+
+    /**When the LN channel could not be cooped closed immediately*/
+    TRANSFER_CLOSING_CHANNEL(
+        title = R.string.cards__transferClosingChannel__title,
+        description = R.string.cards__transferClosingChannel__description,
+        color = Colors.Red24,
+        icon = R.drawable.transfer,
+        dismissible = false
+    ),
+
+    /**Replaces LIGHTNING when the transfer to spending balance is in progress*/
+    LIGHTNING_SETTING_UP(
+        title = R.string.cards__lightningSettingUp__title,
+        description = R.string.cards__lightningSettingUp__description,
+        color = Colors.Purple24,
+        icon = R.drawable.transfer,
+        dismissible = false
+    ),
+    LIGHTNING_READY(
+        title = R.string.cards__lightningReady__title,
+        description = R.string.cards__lightningReady__description,
+        color = Colors.Purple24,
+        icon = R.drawable.transfer,
+        dismissible = false,
     ),
 }
 
