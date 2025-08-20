@@ -41,6 +41,7 @@ internal object Env {
         get() = when (network) {
             Network.BITCOIN -> TODO("VSS not implemented for mainnet")
             // Network.REGTEST -> "http://localhost:5050/vss"
+            // Network.REGTEST -> "https://bitkit.stag0.blocktank.to/vss_rs_auth"
             else -> "https://bitkit.stag0.blocktank.to/vss_rs/"
         }
 
