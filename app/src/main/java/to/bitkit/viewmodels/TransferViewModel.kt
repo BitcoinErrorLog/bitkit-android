@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
@@ -78,7 +77,6 @@ class TransferViewModel @Inject constructor(
 
     val transferEffects = MutableSharedFlow<TransferEffect>()
     fun setTransferEffect(effect: TransferEffect) = viewModelScope.launch { transferEffects.emit(effect) }
-    var retryTimes = 0
     var maxLspFee = 0uL
 
     // region Spending
@@ -90,7 +88,7 @@ class TransferViewModel @Inject constructor(
                 overrideSats = it.maxAllowedToSend,
             )
         }
-        updateLimits(false)
+        updateLimits()
     }
 
     fun onClickQuarter() {
@@ -113,7 +111,7 @@ class TransferViewModel @Inject constructor(
                 overrideSats = min(quarter, it.maxAllowedToSend),
             )
         }
-        updateLimits(false)
+        updateLimits()
     }
 
     fun onConfirmAmount() {
@@ -183,13 +181,12 @@ class TransferViewModel @Inject constructor(
 
         _spendingUiState.update { it.copy(satsAmount = sats, overrideSats = null) }
 
-        retryTimes = 0
-        updateLimits(retry = false)
+        updateLimits()
     }
 
-    fun updateLimits(retry: Boolean) {
+    fun updateLimits() {
         updateTransferValues(_spendingUiState.value.satsAmount.toULong())
-        updateAvailableAmount(retry = retry)
+        updateAvailableAmount()
     }
 
     fun onAdvancedOrderCreated(order: IBtOrder) {
@@ -271,7 +268,7 @@ class TransferViewModel @Inject constructor(
         setTransferEffect(TransferEffect.OnOrderCreated)
     }
 
-    private fun updateAvailableAmount(retry: Boolean) {
+    private fun updateAvailableAmount() {
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
 
@@ -287,7 +284,6 @@ class TransferViewModel @Inject constructor(
                 spendingBalanceSats = availableAmount,
                 receivingBalanceSats = _transferValues.value.maxLspBalance
             ).onSuccess { estimate ->
-                retryTimes = 0
                 maxLspFee = estimate.feeSat
 
                 // Calculate the available balance to send after LSP fee
@@ -305,17 +301,9 @@ class TransferViewModel @Inject constructor(
                     )
                 }
             }.onFailure { exception ->
-                if (exception is ServiceError.NodeNotStarted && retry) {
-                    // Retry after delay
-                    Logger.warn("Error getting the available amount. Node not started. trying again in 2 seconds")
-                    delay(2.seconds)
-                    updateAvailableAmount(retry = retryTimes <= RETRY_LIMIT)
-                    retryTimes++
-                } else {
-                    _spendingUiState.update { it.copy(isLoading = false) }
-                    Logger.error("Failure", exception)
-                    setTransferEffect(TransferEffect.ToastException(exception))
-                }
+                _spendingUiState.update { it.copy(isLoading = false) }
+                Logger.error("Failure", exception)
+                setTransferEffect(TransferEffect.ToastException(exception))
             }
         }
     }

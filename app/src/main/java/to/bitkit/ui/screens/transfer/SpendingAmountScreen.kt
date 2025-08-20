@@ -63,7 +63,7 @@ fun SpendingAmountScreen(
     val isNodeRunning by viewModel.isNodeRunning.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.updateLimits(retry = true)
+        viewModel.updateLimits()
     }
 
     LaunchedEffect(Unit) {
