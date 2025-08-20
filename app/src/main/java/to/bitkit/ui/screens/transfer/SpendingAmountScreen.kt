@@ -184,7 +184,6 @@ private fun Content(
                     onInputChanged(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
                 },
                 isDecimal = currencies.primaryDisplay == PrimaryDisplay.FIAT,
-                // availableHeight = maxHeight,
                 modifier = Modifier
                     .fillMaxWidth()
             )
