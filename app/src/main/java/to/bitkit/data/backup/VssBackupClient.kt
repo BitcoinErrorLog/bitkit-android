@@ -3,14 +3,17 @@ package to.bitkit.data.backup
 import com.synonym.vssclient.VssItem
 import com.synonym.vssclient.vssGet
 import com.synonym.vssclient.vssNewClient
+import com.synonym.vssclient.vssNewClientWithLnurlAuth
 import com.synonym.vssclient.vssStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.utils.Logger
+import to.bitkit.utils.ServiceError
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
@@ -19,6 +22,7 @@ import kotlin.time.Duration.Companion.seconds
 class VssBackupClient @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val vssStoreIdProvider: VssStoreIdProvider,
+    private val keychain: Keychain,
 ) {
     private val isSetup = CompletableDeferred<Unit>()
 
@@ -26,10 +30,24 @@ class VssBackupClient @Inject constructor(
         try {
             withTimeout(30.seconds) {
                 Logger.verbose("VSS client setting up…", context = TAG)
-                vssNewClient(
-                    baseUrl = Env.vssServerUrl,
-                    storeId = vssStoreIdProvider.getVssStoreId(),
-                )
+                if (Env.lnurlAuthSeverUrl.isNotEmpty()) {
+                    val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)
+                        ?: throw ServiceError.MnemonicNotFound
+                    val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
+
+                    vssNewClientWithLnurlAuth(
+                        baseUrl = Env.vssServerUrl,
+                        storeId = vssStoreIdProvider.getVssStoreId(),
+                        mnemonic = mnemonic,
+                        passphrase = passphrase,
+                        lnurlAuthServerUrl = Env.lnurlAuthSeverUrl,
+                    )
+                } else {
+                    vssNewClient(
+                        baseUrl = Env.vssServerUrl,
+                        storeId = vssStoreIdProvider.getVssStoreId(),
+                    )
+                }
                 isSetup.complete(Unit)
                 Logger.info("VSS client setup ok", context = TAG)
             }
