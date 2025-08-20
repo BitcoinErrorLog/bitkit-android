@@ -627,10 +627,14 @@ Legend:
 | SpendingAdvancedMax | ✅ |
 | SpendingAdvancedMin | ✅ |
 | SpendingAdvancedNumberField | ✅ |
-| SpendingAmount |  |
+| SpendingAmount | ✅ |
+| SpendingAmountAvailable | ✅ |
 | SpendingAmountContinue | ✅ |
 | SpendingAmountMax | ✅ |
+| SpendingAmountNumberField | ✅ |
+| SendAmountNumberPad | ✅ |
 | SpendingAmountQuarter | ✅ |
+| SpendingAmountUnit | ✅ |
 | SpendingConfirmAdvanced | ✅ |
 | SpendingConfirmChannel | ✅ |
 | SpendingConfirmDefault | ✅ |
