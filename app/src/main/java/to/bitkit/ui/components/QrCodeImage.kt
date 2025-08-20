@@ -79,7 +79,7 @@ fun QrCodeImage(
             val imageComposable = @Composable {
                 Image(
                     painter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) },
-                    contentDescription = null,
+                    contentDescription = content,
                     contentScale = ContentScale.Inside,
                     modifier = Modifier
                         .clickable(enabled = tipMessage.isNotBlank()) {
