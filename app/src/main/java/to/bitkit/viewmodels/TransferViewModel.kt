@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
@@ -42,6 +44,7 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
@@ -141,7 +144,11 @@ class TransferViewModel @Inject constructor(
                 _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
                 return@launch
             }
-            // TODO Collect isNodeRunning here
+
+            withTimeoutOrNull(1.minutes) {
+                isNodeRunning.first { it }
+            }
+
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
                     settingsStore.update { it.copy(lightningSetupStep = 0) }
@@ -270,6 +277,10 @@ class TransferViewModel @Inject constructor(
 
             // Get the max available balance discounting onChain fee
             val availableAmount = walletRepo.getMaxSendAmount()
+
+            withTimeoutOrNull(1.minutes) {
+                isNodeRunning.first { it }
+            }
 
             // Calculate the LSP fee to the total balance
             blocktankRepo.estimateOrderFee(
