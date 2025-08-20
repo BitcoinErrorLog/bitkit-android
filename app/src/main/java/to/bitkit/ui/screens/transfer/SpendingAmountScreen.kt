@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -154,11 +155,14 @@ private fun SpendingAmountNodeRunning(
             .imePadding()
             .testTag("SpendingAmount")
     ) {
-        VerticalSpacer(16.dp)
+        VerticalSpacer(minHeight = 16.dp, maxHeight = 32.dp)
+
         Display(
             text = stringResource(R.string.lightning__spending_amount__title)
                 .withAccent(accentColor = Colors.Purple)
         )
+
+        FillHeight()
 
         NumberPadTextField(
             input = uiState.input,
