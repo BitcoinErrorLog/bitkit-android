@@ -126,7 +126,6 @@ private fun Content(
                 text = stringResource(R.string.lightning__spending_amount__title)
                     .withAccent(accentColor = Colors.Purple)
             )
-            VerticalSpacer(4.dp)
 
             NumberPadTextField(
                 input = uiState.input,
