@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -62,6 +63,9 @@ class TransferViewModel @Inject constructor(
 
     val lightningSetupStep: StateFlow<Int> = settingsStore.data.map { it.lightningSetupStep }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
+    val isNodeRunning = lightningRepo.lightningState.map { it.nodeStatus?.isRunning ?: false }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val _selectedChannelIdsState = MutableStateFlow<Set<String>>(emptySet())
     val selectedChannelIdsState = _selectedChannelIdsState.asStateFlow()
@@ -137,7 +141,7 @@ class TransferViewModel @Inject constructor(
                 _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
                 return@launch
             }
-
+            // TODO Collect isNodeRunning here
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
                 .onSuccess { order ->
                     settingsStore.update { it.copy(lightningSetupStep = 0) }

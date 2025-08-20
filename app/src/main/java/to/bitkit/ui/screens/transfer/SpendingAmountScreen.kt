@@ -34,6 +34,7 @@ import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.NumberPadActionButton
 import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.components.VerticalSpacer
@@ -59,6 +60,7 @@ fun SpendingAmountScreen(
 ) {
     val currencies = LocalCurrencies.current
     val uiState by viewModel.spendingUiState.collectAsStateWithLifecycle()
+    val isNodeRunning by viewModel.isNodeRunning.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.updateLimits(retry = true)
@@ -86,6 +88,7 @@ fun SpendingAmountScreen(
     )
 
     Content(
+        isNodeRunning = isNodeRunning,
         uiState = uiState,
         currencies = currencies,
         onBackClick = onBackClick,
@@ -99,6 +102,7 @@ fun SpendingAmountScreen(
 
 @Composable
 private fun Content(
+    isNodeRunning: Boolean,
     uiState: TransferToSpendingUiState,
     currencies: CurrencyUiState,
     onBackClick: () -> Unit,
@@ -114,92 +118,120 @@ private fun Content(
             onBackClick = onBackClick,
             actions = { CloseNavIcon(onCloseClick) },
         )
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxSize()
-                .imePadding()
-                .testTag("SpendingAmount")
-        ) {
-            VerticalSpacer(16.dp)
-            Display(
-                text = stringResource(R.string.lightning__spending_amount__title)
-                    .withAccent(accentColor = Colors.Purple)
-            )
 
-            NumberPadTextField(
-                input = uiState.input,
-                displayUnit = currencies.displayUnit,
-                showSecondaryField = false,
-                primaryDisplay = currencies.primaryDisplay,
+        if (isNodeRunning) {
+            SpendingAmountNodeRunning(
+                uiState = uiState,
+                currencies = currencies,
+                onClickQuarter = onClickQuarter,
+                onClickMaxAmount = onClickMaxAmount,
+                onConfirmAmount = onConfirmAmount,
+                onInputChange = onInputChange,
+            )
+        } else {
+            SyncNodeView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("SpendingAmountNumberField")
+                    .weight(1f)
             )
-
-            FillHeight()
-
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .testTag("SendAmountNumberPad")
-            ) {
-                Column {
-                    Text13Up(
-                        text = stringResource(R.string.wallet__send_available),
-                        color = Colors.White64,
-                        modifier = Modifier.testTag("SpendingAmountAvailable")
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    MoneySSB(sats = uiState.balanceAfterFee, modifier = Modifier.testTag("SpendingAmountUnit"))
-                }
-                FillWidth()
-                UnitButton(color = Colors.Purple)
-                // 25% Button
-                NumberPadActionButton(
-                    text = stringResource(R.string.lightning__spending_amount__quarter),
-                    color = Colors.Purple,
-                    onClick = onClickQuarter,
-                    modifier = Modifier.testTag("SpendingAmountQuarter")
-                )
-                // Max Button
-                NumberPadActionButton(
-                    text = stringResource(R.string.common__max),
-                    color = Colors.Purple,
-                    onClick = onClickMaxAmount,
-                    modifier = Modifier.testTag("SpendingAmountMax")
-                )
-            }
-            HorizontalDivider()
-
-            VerticalSpacer(16.dp)
-
-            Keyboard(
-                onClick = { number ->
-                    onInputChange(if (uiState.input == "0") number else uiState.input + number)
-                },
-                onClickBackspace = {
-                    onInputChange(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
-                },
-                isDecimal = currencies.primaryDisplay == PrimaryDisplay.FIAT,
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-
-            VerticalSpacer(8.dp)
-
-            PrimaryButton(
-                text = stringResource(R.string.common__continue),
-                onClick = onConfirmAmount,
-                enabled = uiState.satsAmount != 0L && uiState.satsAmount <= uiState.maxAllowedToSend,
-                isLoading = uiState.isLoading,
-                modifier = Modifier.testTag("SpendingAmountContinue")
-            )
-
-            VerticalSpacer(16.dp)
         }
+    }
+}
+
+@Composable
+private fun SpendingAmountNodeRunning(
+    uiState: TransferToSpendingUiState,
+    currencies: CurrencyUiState,
+    onClickQuarter: () -> Unit,
+    onClickMaxAmount: () -> Unit,
+    onConfirmAmount: () -> Unit,
+    onInputChange: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxSize()
+            .imePadding()
+            .testTag("SpendingAmount")
+    ) {
+        VerticalSpacer(16.dp)
+        Display(
+            text = stringResource(R.string.lightning__spending_amount__title)
+                .withAccent(accentColor = Colors.Purple)
+        )
+
+        NumberPadTextField(
+            input = uiState.input,
+            displayUnit = currencies.displayUnit,
+            showSecondaryField = false,
+            primaryDisplay = currencies.primaryDisplay,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("SpendingAmountNumberField")
+        )
+
+        FillHeight()
+
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .padding(vertical = 8.dp)
+                .testTag("SendAmountNumberPad")
+        ) {
+            Column {
+                Text13Up(
+                    text = stringResource(R.string.wallet__send_available),
+                    color = Colors.White64,
+                    modifier = Modifier.testTag("SpendingAmountAvailable")
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                MoneySSB(sats = uiState.balanceAfterFee, modifier = Modifier.testTag("SpendingAmountUnit"))
+            }
+            FillWidth()
+            UnitButton(color = Colors.Purple)
+            // 25% Button
+            NumberPadActionButton(
+                text = stringResource(R.string.lightning__spending_amount__quarter),
+                color = Colors.Purple,
+                onClick = onClickQuarter,
+                modifier = Modifier.testTag("SpendingAmountQuarter")
+            )
+            // Max Button
+            NumberPadActionButton(
+                text = stringResource(R.string.common__max),
+                color = Colors.Purple,
+                onClick = onClickMaxAmount,
+                modifier = Modifier.testTag("SpendingAmountMax")
+            )
+        }
+        HorizontalDivider()
+
+        VerticalSpacer(16.dp)
+
+        Keyboard(
+            onClick = { number ->
+                onInputChange(if (uiState.input == "0") number else uiState.input + number)
+            },
+            onClickBackspace = {
+                onInputChange(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
+            },
+            isDecimal = currencies.primaryDisplay == PrimaryDisplay.FIAT,
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+
+        VerticalSpacer(8.dp)
+
+        PrimaryButton(
+            text = stringResource(R.string.common__continue),
+            onClick = onConfirmAmount,
+            enabled = uiState.satsAmount != 0L && uiState.satsAmount <= uiState.maxAllowedToSend,
+            isLoading = uiState.isLoading,
+            modifier = Modifier.testTag("SpendingAmountContinue")
+        )
+
+        VerticalSpacer(16.dp)
     }
 }
 
@@ -208,6 +240,7 @@ private fun Content(
 private fun Preview() {
     AppThemeSurface {
         Content(
+            isNodeRunning = true,
             uiState = TransferToSpendingUiState(input = "5 000"),
             currencies = CurrencyUiState(),
             onBackClick = {},
@@ -225,6 +258,25 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         Content(
+            isNodeRunning = true,
+            uiState = TransferToSpendingUiState(input = "5 000"),
+            currencies = CurrencyUiState(),
+            onBackClick = {},
+            onCloseClick = {},
+            onClickQuarter = {},
+            onClickMaxAmount = {},
+            onConfirmAmount = {},
+            onInputChange = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, device = NEXUS_5)
+@Composable
+private fun Preview3() {
+    AppThemeSurface {
+        Content(
+            isNodeRunning = false,
             uiState = TransferToSpendingUiState(input = "5 000"),
             currencies = CurrencyUiState(),
             onBackClick = {},
