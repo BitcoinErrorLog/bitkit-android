@@ -134,24 +134,26 @@ private fun Content(
                 primaryDisplay = currencies.primaryDisplay,
                 modifier = Modifier
                     .fillMaxWidth()
-                // .testTag("SendNumberField")
+                    .testTag("SpendingAmountNumberField")
             )
 
             FillHeight()
 
-            // Actions
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .testTag("SendAmountNumberPad")
             ) {
                 Column {
                     Text13Up(
                         text = stringResource(R.string.wallet__send_available),
                         color = Colors.White64,
+                        modifier = Modifier.testTag("SpendingAmountAvailable")
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    MoneySSB(sats = uiState.balanceAfterFee)
+                    MoneySSB(sats = uiState.balanceAfterFee, modifier = Modifier.testTag("SpendingAmountUnit"))
                 }
                 FillWidth()
                 UnitButton(color = Colors.Purple)
