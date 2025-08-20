@@ -58,7 +58,7 @@ fun AppTopBar(
                                 .size(32.dp)
                         )
                     }
-                    Title(text = titleText)
+                    Title(text = titleText, maxLines = 1)
                 }
             }
         },

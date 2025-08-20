@@ -87,10 +87,14 @@ fun Title(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
     textAlign: TextAlign = TextAlign.Unspecified,
 ) {
     Text(
         text = text,
+        maxLines = maxLines,
+        overflow = overflow,
         style = AppTextStyles.Title.merge(
             color = color,
             textAlign = textAlign,

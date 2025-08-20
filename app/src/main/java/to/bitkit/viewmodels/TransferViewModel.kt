@@ -152,7 +152,11 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    fun onAmountChanged(sats: Long) {
+    fun onInputChanged(newInput: String) {
+        _spendingUiState.update { it.copy(input = newInput) }
+    }
+
+    fun handleCalculatedAmount(sats: Long) {
         if (sats > _spendingUiState.value.maxAllowedToSend) {
             setTransferEffect(
                 TransferEffect.ToastError(
@@ -545,6 +549,7 @@ data class TransferToSpendingUiState(
     val maxAllowedToSend: Long = 0,
     val balanceAfterFee: Long = 0,
     val isLoading: Boolean = false,
+    val input: String = "",
 )
 
 data class TransferValues(
