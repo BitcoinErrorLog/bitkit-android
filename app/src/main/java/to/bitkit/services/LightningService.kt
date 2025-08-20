@@ -113,7 +113,7 @@ class LightningService @Inject constructor(
 
         ServiceQueue.LDK.background {
             node = try {
-                if (Env.lnurlAuthSeverUrl.isNotBlank()) {
+                if (Env.lnurlAuthSeverUrl.isNotEmpty()) {
                     builder.buildWithVssStore(
                         vssUrl = Env.vssServerUrl,
                         storeId = vssStoreId,

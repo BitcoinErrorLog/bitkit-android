@@ -40,7 +40,6 @@ See also:
 ### References
 
 - For LNURL dev testing see [bitkit-docker](https://github.com/ovitrif/bitkit-docker)
-- Bitkit Core Android bindings README: [synonymdev/bitkit-core — bindings/android/README.md](https://github.com/synonymdev/bitkit-core/blob/master/bindings/android/README.md)
 
 ### Linting
 
@@ -63,12 +62,14 @@ See repo: https://github.com/synonymdev/bitkit-transifex-sync
 ## Build
 
 ### Bitcoin Networks
+
 The build config supports building 3 different apps for the 3 bitcoin networks (mainnet, testnet, regtest) via the 3 build flavors:
 - `dev` flavour = regtest
 - `mainnet` flavour = mainnet
 - `tnet` flavour = testnet
 
 ### Build for E2E Testing
+
 Simply pass `E2E=true` as environment variable and build any flavor.
 
 ```sh

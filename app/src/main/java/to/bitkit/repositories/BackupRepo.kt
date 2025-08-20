@@ -1,7 +1,6 @@
 package to.bitkit.repositories
 
 import android.content.Context
-import com.synonym.vssclient.VssItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -218,7 +217,7 @@ class BackupRepo @Inject constructor(
             it.copy(running = true, required = System.currentTimeMillis())
         }
 
-        encryptAndUpload(category)
+        vssBackupClient.putObject(key = category.name, data = getBackupDataBytes(category))
             .onSuccess {
                 cacheStore.updateBackupStatus(category) {
                     it.copy(
@@ -234,15 +233,6 @@ class BackupRepo @Inject constructor(
                 }
                 Logger.error("Backup failed for: '$category'", e = e, context = TAG)
             }
-    }
-
-    private suspend fun encryptAndUpload(category: BackupCategory): Result<VssItem> = runCatching {
-        val dataBytes = getBackupDataBytes(category)
-
-        // TODO encrypt data before upload
-        val encrypted = dataBytes
-
-        return vssBackupClient.putObject(category.name, encrypted)
     }
 
     private suspend fun getBackupDataBytes(category: BackupCategory): ByteArray = when (category) {
