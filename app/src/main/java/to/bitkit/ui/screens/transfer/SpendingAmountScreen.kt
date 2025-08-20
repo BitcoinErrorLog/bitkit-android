@@ -93,7 +93,7 @@ fun SpendingAmountScreen(
         onClickQuarter = viewModel::onClickQuarter,
         onClickMaxAmount = viewModel::onClickMaxAmount,
         onConfirmAmount = viewModel::onConfirmAmount,
-        onInputChanged = viewModel::onInputChanged,
+        onInputChange = viewModel::onInputChanged,
     )
 }
 
@@ -106,7 +106,7 @@ private fun Content(
     onClickQuarter: () -> Unit,
     onClickMaxAmount: () -> Unit,
     onConfirmAmount: () -> Unit,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -178,10 +178,10 @@ private fun Content(
 
             Keyboard(
                 onClick = { number ->
-                    onInputChanged(if (uiState.input == "0") number else uiState.input + number)
+                    onInputChange(if (uiState.input == "0") number else uiState.input + number)
                 },
                 onClickBackspace = {
-                    onInputChanged(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
+                    onInputChange(if (uiState.input.length > 1) uiState.input.dropLast(1) else "0")
                 },
                 isDecimal = currencies.primaryDisplay == PrimaryDisplay.FIAT,
                 modifier = Modifier
@@ -215,7 +215,7 @@ private fun Preview() {
             onClickQuarter = {},
             onClickMaxAmount = {},
             onConfirmAmount = {},
-            onInputChanged = {},
+            onInputChange = {},
         )
     }
 }
@@ -232,7 +232,7 @@ private fun Preview2() {
             onClickQuarter = {},
             onClickMaxAmount = {},
             onConfirmAmount = {},
-            onInputChanged = {},
+            onInputChange = {},
         )
     }
 }
