@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +17,15 @@ import to.bitkit.ui.theme.TopBarHeight
 @Composable
 fun VerticalSpacer(height: Dp) {
     Spacer(modifier = Modifier.height(height))
+}
+
+@Composable
+fun ColumnScope.VerticalSpacer(minHeight: Dp, maxHeight: Dp) {
+    Spacer(
+        modifier = Modifier
+            .weight(1f)
+            .sizeIn(minHeight = minHeight, maxHeight = maxHeight)
+    )
 }
 
 @Composable

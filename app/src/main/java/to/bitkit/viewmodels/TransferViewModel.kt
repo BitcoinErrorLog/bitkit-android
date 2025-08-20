@@ -18,11 +18,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
@@ -41,6 +43,7 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
@@ -63,6 +66,9 @@ class TransferViewModel @Inject constructor(
     val lightningSetupStep: StateFlow<Int> = settingsStore.data.map { it.lightningSetupStep }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
+    val isNodeRunning = lightningRepo.lightningState.map { it.nodeStatus?.isRunning ?: false }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     private val _selectedChannelIdsState = MutableStateFlow<Set<String>>(emptySet())
     val selectedChannelIdsState = _selectedChannelIdsState.asStateFlow()
 
@@ -71,7 +77,6 @@ class TransferViewModel @Inject constructor(
 
     val transferEffects = MutableSharedFlow<TransferEffect>()
     fun setTransferEffect(effect: TransferEffect) = viewModelScope.launch { transferEffects.emit(effect) }
-    var retryTimes = 0
     var maxLspFee = 0uL
 
     // region Spending
@@ -83,7 +88,7 @@ class TransferViewModel @Inject constructor(
                 overrideSats = it.maxAllowedToSend,
             )
         }
-        updateLimits(false)
+        updateLimits()
     }
 
     fun onClickQuarter() {
@@ -106,7 +111,7 @@ class TransferViewModel @Inject constructor(
                 overrideSats = min(quarter, it.maxAllowedToSend),
             )
         }
-        updateLimits(false)
+        updateLimits()
     }
 
     fun onConfirmAmount() {
@@ -136,6 +141,10 @@ class TransferViewModel @Inject constructor(
                 )
                 _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
                 return@launch
+            }
+
+            withTimeoutOrNull(1.minutes) {
+                isNodeRunning.first { it }
             }
 
             blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
@@ -172,13 +181,12 @@ class TransferViewModel @Inject constructor(
 
         _spendingUiState.update { it.copy(satsAmount = sats, overrideSats = null) }
 
-        retryTimes = 0
-        updateLimits(retry = false)
+        updateLimits()
     }
 
-    fun updateLimits(retry: Boolean) {
+    fun updateLimits() {
         updateTransferValues(_spendingUiState.value.satsAmount.toULong())
-        updateAvailableAmount(retry = retry)
+        updateAvailableAmount()
     }
 
     fun onAdvancedOrderCreated(order: IBtOrder) {
@@ -260,19 +268,22 @@ class TransferViewModel @Inject constructor(
         setTransferEffect(TransferEffect.OnOrderCreated)
     }
 
-    private fun updateAvailableAmount(retry: Boolean) {
+    private fun updateAvailableAmount() {
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
 
             // Get the max available balance discounting onChain fee
             val availableAmount = walletRepo.getMaxSendAmount()
 
+            withTimeoutOrNull(1.minutes) {
+                isNodeRunning.first { it }
+            }
+
             // Calculate the LSP fee to the total balance
             blocktankRepo.estimateOrderFee(
                 spendingBalanceSats = availableAmount,
                 receivingBalanceSats = _transferValues.value.maxLspBalance
             ).onSuccess { estimate ->
-                retryTimes = 0
                 maxLspFee = estimate.feeSat
 
                 // Calculate the available balance to send after LSP fee
@@ -290,17 +301,9 @@ class TransferViewModel @Inject constructor(
                     )
                 }
             }.onFailure { exception ->
-                if (exception is ServiceError.NodeNotStarted && retry) {
-                    // Retry after delay
-                    Logger.warn("Error getting the available amount. Node not started. trying again in 2 seconds")
-                    delay(2.seconds)
-                    updateAvailableAmount(retry = retryTimes <= RETRY_LIMIT)
-                    retryTimes++
-                } else {
-                    _spendingUiState.update { it.copy(isLoading = false) }
-                    Logger.error("Failure", exception)
-                    setTransferEffect(TransferEffect.ToastException(exception))
-                }
+                _spendingUiState.update { it.copy(isLoading = false) }
+                Logger.error("Failure", exception)
+                setTransferEffect(TransferEffect.ToastException(exception))
             }
         }
     }
