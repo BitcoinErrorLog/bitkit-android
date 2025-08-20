@@ -126,7 +126,7 @@ jobs:
           script: |
             # adb port forwarding for regtest
             adb reverse tcp:60001 tcp:60001
-            cd bitkit-e2e-tests && npm run e2e:android -- --mochaOpts.grep "Can start onboarding"
+            cd bitkit-e2e-tests && npm run e2e:android
         env:
           RECORD_VIDEO: true
 
