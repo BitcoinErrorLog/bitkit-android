@@ -95,19 +95,18 @@ class MainActivity : FragmentActivity() {
                 } else {
                     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
-                    IsOnlineTracker(appViewModel) {
-                        InactivityTracker(appViewModel, settingsViewModel) {
-                            ContentView(
-                                appViewModel = appViewModel,
-                                walletViewModel = walletViewModel,
-                                blocktankViewModel = blocktankViewModel,
-                                currencyViewModel = currencyViewModel,
-                                activityListViewModel = activityListViewModel,
-                                transferViewModel = transferViewModel,
-                                settingsViewModel = settingsViewModel,
-                                backupsViewModel = backupsViewModel,
-                            )
-                        }
+                    IsOnlineTracker(appViewModel)
+                    InactivityTracker(appViewModel, settingsViewModel) {
+                        ContentView(
+                            appViewModel = appViewModel,
+                            walletViewModel = walletViewModel,
+                            blocktankViewModel = blocktankViewModel,
+                            currencyViewModel = currencyViewModel,
+                            activityListViewModel = activityListViewModel,
+                            transferViewModel = transferViewModel,
+                            settingsViewModel = settingsViewModel,
+                            backupsViewModel = backupsViewModel,
+                        )
                     }
 
                     AnimatedVisibility(
