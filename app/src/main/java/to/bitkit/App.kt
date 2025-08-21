@@ -55,18 +55,4 @@ class CurrentActivity : ActivityLifecycleCallbacks {
     override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) = Unit
     override fun onActivityDestroyed(activity: Activity) = Unit
 }
-
-/**
- * Returns the current activity of the application.
- *
- * **NEVER** store the result to a variable, further calls to such reference can lead to memory leaks.
- *
- * **ALWAYS** retrieve the current activity functionally, processing on the result of this function.
- * */
-internal inline fun <reified T> currentActivity(): T? {
-    return when (val activity = App.currentActivity?.value) {
-        is T -> activity
-        else -> null
-    }
-}
 // endregion

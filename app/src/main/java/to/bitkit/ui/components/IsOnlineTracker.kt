@@ -3,6 +3,8 @@ package to.bitkit.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
@@ -17,7 +19,15 @@ fun IsOnlineTracker(
     val context = LocalContext.current
     val connectivityState by app.isOnline.collectAsStateWithLifecycle(initialValue = ConnectivityState.CONNECTED)
 
+    val (isFirstEmission, setIsFirstEmission) = remember { mutableStateOf(true) }
+
     LaunchedEffect(connectivityState) {
+        // Skip the first emission to prevent toast on startup
+        if (isFirstEmission) {
+            setIsFirstEmission(true)
+            return@LaunchedEffect
+        }
+
         when (connectivityState) {
             ConnectivityState.CONNECTED -> {
                 app.toast(

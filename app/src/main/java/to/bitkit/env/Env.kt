@@ -46,16 +46,11 @@ internal object Env {
         }
 
     val lnurlAuthSeverUrl = when (network) {
-        // Network.REGTEST -> "http://localhost:3000/auth"
+        // Network.REGTEST -> "http://localhost:5005/auth"
         else -> "" // TODO implement LNURL-auth Server for other networks
     }
 
-    val vssStoreId
-        get() = when (network) {
-            Network.REGTEST -> "bitkit_regtest"
-            Network.TESTNET -> "bitkit_testnet"
-            else -> TODO("${network.name} network not implemented")
-        }
+    val vssStoreIdPrefix get() = "bitkit_v1_${network.name.lowercase()}"
 
     val esploraServerUrl
         get() = when (network) {
