@@ -29,6 +29,7 @@ class VssBackupClient @Inject constructor(
     suspend fun setup() = withContext(bgDispatcher) {
         try {
             withTimeout(30.seconds) {
+                val vssServerUrl = Env.vssServerUrl
                 Logger.verbose("VSS client setting up…", context = TAG)
                 if (Env.lnurlAuthSeverUrl.isNotEmpty()) {
                     val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)
@@ -36,7 +37,7 @@ class VssBackupClient @Inject constructor(
                     val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
 
                     vssNewClientWithLnurlAuth(
-                        baseUrl = Env.vssServerUrl,
+                        baseUrl = vssServerUrl,
                         storeId = vssStoreIdProvider.getVssStoreId(),
                         mnemonic = mnemonic,
                         passphrase = passphrase,
@@ -44,12 +45,12 @@ class VssBackupClient @Inject constructor(
                     )
                 } else {
                     vssNewClient(
-                        baseUrl = Env.vssServerUrl,
+                        baseUrl = vssServerUrl,
                         storeId = vssStoreIdProvider.getVssStoreId(),
                     )
                 }
                 isSetup.complete(Unit)
-                Logger.info("VSS client setup ok", context = TAG)
+                Logger.info("VSS client setup with server: '$vssServerUrl'", context = TAG)
             }
         } catch (e: Throwable) {
             isSetup.completeExceptionally(e)
