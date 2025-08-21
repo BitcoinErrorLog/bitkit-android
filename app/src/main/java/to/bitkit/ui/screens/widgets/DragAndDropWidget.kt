@@ -63,7 +63,7 @@ fun DragAndDropWidget(
 
             IconButton(
                 onClick = onClickDelete,
-                modifier = Modifier.testTag("WidgetActionDelete")
+                modifier = Modifier.testTag("${title}_WidgetActionDelete")
             ) {
                 Icon(
                     modifier = Modifier.size(24.dp),
@@ -74,7 +74,7 @@ fun DragAndDropWidget(
 
             IconButton(
                 onClick = onClickSettings,
-                modifier = Modifier.testTag("WidgetActionEdit")
+                modifier = Modifier.testTag("${title}_WidgetActionEdit")
             ) {
                 Icon(
                     modifier = Modifier.size(24.dp),
@@ -85,7 +85,7 @@ fun DragAndDropWidget(
 
             IconButton(
                 onClick = onClickDelete,
-                modifier = Modifier.testTag("WidgetActionDrag")
+                modifier = Modifier.testTag("${title}_WidgetActionDrag")
             ) {
                 Icon(
                     modifier = Modifier.size(24.dp),
