@@ -253,7 +253,7 @@ private fun PriceChartOptionRow(
 
             IconButton(
                 onClick = { onClick(widgetData.period) },
-                modifier = Modifier.testTag("${testTagPrefix}_toggle_button")
+                modifier = Modifier.testTag("WidgetEditField-$testTagPrefix")
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_checkmark),
