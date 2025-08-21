@@ -185,7 +185,7 @@ private fun OnboardingNav(
                     startupNavController.navigate(StartupRoutes.Slides())
                 },
                 onSkipClick = {
-                    startupNavController.navigate(StartupRoutes.Slides(4))
+                    startupNavController.navigate(StartupRoutes.Slides(StartupRoutes.LAST_SLIDE_INDEX))
                 },
             )
         }
@@ -197,12 +197,12 @@ private fun OnboardingNav(
                 onAdvancedSetupClick = { startupNavController.navigate(StartupRoutes.Advanced) },
                 onCreateClick = {
                     scope.launch {
-                        try {
+                        runCatching {
                             appViewModel.resetIsAuthenticatedState()
                             walletViewModel.setInitNodeLifecycleState()
                             walletViewModel.createWallet(bip39Passphrase = null)
-                        } catch (e: Throwable) {
-                            appViewModel.toast(e)
+                        }.onFailure {
+                            appViewModel.toast(it)
                         }
                     }
                 },
@@ -228,13 +228,13 @@ private fun OnboardingNav(
                 onBackClick = { startupNavController.popBackStack() },
                 onRestoreClick = { mnemonic, passphrase ->
                     scope.launch {
-                        try {
+                        runCatching {
                             appViewModel.resetIsAuthenticatedState()
                             walletViewModel.setInitNodeLifecycleState()
                             walletViewModel.setRestoringWalletState()
                             walletViewModel.restoreWallet(mnemonic, passphrase)
-                        } catch (e: Throwable) {
-                            appViewModel.toast(e)
+                        }.onFailure {
+                            appViewModel.toast(it)
                         }
                     }
                 }
@@ -245,12 +245,12 @@ private fun OnboardingNav(
                 onBackClick = { startupNavController.popBackStack() },
                 onCreateClick = { passphrase ->
                     scope.launch {
-                        try {
+                        runCatching {
                             appViewModel.resetIsAuthenticatedState()
                             walletViewModel.setInitNodeLifecycleState()
                             walletViewModel.createWallet(bip39Passphrase = passphrase)
-                        } catch (e: Throwable) {
-                            appViewModel.toast(e)
+                        }.onFailure {
+                            appViewModel.toast(it)
                         }
                     }
                 },
@@ -260,6 +260,8 @@ private fun OnboardingNav(
 }
 
 private object StartupRoutes {
+    const val LAST_SLIDE_INDEX = 4
+
     @Serializable
     data object Terms
 

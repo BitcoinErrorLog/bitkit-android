@@ -81,28 +81,27 @@ fun SuggestionCard(
                 if (isDismissible || disableGlow) {
                     Modifier.gradientBackground(gradientColor)
                 } else {
-                    val (shadowColor, borderColor, gradientSelectedColor) = when (gradientColor) {
-                        Colors.Purple24 -> Triple(
-                            Color(130, 65, 175),
-                            Color(185, 92, 232),
-                            Color(65, 32, 80)
-                        )
+                    val (borderColor, centerColor) =
+                        @Suppress("MagicNumber")
+                        when (gradientColor) {
+                            Colors.Purple24 -> Pair(
+                                Color(185, 92, 232),
+                                Color(65, 32, 80)
+                            )
 
-                        Colors.Red24 -> Triple(
-                            Color(200, 48, 0),
-                            Color(255, 68, 0),
-                            Color(100, 24, 0)
-                        )
+                            Colors.Red24 -> Pair(
+                                Color(255, 68, 0),
+                                Color(100, 24, 0)
+                            )
 
-                        else -> Triple(
-                            gradientColor,
-                            gradientColor,
-                            gradientColor.copy(alpha = MIN_ALPHA_GRADIENT)
-                        )
-                    }
+                            else -> Pair(
+                                gradientColor,
+                                gradientColor.copy(alpha = MIN_ALPHA_GRADIENT)
+                            )
+                        }
 
                     Modifier
-                        .gradientRadialBackground(gradientSelectedColor, glowAlpha)
+                        .gradientRadialBackground(centerColor, glowAlpha)
                         .border(width = 1.dp, color = borderColor, shape = ShapeDefaults.Large)
                 }
             )

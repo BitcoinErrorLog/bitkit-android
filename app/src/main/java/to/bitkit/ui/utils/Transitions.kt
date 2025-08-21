@@ -18,13 +18,10 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import androidx.navigation.NavGraph
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import kotlin.reflect.KType
-
-fun NavOptionsBuilder.clearBackStack() = popUpTo(id = 0)
 
 object Transitions {
     val slideInHorizontally = slideInHorizontally(animationSpec = tween(), initialOffsetX = { it })
@@ -38,6 +35,7 @@ object Transitions {
 /**
  * Adds the [Composable] to the [NavGraphBuilder] with the default screen transitions.
  */
+@Suppress("LongParameterList")
 inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
     typeMap: Map<KType, NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
@@ -66,10 +64,10 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
     )
 }
 
-
 /**
  * Construct a nested [NavGraph] with the default screen transitions.
  */
+@Suppress("LongParameterList")
 inline fun <reified T : Any> NavGraphBuilder.navigationWithDefaultTransitions(
     startDestination: Any,
     typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
