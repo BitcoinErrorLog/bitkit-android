@@ -46,7 +46,7 @@ internal object Env {
         }
 
     val lnurlAuthSeverUrl = when (network) {
-        // Network.REGTEST -> "http://localhost:3000/auth"
+        // Network.REGTEST -> "http://localhost:5005/auth"
         else -> "" // TODO implement LNURL-auth Server for other networks
     }
 
