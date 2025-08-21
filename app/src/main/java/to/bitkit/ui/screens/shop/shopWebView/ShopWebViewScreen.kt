@@ -19,11 +19,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.ext.configureForBasicWebContent
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.utils.configureForBasicWebContent
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable

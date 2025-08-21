@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.ext.configureForBasicWebContent
 import to.bitkit.models.BitrefillCategory
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.CaptionB
@@ -53,7 +54,6 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
-import to.bitkit.ui.utils.configureForBasicWebContent
 
 private const val SHOP_CARD_SIZE = 164
 

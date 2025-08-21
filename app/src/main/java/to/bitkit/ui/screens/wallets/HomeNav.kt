@@ -29,8 +29,7 @@ import to.bitkit.ui.navigateToTransferSpendingAmount
 import to.bitkit.ui.navigateToTransferSpendingIntro
 import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
 import to.bitkit.ui.utils.RequestNotificationPermissions
-import to.bitkit.ui.utils.screenSlideIn
-import to.bitkit.ui.utils.screenSlideOut
+import to.bitkit.ui.utils.Transitions
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.MainUiState
@@ -122,8 +121,8 @@ private fun NavContent(
             )
         }
         composable<HomeRoutes.Savings>(
-            enterTransition = { screenSlideIn },
-            exitTransition = { screenSlideOut },
+            enterTransition = { Transitions.slideInHorizontally },
+            exitTransition = { Transitions.slideOutHorizontally },
         ) {
             val hasSeenSpendingIntro by settingsViewModel.hasSeenSpendingIntro.collectAsStateWithLifecycle()
             SavingsWalletScreen(
@@ -141,8 +140,8 @@ private fun NavContent(
             )
         }
         composable<HomeRoutes.Spending>(
-            enterTransition = { screenSlideIn },
-            exitTransition = { screenSlideOut },
+            enterTransition = { Transitions.slideInHorizontally },
+            exitTransition = { Transitions.slideOutHorizontally },
         ) {
             val hasSeenSavingsIntro by settingsViewModel.hasSeenSavingsIntro.collectAsStateWithLifecycle()
             SpendingWalletScreen(
@@ -161,8 +160,8 @@ private fun NavContent(
             )
         }
         composable<HomeRoutes.AllActivity>(
-            enterTransition = { screenSlideIn },
-            exitTransition = { screenSlideOut },
+            enterTransition = { Transitions.slideInHorizontally },
+            exitTransition = { Transitions.slideOutHorizontally },
         ) {
             AllActivityScreen(
                 viewModel = activityListViewModel,

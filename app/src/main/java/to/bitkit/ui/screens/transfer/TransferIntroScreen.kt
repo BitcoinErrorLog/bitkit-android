@@ -1,6 +1,7 @@
 package to.bitkit.ui.screens.transfer
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +39,7 @@ fun TransferIntroScreen(
         contentAlignment = Alignment.TopCenter,
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
     ) {
         Image(
@@ -73,9 +76,9 @@ fun TransferIntroScreen(
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
-private fun TransferIntroScreenPreview() {
+private fun Preview() {
     AppThemeSurface {
         TransferIntroScreen()
     }

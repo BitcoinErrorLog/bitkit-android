@@ -537,7 +537,6 @@ class TransferViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TransferViewModel"
-        private const val RETRY_LIMIT = 5
         private const val QUARTER = 0.25
     }
 }

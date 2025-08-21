@@ -1,4 +1,4 @@
-package to.bitkit.ui.utils
+package to.bitkit.ext
 
 import android.annotation.SuppressLint
 import android.webkit.WebSettings
