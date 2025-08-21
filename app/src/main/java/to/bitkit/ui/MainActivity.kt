@@ -7,6 +7,7 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,11 +17,13 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
@@ -39,11 +42,8 @@ import to.bitkit.ui.screens.SplashScreen
 import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.enableAppEdgeToEdge
-import to.bitkit.ui.utils.screenScaleIn
-import to.bitkit.ui.utils.screenScaleOut
-import to.bitkit.ui.utils.screenSlideIn
-import to.bitkit.ui.utils.screenSlideOut
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.BackupsViewModel
@@ -86,121 +86,12 @@ class MainActivity : FragmentActivity() {
             ) {
                 val scope = rememberCoroutineScope()
                 if (!walletViewModel.walletExists) {
-                    val startupNavController = rememberNavController()
-                    NavHost(
-                        navController = startupNavController,
-                        startDestination = StartupRoutes.Terms,
-                    ) {
-                        composable<StartupRoutes.Terms> {
-                            TermsOfUseScreen(
-                                onNavigateToIntro = {
-                                    startupNavController.navigate(StartupRoutes.Intro)
-                                }
-                            )
-                        }
-                        composable<StartupRoutes.Intro>(
-                            enterTransition = { screenSlideIn },
-                            exitTransition = { screenScaleOut },
-                            popEnterTransition = { screenScaleIn },
-                            popExitTransition = { screenSlideOut },
-                        ) {
-                            IntroScreen(
-                                onStartClick = {
-                                    startupNavController.navigate(StartupRoutes.Slides())
-                                },
-                                onSkipClick = {
-                                    startupNavController.navigate(StartupRoutes.Slides(4))
-                                },
-                            )
-                        }
-                        composable<StartupRoutes.Slides>(
-                            enterTransition = { screenSlideIn },
-                            exitTransition = { screenScaleOut },
-                            popEnterTransition = { screenScaleIn },
-                            popExitTransition = { screenSlideOut },
-                        ) { navBackEntry ->
-                            val route = navBackEntry.toRoute<StartupRoutes.Slides>()
-                            OnboardingSlidesScreen(
-                                currentTab = route.tab,
-                                isGeoBlocked = appViewModel.isGeoBlocked == true,
-                                onAdvancedSetupClick = { startupNavController.navigate(StartupRoutes.Advanced) },
-                                onCreateClick = {
-                                    scope.launch {
-                                        try {
-                                            appViewModel.resetIsAuthenticatedState()
-                                            walletViewModel.setInitNodeLifecycleState()
-                                            walletViewModel.createWallet(bip39Passphrase = null)
-                                        } catch (e: Throwable) {
-                                            appViewModel.toast(e)
-                                        }
-                                    }
-                                },
-                                onRestoreClick = {
-                                    startupNavController.navigate(
-                                        StartupRoutes.WarningMultipleDevices
-                                    )
-                                },
-                            )
-                        }
-                        composable<StartupRoutes.WarningMultipleDevices>(
-                            enterTransition = { screenSlideIn },
-                            exitTransition = { screenScaleOut },
-                            popEnterTransition = { screenScaleIn },
-                            popExitTransition = { screenSlideOut },
-                        ) {
-                            WarningMultipleDevicesScreen(
-                                onBackClick = {
-                                    startupNavController.popBackStack()
-                                },
-                                onConfirmClick = {
-                                    startupNavController.navigate(StartupRoutes.Restore)
-                                }
-                            )
-                        }
-                        composable<StartupRoutes.Restore>(
-                            enterTransition = { screenSlideIn },
-                            exitTransition = { screenScaleOut },
-                            popEnterTransition = { screenScaleIn },
-                            popExitTransition = { screenSlideOut },
-                        ) {
-                            RestoreWalletView(
-                                onBackClick = { startupNavController.popBackStack() },
-                                onRestoreClick = { mnemonic, passphrase ->
-                                    scope.launch {
-                                        try {
-                                            appViewModel.resetIsAuthenticatedState()
-                                            walletViewModel.setInitNodeLifecycleState()
-                                            walletViewModel.setRestoringWalletState()
-                                            walletViewModel.restoreWallet(mnemonic, passphrase)
-                                        } catch (e: Throwable) {
-                                            appViewModel.toast(e)
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                        composable<StartupRoutes.Advanced>(
-                            enterTransition = { screenSlideIn },
-                            exitTransition = { screenScaleOut },
-                            popEnterTransition = { screenScaleIn },
-                            popExitTransition = { screenSlideOut },
-                        ) {
-                            CreateWalletWithPassphraseScreen(
-                                onBackClick = { startupNavController.popBackStack() },
-                                onCreateClick = { passphrase ->
-                                    scope.launch {
-                                        try {
-                                            appViewModel.resetIsAuthenticatedState()
-                                            walletViewModel.setInitNodeLifecycleState()
-                                            walletViewModel.createWallet(bip39Passphrase = passphrase)
-                                        } catch (e: Throwable) {
-                                            appViewModel.toast(e)
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                    }
+                    OnboardingNav(
+                        startupNavController = rememberNavController(),
+                        scope = scope,
+                        appViewModel = appViewModel,
+                        walletViewModel = walletViewModel,
+                    )
                 } else {
                     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
@@ -267,6 +158,104 @@ class MainActivity : FragmentActivity() {
 
                 SplashScreen(appViewModel.splashVisible)
             }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingNav(
+    startupNavController: NavHostController,
+    scope: CoroutineScope,
+    appViewModel: AppViewModel,
+    walletViewModel: WalletViewModel,
+) {
+    NavHost(
+        navController = startupNavController,
+        startDestination = StartupRoutes.Terms,
+    ) {
+        composable<StartupRoutes.Terms> {
+            TermsOfUseScreen(
+                onNavigateToIntro = {
+                    startupNavController.navigate(StartupRoutes.Intro)
+                }
+            )
+        }
+        composableWithDefaultTransitions<StartupRoutes.Intro> {
+            IntroScreen(
+                onStartClick = {
+                    startupNavController.navigate(StartupRoutes.Slides())
+                },
+                onSkipClick = {
+                    startupNavController.navigate(StartupRoutes.Slides(4))
+                },
+            )
+        }
+        composableWithDefaultTransitions<StartupRoutes.Slides> { navBackEntry ->
+            val route = navBackEntry.toRoute<StartupRoutes.Slides>()
+            OnboardingSlidesScreen(
+                currentTab = route.tab,
+                isGeoBlocked = appViewModel.isGeoBlocked == true,
+                onAdvancedSetupClick = { startupNavController.navigate(StartupRoutes.Advanced) },
+                onCreateClick = {
+                    scope.launch {
+                        try {
+                            appViewModel.resetIsAuthenticatedState()
+                            walletViewModel.setInitNodeLifecycleState()
+                            walletViewModel.createWallet(bip39Passphrase = null)
+                        } catch (e: Throwable) {
+                            appViewModel.toast(e)
+                        }
+                    }
+                },
+                onRestoreClick = {
+                    startupNavController.navigate(
+                        StartupRoutes.WarningMultipleDevices
+                    )
+                },
+            )
+        }
+        composableWithDefaultTransitions<StartupRoutes.WarningMultipleDevices> {
+            WarningMultipleDevicesScreen(
+                onBackClick = {
+                    startupNavController.popBackStack()
+                },
+                onConfirmClick = {
+                    startupNavController.navigate(StartupRoutes.Restore)
+                }
+            )
+        }
+        composableWithDefaultTransitions<StartupRoutes.Restore> {
+            RestoreWalletView(
+                onBackClick = { startupNavController.popBackStack() },
+                onRestoreClick = { mnemonic, passphrase ->
+                    scope.launch {
+                        try {
+                            appViewModel.resetIsAuthenticatedState()
+                            walletViewModel.setInitNodeLifecycleState()
+                            walletViewModel.setRestoringWalletState()
+                            walletViewModel.restoreWallet(mnemonic, passphrase)
+                        } catch (e: Throwable) {
+                            appViewModel.toast(e)
+                        }
+                    }
+                }
+            )
+        }
+        composableWithDefaultTransitions<StartupRoutes.Advanced> {
+            CreateWalletWithPassphraseScreen(
+                onBackClick = { startupNavController.popBackStack() },
+                onCreateClick = { passphrase ->
+                    scope.launch {
+                        try {
+                            appViewModel.resetIsAuthenticatedState()
+                            walletViewModel.setInitNodeLifecycleState()
+                            walletViewModel.createWallet(bip39Passphrase = passphrase)
+                        } catch (e: Throwable) {
+                            appViewModel.toast(e)
+                        }
+                    }
+                },
+            )
         }
     }
 }

@@ -22,39 +22,30 @@ import kotlin.reflect.KType
 
 fun NavOptionsBuilder.clearBackStack() = popUpTo(id = 0)
 
-// region transitions
-
-/** enterTransition */
-val screenSlideIn = slideInHorizontally(animationSpec = tween(), initialOffsetX = { it })
-
-/** exitTransition */
-val screenSlideOut = slideOutHorizontally(animationSpec = tween(), targetOffsetX = { it })
-
-/** popEnterTransition */
-val screenScaleIn = scaleIn(animationSpec = tween(), initialScale = 0.95f) + fadeIn()
-
-/** popExitTransition */
-val screenScaleOut = scaleOut(animationSpec = tween(), targetScale = 0.95f) + fadeOut()
-
-// endregion
+object Transitions {
+    val slideInHorizontally = slideInHorizontally(animationSpec = tween(), initialOffsetX = { it })
+    val slideOutHorizontally = slideOutHorizontally(animationSpec = tween(), targetOffsetX = { it })
+    val scaleIn = scaleIn(animationSpec = tween(), initialScale = 0.95f) + fadeIn()
+    val scaleOut = scaleOut(animationSpec = tween(), targetScale = 0.95f) + fadeOut()
+}
 
 /**
- * Adds the [androidx.compose.runtime.Composable] to the [androidx.navigation.NavGraphBuilder] with the default screen transitions.
+ * Adds the [Composable] to the [NavGraphBuilder] with the default screen transitions.
  */
 inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
     typeMap: Map<KType, NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        screenSlideIn
+        Transitions.slideInHorizontally
     },
     noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        screenScaleOut
+        Transitions.scaleOut
     },
     noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        screenScaleIn
+        Transitions.scaleIn
     },
     noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        screenSlideOut
+        Transitions.slideOutHorizontally
     },
     noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
 ) {

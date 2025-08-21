@@ -140,8 +140,6 @@ import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.composableWithDefaultTransitions
-import to.bitkit.ui.utils.screenSlideIn
-import to.bitkit.ui.utils.screenSlideOut
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
@@ -957,8 +955,6 @@ private fun NavGraphBuilder.qrScanner(
     navController: NavHostController,
 ) {
     composable<Routes.QrScanner>(
-        enterTransition = { screenSlideIn },
-        exitTransition = { screenSlideOut },
     ) {
         QrScanningScreen(navController = navController) { qrCode ->
             appViewModel.onScanResult(
@@ -999,10 +995,7 @@ private fun NavGraphBuilder.logs(
 private fun NavGraphBuilder.suggestions(
     navController: NavHostController,
 ) {
-    composable<Routes.BuyIntro>(
-        enterTransition = { screenSlideIn },
-        exitTransition = { screenSlideOut },
-    ) {
+    composableWithDefaultTransitions<Routes.BuyIntro> {
         BuyIntroScreen(
             onBackClick = { navController.popBackStack() }
         )
