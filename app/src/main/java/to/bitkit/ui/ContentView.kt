@@ -139,6 +139,7 @@ import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
+import to.bitkit.ui.utils.Transitions
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.ActivityListViewModel
@@ -954,7 +955,9 @@ private fun NavGraphBuilder.qrScanner(
     appViewModel: AppViewModel,
     navController: NavHostController,
 ) {
-    composable<Routes.QrScanner>(
+    composableWithDefaultTransitions<Routes.QrScanner>(
+        enterTransition = { Transitions.slideInVertically },
+        popExitTransition = { Transitions.slideOutVertically },
     ) {
         QrScanningScreen(navController = navController) { qrCode ->
             appViewModel.onScanResult(

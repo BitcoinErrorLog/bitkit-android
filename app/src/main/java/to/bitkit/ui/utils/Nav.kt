@@ -10,7 +10,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
@@ -27,6 +29,8 @@ object Transitions {
     val slideOutHorizontally = slideOutHorizontally(animationSpec = tween(), targetOffsetX = { it })
     val scaleIn = scaleIn(animationSpec = tween(), initialScale = 0.95f) + fadeIn()
     val scaleOut = scaleOut(animationSpec = tween(), targetScale = 0.95f) + fadeOut()
+    val slideInVertically = slideInVertically(animationSpec = tween(), initialOffsetY = { it })
+    val slideOutVertically = slideOutVertically(animationSpec = tween(), targetOffsetY = { it })
 }
 
 /**
