@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
@@ -36,6 +35,7 @@ import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
+import to.bitkit.ui.utils.navigationWithDefaultTransitions
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.SendEffect
 import to.bitkit.viewmodels.SendEvent
@@ -127,7 +127,7 @@ fun SendSheet(
                     onContinue = { utxos -> appViewModel.setSendEvent(SendEvent.CoinSelectionContinue(utxos)) },
                 )
             }
-            navigation<SendRoute.FeeNav>(
+            navigationWithDefaultTransitions<SendRoute.FeeNav>(
                 startDestination = SendRoute.FeeRate,
             ) {
                 composableWithDefaultTransitions<SendRoute.FeeRate> {

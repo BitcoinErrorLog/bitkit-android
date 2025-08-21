@@ -16,10 +16,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
+import androidx.navigation.NavGraph
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import kotlin.reflect.KType
 
 fun NavOptionsBuilder.clearBackStack() = popUpTo(id = 0)
@@ -61,5 +63,39 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
         popEnterTransition = popEnterTransition,
         popExitTransition = popExitTransition,
         content = content,
+    )
+}
+
+
+/**
+ * Construct a nested [NavGraph] with the default screen transitions.
+ */
+inline fun <reified T : Any> NavGraphBuilder.navigationWithDefaultTransitions(
+    startDestination: Any,
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
+    deepLinks: List<NavDeepLink> = emptyList(),
+    noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
+        Transitions.slideInHorizontally
+    },
+    noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
+        Transitions.scaleOut
+    },
+    noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
+        Transitions.scaleIn
+    },
+    noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
+        Transitions.slideOutHorizontally
+    },
+    noinline builder: NavGraphBuilder.() -> Unit,
+) {
+    navigation<T>(
+        startDestination = startDestination,
+        typeMap = typeMap,
+        deepLinks = deepLinks,
+        enterTransition = enterTransition,
+        exitTransition = exitTransition,
+        popEnterTransition = popEnterTransition,
+        popExitTransition = popExitTransition,
+        builder = builder,
     )
 }

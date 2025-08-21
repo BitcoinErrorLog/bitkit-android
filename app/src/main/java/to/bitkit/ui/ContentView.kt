@@ -24,7 +24,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.coroutines.delay
@@ -141,6 +140,7 @@ import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.Transitions
 import to.bitkit.ui.utils.composableWithDefaultTransitions
+import to.bitkit.ui.utils.navigationWithDefaultTransitions
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
@@ -410,7 +410,7 @@ private fun RootNavHost(
         widgets(navController, settingsViewModel, currencyViewModel)
 
         // TODO extract transferNavigation
-        navigation<Routes.TransferRoot>(
+        navigationWithDefaultTransitions<Routes.TransferRoot>(
             startDestination = Routes.TransferIntro,
         ) {
             composableWithDefaultTransitions<Routes.TransferIntro> {
@@ -549,7 +549,7 @@ private fun RootNavHost(
                     onCloseClick = { navController.navigateToHome() },
                 )
             }
-            navigation<Routes.ExternalNav>(
+            navigationWithDefaultTransitions<Routes.ExternalNav>(
                 startDestination = Routes.ExternalConnection(),
             ) {
                 composableWithDefaultTransitions<Routes.ExternalConnection> {
@@ -901,7 +901,7 @@ private fun NavGraphBuilder.cjitDetailSettings(
 private fun NavGraphBuilder.lightningConnections(
     navController: NavHostController,
 ) {
-    navigation<Routes.ConnectionsNav>(
+    navigationWithDefaultTransitions<Routes.ConnectionsNav>(
         startDestination = Routes.LightningConnections,
     ) {
         composableWithDefaultTransitions<Routes.LightningConnections> {
@@ -1084,7 +1084,7 @@ private fun NavGraphBuilder.widgets(
             currencyViewModel = currencyViewModel
         )
     }
-    navigation<Routes.Headlines>(
+    navigationWithDefaultTransitions<Routes.Headlines>(
         startDestination = Routes.HeadlinesPreview
     ) {
         composableWithDefaultTransitions<Routes.HeadlinesPreview> {
@@ -1112,7 +1112,7 @@ private fun NavGraphBuilder.widgets(
             )
         }
     }
-    navigation<Routes.Facts>(
+    navigationWithDefaultTransitions<Routes.Facts>(
         startDestination = Routes.FactsPreview
     ) {
         composableWithDefaultTransitions<Routes.FactsPreview> {
@@ -1138,7 +1138,7 @@ private fun NavGraphBuilder.widgets(
             )
         }
     }
-    navigation<Routes.Blocks>(
+    navigationWithDefaultTransitions<Routes.Blocks>(
         startDestination = Routes.BlocksPreview
     ) {
         composableWithDefaultTransitions<Routes.BlocksPreview> {
@@ -1164,7 +1164,7 @@ private fun NavGraphBuilder.widgets(
             )
         }
     }
-    navigation<Routes.Weather>(
+    navigationWithDefaultTransitions<Routes.Weather>(
         startDestination = Routes.WeatherPreview
     ) {
         composableWithDefaultTransitions<Routes.WeatherPreview> {
@@ -1190,7 +1190,7 @@ private fun NavGraphBuilder.widgets(
             )
         }
     }
-    navigation<Routes.Price>(
+    navigationWithDefaultTransitions<Routes.Price>(
         startDestination = Routes.PricePreview
     ) {
         composableWithDefaultTransitions<Routes.PricePreview> {
