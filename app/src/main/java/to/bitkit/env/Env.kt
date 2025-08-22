@@ -39,15 +39,15 @@ internal object Env {
 
     val vssServerUrl
         get() = when (network) {
-            Network.BITCOIN -> TODO("VSS not implemented for mainnet")
+            Network.BITCOIN -> TODO("VSS server not implemented for mainnet")
             // Network.REGTEST -> "http://localhost:5050/vss"
-            // Network.REGTEST -> "https://bitkit.stag0.blocktank.to/vss_rs_auth"
-            else -> "https://bitkit.stag0.blocktank.to/vss_rs/"
+            else -> "https://bitkit.stag0.blocktank.to/vss_rs_auth"
         }
 
-    val lnurlAuthSeverUrl = when (network) {
+    val lnurlAuthServerUrl = when (network) {
+        Network.BITCOIN -> TODO("LNURL-auth server not implemented for mainnet")
         // Network.REGTEST -> "http://localhost:5005/auth"
-        else -> "" // TODO implement LNURL-auth Server for other networks
+        else -> "https://bitkit.stag0.blocktank.to/lnurl_auth/auth"
     }
 
     val vssStoreIdPrefix get() = "bitkit_v1_${network.name.lowercase()}"
