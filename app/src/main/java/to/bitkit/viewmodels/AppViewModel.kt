@@ -1031,10 +1031,10 @@ class AppViewModel @Inject constructor(
     }
 
     fun onClickActivityDetail() {
-        val activityType = newTransaction.type.toActivityFilter()
-        val txType = newTransaction.direction.toTxType()
-        val paymentHashOrTxId = newTransaction.paymentHashOrTxId ?: return
-
+        val activityType = _newTransaction.value.type.toActivityFilter()
+        val txType = _newTransaction.value.direction.toTxType()
+        val paymentHashOrTxId = _newTransaction.value.paymentHashOrTxId ?: return
+        _newTransaction.update { it.copy(isLoadingDetails = true) }
         viewModelScope.launch(bgDispatcher) {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
@@ -1042,10 +1042,14 @@ class AppViewModel @Inject constructor(
                 txType = txType,
                 retry = true
             ).onSuccess { activity ->
+                _newTransaction.update { it.copy(isLoadingDetails = false) }
                 val nextRoute = Routes.ActivityDetail(activity.rawId())
                 mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
-            }.onFailure {
+                hideNewTransactionSheet()
+            }.onFailure { e ->
                 Logger.error(msg = "Activity not found", context = TAG)
+                toast(e)
+                _newTransaction.update { it.copy(isLoadingDetails = false) }
             }
         }
     }
@@ -1205,7 +1209,7 @@ class AppViewModel @Inject constructor(
     var showNewTransaction by mutableStateOf(false)
         private set
 
-    var newTransaction by mutableStateOf(
+    private val _newTransaction = MutableStateFlow(
         NewTransactionSheetDetails(
             type = NewTransactionSheetType.LIGHTNING,
             direction = NewTransactionSheetDirection.RECEIVED,
@@ -1213,6 +1217,8 @@ class AppViewModel @Inject constructor(
             sats = 0
         )
     )
+
+    val newTransaction = _newTransaction.asStateFlow()
 
     fun setNewTransactionSheetEnabled(enabled: Boolean) {
         isNewTransactionSheetEnabled = enabled
@@ -1242,7 +1248,7 @@ class AppViewModel @Inject constructor(
             }
         }
 
-        newTransaction = details
+        _newTransaction.update { details }
         showNewTransaction = true
     }
 
