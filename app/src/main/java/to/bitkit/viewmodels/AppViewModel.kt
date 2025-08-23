@@ -198,6 +198,7 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.RECEIVED,
+                                    paymentHashOrTxId = event.paymentHash,
                                     sats = (event.amountMsat / 1000u).toLong(),
                                 ),
                                 event = event
@@ -241,6 +242,7 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.SENT,
+                                    paymentHashOrTxId = event.paymentHash,
                                     sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
                                 ),
                                 event = event
@@ -937,6 +939,7 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.ONCHAIN,
                                     direction = NewTransactionSheetDirection.SENT,
+                                    paymentHashOrTxId = txId,
                                     sats = amount.toLong(),
                                 )
                             )
@@ -1028,19 +1031,22 @@ class AppViewModel @Inject constructor(
     }
 
     fun onClickActivityDetail() {
-        val filter = newTransaction.type.toActivityFilter()
-        val paymentType = newTransaction.direction.toTxType()
+        val activityType = newTransaction.type.toActivityFilter()
+        val txType = newTransaction.direction.toTxType()
+        val paymentHashOrTxId = newTransaction.paymentHashOrTxId ?: return
 
         viewModelScope.launch(bgDispatcher) {
-            val activity = coreService.activity.get(filter = filter, txType = paymentType, limit = 1u).firstOrNull()
-
-            if (activity == null) {
+            activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = paymentHashOrTxId,
+                type = activityType,
+                txType = txType,
+                retry = true
+            ).onSuccess { activity ->
+                val nextRoute = Routes.ActivityDetail(activity.rawId())
+                mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
+            }.onFailure {
                 Logger.error(msg = "Activity not found", context = TAG)
-                return@launch
             }
-
-            val nextRoute = Routes.ActivityDetail(activity.rawId())
-            mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
         }
     }
 
@@ -1201,9 +1207,10 @@ class AppViewModel @Inject constructor(
 
     var newTransaction by mutableStateOf(
         NewTransactionSheetDetails(
-            NewTransactionSheetType.LIGHTNING,
-            NewTransactionSheetDirection.RECEIVED,
-            0
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+            paymentHashOrTxId = null,
+            sats = 0
         )
     )
 
