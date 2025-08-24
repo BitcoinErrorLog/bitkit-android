@@ -13,6 +13,9 @@ interface InvoiceTagDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveInvoice(invoiceTag: InvoiceTagEntity)
 
+    @Query("SELECT * FROM invoice_tag")
+    suspend fun getAll(): List<InvoiceTagEntity>
+
     @Query("SELECT * FROM invoice_tag WHERE paymentHash = :paymentHash LIMIT 1")
     suspend fun searchInvoice(paymentHash: String): InvoiceTagEntity?
 

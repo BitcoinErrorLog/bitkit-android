@@ -15,8 +15,9 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.di.BgDispatcher
+import to.bitkit.ext.rawId
 import to.bitkit.repositories.ActivityRepo
-import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.wallets.activity.components.ActivityTab
@@ -27,9 +28,9 @@ import javax.inject.Inject
 class ActivityListViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
-    private val lightningRepo: LightningRepo,
+    private val walletRepo: WalletRepo,
     private val ldkNodeEventBus: LdkNodeEventBus,
-    private val activityRepo: ActivityRepo
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
     private val _filteredActivities = MutableStateFlow<List<Activity>?>(null)
     val filteredActivities = _filteredActivities.asStateFlow()
@@ -224,6 +225,7 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch {
             activityRepo.syncActivities().onSuccess {
                 syncState()
+                syncActivityTags()
             }.onFailure { e ->
                 Logger.error("Failed to sync ldk-node payments", e)
             }
@@ -241,6 +243,27 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch(bgDispatcher) {
             coreService.activity.removeAll()
             syncState()
+        }
+    }
+
+    private fun syncActivityTags() {
+        viewModelScope.launch {
+            walletRepo.getAllInvoiceTags().onSuccess { invoiceTags ->
+                invoiceTags.forEach { tagEntity ->
+                    activityRepo.findActivityByPaymentId(
+                        paymentHashOrTxId = tagEntity.paymentHash,
+                        type = ActivityFilter.ALL,
+                        txType = null
+                    ).onSuccess { activity ->
+                        activityRepo.addTagsToActivity(
+                            activityId = activity.rawId(),
+                            tags = tagEntity.tags
+                        ).onSuccess {
+                            walletRepo.deleteInvoice(tagEntity.paymentHash)
+                        }
+                    }
+                }
+            }
         }
     }
 }

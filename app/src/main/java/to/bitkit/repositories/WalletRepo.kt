@@ -453,6 +453,12 @@ class WalletRepo @Inject constructor(
         }
     }
 
+    suspend fun getAllInvoiceTags() : Result<List<InvoiceTagEntity>> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            db.invoiceTagDao().getAll()
+        }
+    }
+
     suspend fun searchInvoice(txId: Txid): Result<InvoiceTagEntity> = withContext(bgDispatcher) {
         return@withContext try {
             val invoiceTag = db.invoiceTagDao().searchInvoice(paymentHash = txId) ?: return@withContext Result.failure(

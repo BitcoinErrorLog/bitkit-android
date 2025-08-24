@@ -105,7 +105,7 @@ class ActivityRepo @Inject constructor(
     suspend fun findActivityByPaymentId(
         paymentHashOrTxId: String,
         type: ActivityFilter,
-        txType: PaymentType,
+        txType: PaymentType?,
         retry: Boolean = true,
     ): Result<Activity> = withContext(bgDispatcher) {
         if (paymentHashOrTxId.isEmpty()) {
