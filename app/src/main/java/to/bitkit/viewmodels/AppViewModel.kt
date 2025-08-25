@@ -1043,10 +1043,10 @@ class AppViewModel @Inject constructor(
                 txType = txType,
                 retry = true
             ).onSuccess { activity ->
+                hideNewTransactionSheet()
                 _newTransaction.update { it.copy(isLoadingDetails = false) }
                 val nextRoute = Routes.ActivityDetail(activity.rawId())
                 mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
-                hideNewTransactionSheet()
             }.onFailure { e ->
                 Logger.error(msg = "Activity not found", context = TAG)
                 toast(e)
