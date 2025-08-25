@@ -27,7 +27,7 @@ import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
 
 private const val SYNC_TIMEOUT_MS = 30_000L
-private const val SYNC_CHECK_DELAY_MS = 100L
+private const val SYNC_CHECK_DELAY_MS = 500L
 
 @Singleton
 class ActivityRepo @Inject constructor(
