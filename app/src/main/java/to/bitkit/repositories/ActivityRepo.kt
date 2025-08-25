@@ -6,10 +6,12 @@ import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
@@ -24,6 +26,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
 
+private const val SYNC_TIMEOUT_MS = 30_000L
+private const val SYNC_CHECK_DELAY_MS = 100L
+
 @Singleton
 class ActivityRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -31,7 +36,6 @@ class ActivityRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
 ) {
-
     var isSyncingLdkNodePayments = false
 
     val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
@@ -41,9 +45,11 @@ class ActivityRepo @Inject constructor(
 
         return@withContext runCatching {
 
-            while (isSyncingLdkNodePayments) {
-                Logger.debug("LDK-node payments are already being synced, waiting for completion", context = TAG)
-                delay(1.seconds)
+            withTimeout(SYNC_TIMEOUT_MS) {
+                while (isSyncingLdkNodePayments) {
+                    Logger.debug("LDK-node payments are already being synced, waiting for completion", context = TAG)
+                    delay(SYNC_CHECK_DELAY_MS)
+                }
             }
 
             deletePendingActivities()
@@ -64,8 +70,16 @@ class ActivityRepo @Inject constructor(
                     return@withContext Result.failure(e)
                 }.map { Unit }
         }.onFailure { e ->
-            isSyncingLdkNodePayments = false
-            Logger.error("syncLdkNodePayments error", e, context = TAG)
+            when (e) {
+                is TimeoutCancellationException -> {
+                    Logger.error("Timeout waiting for sync to complete, forcing reset", e, context = TAG)
+                    isSyncingLdkNodePayments = false
+                }
+                else -> {
+                    Logger.error("syncActivities error", e, context = TAG)
+                    isSyncingLdkNodePayments = false
+                }
+            }
         }
     }
 
