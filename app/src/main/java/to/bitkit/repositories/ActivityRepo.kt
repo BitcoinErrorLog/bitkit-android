@@ -26,7 +26,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val SYNC_TIMEOUT_MS = 40_000L
-private const val SYNC_CHECK_DELAY_MS = 500L
 
 @Singleton
 class ActivityRepo @Inject constructor(
