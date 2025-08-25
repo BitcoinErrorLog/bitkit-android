@@ -7,6 +7,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +67,7 @@ fun ActivityAddTagSheet(
             tagInputTestTag = "TagInput",
             addButtonTestTag = "ActivityTagsSubmit",
             modifier = Modifier
+                .semantics { testTagsAsResourceId = true }
                 .sheetHeight(SheetSize.SMALL, isModal = true)
                 .gradientBackground()
         )
