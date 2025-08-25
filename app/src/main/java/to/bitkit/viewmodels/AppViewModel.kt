@@ -944,6 +944,7 @@ class AppViewModel @Inject constructor(
                                 )
                             )
                         )
+                        lightningRepo.sync()
                     }.onFailure { e ->
                         Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
