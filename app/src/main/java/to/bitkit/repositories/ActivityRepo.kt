@@ -43,7 +43,6 @@ class ActivityRepo @Inject constructor(
         Logger.debug("syncActivities called", context = TAG)
 
         return@withContext runCatching {
-
             withTimeout(SYNC_TIMEOUT_MS) {
                 Logger.debug("isSyncingLdkNodePayments = ${isSyncingLdkNodePayments.value}", context = TAG)
                 isSyncingLdkNodePayments.first { !it }
