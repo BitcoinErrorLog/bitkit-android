@@ -24,9 +24,8 @@ import to.bitkit.services.CoreService
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.seconds
 
-private const val SYNC_TIMEOUT_MS = 30_000L
+private const val SYNC_TIMEOUT_MS = 40_000L
 private const val SYNC_CHECK_DELAY_MS = 500L
 
 @Singleton
@@ -143,9 +142,6 @@ class ActivityRepo @Inject constructor(
                     "activity with paymentHashOrTxId:$paymentHashOrTxId not found, trying again after sync",
                     context = TAG
                 )
-                Logger.debug("5 seconds delay", context = TAG)
-                delay(5.seconds)
-                Logger.debug("Syncing LN node called", context = TAG)
 
                 lightningRepo.sync().onSuccess {
                     Logger.debug("Syncing LN node SUCCESS", context = TAG)
