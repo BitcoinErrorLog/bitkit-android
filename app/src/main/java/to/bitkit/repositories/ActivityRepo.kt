@@ -40,9 +40,10 @@ class ActivityRepo @Inject constructor(
         Logger.debug("syncActivities called", context = TAG)
 
         return@withContext runCatching {
-            if (isSyncingLdkNodePayments) {
-                Logger.warn("LDK-node payments are already being synced, skipping", context = TAG)
-                return@withContext Result.failure(Exception())
+
+            while (isSyncingLdkNodePayments) {
+                Logger.debug("LDK-node payments are already being synced, waiting for completion", context = TAG)
+                delay(1.seconds)
             }
 
             deletePendingActivities()
@@ -63,6 +64,7 @@ class ActivityRepo @Inject constructor(
                     return@withContext Result.failure(e)
                 }.map { Unit }
         }.onFailure { e ->
+            isSyncingLdkNodePayments = false
             Logger.error("syncLdkNodePayments error", e, context = TAG)
         }
     }
