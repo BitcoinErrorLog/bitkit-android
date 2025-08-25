@@ -451,7 +451,7 @@ class ActivityRepo @Inject constructor(
     suspend fun addTagsToTransaction(
         paymentHashOrTxId: String,
         type: ActivityFilter,
-        txType: PaymentType,
+        txType: PaymentType?,
         tags: List<String>,
     ): Result<Unit> = withContext(bgDispatcher) {
         if (tags.isEmpty()) return@withContext Result.failure(IllegalArgumentException("No tags selected"))
@@ -460,7 +460,7 @@ class ActivityRepo @Inject constructor(
             type = type,
             txType = txType
         ).onSuccess { activity ->
-            return@withContext addTagsToActivity(activity.rawId(), tags = tags)
+            addTagsToActivity(activity.rawId(), tags = tags)
         }.onFailure { e ->
             return@withContext Result.failure(e)
         }.map { Unit }

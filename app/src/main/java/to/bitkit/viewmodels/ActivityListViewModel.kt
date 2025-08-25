@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.di.BgDispatcher
-import to.bitkit.ext.rawId
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.CoreService
@@ -250,17 +249,13 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch {
             walletRepo.getAllInvoiceTags().onSuccess { invoiceTags ->
                 invoiceTags.forEach { tagEntity ->
-                    activityRepo.findActivityByPaymentId(
+                    activityRepo.addTagsToTransaction(
                         paymentHashOrTxId = tagEntity.paymentHash,
                         type = ActivityFilter.ALL,
-                        txType = null
-                    ).onSuccess { activity ->
-                        activityRepo.addTagsToActivity(
-                            activityId = activity.rawId(),
-                            tags = tagEntity.tags
-                        ).onSuccess {
-                            walletRepo.deleteInvoice(tagEntity.paymentHash)
-                        }
+                        txType = null,
+                        tags = tagEntity.tags
+                    ).onSuccess {
+                        walletRepo.deleteInvoice(tagEntity.paymentHash)
                     }
                 }
             }
