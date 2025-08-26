@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.di.BgDispatcher
 import to.bitkit.repositories.ActivityRepo
-import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.wallets.activity.components.ActivityTab
@@ -27,7 +26,6 @@ import javax.inject.Inject
 class ActivityListViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
-    private val walletRepo: WalletRepo,
     private val ldkNodeEventBus: LdkNodeEventBus,
     private val activityRepo: ActivityRepo,
 ) : ViewModel() {
@@ -224,7 +222,6 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch {
             activityRepo.syncActivities().onSuccess {
                 syncState()
-                syncActivityTags()
             }.onFailure { e ->
                 Logger.error("Failed to sync ldk-node payments", e)
             }
@@ -242,25 +239,6 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch(bgDispatcher) {
             coreService.activity.removeAll()
             syncState()
-        }
-    }
-
-    private fun syncActivityTags() {
-        viewModelScope.launch {
-            walletRepo.getAllInvoiceTags().onSuccess { invoiceTags ->
-                invoiceTags.forEach { tagEntity ->
-                    tagEntity.paymentHash?.let {
-                        activityRepo.addTagsToTransaction(
-                            paymentHashOrTxId = it,
-                            type = ActivityFilter.ALL,
-                            txType = null,
-                            tags = tagEntity.tags
-                        ).onSuccess {
-                            walletRepo.deleteInvoice(tagEntity.paymentHash)
-                        }
-                    }
-                }
-            }
         }
     }
 }
