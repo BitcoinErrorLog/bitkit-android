@@ -1,6 +1,5 @@
 package to.bitkit.repositories
 
-import androidx.room.PrimaryKey
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
@@ -44,8 +43,7 @@ class ActivityRepo @Inject constructor(
     private val db: AppDb,
     private val addressChecker: AddressChecker,
 ) {
-    var isSyncingLdkNodePayments = MutableStateFlow(false)
-        private set
+    val isSyncingLdkNodePayments = MutableStateFlow(false)
 
     val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
 
@@ -58,7 +56,7 @@ class ActivityRepo @Inject constructor(
                 isSyncingLdkNodePayments.first { !it }
             }
 
-            isSyncingLdkNodePayments = MutableStateFlow(true)
+            isSyncingLdkNodePayments.value = true
 
             deletePendingActivities()
             return@withContext lightningRepo.getPayments()
@@ -71,22 +69,22 @@ class ActivityRepo @Inject constructor(
                     boostPendingActivities()
                     updateInProgressTransfers()
                     syncResult.getOrNull()?.let { syncTagsMetaData(it) }
-                    isSyncingLdkNodePayments = MutableStateFlow(false)
+                    isSyncingLdkNodePayments.value = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
                     Logger.error("Failed to sync ldk-node payments", e, context = TAG)
-                    isSyncingLdkNodePayments = MutableStateFlow(false)
+                    isSyncingLdkNodePayments.value = false
                     return@withContext Result.failure(e)
                 }.map { Unit }
         }.onFailure { e ->
             when (e) {
                 is TimeoutCancellationException -> {
-                    isSyncingLdkNodePayments = MutableStateFlow(false)
+                    isSyncingLdkNodePayments.value = false
                     Logger.warn("Timeout waiting for sync to complete, forcing reset", context = TAG)
                 }
 
                 else -> {
-                    isSyncingLdkNodePayments = MutableStateFlow(false)
+                    isSyncingLdkNodePayments.value = false
                     Logger.error("syncActivities error", e, context = TAG)
                 }
             }
