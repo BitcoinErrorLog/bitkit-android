@@ -70,7 +70,7 @@ class ActivityRepo @Inject constructor(
                     updateActivitiesMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
-                    syncResult.getOrNull()?.let { syncTagsMetaData(it.first) }
+                    syncResult.getOrNull()?.let { syncTagsMetaData(it) }
                     isSyncingLdkNodePayments = MutableStateFlow(false)
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -82,7 +82,7 @@ class ActivityRepo @Inject constructor(
             when (e) {
                 is TimeoutCancellationException -> {
                     isSyncingLdkNodePayments = MutableStateFlow(false)
-                    Logger.error("Timeout waiting for sync to complete, forcing reset", e, context = TAG)
+                    Logger.warn("Timeout waiting for sync to complete, forcing reset", context = TAG)
                 }
 
                 else -> {
@@ -95,16 +95,18 @@ class ActivityRepo @Inject constructor(
 
     /**
      * Business logic: Syncs LDK node payments with proper error handling and counting
+     * @return a list with added payments
      */
     private suspend fun syncLdkNodePayments(
         payments: List<PaymentDetails>,
-    ): Result<Pair<List<PaymentDetails>, List<PaymentDetails>>> {
+    ): Result<List<PaymentDetails>> {
         // TODO Reduce getActivity calls
-        val paymentsToAdd = payments.filter { payment -> coreService.activity.getActivity(payment.id) != null }
+        val paymentsToAdd = payments.filter { payment -> coreService.activity.getActivity(payment.id) == null }
         val paymentsToUpdate = payments.filter { it !in paymentsToAdd }
         return runCatching {
             coreService.activity.syncLdkNodePayments(payments)
-            Pair(paymentsToAdd, paymentsToUpdate)
+            Logger.debug("syncLdkNodePayments added ${paymentsToAdd.count()}, updated ${paymentsToUpdate.count()}")
+            paymentsToAdd
         }.onFailure { e ->
             Logger.error("Error syncing LDK payment:", e, context = TAG)
         }
@@ -578,17 +580,19 @@ class ActivityRepo @Inject constructor(
 
             if (tags.isEmpty()) throw InvalidParameterException("tags must not be empty")
 
-            db.tagMetadataDao().saveTagMetadata(
-                tagMetadata = TagMetadataEntity(
-                    id = id,
-                    paymentHash = paymentHash,
-                    txId = txId,
-                    address = address,
-                    isReceive = isReceive,
-                    tags = tags,
-                    createdAt = nowTimestamp().toEpochMilli()
-                )
+            val entity = TagMetadataEntity(
+                id = id,
+                paymentHash = paymentHash,
+                txId = txId,
+                address = address,
+                isReceive = isReceive,
+                tags = tags,
+                createdAt = nowTimestamp().toEpochMilli()
             )
+            db.tagMetadataDao().saveTagMetadata(
+                tagMetadata = entity
+            )
+            Logger.debug("Tag metadata saved: $entity", context = TAG)
         }.onFailure { e ->
             Logger.error("getAllAvailableTags error", e, context = TAG)
         }
