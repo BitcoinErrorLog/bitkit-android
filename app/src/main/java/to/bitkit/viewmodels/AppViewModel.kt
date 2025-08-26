@@ -261,7 +261,7 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun handleTags(event: Event.PaymentReceived) {
-        val tags = walletRepo.searchInvoice(txId = event.paymentHash).getOrNull()?.tags.orEmpty()
+        val tags = walletRepo.searchInvoiceByPaymentHash(paymentHash = event.paymentHash).getOrNull()?.tags.orEmpty()
         activityRepo.addTagsToTransaction(
             paymentHashOrTxId = event.paymentHash,
             type = ActivityFilter.LIGHTNING,

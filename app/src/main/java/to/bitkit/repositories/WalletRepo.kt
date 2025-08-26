@@ -20,7 +20,7 @@ import org.lightningdevkit.ldknode.Txid
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.entities.InvoiceTagEntity
+import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
@@ -440,10 +440,12 @@ class WalletRepo @Inject constructor(
             }
 
             paymentHashOrAddress?.let {
-                db.invoiceTagDao().saveInvoice(
-                    invoiceTag = InvoiceTagEntity(
-                        paymentHash = paymentHashOrAddress,
+                db.tagMetadataDao().saveTagMetadata(
+                    tagMetadata = TagMetadataEntity(
+                        id = paymentHashOrAddress,
                         tags = tags,
+                        address = "",
+                        isReceive = true,
                         createdAt = System.currentTimeMillis()
                     )
                 )
@@ -453,17 +455,18 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun getAllInvoiceTags() : Result<List<InvoiceTagEntity>> = withContext(bgDispatcher) {
+    suspend fun getAllInvoiceTags(): Result<List<TagMetadataEntity>> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            db.invoiceTagDao().getAll()
+            db.tagMetadataDao().getAll()
         }
     }
 
-    suspend fun searchInvoice(txId: Txid): Result<InvoiceTagEntity> = withContext(bgDispatcher) {
+    suspend fun searchInvoiceByPaymentHash(paymentHash: String): Result<TagMetadataEntity> = withContext(bgDispatcher) {
         return@withContext try {
-            val invoiceTag = db.invoiceTagDao().searchInvoice(paymentHash = txId) ?: return@withContext Result.failure(
-                Exception("Invoice not found")
-            )
+            val invoiceTag =
+                db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash) ?: return@withContext Result.failure(
+                    Exception("Invoice not found")
+                )
             Result.success(invoiceTag)
         } catch (e: Throwable) {
             Logger.error("searchInvoice error", e, context = TAG)
@@ -473,7 +476,7 @@ class WalletRepo @Inject constructor(
 
     suspend fun deleteInvoice(txId: Txid) = withContext(bgDispatcher) {
         try {
-            db.invoiceTagDao().deleteInvoiceByPaymentHash(paymentHash = txId)
+            db.tagMetadataDao().deleteByPaymentHash(paymentHash = txId)
         } catch (e: Throwable) {
             Logger.error("deleteInvoice error", e, context = TAG)
         }
@@ -481,7 +484,7 @@ class WalletRepo @Inject constructor(
 
     suspend fun deleteAllInvoices() = withContext(bgDispatcher) {
         try {
-            db.invoiceTagDao().deleteAllInvoices()
+            db.tagMetadataDao().deleteAll()
         } catch (e: Throwable) {
             Logger.error("deleteAllInvoices error", e, context = TAG)
         }
@@ -490,7 +493,7 @@ class WalletRepo @Inject constructor(
     suspend fun deleteExpiredInvoices() = withContext(bgDispatcher) {
         try {
             val twoDaysAgoMillis = Clock.System.now().minus(2.days).toEpochMilliseconds()
-            db.invoiceTagDao().deleteExpiredInvoices(expirationTimeStamp = twoDaysAgoMillis)
+            db.tagMetadataDao().deleteExpired(expirationTimeStamp = twoDaysAgoMillis)
         } catch (e: Throwable) {
             Logger.error("deleteExpiredInvoices error", e, context = TAG)
         }
