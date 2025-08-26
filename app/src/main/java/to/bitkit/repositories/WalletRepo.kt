@@ -395,15 +395,19 @@ class WalletRepo @Inject constructor(
             } else {
                 setBolt11("")
             }
-
+            val address = getOnchainAddress()
             val newBip21 = buildBip21Url(
-                bitcoinAddress = getOnchainAddress(),
+                bitcoinAddress = address,
                 amountSats = _walletState.value.bip21AmountSats,
                 message = description.ifBlank { Env.DEFAULT_INVOICE_MESSAGE },
                 lightningInvoice = getBolt11()
             )
             setBip21(newBip21)
-            saveInvoiceWithTags(bip21Invoice = newBip21, tags = _walletState.value.selectedTags)
+            saveInvoiceWithTags(
+                bip21Invoice = newBip21,
+                onChainAddress = address,
+                tags = _walletState.value.selectedTags
+            )
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.error("Update BIP21 invoice error", e, context = TAG)
@@ -427,33 +431,34 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun saveInvoiceWithTags(bip21Invoice: String, tags: List<String>) = withContext(bgDispatcher) {
-        if (tags.isEmpty()) return@withContext
+    suspend fun saveInvoiceWithTags(bip21Invoice: String, onChainAddress: String, tags: List<String>) =
+        withContext(bgDispatcher) {
+            if (tags.isEmpty()) return@withContext
 
-        try {
-            deleteExpiredInvoices()
-            val decoded = decode(bip21Invoice)
-            val paymentHashOrAddress = when (decoded) {
-                is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
-                is Scanner.OnChain -> decoded.extractLightningHashOrAddress()
-                else -> null
-            }
+            try {
+                deleteExpiredInvoices()
+                val decoded = decode(bip21Invoice)
+                val paymentHashOrAddress = when (decoded) {
+                    is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
+                    is Scanner.OnChain -> decoded.extractLightningHashOrAddress()
+                    else -> null
+                }
 
-            paymentHashOrAddress?.let {
-                db.tagMetadataDao().saveTagMetadata(
-                    tagMetadata = TagMetadataEntity(
-                        id = paymentHashOrAddress,
-                        tags = tags,
-                        address = "",
-                        isReceive = true,
-                        createdAt = System.currentTimeMillis()
+                paymentHashOrAddress?.let {
+                    db.tagMetadataDao().saveTagMetadata(
+                        tagMetadata = TagMetadataEntity(
+                            id = paymentHashOrAddress,
+                            tags = tags,
+                            address = onChainAddress,
+                            isReceive = true,
+                            createdAt = System.currentTimeMillis()
+                        )
                     )
-                )
+                }
+            } catch (e: Throwable) {
+                Logger.error("saveInvoice error", e, context = TAG)
             }
-        } catch (e: Throwable) {
-            Logger.error("saveInvoice error", e, context = TAG)
         }
-    }
 
     suspend fun getAllInvoiceTags(): Result<List<TagMetadataEntity>> = withContext(bgDispatcher) {
         return@withContext runCatching {
