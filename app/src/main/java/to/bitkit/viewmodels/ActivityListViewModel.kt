@@ -222,8 +222,6 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch {
             activityRepo.syncActivities().onSuccess {
                 syncState()
-            }.onFailure { e ->
-                Logger.error("Failed to sync ldk-node payments", e)
             }
         }
     }
