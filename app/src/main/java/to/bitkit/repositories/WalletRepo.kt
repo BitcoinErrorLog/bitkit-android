@@ -460,12 +460,6 @@ class WalletRepo @Inject constructor(
             }
         }
 
-    suspend fun getAllInvoiceTags(): Result<List<TagMetadataEntity>> = withContext(bgDispatcher) {
-        return@withContext runCatching {
-            db.tagMetadataDao().getAll()
-        }
-    }
-
     suspend fun searchInvoiceByPaymentHash(paymentHash: String): Result<TagMetadataEntity> = withContext(bgDispatcher) {
         return@withContext try {
             val invoiceTag =
