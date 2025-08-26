@@ -249,13 +249,15 @@ class ActivityListViewModel @Inject constructor(
         viewModelScope.launch {
             walletRepo.getAllInvoiceTags().onSuccess { invoiceTags ->
                 invoiceTags.forEach { tagEntity ->
-                    activityRepo.addTagsToTransaction(
-                        paymentHashOrTxId = tagEntity.paymentHash,
-                        type = ActivityFilter.ALL,
-                        txType = null,
-                        tags = tagEntity.tags
-                    ).onSuccess {
-                        walletRepo.deleteInvoice(tagEntity.paymentHash)
+                    tagEntity.paymentHash?.let {
+                        activityRepo.addTagsToTransaction(
+                            paymentHashOrTxId = it,
+                            type = ActivityFilter.ALL,
+                            txType = null,
+                            tags = tagEntity.tags
+                        ).onSuccess {
+                            walletRepo.deleteInvoice(tagEntity.paymentHash)
+                        }
                     }
                 }
             }
