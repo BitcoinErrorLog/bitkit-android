@@ -1,5 +1,6 @@
 package to.bitkit.repositories
 
+import androidx.room.PrimaryKey
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
@@ -20,12 +21,15 @@ import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.data.dto.TransferType
+import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.matchesPaymentId
+import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
+import java.security.InvalidParameterException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -561,6 +565,35 @@ class ActivityRepo @Inject constructor(
             Logger.error("getAllAvailableTags error", e, context = TAG)
         }
     }
+
+    suspend fun saveTagsMetadata(
+        id: String,
+        paymentHash: String? = null,
+        txId: String? = null,
+        address: String,
+        isReceive: Boolean,
+        tags: List<String>,
+    ): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+
+            if (tags.isEmpty()) throw InvalidParameterException("tags must not be empty")
+
+            db.tagMetadataDao().saveTagMetadata(
+                tagMetadata = TagMetadataEntity(
+                    id = id,
+                    paymentHash = paymentHash,
+                    txId = txId,
+                    address = address,
+                    isReceive = isReceive,
+                    tags = tags,
+                    createdAt = nowTimestamp().toEpochMilli()
+                )
+            )
+        }.onFailure { e ->
+            Logger.error("getAllAvailableTags error", e, context = TAG)
+        }
+    }
+
 
     // MARK: - Development/Testing Methods
 

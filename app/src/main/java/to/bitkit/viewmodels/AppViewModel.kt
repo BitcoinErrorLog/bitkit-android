@@ -193,7 +193,6 @@ class AppViewModel @Inject constructor(
                 try {
                     when (event) { // TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
-                            handleTags(event)
                             showNewTransactionSheet(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
@@ -258,16 +257,6 @@ class AppViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    private suspend fun handleTags(event: Event.PaymentReceived) {
-        val tags = walletRepo.searchInvoiceByPaymentHash(paymentHash = event.paymentHash).getOrNull()?.tags.orEmpty()
-        activityRepo.addTagsToTransaction(
-            paymentHashOrTxId = event.paymentHash,
-            type = ActivityFilter.LIGHTNING,
-            txType = PaymentType.RECEIVED,
-            tags = tags
-        )
     }
 
     private fun checkGeoStatus() {
@@ -927,10 +916,11 @@ class AppViewModel @Inject constructor(
                 sendOnchain(validatedAddress.address, amount)
                     .onSuccess { txId ->
                         val tags = _sendUiState.value.selectedTags
-                        activityRepo.addTagsToTransaction(
-                            paymentHashOrTxId = txId,
-                            type = ActivityFilter.ONCHAIN,
-                            txType = PaymentType.SENT,
+                        activityRepo.saveTagsMetadata(
+                            id = txId,
+                            txId = txId,
+                            address = validatedAddress.address,
+                            isReceive = false,
                             tags = tags
                         )
                         Logger.info("Onchain send result txid: $txId", context = TAG)
@@ -966,10 +956,11 @@ class AppViewModel @Inject constructor(
                 sendLightning(bolt11, paymentAmount).onSuccess { paymentHash ->
                     Logger.info("Lightning send result payment hash: $paymentHash", context = TAG)
                     val tags = _sendUiState.value.selectedTags
-                    activityRepo.addTagsToTransaction(
-                        paymentHashOrTxId = paymentHash,
-                        type = ActivityFilter.LIGHTNING,
-                        txType = PaymentType.SENT,
+                    activityRepo.saveTagsMetadata(
+                        id = paymentHash,
+                        paymentHash = paymentHash,
+                        address = _sendUiState.value.address,
+                        isReceive = false,
                         tags = tags
                     )
                     setSendEffect(SendEffect.PaymentSuccess())

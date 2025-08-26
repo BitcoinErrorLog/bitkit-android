@@ -24,6 +24,7 @@ import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
+import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
@@ -451,7 +452,7 @@ class WalletRepo @Inject constructor(
                             tags = tags,
                             address = onChainAddress,
                             isReceive = true,
-                            createdAt = System.currentTimeMillis()
+                            createdAt = nowTimestamp().toEpochMilli()
                         )
                     )
                 }
