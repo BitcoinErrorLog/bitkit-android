@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
+import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
@@ -33,6 +34,7 @@ class ActivityRepo @Inject constructor(
     private val coreService: CoreService,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
+    private val db: AppDb,
 ) {
     var isSyncingLdkNodePayments = MutableStateFlow(false)
         private set
@@ -54,10 +56,13 @@ class ActivityRepo @Inject constructor(
             return@withContext lightningRepo.getPayments()
                 .onSuccess { payments ->
                     Logger.debug("Got payments with success, syncing activities", context = TAG)
-                    syncLdkNodePayments(payments = payments)
+                    syncLdkNodePayments(payments = payments).onFailure { e ->
+                        return@withContext Result.failure(e)
+                    }
                     updateActivitiesMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
+                    syncTagsMetaData()
                     isSyncingLdkNodePayments = MutableStateFlow(false)
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -83,33 +88,18 @@ class ActivityRepo @Inject constructor(
     /**
      * Business logic: Syncs LDK node payments with proper error handling and counting
      */
-    private suspend fun syncLdkNodePayments(payments: List<PaymentDetails>) {
-        var addedCount = 0
-        var updatedCount = 0
-        var latestCaughtError: Throwable? = null
-
-        for (payment in payments) {
-            try {
-                val existentActivity = coreService.activity.getActivity(payment.id)
-                val wasUpdate = existentActivity != null
-
-                // Delegate the actual sync to the service layer
-                coreService.activity.syncLdkNodePayments(listOf(payment))
-
-                if (wasUpdate) {
-                    updatedCount++
-                } else {
-                    addedCount++
-                }
-            } catch (e: Throwable) {
-                Logger.error("Error syncing LDK payment:", e, context = TAG)
-                latestCaughtError = e
-            }
+    private suspend fun syncLdkNodePayments(
+        payments: List<PaymentDetails>,
+    ): Result<Pair<List<PaymentDetails>, List<PaymentDetails>>> {
+        //TODO Reduce getActivity calls
+        val paymentsToAdd = payments.filter { payment -> coreService.activity.getActivity(payment.id) != null }
+        val paymentsToUpdate = payments.filter { it !in paymentsToAdd }
+        return runCatching {
+            coreService.activity.syncLdkNodePayments(payments)
+            Pair(paymentsToAdd, paymentsToUpdate)
+        }.onFailure { e ->
+            Logger.error("Error syncing LDK payment:", e, context = TAG)
         }
-
-        latestCaughtError?.let { throw it }
-
-        Logger.info("Synced LDK payments - Added: $addedCount - Updated: $updatedCount", context = TAG)
     }
 
     /**
@@ -329,6 +319,17 @@ class ActivityRepo @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun syncTagsMetaData() = withContext(context = bgDispatcher) {
+        // 1. Check for new activities
+        // 2. Filter receive
+        // 2.1 Lightning -> search for payment hash
+        // 2.2 OnChain -> get payment detail -> output -> search for address
+        // 3. Filter sent
+        // 3.1 Lightning -> search for payment hash
+        // 3.2 OnChain -> search for tx ID
+        // 4. Delete successfull addedd
     }
 
     private suspend fun updateInProgressTransfers() {
