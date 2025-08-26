@@ -357,7 +357,18 @@ class ActivityRepo @Inject constructor(
                     is PaymentKind.Onchain -> {
                         when (payment.direction) {
                             PaymentDirection.INBOUND -> TODO()
-                            PaymentDirection.OUTBOUND -> TODO()
+                            PaymentDirection.OUTBOUND -> {
+                                db.tagMetadataDao().searchByTxId(kind.txid)?.let { tagMetadata ->
+                                    addTagsToTransaction(
+                                        paymentHashOrTxId = kind.txid,
+                                        type = ActivityFilter.ONCHAIN,
+                                        txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
+                                        tags = tagMetadata.tags
+                                    ).onSuccess {
+                                        db.tagMetadataDao().deleteByTxId(kind.txid)
+                                    }
+                                }
+                            }
                         }
                     }
                     else -> Unit
