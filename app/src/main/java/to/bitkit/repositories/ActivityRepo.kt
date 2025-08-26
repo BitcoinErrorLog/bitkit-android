@@ -336,7 +336,7 @@ class ActivityRepo @Inject constructor(
     ) = withContext(context = bgDispatcher) {
         runCatching {
             if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
-
+            Logger.debug("syncTagsMetaData called")
             newPayments.forEach { payment ->
                 when (val kind = payment.kind) {
                     is PaymentKind.Bolt11 -> {
@@ -348,6 +348,7 @@ class ActivityRepo @Inject constructor(
                                 txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
                                 tags = tagMetadata.tags
                             ).onSuccess {
+                                Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
                                 db.tagMetadataDao().deleteByPaymentHash(paymentHash = paymentHash)
                             }
                         }
@@ -358,18 +359,23 @@ class ActivityRepo @Inject constructor(
                             PaymentDirection.INBOUND -> {
                                 // TODO Temporary solution while whe ldk-node doesn't return the txId directly
                                 runCatching { addressChecker.getTransaction(kind.txid) }.onSuccess { txDetails ->
-                                    txDetails.vout.firstOrNull()?.scriptpubkey_address?.let {
-                                        db.tagMetadataDao().searchByAddress(it)
-                                    }?.let { tagMetadata ->
-                                        addTagsToTransaction(
-                                            paymentHashOrTxId = kind.txid,
-                                            type = ActivityFilter.ONCHAIN,
-                                            txType = PaymentType.RECEIVED,
-                                            tags = tagMetadata.tags
-                                        ).onSuccess {
-                                            db.tagMetadataDao().deleteByTxId(kind.txid)
+                                    txDetails.vout.forEach { vOut ->
+                                        vOut.scriptpubkey_address?.let {
+                                            db.tagMetadataDao().searchByAddress(it)
+                                        }?.let { tagMetadata ->
+                                            addTagsToTransaction(
+                                                paymentHashOrTxId = kind.txid,
+                                                type = ActivityFilter.ONCHAIN,
+                                                txType = PaymentType.RECEIVED,
+                                                tags = tagMetadata.tags
+                                            ).onSuccess {
+                                                Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
+                                                db.tagMetadataDao().deleteByTxId(kind.txid)
+                                            }
                                         }
                                     }
+                                }.onFailure {
+                                    Logger.warn("Failed getting transaction detail", context = TAG)
                                 }
                             }
 
@@ -381,6 +387,7 @@ class ActivityRepo @Inject constructor(
                                         txType = PaymentType.SENT,
                                         tags = tagMetadata.tags
                                     ).onSuccess {
+                                        Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
                                         db.tagMetadataDao().deleteByTxId(kind.txid)
                                     }
                                 }
