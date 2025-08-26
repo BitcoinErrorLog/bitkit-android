@@ -439,22 +439,25 @@ class WalletRepo @Inject constructor(
             try {
                 deleteExpiredInvoices()
                 val decoded = decode(bip21Invoice)
-                val paymentHashOrAddress = when (decoded) {
+                val paymentHash = when (decoded) {
                     is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
-                    is Scanner.OnChain -> decoded.extractLightningHashOrAddress()
+                    is Scanner.OnChain -> decoded.extractLightningHash()
                     else -> null
                 }
 
-                paymentHashOrAddress?.let {
-                    db.tagMetadataDao().saveTagMetadata(
-                        tagMetadata = TagMetadataEntity(
-                            id = paymentHashOrAddress,
-                            tags = tags,
-                            address = onChainAddress,
-                            isReceive = true,
-                            createdAt = nowTimestamp().toEpochMilli()
-                        )
+                paymentHash?.let {
+                    val entity = TagMetadataEntity(
+                        id = paymentHash,
+                        paymentHash = paymentHash,
+                        tags = tags,
+                        address = onChainAddress,
+                        isReceive = true,
+                        createdAt = nowTimestamp().toEpochMilli()
                     )
+                    db.tagMetadataDao().saveTagMetadata(
+                        tagMetadata = entity
+                    )
+                    Logger.debug("Tag metadata saved: $entity", context = TAG)
                 }
             } catch (e: Throwable) {
                 Logger.error("saveInvoice error", e, context = TAG)
@@ -499,14 +502,13 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    private suspend fun Scanner.OnChain.extractLightningHashOrAddress(): String {
-        val address = this.invoice.address
-        val lightningInvoice: String = this.invoice.params?.get("lightning") ?: address
+    private suspend fun Scanner.OnChain.extractLightningHash(): String? {
+        val lightningInvoice: String = this.invoice.params?.get("lightning") ?: return null
         val decoded = decode(lightningInvoice)
 
         return when (decoded) {
             is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
-            else -> address
+            else -> null
         }
     }
 
