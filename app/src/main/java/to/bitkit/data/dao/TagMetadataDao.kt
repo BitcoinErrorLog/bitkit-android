@@ -25,8 +25,8 @@ interface TagMetadataDao {
     suspend fun searchByTxId(txId: String): TagMetadataEntity?
 
     // Search by address
-    @Query("SELECT * FROM tag_metadata WHERE address = :address")
-    suspend fun searchByAddress(address: String): List<TagMetadataEntity>
+    @Query("SELECT * FROM tag_metadata WHERE address = :address ORDER BY createdAt DESC LIMIT 1")
+    suspend fun searchByAddress(address: String): TagMetadataEntity?
 
     // Search by primary key (id)
     @Query("SELECT * FROM tag_metadata WHERE id = :id LIMIT 1")

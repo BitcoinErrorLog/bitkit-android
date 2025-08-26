@@ -24,6 +24,7 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.rawId
 import to.bitkit.services.CoreService
+import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,6 +38,7 @@ class ActivityRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
     private val db: AppDb,
+    private val addressChecker: AddressChecker,
 ) {
     var isSyncingLdkNodePayments = MutableStateFlow(false)
         private set
@@ -326,15 +328,6 @@ class ActivityRepo @Inject constructor(
     private suspend fun syncTagsMetaData(
         newPayments: List<PaymentDetails>,
     ) = withContext(context = bgDispatcher) {
-        // 1. Check for new activities
-        // 2. Filter receive
-        // 2.1 Lightning -> search for payment hash
-        // 2.2 OnChain -> get payment detail -> output -> search for address
-        // 3. Filter sent
-        // 3.1 Lightning -> search for payment hash
-        // 3.2 OnChain -> search for tx ID
-        // 4. Delete successfull addedd
-
         runCatching {
             if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
 
@@ -356,13 +349,30 @@ class ActivityRepo @Inject constructor(
 
                     is PaymentKind.Onchain -> {
                         when (payment.direction) {
-                            PaymentDirection.INBOUND -> TODO()
+                            PaymentDirection.INBOUND -> {
+                                // TODO Temporary solution while whe ldk-node doesn't return the txId directly
+                                runCatching { addressChecker.getTransaction(kind.txid) }.onSuccess { txDetails ->
+                                    txDetails.vout.firstOrNull()?.scriptpubkey_address?.let {
+                                        db.tagMetadataDao().searchByAddress(it)
+                                    }?.let { tagMetadata ->
+                                        addTagsToTransaction(
+                                            paymentHashOrTxId = kind.txid,
+                                            type = ActivityFilter.ONCHAIN,
+                                            txType = PaymentType.RECEIVED,
+                                            tags = tagMetadata.tags
+                                        ).onSuccess {
+                                            db.tagMetadataDao().deleteByTxId(kind.txid)
+                                        }
+                                    }
+                                }
+                            }
+
                             PaymentDirection.OUTBOUND -> {
                                 db.tagMetadataDao().searchByTxId(kind.txid)?.let { tagMetadata ->
                                     addTagsToTransaction(
                                         paymentHashOrTxId = kind.txid,
                                         type = ActivityFilter.ONCHAIN,
-                                        txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
+                                        txType = PaymentType.SENT,
                                         tags = tagMetadata.tags
                                     ).onSuccess {
                                         db.tagMetadataDao().deleteByTxId(kind.txid)
@@ -371,6 +381,7 @@ class ActivityRepo @Inject constructor(
                             }
                         }
                     }
+
                     else -> Unit
                 }
             }
