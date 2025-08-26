@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
+import org.lightningdevkit.ldknode.PaymentDirection
+import org.lightningdevkit.ldknode.PaymentKind
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
@@ -56,13 +58,13 @@ class ActivityRepo @Inject constructor(
             return@withContext lightningRepo.getPayments()
                 .onSuccess { payments ->
                     Logger.debug("Got payments with success, syncing activities", context = TAG)
-                    syncLdkNodePayments(payments = payments).onFailure { e ->
+                    val syncResult = syncLdkNodePayments(payments = payments).onFailure { e ->
                         return@withContext Result.failure(e)
                     }
                     updateActivitiesMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
-                    syncTagsMetaData()
+                    syncResult.getOrNull()?.let { syncTagsMetaData(it.first) }
                     isSyncingLdkNodePayments = MutableStateFlow(false)
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -91,7 +93,7 @@ class ActivityRepo @Inject constructor(
     private suspend fun syncLdkNodePayments(
         payments: List<PaymentDetails>,
     ): Result<Pair<List<PaymentDetails>, List<PaymentDetails>>> {
-        //TODO Reduce getActivity calls
+        // TODO Reduce getActivity calls
         val paymentsToAdd = payments.filter { payment -> coreService.activity.getActivity(payment.id) != null }
         val paymentsToUpdate = payments.filter { it !in paymentsToAdd }
         return runCatching {
@@ -321,7 +323,9 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    private suspend fun syncTagsMetaData() = withContext(context = bgDispatcher) {
+    private suspend fun syncTagsMetaData(
+        newPayments: List<PaymentDetails>,
+    ) = withContext(context = bgDispatcher) {
         // 1. Check for new activities
         // 2. Filter receive
         // 2.1 Lightning -> search for payment hash
@@ -330,6 +334,36 @@ class ActivityRepo @Inject constructor(
         // 3.1 Lightning -> search for payment hash
         // 3.2 OnChain -> search for tx ID
         // 4. Delete successfull addedd
+
+        runCatching {
+            if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
+
+            newPayments.forEach { payment ->
+                when (val kind = payment.kind) {
+                    is PaymentKind.Bolt11 -> {
+                        val paymentHash = kind.hash
+                        db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash)?.let { tagMetadata ->
+                            addTagsToTransaction(
+                                paymentHashOrTxId = paymentHash,
+                                type = ActivityFilter.LIGHTNING,
+                                txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
+                                tags = tagMetadata.tags
+                            ).onSuccess {
+                                db.tagMetadataDao().deleteByPaymentHash(paymentHash = paymentHash)
+                            }
+                        }
+                    }
+
+                    is PaymentKind.Onchain -> {
+                        when (payment.direction) {
+                            PaymentDirection.INBOUND -> TODO()
+                            PaymentDirection.OUTBOUND -> TODO()
+                        }
+                    }
+                    else -> Unit
+                }
+            }
+        }
     }
 
     private suspend fun updateInProgressTransfers() {
