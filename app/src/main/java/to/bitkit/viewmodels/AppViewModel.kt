@@ -873,8 +873,8 @@ class AppViewModel @Inject constructor(
             return
         }
 
-        val feeInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
-        if (feeInUsd.value > BigDecimal(10)) {
+        val feeInUsd = currencyRepo.convertSatsToFiat(totalFee.toLong(), "USD").getOrNull() ?: return
+        if (feeInUsd.value > BigDecimal(TEN_USD)) {
             _sendUiState.update {
                 it.copy(showAmountWarningDialog = AmountWarning.FEE_OVER_10_USD)
             }
@@ -1392,6 +1392,7 @@ class AppViewModel @Inject constructor(
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
+        private const val TEN_USD = 10
     }
 }
 
