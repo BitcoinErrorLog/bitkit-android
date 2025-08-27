@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.BalanceDetails
@@ -56,6 +57,8 @@ import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+
+private const val SYNC_TIMEOUT_MS = 10_000L
 
 @Singleton
 class LightningRepo @Inject constructor(
@@ -260,7 +263,10 @@ class LightningRepo @Inject constructor(
         if (_lightningState.value.isSyncingWallet) {
             Logger.warn("Sync already in progress, waiting for existing sync.", context = TAG)
         }
-        _lightningState.first { !it.isSyncingWallet }
+
+        withTimeout(SYNC_TIMEOUT_MS) {
+            _lightningState.first { !it.isSyncingWallet }
+        }
 
         _lightningState.update { it.copy(isSyncingWallet = true) }
         lightningService.sync()
