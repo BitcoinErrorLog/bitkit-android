@@ -6,10 +6,13 @@ import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -44,6 +47,7 @@ class ActivityRepo @Inject constructor(
     private val addressChecker: AddressChecker,
 ) {
     val isSyncingLdkNodePayments = MutableStateFlow(false)
+    private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
     val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
 
@@ -65,10 +69,12 @@ class ActivityRepo @Inject constructor(
                     val syncResult = syncLdkNodePayments(payments = payments).onFailure { e ->
                         return@withContext Result.failure(e)
                     }
+                    scope.launch {
+                        syncResult.getOrNull()?.let { syncTagsMetaData(it) }
+                    }
                     updateActivitiesMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
-                    syncResult.getOrNull()?.let { syncTagsMetaData(it) }
                     isSyncingLdkNodePayments.value = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
