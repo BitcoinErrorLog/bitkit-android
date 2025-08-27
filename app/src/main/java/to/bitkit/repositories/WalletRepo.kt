@@ -445,20 +445,18 @@ class WalletRepo @Inject constructor(
                     else -> null
                 }
 
-                paymentHash?.let {
-                    val entity = TagMetadataEntity(
-                        id = paymentHash,
-                        paymentHash = paymentHash,
-                        tags = tags,
-                        address = onChainAddress,
-                        isReceive = true,
-                        createdAt = nowTimestamp().toEpochMilli()
-                    )
-                    db.tagMetadataDao().saveTagMetadata(
-                        tagMetadata = entity
-                    )
-                    Logger.debug("Tag metadata saved: $entity", context = TAG)
-                }
+                val entity = TagMetadataEntity(
+                    id = paymentHash ?: onChainAddress,
+                    paymentHash = paymentHash,
+                    tags = tags,
+                    address = onChainAddress,
+                    isReceive = true,
+                    createdAt = nowTimestamp().toEpochMilli()
+                )
+                db.tagMetadataDao().saveTagMetadata(
+                    tagMetadata = entity
+                )
+                Logger.debug("Tag metadata saved: $entity", context = TAG)
             } catch (e: Throwable) {
                 Logger.error("saveInvoice error", e, context = TAG)
             }

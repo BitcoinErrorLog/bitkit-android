@@ -340,13 +340,14 @@ class ActivityRepo @Inject constructor(
                     is PaymentKind.Bolt11 -> {
                         val paymentHash = kind.hash
                         db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash)?.let { tagMetadata ->
+                            Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
                             addTagsToTransaction(
                                 paymentHashOrTxId = paymentHash,
                                 type = ActivityFilter.LIGHTNING,
                                 txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
                                 tags = tagMetadata.tags
                             ).onSuccess {
-                                Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
+                                Logger.debug("Tags synced with success!", context = TAG)
                                 db.tagMetadataDao().deleteByPaymentHash(paymentHash = paymentHash)
                             }
                         }
@@ -355,14 +356,18 @@ class ActivityRepo @Inject constructor(
                     is PaymentKind.Onchain -> {
                         when (payment.direction) {
                             PaymentDirection.INBOUND -> {
-                                // TODO Temporary solution while whe ldk-node doesn't return the txId directly
+                                // TODO Temporary solution while whe ldk-node doesn't return the address directly
+                                Logger.debug("Fetching data for txId: ${kind.txid}", context = TAG)
                                 runCatching { addressChecker.getTransaction(kind.txid) }.onSuccess { txDetails ->
+                                    Logger.debug("Tx detail fetched with success: $txDetails", context = TAG)
                                     txDetails.vout.forEach { vOut ->
                                         vOut.scriptpubkey_address?.let {
+                                            Logger.debug("Extracted address: $it", context = TAG)
                                             db.tagMetadataDao().searchByAddress(it)
                                         }?.let { tagMetadata ->
+                                            Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
                                             addTagsToTransaction(
-                                                paymentHashOrTxId = kind.txid,
+                                                paymentHashOrTxId = txDetails.txid,
                                                 type = ActivityFilter.ONCHAIN,
                                                 txType = PaymentType.RECEIVED,
                                                 tags = tagMetadata.tags
