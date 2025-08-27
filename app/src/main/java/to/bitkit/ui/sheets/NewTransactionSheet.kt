@@ -21,6 +21,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
@@ -84,6 +86,7 @@ fun NewTransactionSheetView(
 ) {
     Box(
         modifier = Modifier
+            .semantics { testTagsAsResourceId = true }
             .sheetHeight(isModal = true)
             .gradientBackground()
             .testTag("new_transaction_sheet")
@@ -155,7 +158,13 @@ fun NewTransactionSheetView(
                 onClick = { onDetailClick },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("ReceivedTransaction")
+                    .testTag(
+                        if (details.direction == NewTransactionSheetDirection.SENT) {
+                            "SendSuccess"
+                        } else {
+                            "ReceivedTransaction"
+                        }
+                    )
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -174,14 +183,14 @@ fun NewTransactionSheetView(
                         isLoading = details.isLoadingDetails,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("details_button")
+                            .testTag("Details")
                     )
                     PrimaryButton(
                         text = stringResource(R.string.common__close),
                         onClick = onCloseClick,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("close_button")
+                            .testTag("Close")
                     )
                 }
             } else {
