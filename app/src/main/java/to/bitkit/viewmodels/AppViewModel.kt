@@ -838,17 +838,6 @@ class AppViewModel @Inject constructor(
         if (_sendUiState.value.showSanityWarningDialog != null) return
 
         val settings = settingsStore.data.first()
-        val amountInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
-        if (
-            amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) &&
-            settings.enableSendAmountWarning &&
-            SanityWarning.VALUE_OVER_100_USD !in _sendUiState.value.confirmedWarnings
-        ) {
-            _sendUiState.update {
-                it.copy(showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD)
-            }
-            return
-        }
 
         if (
             amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
@@ -857,6 +846,18 @@ class AppViewModel @Inject constructor(
         ) {
             _sendUiState.update {
                 it.copy(showSanityWarningDialog = SanityWarning.OVER_HALF_BALANCE)
+            }
+            return
+        }
+
+        val amountInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
+        if (
+            amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) &&
+            settings.enableSendAmountWarning &&
+            SanityWarning.VALUE_OVER_100_USD !in _sendUiState.value.confirmedWarnings
+        ) {
+            _sendUiState.update {
+                it.copy(showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD)
             }
             return
         }
