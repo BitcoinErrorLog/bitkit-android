@@ -852,7 +852,7 @@ class AppViewModel @Inject constructor(
 
         if (
             amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
-                .times(BigDecimal(0.5)).toLong().toUInt() &&
+                .times(BigDecimal(MAX_BALANCE_FRACTION)).toLong().toUInt() &&
             SanityWarning.OVER_HALF_BALANCE !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
@@ -873,7 +873,7 @@ class AppViewModel @Inject constructor(
         if (
             totalFee > BigDecimal.valueOf(
                 amountSats.toLong()
-            ).times(BigDecimal(0.5)).toLong().toUInt() &&
+            ).times(BigDecimal(MAX_FEE_AMOUNT_RATIO)).toLong().toUInt() &&
             SanityWarning.FEE_OVER_HALF_VALUE !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
@@ -1406,6 +1406,8 @@ class AppViewModel @Inject constructor(
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
         private const val TEN_USD = 10
+        private const val MAX_BALANCE_FRACTION = 0.5
+        private const val MAX_FEE_AMOUNT_RATIO = 0.5
     }
 }
 
