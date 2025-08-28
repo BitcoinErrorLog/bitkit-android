@@ -237,7 +237,7 @@ class AppViewModel @Inject constructor(
 
                         is Event.PaymentSuccessful -> {
                             // TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.
-                            showNewTransactionSheet(
+                            handlePaymentSuccess(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.SENT,
@@ -924,14 +924,12 @@ class AppViewModel @Inject constructor(
                             tags = tags
                         )
                         Logger.info("Onchain send result txid: $txId", context = TAG)
-                        setSendEffect(
-                            SendEffect.PaymentSuccess(
-                                NewTransactionSheetDetails(
-                                    type = NewTransactionSheetType.ONCHAIN,
-                                    direction = NewTransactionSheetDirection.SENT,
-                                    paymentHashOrTxId = txId,
-                                    sats = amount.toLong(),
-                                )
+                        handlePaymentSuccess(
+                            NewTransactionSheetDetails(
+                                type = NewTransactionSheetType.ONCHAIN,
+                                direction = NewTransactionSheetDirection.SENT,
+                                paymentHashOrTxId = txId,
+                                sats = amount.toLong(),
                             )
                         )
                         lightningRepo.sync()
@@ -1042,6 +1040,30 @@ class AppViewModel @Inject constructor(
                 Logger.error(msg = "Activity not found", context = TAG)
                 toast(e)
                 _newTransaction.update { it.copy(isLoadingDetails = false) }
+            }
+        }
+    }
+
+    fun onClickSendDetail() {
+        val activityType = _successSendUiState.value.type.toActivityFilter()
+        val txType = _successSendUiState.value.direction.toTxType()
+        val paymentHashOrTxId = _successSendUiState.value.paymentHashOrTxId ?: return
+        _successSendUiState.update { it.copy(isLoadingDetails = true) }
+        viewModelScope.launch(bgDispatcher) {
+            activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = paymentHashOrTxId,
+                type = activityType,
+                txType = txType,
+                retry = true
+            ).onSuccess { activity ->
+                hideNewTransactionSheet()
+                _successSendUiState.update { it.copy(isLoadingDetails = false) }
+                val nextRoute = Routes.ActivityDetail(activity.rawId())
+                mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
+            }.onFailure { e ->
+                Logger.error(msg = "Activity not found", context = TAG)
+                toast(e)
+                _successSendUiState.update { it.copy(isLoadingDetails = false) }
             }
         }
     }
@@ -1211,6 +1233,17 @@ class AppViewModel @Inject constructor(
     )
 
     val newTransaction = _newTransaction.asStateFlow()
+
+    private val _successSendUiState = MutableStateFlow(
+        NewTransactionSheetDetails(
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.SENT,
+            paymentHashOrTxId = null,
+            sats = 0
+        )
+    )
+
+    val successSendUiState = _successSendUiState.asStateFlow()
 
     fun setNewTransactionSheetEnabled(enabled: Boolean) {
         isNewTransactionSheetEnabled = enabled
@@ -1392,6 +1425,11 @@ class AppViewModel @Inject constructor(
             _sendUiState.update { it.copy(shouldConfirmPay = false) }
             proceedWithPayment()
         }
+    }
+
+    private fun handlePaymentSuccess(details: NewTransactionSheetDetails, event: Event? = null) {
+        _successSendUiState.update { details }
+        setSendEffect(SendEffect.PaymentSuccess(details))
     }
 
     companion object {
