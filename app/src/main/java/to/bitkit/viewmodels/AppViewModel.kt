@@ -1056,7 +1056,7 @@ class AppViewModel @Inject constructor(
                 txType = txType,
                 retry = true
             ).onSuccess { activity ->
-                hideNewTransactionSheet()
+                hideSheet()
                 _successSendUiState.update { it.copy(isLoadingDetails = false) }
                 val nextRoute = Routes.ActivityDetail(activity.rawId())
                 mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
