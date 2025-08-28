@@ -303,7 +303,7 @@ class AppViewModel @Inject constructor(
 
                     SendEvent.SpeedAndFee -> setSendEffect(SendEffect.NavigateToFee)
                     SendEvent.SwipeToPay -> onSwipeToPay()
-                    SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning()
+                    is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
@@ -839,15 +839,21 @@ class AppViewModel @Inject constructor(
 
         val settings = settingsStore.data.first()
         val amountInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
-        if (amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) && settings.enableSendAmountWarning) {
+        if (
+            amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) &&
+            settings.enableSendAmountWarning &&
+            SanityWarning.VALUE_OVER_100_USD !in _sendUiState.value.confirmedWarnings
+        ) {
             _sendUiState.update {
                 it.copy(showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD)
             }
             return
         }
 
-        if (amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
-                .times(BigDecimal(0.5)).toLong().toUInt()
+        if (
+            amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
+                .times(BigDecimal(0.5)).toLong().toUInt() &&
+            SanityWarning.OVER_HALF_BALANCE !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
                 it.copy(showSanityWarningDialog = SanityWarning.OVER_HALF_BALANCE)
@@ -864,8 +870,11 @@ class AppViewModel @Inject constructor(
             utxosToSpend = _sendUiState.value.selectedUtxos,
         ).getOrNull() ?: return
 
-        if (totalFee > BigDecimal.valueOf(amountSats.toLong())
-                .times(BigDecimal(0.5)).toLong().toUInt()
+        if (
+            totalFee > BigDecimal.valueOf(
+                amountSats.toLong()
+            ).times(BigDecimal(0.5)).toLong().toUInt() &&
+            SanityWarning.FEE_OVER_HALF_VALUE !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
                 it.copy(showSanityWarningDialog = SanityWarning.FEE_OVER_HALF_VALUE)
@@ -874,7 +883,10 @@ class AppViewModel @Inject constructor(
         }
 
         val feeInUsd = currencyRepo.convertSatsToFiat(totalFee.toLong(), "USD").getOrNull() ?: return
-        if (feeInUsd.value > BigDecimal(TEN_USD)) {
+        if (
+            feeInUsd.value > BigDecimal(TEN_USD) &&
+            SanityWarning.FEE_OVER_10_USD !in _sendUiState.value.confirmedWarnings
+        ) {
             _sendUiState.update {
                 it.copy(showSanityWarningDialog = SanityWarning.FEE_OVER_10_USD)
             }
@@ -1364,15 +1376,16 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onConfirmAmountWarning() {
+    private fun onConfirmAmountWarning(warning: SanityWarning) {
         viewModelScope.launch {
             _sendUiState.update {
                 it.copy(
                     showSanityWarningDialog = null,
-                    shouldConfirmPay = true,
+                    confirmedWarnings = it.confirmedWarnings + warning
                 )
             }
         }
+        onSwipeToPay()
     }
 
     private fun onDismissAmountWarning() {
@@ -1473,7 +1486,7 @@ sealed interface SendEvent {
     data object SwipeToPay : SendEvent
     data object SpeedAndFee : SendEvent
     data object PaymentMethodSwitch : SendEvent
-    data object ConfirmAmountWarning : SendEvent
+    data class ConfirmAmountWarning(val warning: SanityWarning) : SendEvent
     data object DismissAmountWarning : SendEvent
     data object PayConfirmed : SendEvent
     data object BackToAmount : SendEvent

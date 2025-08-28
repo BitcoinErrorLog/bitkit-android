@@ -244,7 +244,7 @@ private fun Content(
                 text = stringResource(dialog.message),
                 confirmText = stringResource(R.string.wallet__send_yes),
                 dismissText = stringResource(R.string.common__cancel),
-                onConfirm = { onEvent(SendEvent.ConfirmAmountWarning) },
+                onConfirm = { onEvent(SendEvent.ConfirmAmountWarning(dialog)) },
                 onDismiss = {
                     onEvent(SendEvent.DismissAmountWarning)
                     onBack()
