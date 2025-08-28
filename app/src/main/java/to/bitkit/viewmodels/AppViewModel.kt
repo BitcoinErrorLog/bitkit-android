@@ -244,7 +244,6 @@ class AppViewModel @Inject constructor(
                                     paymentHashOrTxId = event.paymentHash,
                                     sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
                                 ),
-                                event = event
                             )
                         }
 
@@ -1427,7 +1426,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun handlePaymentSuccess(details: NewTransactionSheetDetails, event: Event? = null) {
+    private fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
         _successSendUiState.update { details }
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
