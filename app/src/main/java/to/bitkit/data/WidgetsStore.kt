@@ -51,6 +51,7 @@ class WidgetsStore @Inject constructor(
             it.copy(calculatorValues = calculatorValues)
         }
     }
+
     suspend fun updateArticles(articles: List<ArticleDTO>) {
         store.updateData {
             it.copy(articles = articles)
@@ -147,7 +148,11 @@ class WidgetsStore @Inject constructor(
 
 @Serializable
 data class WidgetsData(
-    val widgets: List<WidgetWithPosition> = emptyList(),
+    val widgets: List<WidgetWithPosition> = listOf(
+        WidgetWithPosition(type = WidgetType.PRICE, position = 0),
+        WidgetWithPosition(type = WidgetType.BLOCK, position = 1),
+        WidgetWithPosition(type = WidgetType.NEWS, position = 2),
+    ),
     val headlinePreferences: HeadlinePreferences = HeadlinePreferences(),
     val factsPreferences: FactsPreferences = FactsPreferences(),
     val blocksPreferences: BlocksPreferences = BlocksPreferences(),
