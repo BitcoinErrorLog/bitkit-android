@@ -15,7 +15,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
@@ -169,7 +168,7 @@ fun SendSheet(
                 NewTransactionSheetView(
                     details = sendDetail,
                     onCloseClick = { appViewModel.hideSheet() },
-                    onDetailClick = { appViewModel.onClickActivityDetail() }
+                    onDetailClick = { appViewModel.onClickSendDetail() }
                 )
             }
             composableWithDefaultTransitions<SendRoute.WithdrawConfirm> {
