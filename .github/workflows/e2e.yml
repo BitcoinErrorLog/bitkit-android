@@ -2,6 +2,11 @@ name: E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      e2e_branch:
+        description: "Branch of synonymdev/bitkit-e2e-tests to use"
+        required: false
+        default: "main"
   pull_request:
 
 env:
@@ -60,11 +65,17 @@ jobs:
     needs: build
 
     steps:
+      - name: Show selected E2E branch
+        env:
+          E2E_BRANCH: ${{ github.event.inputs.e2e_branch || 'main' }}
+        run: echo $E2E_BRANCH
+
       - name: Clone E2E tests
         uses: actions/checkout@v4
         with:
           repository: synonymdev/bitkit-e2e-tests
           path: bitkit-e2e-tests
+          ref: ${{ github.event.inputs.e2e_branch || 'main' }}
 
       - name: Enable KVM
         run: |
