@@ -74,7 +74,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.rememberBiometricAuthSupported
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.viewmodels.AmountWarning
+import to.bitkit.viewmodels.SanityWarning
 import to.bitkit.viewmodels.LnurlParams
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendMethod
@@ -238,13 +238,13 @@ private fun Content(
             )
         }
 
-        uiState.showAmountWarningDialog?.let { dialog ->
+        uiState.showSanityWarningDialog?.let { dialog ->
             AppAlertDialog(
                 title = stringResource(R.string.common__are_you_sure),
                 text = stringResource(dialog.message),
                 confirmText = stringResource(R.string.wallet__send_yes),
                 dismissText = stringResource(R.string.common__cancel),
-                onConfirm = { onEvent(SendEvent.ConfirmAmountWarning) },
+                onConfirm = { onEvent(SendEvent.ConfirmAmountWarning(dialog)) },
                 onDismiss = {
                     onEvent(SendEvent.DismissAmountWarning)
                     onBack()
@@ -660,7 +660,7 @@ private fun PreviewDialog() {
         BottomSheetPreview {
             Content(
                 uiState = sendUiState().copy(
-                    showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD,
+                    showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD,
                 ),
                 isLoading = false,
                 showBiometrics = true,

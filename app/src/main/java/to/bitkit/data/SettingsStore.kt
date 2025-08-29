@@ -88,7 +88,7 @@ data class SettingsData(
     val isPinOnIdleEnabled: Boolean = false,
     val isPinForPaymentsEnabled: Boolean = false,
     val isDevModeEnabled: Boolean = false,
-    val showWidgets: Boolean = false,
+    val showWidgets: Boolean = true,
     val showWidgetTitles: Boolean = false,
     val lastUsedTags: List<String> = emptyList(),
     val enableSwipeToHideBalance: Boolean = true,

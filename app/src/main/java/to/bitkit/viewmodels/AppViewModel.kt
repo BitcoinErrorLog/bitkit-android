@@ -305,7 +305,7 @@ class AppViewModel @Inject constructor(
 
                     SendEvent.SpeedAndFee -> setSendEffect(SendEffect.NavigateToFee)
                     SendEvent.SwipeToPay -> onSwipeToPay()
-                    SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning()
+                    is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
@@ -830,29 +830,36 @@ class AppViewModel @Inject constructor(
             val amount = _sendUiState.value.amount
 
             handleSanityChecks(amount)
-            if (_sendUiState.value.showAmountWarningDialog != null) return@launch // await for dialog UI interaction
+            if (_sendUiState.value.showSanityWarningDialog != null) return@launch // await for dialog UI interaction
 
             _sendUiState.update { it.copy(shouldConfirmPay = true) }
         }
     }
 
     private suspend fun handleSanityChecks(amountSats: ULong) {
-        if (_sendUiState.value.showAmountWarningDialog != null) return
+        if (_sendUiState.value.showSanityWarningDialog != null) return
 
         val settings = settingsStore.data.first()
-        val amountInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
-        if (amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) && settings.enableSendAmountWarning) {
+
+        if (
+            amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
+                .times(BigDecimal(MAX_BALANCE_FRACTION)).toLong().toUInt() &&
+            SanityWarning.OVER_HALF_BALANCE !in _sendUiState.value.confirmedWarnings
+        ) {
             _sendUiState.update {
-                it.copy(showAmountWarningDialog = AmountWarning.VALUE_OVER_100_USD)
+                it.copy(showSanityWarningDialog = SanityWarning.OVER_HALF_BALANCE)
             }
             return
         }
 
-        if (amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
-                .times(BigDecimal(0.5)).toLong().toUInt()
+        val amountInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
+        if (
+            amountInUsd.value > BigDecimal(SEND_AMOUNT_WARNING_THRESHOLD) &&
+            settings.enableSendAmountWarning &&
+            SanityWarning.VALUE_OVER_100_USD !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
-                it.copy(showAmountWarningDialog = AmountWarning.OVER_HALF_BALANCE)
+                it.copy(showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD)
             }
             return
         }
@@ -866,25 +873,31 @@ class AppViewModel @Inject constructor(
             utxosToSpend = _sendUiState.value.selectedUtxos,
         ).getOrNull() ?: return
 
-        if (totalFee > BigDecimal.valueOf(amountSats.toLong())
-                .times(BigDecimal(0.5)).toLong().toUInt()
+        if (
+            totalFee > BigDecimal.valueOf(
+                amountSats.toLong()
+            ).times(BigDecimal(MAX_FEE_AMOUNT_RATIO)).toLong().toUInt() &&
+            SanityWarning.FEE_OVER_HALF_VALUE !in _sendUiState.value.confirmedWarnings
         ) {
             _sendUiState.update {
-                it.copy(showAmountWarningDialog = AmountWarning.FEE_OVER_HALF_VALUE)
+                it.copy(showSanityWarningDialog = SanityWarning.FEE_OVER_HALF_VALUE)
             }
             return
         }
 
-        val feeInUsd = currencyRepo.convertSatsToFiat(amountSats.toLong(), "USD").getOrNull() ?: return
-        if (feeInUsd.value > BigDecimal(10)) {
+        val feeInUsd = currencyRepo.convertSatsToFiat(totalFee.toLong(), "USD").getOrNull() ?: return
+        if (
+            feeInUsd.value > BigDecimal(TEN_USD) &&
+            SanityWarning.FEE_OVER_10_USD !in _sendUiState.value.confirmedWarnings
+        ) {
             _sendUiState.update {
-                it.copy(showAmountWarningDialog = AmountWarning.FEE_OVER_10_USD)
+                it.copy(showSanityWarningDialog = SanityWarning.FEE_OVER_10_USD)
             }
             return
         }
 
         _sendUiState.update {
-            it.copy(showAmountWarningDialog = null)
+            it.copy(showSanityWarningDialog = null)
         }
     }
 
@@ -1378,20 +1391,21 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onConfirmAmountWarning() {
+    private fun onConfirmAmountWarning(warning: SanityWarning) {
         viewModelScope.launch {
             _sendUiState.update {
                 it.copy(
-                    showAmountWarningDialog = null,
-                    shouldConfirmPay = true,
+                    showSanityWarningDialog = null,
+                    confirmedWarnings = it.confirmedWarnings + warning
                 )
             }
         }
+        onSwipeToPay()
     }
 
     private fun onDismissAmountWarning() {
         _sendUiState.update {
-            it.copy(showAmountWarningDialog = null)
+            it.copy(showSanityWarningDialog = null)
         }
     }
 
@@ -1406,6 +1420,9 @@ class AppViewModel @Inject constructor(
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
+        private const val TEN_USD = 10
+        private const val MAX_BALANCE_FRACTION = 0.5
+        private const val MAX_FEE_AMOUNT_RATIO = 0.5
     }
 }
 
@@ -1422,7 +1439,8 @@ data class SendUiState(
     val payMethod: SendMethod = SendMethod.ONCHAIN,
     val selectedTags: List<String> = listOf(),
     val decodedInvoice: LightningInvoice? = null,
-    val showAmountWarningDialog: AmountWarning? = null,
+    val showSanityWarningDialog: SanityWarning? = null,
+    val confirmedWarnings: List<SanityWarning> = listOf(),
     val shouldConfirmPay: Boolean = false,
     val selectedUtxos: List<SpendableUtxo>? = null,
     val lnurl: LnurlParams? = null,
@@ -1434,7 +1452,7 @@ data class SendUiState(
     val fees: Map<FeeRate, Long> = emptyMap(),
 )
 
-enum class AmountWarning(@StringRes val message: Int, val testTag: String) {
+enum class SanityWarning(@StringRes val message: Int, val testTag: String) {
     VALUE_OVER_100_USD(R.string.wallet__send_dialog1, "SendDialog1"),
     OVER_HALF_BALANCE(R.string.wallet__send_dialog2, "SendDialog2"),
     FEE_OVER_HALF_VALUE(R.string.wallet__send_dialog3, "SendDialog3"),
@@ -1485,7 +1503,7 @@ sealed interface SendEvent {
     data object SwipeToPay : SendEvent
     data object SpeedAndFee : SendEvent
     data object PaymentMethodSwitch : SendEvent
-    data object ConfirmAmountWarning : SendEvent
+    data class ConfirmAmountWarning(val warning: SanityWarning) : SendEvent
     data object DismissAmountWarning : SendEvent
     data object PayConfirmed : SendEvent
     data object BackToAmount : SendEvent
