@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -993,7 +992,7 @@ class AppViewModel @Inject constructor(
                             type = NewTransactionSheetType.LIGHTNING,
                             direction = NewTransactionSheetDirection.SENT,
                             paymentHashOrTxId = paymentHash,
-                            sats = paymentAmount.toLong(), //TODO Add fee when available
+                            sats = paymentAmount.toLong(), // TODO Add fee when available
                         ),
                     )
                 }.onFailure { e ->
@@ -1465,7 +1464,6 @@ class AppViewModel @Inject constructor(
     }
 
     private fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
-
         details.paymentHashOrTxId?.let {
             if (!processedPayments.add(it)) {
                 Logger.debug("Payment $it already processed, skipping duplicate", context = TAG)
