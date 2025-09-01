@@ -139,6 +139,8 @@ class AppViewModel @Inject constructor(
     private val _showForgotPinSheet = MutableStateFlow(false)
     val showForgotPinSheet = _showForgotPinSheet.asStateFlow()
 
+    private val processedPayments = mutableSetOf<String>()
+
     fun setShowForgotPin(value: Boolean) {
         _showForgotPinSheet.value = value
     }
@@ -986,6 +988,14 @@ class AppViewModel @Inject constructor(
                         isReceive = false,
                         tags = tags
                     )
+                    handlePaymentSuccess(
+                        NewTransactionSheetDetails(
+                            type = NewTransactionSheetType.LIGHTNING,
+                            direction = NewTransactionSheetDirection.SENT,
+                            paymentHashOrTxId = paymentHash,
+                            sats = paymentAmount.toLong(), //TODO Add fee when available
+                        ),
+                    )
                 }.onFailure { e ->
                     Logger.error("Error sending lightning payment", e, context = TAG)
                     toast(e)
@@ -1237,6 +1247,8 @@ class AppViewModel @Inject constructor(
                 feeRates = rates,
             )
         }
+
+        processedPayments.clear()
     }
     // endregion
 
@@ -1453,6 +1465,14 @@ class AppViewModel @Inject constructor(
     }
 
     private fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
+
+        details.paymentHashOrTxId?.let {
+            if (!processedPayments.add(it)) {
+                Logger.debug("Payment $it already processed, skipping duplicate", context = TAG)
+                return
+            }
+        }
+
         _successSendUiState.update { details }
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
