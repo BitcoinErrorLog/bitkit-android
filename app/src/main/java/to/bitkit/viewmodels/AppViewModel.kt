@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -57,6 +58,7 @@ import to.bitkit.ext.minWithdrawableSat
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
+import to.bitkit.ext.totalValue
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.FeeRate
 import to.bitkit.models.NewTransactionSheetDetails
@@ -236,15 +238,26 @@ class AppViewModel @Inject constructor(
                         }
 
                         is Event.PaymentSuccessful -> {
-                            // TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.
-                            handlePaymentSuccess(
-                                NewTransactionSheetDetails(
-                                    type = NewTransactionSheetType.LIGHTNING,
-                                    direction = NewTransactionSheetDirection.SENT,
-                                    paymentHashOrTxId = event.paymentHash,
-                                    sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
-                                ),
-                            )
+                            val paymentHash = event.paymentHash
+                            // TODO Temporary solution while LDK node don't returns the sent value in the event
+                            activityRepo.findActivityByPaymentId(
+                                paymentHashOrTxId = paymentHash,
+                                type = ActivityFilter.LIGHTNING,
+                                txType = PaymentType.SENT,
+                                retry = true
+                            ).onSuccess { activity ->
+                                handlePaymentSuccess(
+                                    NewTransactionSheetDetails(
+                                        type = NewTransactionSheetType.LIGHTNING,
+                                        direction = NewTransactionSheetDirection.SENT,
+                                        paymentHashOrTxId = event.paymentHash,
+                                        sats = activity.totalValue().toLong(),
+                                    ),
+                                )
+                            }.onFailure { e ->
+                                Logger.warn("Failed displaying sheet for event: $Event", e)
+                            }
+
                         }
 
                         is Event.PaymentClaimable -> Unit
@@ -973,7 +986,6 @@ class AppViewModel @Inject constructor(
                         isReceive = false,
                         tags = tags
                     )
-                    setSendEffect(SendEffect.PaymentSuccess())
                 }.onFailure { e ->
                     Logger.error("Error sending lightning payment", e, context = TAG)
                     toast(e)
