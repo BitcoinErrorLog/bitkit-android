@@ -47,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -339,7 +341,9 @@ private fun Content(
             SecondaryButton(
                 text = "Enter QRCode String",
                 onClick = { showDialog = true },
-                modifier = Modifier.testTag("ScanPrompt")
+                modifier = Modifier
+                    .semantics { testTagsAsResourceId = true }
+                    .testTag("ScanPrompt")
             )
             if (showDialog) {
                 AppAlertDialog(
@@ -347,12 +351,16 @@ private fun Content(
                     confirmText = stringResource(R.string.common__yes_proceed),
                     onConfirm = { onSubmitDebug(debugValue) },
                     onDismiss = { showDialog = false },
-                    modifier = Modifier.testTag("QRDialog")
+                    modifier = Modifier
+                        .semantics { testTagsAsResourceId = true }
+                        .testTag("QRDialog")
                 ) {
                     TextInput(
                         value = debugValue,
                         onValueChange = { debugValue = it },
-                        modifier = Modifier.testTag("QRInput")
+                        modifier = Modifier
+                            .semantics { testTagsAsResourceId = true }
+                            .testTag("QRInput")
                     )
                 }
             }
