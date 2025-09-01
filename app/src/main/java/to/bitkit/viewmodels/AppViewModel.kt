@@ -198,6 +198,7 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.RECEIVED,
+                                    paymentHashOrTxId = event.paymentHash,
                                     sats = (event.amountMsat / 1000u).toLong(),
                                 ),
                                 event = event
@@ -241,6 +242,7 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.SENT,
+                                    paymentHashOrTxId = event.paymentHash,
                                     sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
                                 ),
                                 event = event
@@ -950,10 +952,12 @@ class AppViewModel @Inject constructor(
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.ONCHAIN,
                                     direction = NewTransactionSheetDirection.SENT,
+                                    paymentHashOrTxId = txId,
                                     sats = amount.toLong(),
                                 )
                             )
                         )
+                        lightningRepo.sync()
                     }.onFailure { e ->
                         Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
@@ -1041,19 +1045,26 @@ class AppViewModel @Inject constructor(
     }
 
     fun onClickActivityDetail() {
-        val filter = newTransaction.type.toActivityFilter()
-        val paymentType = newTransaction.direction.toTxType()
-
+        val activityType = _newTransaction.value.type.toActivityFilter()
+        val txType = _newTransaction.value.direction.toTxType()
+        val paymentHashOrTxId = _newTransaction.value.paymentHashOrTxId ?: return
+        _newTransaction.update { it.copy(isLoadingDetails = true) }
         viewModelScope.launch(bgDispatcher) {
-            val activity = coreService.activity.get(filter = filter, txType = paymentType, limit = 1u).firstOrNull()
-
-            if (activity == null) {
+            activityRepo.findActivityByPaymentId(
+                paymentHashOrTxId = paymentHashOrTxId,
+                type = activityType,
+                txType = txType,
+                retry = true
+            ).onSuccess { activity ->
+                hideNewTransactionSheet()
+                _newTransaction.update { it.copy(isLoadingDetails = false) }
+                val nextRoute = Routes.ActivityDetail(activity.rawId())
+                mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
+            }.onFailure { e ->
                 Logger.error(msg = "Activity not found", context = TAG)
-                return@launch
+                toast(e)
+                _newTransaction.update { it.copy(isLoadingDetails = false) }
             }
-
-            val nextRoute = Routes.ActivityDetail(activity.rawId())
-            mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
         }
     }
 
@@ -1212,13 +1223,16 @@ class AppViewModel @Inject constructor(
     var showNewTransaction by mutableStateOf(false)
         private set
 
-    var newTransaction by mutableStateOf(
+    private val _newTransaction = MutableStateFlow(
         NewTransactionSheetDetails(
-            NewTransactionSheetType.LIGHTNING,
-            NewTransactionSheetDirection.RECEIVED,
-            0
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+            paymentHashOrTxId = null,
+            sats = 0
         )
     )
+
+    val newTransaction = _newTransaction.asStateFlow()
 
     fun setNewTransactionSheetEnabled(enabled: Boolean) {
         isNewTransactionSheetEnabled = enabled
@@ -1248,7 +1262,7 @@ class AppViewModel @Inject constructor(
             }
         }
 
-        newTransaction = details
+        _newTransaction.update { details }
         showNewTransaction = true
     }
 

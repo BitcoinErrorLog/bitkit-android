@@ -6,10 +6,12 @@ import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
@@ -22,7 +24,8 @@ import to.bitkit.services.CoreService
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.seconds
+
+private const val SYNC_TIMEOUT_MS = 40_000L
 
 @Singleton
 class ActivityRepo @Inject constructor(
@@ -31,8 +34,7 @@ class ActivityRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
 ) {
-
-    var isSyncingLdkNodePayments = false
+    val isSyncingLdkNodePayments = MutableStateFlow(false)
 
     val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
 
@@ -40,14 +42,14 @@ class ActivityRepo @Inject constructor(
         Logger.debug("syncActivities called", context = TAG)
 
         return@withContext runCatching {
-            if (isSyncingLdkNodePayments) {
-                Logger.warn("LDK-node payments are already being synced, skipping", context = TAG)
-                return@withContext Result.failure(Exception())
+            withTimeout(SYNC_TIMEOUT_MS) {
+                Logger.debug("isSyncingLdkNodePayments = ${isSyncingLdkNodePayments.value}", context = TAG)
+                isSyncingLdkNodePayments.first { !it }
             }
 
-            deletePendingActivities()
+            isSyncingLdkNodePayments.value = true
 
-            isSyncingLdkNodePayments = true
+            deletePendingActivities()
             return@withContext lightningRepo.getPayments()
                 .onSuccess { payments ->
                     Logger.debug("Got payments with success, syncing activities", context = TAG)
@@ -55,15 +57,25 @@ class ActivityRepo @Inject constructor(
                     updateActivitiesMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
-                    isSyncingLdkNodePayments = false
+                    isSyncingLdkNodePayments.value = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
                     Logger.error("Failed to sync ldk-node payments", e, context = TAG)
-                    isSyncingLdkNodePayments = false
+                    isSyncingLdkNodePayments.value = false
                     return@withContext Result.failure(e)
                 }.map { Unit }
         }.onFailure { e ->
-            Logger.error("syncLdkNodePayments error", e, context = TAG)
+            when (e) {
+                is TimeoutCancellationException -> {
+                    isSyncingLdkNodePayments.value = false
+                    Logger.error("Timeout waiting for sync to complete, forcing reset", e, context = TAG)
+                }
+
+                else -> {
+                    isSyncingLdkNodePayments.value = false
+                    Logger.error("syncActivities error", e, context = TAG)
+                }
+            }
         }
     }
 
@@ -127,9 +139,6 @@ class ActivityRepo @Inject constructor(
                     "activity with paymentHashOrTxId:$paymentHashOrTxId not found, trying again after sync",
                     context = TAG
                 )
-                Logger.debug("5 seconds delay", context = TAG)
-                delay(5.seconds)
-                Logger.debug("Syncing LN node called", context = TAG)
 
                 lightningRepo.sync().onSuccess {
                     Logger.debug("Syncing LN node SUCCESS", context = TAG)

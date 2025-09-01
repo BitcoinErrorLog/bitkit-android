@@ -6,6 +6,7 @@ import com.synonym.bitkitcore.decode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
@@ -152,6 +153,9 @@ class WalletRepo @Inject constructor(
             syncBalances()
             return@withContext Result.success(Unit)
         }.onFailure { e ->
+            if (e is TimeoutCancellationException) {
+                syncBalances()
+            }
             return@withContext Result.failure(e)
         }
     }
