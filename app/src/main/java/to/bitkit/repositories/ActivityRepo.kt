@@ -268,11 +268,13 @@ class ActivityRepo @Inject constructor(
     }
 
     private suspend fun deletePendingActivities() = withContext(bgDispatcher) {
-        cacheStore.data.first().activitiesPendingDelete.forEach { activityId ->
-            deleteActivity(id = activityId).onSuccess {
-                cacheStore.removeActivityFromPendingDelete(activityId)
+        cacheStore.data.first().activitiesPendingDelete.map { activityId ->
+            async {
+                deleteActivity(id = activityId).onSuccess {
+                    cacheStore.removeActivityFromPendingDelete(activityId)
+                }
             }
-        }
+        }.awaitAll()
     }
 
     private suspend fun updateActivitiesMetadata() = withContext(bgDispatcher) {
