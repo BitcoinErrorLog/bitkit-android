@@ -579,7 +579,7 @@ class ActivityRepo @Inject constructor(
     ): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
 
-            if (tags.isEmpty()) throw InvalidParameterException("tags must not be empty")
+            require(tags.isNotEmpty())
 
             val entity = TagMetadataEntity(
                 id = id,
