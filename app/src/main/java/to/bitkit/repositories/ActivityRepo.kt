@@ -5,6 +5,7 @@ import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
+import com.synonym.bitkitcore.getTags
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -246,6 +247,10 @@ class ActivityRepo @Inject constructor(
                     "Activity $id updated with success. new data: $activity. Deleting activity $activityIdToDelete",
                     context = TAG
                 )
+
+                val tags = getTags(activityIdToDelete)
+                addTagsToActivity(activityId = id, tags = tags)
+
                 deleteActivity(activityIdToDelete).onFailure { e ->
                     Logger.warn(
                         "Failed to delete $activityIdToDelete caching to retry on next sync",
