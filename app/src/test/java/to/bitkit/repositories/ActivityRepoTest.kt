@@ -6,7 +6,6 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
-import com.synonym.bitkitcore.getTags
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
 import org.junit.Test
