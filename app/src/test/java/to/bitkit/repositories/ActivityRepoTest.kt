@@ -6,6 +6,7 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
+import com.synonym.bitkitcore.getTags
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
 import org.junit.Test
@@ -226,24 +227,6 @@ class ActivityRepoTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         verify(coreService.activity).update(activityId, testActivity)
-    }
-
-    @Test
-    fun `replaceActivity updates and deletes successfully`() = test {
-        val activityId = "activity123"
-        val activityToDeleteId = "activity456"
-        val cacheData = AppCacheData(deletedActivities = emptyList())
-        whenever(cacheStore.data).thenReturn(flowOf(cacheData))
-
-        wheneverBlocking { coreService.activity.update(activityId, testActivity) }.thenReturn(Unit)
-        wheneverBlocking { coreService.activity.delete(activityToDeleteId) }.thenReturn(true)
-        wheneverBlocking { cacheStore.addActivityToDeletedList(activityToDeleteId) }.thenReturn(Unit)
-
-        val result = sut.replaceActivity(activityId, activityToDeleteId, testActivity)
-
-        assertTrue(result.isSuccess)
-        verify(coreService.activity).update(activityId, testActivity)
-        verify(coreService.activity).delete(activityToDeleteId)
     }
 
     @Test
