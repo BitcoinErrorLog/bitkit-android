@@ -57,6 +57,7 @@ import to.bitkit.ext.minWithdrawableSat
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
+import to.bitkit.ext.totalValue
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.FeeRate
 import to.bitkit.models.NewTransactionSheetDetails
@@ -136,6 +137,8 @@ class AppViewModel @Inject constructor(
 
     private val _showForgotPinSheet = MutableStateFlow(false)
     val showForgotPinSheet = _showForgotPinSheet.asStateFlow()
+
+    private val processedPayments = mutableSetOf<String>()
 
     fun setShowForgotPin(value: Boolean) {
         _showForgotPinSheet.value = value
@@ -236,15 +239,26 @@ class AppViewModel @Inject constructor(
                         }
 
                         is Event.PaymentSuccessful -> {
-                            // TODO: fee is not the sats sent. Need to get this amount from elsewhere like send flow or something.
-                            handlePaymentSuccess(
-                                NewTransactionSheetDetails(
-                                    type = NewTransactionSheetType.LIGHTNING,
-                                    direction = NewTransactionSheetDirection.SENT,
-                                    paymentHashOrTxId = event.paymentHash,
-                                    sats = ((event.feePaidMsat ?: 0u) / 1000u).toLong(),
-                                ),
-                            )
+                            val paymentHash = event.paymentHash
+                            // TODO Temporary solution while LDK node don't returns the sent value in the event
+                            activityRepo.findActivityByPaymentId(
+                                paymentHashOrTxId = paymentHash,
+                                type = ActivityFilter.LIGHTNING,
+                                txType = PaymentType.SENT,
+                                retry = true
+                            ).onSuccess { activity ->
+                                handlePaymentSuccess(
+                                    NewTransactionSheetDetails(
+                                        type = NewTransactionSheetType.LIGHTNING,
+                                        direction = NewTransactionSheetDirection.SENT,
+                                        paymentHashOrTxId = event.paymentHash,
+                                        sats = activity.totalValue().toLong(),
+                                    ),
+                                )
+                            }.onFailure { e ->
+                                Logger.warn("Failed displaying sheet for event: $Event", e)
+                            }
+
                         }
 
                         is Event.PaymentClaimable -> Unit
@@ -973,7 +987,14 @@ class AppViewModel @Inject constructor(
                         isReceive = false,
                         tags = tags
                     )
-                    setSendEffect(SendEffect.PaymentSuccess())
+                    handlePaymentSuccess(
+                        NewTransactionSheetDetails(
+                            type = NewTransactionSheetType.LIGHTNING,
+                            direction = NewTransactionSheetDirection.SENT,
+                            paymentHashOrTxId = paymentHash,
+                            sats = paymentAmount.toLong(), // TODO Add fee when available
+                        ),
+                    )
                 }.onFailure { e ->
                     Logger.error("Error sending lightning payment", e, context = TAG)
                     toast(e)
@@ -1225,6 +1246,8 @@ class AppViewModel @Inject constructor(
                 feeRates = rates,
             )
         }
+
+        processedPayments.clear()
     }
     // endregion
 
@@ -1441,6 +1464,13 @@ class AppViewModel @Inject constructor(
     }
 
     private fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
+        details.paymentHashOrTxId?.let {
+            if (!processedPayments.add(it)) {
+                Logger.debug("Payment $it already processed, skipping duplicate", context = TAG)
+                return
+            }
+        }
+
         _successSendUiState.update { details }
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
