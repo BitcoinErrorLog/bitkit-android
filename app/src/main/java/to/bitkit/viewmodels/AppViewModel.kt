@@ -1463,7 +1463,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
+    fun handlePaymentSuccess(details: NewTransactionSheetDetails) {
         details.paymentHashOrTxId?.let {
             if (!processedPayments.add(it)) {
                 Logger.debug("Payment $it already processed, skipping duplicate", context = TAG)

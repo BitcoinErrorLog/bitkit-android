@@ -49,9 +49,16 @@ class QuickPayViewModel @Inject constructor(
             }
 
             sendLightning(bolt11, amount)
-                .onSuccess {
+                .onSuccess { paymentHash ->
                     Logger.info("QuickPay lightning payment successful")
-                    _uiState.update { it.copy(result = QuickPayResult.Success) }
+                    _uiState.update {
+                        it.copy(
+                            result = QuickPayResult.Success(
+                                paymentHash = paymentHash,
+                                amountWithFee = amount.toLong() // TODO GET FEE WHEN AVAILABLE
+                            )
+                        )
+                    }
                 }.onFailure { error ->
                     Logger.error("QuickPay lightning payment failed", error)
 
@@ -96,7 +103,11 @@ class QuickPayViewModel @Inject constructor(
 }
 
 sealed class QuickPayResult {
-    data object Success : QuickPayResult()
+    data class Success(
+        val paymentHash: String,
+        val amountWithFee: Long,
+    ) : QuickPayResult()
+
     data class Error(val message: String) : QuickPayResult()
 }
 

@@ -38,7 +38,7 @@ import to.bitkit.viewmodels.QuickPayViewModel
 @Composable
 fun SendQuickPayScreen(
     quickPayData: QuickPayData,
-    onPaymentComplete: () -> Unit,
+    onPaymentComplete: (String, Long) -> Unit,
     onShowError: (String) -> Unit,
     viewModel: QuickPayViewModel = hiltViewModel(),
 ) {
@@ -60,7 +60,7 @@ fun SendQuickPayScreen(
 
     LaunchedEffect(uiState.result) {
         when (val result = uiState.result) {
-            is QuickPayResult.Success -> onPaymentComplete()
+            is QuickPayResult.Success -> onPaymentComplete(result.paymentHash, result.amountWithFee)
             is QuickPayResult.Error -> onShowError(result.message)
             null -> Unit // continue showing loading state
         }
