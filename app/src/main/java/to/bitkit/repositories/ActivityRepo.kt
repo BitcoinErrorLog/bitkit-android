@@ -425,46 +425,48 @@ class ActivityRepo @Inject constructor(
     }
 
     private suspend fun boostPendingActivities() = withContext(bgDispatcher) {
-        cacheStore.data.first().pendingBoostActivities.forEach { pendingBoostActivity ->
-            findActivityByPaymentId(
-                paymentHashOrTxId = pendingBoostActivity.txId,
-                type = ActivityFilter.ONCHAIN,
-                txType = PaymentType.SENT
-            ).onSuccess { activityToUpdate ->
-                Logger.debug("boostPendingActivities = Activity found: ${activityToUpdate.rawId()}", context = TAG)
+        cacheStore.data.first().pendingBoostActivities.map { pendingBoostActivity ->
+            async {
+                findActivityByPaymentId(
+                    paymentHashOrTxId = pendingBoostActivity.txId,
+                    type = ActivityFilter.ONCHAIN,
+                    txType = PaymentType.SENT
+                ).onSuccess { activityToUpdate ->
+                    Logger.debug("boostPendingActivities = Activity found: ${activityToUpdate.rawId()}", context = TAG)
 
-                val newOnChainActivity = activityToUpdate as? Activity.Onchain ?: return@onSuccess
+                    val newOnChainActivity = activityToUpdate as? Activity.Onchain ?: return@onSuccess
 
-                if ((newOnChainActivity.v1.updatedAt ?: 0u) > pendingBoostActivity.updatedAt) {
-                    cacheStore.removeActivityFromPendingBoost(pendingBoostActivity)
-                    return@onSuccess
-                }
-
-                val updatedActivity = Activity.Onchain(
-                    v1 = newOnChainActivity.v1.copy(
-                        isBoosted = true,
-                        updatedAt = pendingBoostActivity.updatedAt
-                    )
-                )
-
-                if (pendingBoostActivity.activityToDelete != null) {
-                    replaceActivity(
-                        id = updatedActivity.v1.id,
-                        activity = updatedActivity,
-                        activityIdToDelete = pendingBoostActivity.activityToDelete
-                    ).onSuccess {
+                    if ((newOnChainActivity.v1.updatedAt ?: 0u) > pendingBoostActivity.updatedAt) {
                         cacheStore.removeActivityFromPendingBoost(pendingBoostActivity)
+                        return@onSuccess
                     }
-                } else {
-                    updateActivity(
-                        id = updatedActivity.v1.id,
-                        activity = updatedActivity
-                    ).onSuccess {
-                        cacheStore.removeActivityFromPendingBoost(pendingBoostActivity)
+
+                    val updatedActivity = Activity.Onchain(
+                        v1 = newOnChainActivity.v1.copy(
+                            isBoosted = true,
+                            updatedAt = pendingBoostActivity.updatedAt
+                        )
+                    )
+
+                    if (pendingBoostActivity.activityToDelete != null) {
+                        replaceActivity(
+                            id = updatedActivity.v1.id,
+                            activity = updatedActivity,
+                            activityIdToDelete = pendingBoostActivity.activityToDelete
+                        ).onSuccess {
+                            cacheStore.removeActivityFromPendingBoost(pendingBoostActivity)
+                        }
+                    } else {
+                        updateActivity(
+                            id = updatedActivity.v1.id,
+                            activity = updatedActivity
+                        ).onSuccess {
+                            cacheStore.removeActivityFromPendingBoost(pendingBoostActivity)
+                        }
                     }
                 }
             }
-        }
+        }.awaitAll()
     }
 
     /**
