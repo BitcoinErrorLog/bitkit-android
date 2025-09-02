@@ -276,51 +276,56 @@ class ActivityRepo @Inject constructor(
     }
 
     private suspend fun updateActivitiesMetadata() = withContext(bgDispatcher) {
-        cacheStore.data.first().transactionsMetadata.forEach { activityMetaData ->
-            findActivityByPaymentId(
-                paymentHashOrTxId = activityMetaData.txId,
-                type = ActivityFilter.ALL,
-                txType = PaymentType.SENT
-            ).onSuccess { activityToUpdate ->
-                Logger.debug("updateActivitiesMetaData = Activity found: ${activityToUpdate.rawId()}", context = TAG)
+        cacheStore.data.first().transactionsMetadata.map { activityMetaData ->
+            async {
+                findActivityByPaymentId(
+                    paymentHashOrTxId = activityMetaData.txId,
+                    type = ActivityFilter.ALL,
+                    txType = PaymentType.SENT
+                ).onSuccess { activityToUpdate ->
+                    Logger.debug(
+                        "updateActivitiesMetaData - Activity found: ${activityToUpdate.rawId()}",
+                        context = TAG
+                    )
 
-                when (activityToUpdate) {
-                    is Activity.Onchain -> {
-                        val onChainActivity = activityToUpdate.v1.copy(
-                            feeRate = activityMetaData.feeRate.toULong(),
-                            address = activityMetaData.address,
-                            isTransfer = activityMetaData.isTransfer,
-                            channelId = activityMetaData.channelId,
-                            transferTxId = activityMetaData.transferTxId
-                        )
-                        val updatedActivity = Onchain(
-                            v1 = onChainActivity
-                        )
+                    when (activityToUpdate) {
+                        is Activity.Onchain -> {
+                            val onChainActivity = activityToUpdate.v1.copy(
+                                feeRate = activityMetaData.feeRate.toULong(),
+                                address = activityMetaData.address,
+                                isTransfer = activityMetaData.isTransfer,
+                                channelId = activityMetaData.channelId,
+                                transferTxId = activityMetaData.transferTxId
+                            )
+                            val updatedActivity = Onchain(
+                                v1 = onChainActivity
+                            )
 
-                        updateActivity(
-                            id = updatedActivity.v1.id,
-                            activity = updatedActivity
-                        ).onSuccess {
-                            if (onChainActivity.isTransfer && onChainActivity.doesExist) {
-                                cacheStore.addInProgressTransfer(
-                                    InProgressTransfer(
-                                        activityId = updatedActivity.v1.id,
-                                        type = if (onChainActivity.txType == PaymentType.SENT) {
-                                            TransferType.TO_SPENDING
-                                        } else {
-                                            TransferType.TO_SAVINGS
-                                        }
+                            updateActivity(
+                                id = updatedActivity.v1.id,
+                                activity = updatedActivity
+                            ).onSuccess {
+                                if (onChainActivity.isTransfer && onChainActivity.doesExist) {
+                                    cacheStore.addInProgressTransfer(
+                                        InProgressTransfer(
+                                            activityId = updatedActivity.v1.id,
+                                            type = if (onChainActivity.txType == PaymentType.SENT) {
+                                                TransferType.TO_SPENDING
+                                            } else {
+                                                TransferType.TO_SAVINGS
+                                            }
+                                        )
                                     )
-                                )
+                                }
+                                cacheStore.removeTransactionMetadata(activityMetaData)
                             }
-                            cacheStore.removeTransactionMetadata(activityMetaData)
                         }
-                    }
 
-                    is Activity.Lightning -> Unit
+                        is Activity.Lightning -> Unit
+                    }
                 }
             }
-        }
+        }.awaitAll()
     }
 
     private suspend fun syncTagsMetadata() = withContext(context = bgDispatcher) {
