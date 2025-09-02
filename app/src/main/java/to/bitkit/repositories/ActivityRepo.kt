@@ -64,7 +64,7 @@ class ActivityRepo @Inject constructor(
                         return@withContext Result.failure(e)
                     }
                     updateActivitiesMetadata()
-                    syncTagsMetaData()
+                    syncTagsMetadata()
                     boostPendingActivities()
                     updateInProgressTransfers()
                     isSyncingLdkNodePayments.value = false
@@ -322,7 +322,7 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    private suspend fun syncTagsMetaData(
+    private suspend fun syncTagsMetadata(
     ) = withContext(context = bgDispatcher) {
         runCatching {
             if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
