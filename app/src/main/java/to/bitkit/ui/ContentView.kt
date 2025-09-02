@@ -325,11 +325,6 @@ fun ContentView(
                                 appViewModel = appViewModel,
                                 walletViewModel = walletViewModel,
                                 startDestination = sheet.route,
-                                onComplete = { txSheet ->
-                                    appViewModel.hideSheet()
-                                    appViewModel.clearClipboardForAutoRead()
-                                    txSheet?.let { appViewModel.showNewTransactionSheet(details = it, event = null) }
-                                }
                             )
                         }
 

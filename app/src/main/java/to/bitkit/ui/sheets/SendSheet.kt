@@ -15,7 +15,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
@@ -46,7 +45,6 @@ fun SendSheet(
     appViewModel: AppViewModel,
     walletViewModel: WalletViewModel,
     startDestination: SendRoute = SendRoute.Recipient,
-    onComplete: (NewTransactionSheetDetails?) -> Unit,
 ) {
     LaunchedEffect(startDestination) {
         // always reset state on new user-initiated send
@@ -72,7 +70,10 @@ fun SendSheet(
                     is SendEffect.NavigateToCoinSelection -> navController.navigate(SendRoute.CoinSelection)
                     is SendEffect.NavigateToConfirm -> navController.navigate(SendRoute.Confirm)
                     is SendEffect.PopBack -> navController.popBackStack(it.route, inclusive = false)
-                    is SendEffect.PaymentSuccess -> onComplete(it.sheet)
+                    is SendEffect.PaymentSuccess -> {
+                        appViewModel.clearClipboardForAutoRead()
+                        navController.navigate(SendRoute.Success)
+                    }
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
@@ -162,6 +163,14 @@ fun SendSheet(
                     onNavigateToPin = { navController.navigate(SendRoute.PinCheck) },
                 )
             }
+            composableWithDefaultTransitions<SendRoute.Success> {
+                val sendDetail by appViewModel.successSendUiState.collectAsStateWithLifecycle()
+                NewTransactionSheetView(
+                    details = sendDetail,
+                    onCloseClick = { appViewModel.hideSheet() },
+                    onDetailClick = { appViewModel.onClickSendDetail() }
+                )
+            }
             composableWithDefaultTransitions<SendRoute.WithdrawConfirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
                 WithdrawConfirmScreen(
@@ -210,7 +219,7 @@ fun SendSheet(
                 SendQuickPayScreen(
                     quickPayData = requireNotNull(quickPayData),
                     onPaymentComplete = {
-                        onComplete(null)
+                        navController.navigate(SendRoute.Success)
                     },
                     onShowError = { errorMessage ->
                         navController.navigate(SendRoute.Error(errorMessage))
@@ -227,11 +236,11 @@ fun SendSheet(
                                 popUpTo<SendRoute.Recipient> { inclusive = true }
                             }
                         } else {
-                            onComplete(null)
+                            navController.navigate(SendRoute.Success)
                         }
                     },
                     onClose = {
-                        onComplete(null)
+                        appViewModel.hideSheet()
                     }
                 )
             }
@@ -284,6 +293,9 @@ sealed interface SendRoute {
 
     @Serializable
     data object Confirm : SendRoute
+
+    @Serializable
+    data object Success : SendRoute
 
     @Serializable
     data class Error(val errorMessage: String) : SendRoute
