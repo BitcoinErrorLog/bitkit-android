@@ -7,6 +7,8 @@ import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -26,7 +28,6 @@ import to.bitkit.ext.rawId
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
-import java.security.InvalidParameterException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -322,76 +323,85 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    private suspend fun syncTagsMetadata(
-    ) = withContext(context = bgDispatcher) {
+    private suspend fun syncTagsMetadata() = withContext(context = bgDispatcher) {
         runCatching {
             if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
             val lastActivities = getActivities(limit = 10u).getOrNull() ?: return@withContext
-            Logger.debug("syncTagsMetaData called")
-            lastActivities.forEach { activity ->
-                when (activity) {
-                    is Activity.Lightning -> {
-                        val paymentHash = activity.rawId()
-                        db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash)?.let { tagMetadata ->
-                            Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
-                            addTagsToTransaction(
-                                paymentHashOrTxId = paymentHash,
-                                type = ActivityFilter.LIGHTNING,
-                                txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
-                                tags = tagMetadata.tags
-                            ).onSuccess {
-                                Logger.debug("Tags synced with success!", context = TAG)
-                                db.tagMetadataDao().deleteByPaymentHash(paymentHash = paymentHash)
-                            }
-                        }
-                    }
+            Logger.debug("syncTagsMetadata called")
 
-                    is Onchain -> {
-                        when (activity.v1.txType) {
-                            PaymentType.RECEIVED -> {
-                                // TODO Temporary solution while whe ldk-node doesn't return the address directly
-                                Logger.debug("Fetching data for txId: ${activity.v1.txId}", context = TAG)
-                                runCatching { addressChecker.getTransaction(activity.v1.txId) }.onSuccess { txDetails ->
-                                    Logger.debug("Tx detail fetched with success: $txDetails", context = TAG)
-                                    txDetails.vout.forEach { vOut ->
-                                        vOut.scriptpubkey_address?.let {
-                                            Logger.debug("Extracted address: $it", context = TAG)
-                                            db.tagMetadataDao().searchByAddress(it)
-                                        }?.let { tagMetadata ->
-                                            Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
-                                            addTagsToTransaction(
-                                                paymentHashOrTxId = txDetails.txid,
-                                                type = ActivityFilter.ONCHAIN,
-                                                txType = PaymentType.RECEIVED,
-                                                tags = tagMetadata.tags
-                                            ).onSuccess {
-                                                Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
-                                                db.tagMetadataDao().deleteByTxId(activity.v1.txId)
-                                            }
-                                        }
-                                    }
-                                }.onFailure {
-                                    Logger.warn("Failed getting transaction detail", context = TAG)
+            lastActivities.map { activity ->
+                async {
+                    when (activity) {
+                        is Activity.Lightning -> {
+                            val paymentHash = activity.rawId()
+                            db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash)?.let { tagMetadata ->
+                                Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
+                                addTagsToTransaction(
+                                    paymentHashOrTxId = paymentHash,
+                                    type = ActivityFilter.LIGHTNING,
+                                    txType = if (tagMetadata.isReceive) PaymentType.RECEIVED else PaymentType.SENT,
+                                    tags = tagMetadata.tags
+                                ).onSuccess {
+                                    Logger.debug("Tags synced with success!", context = TAG)
+                                    db.tagMetadataDao().deleteByPaymentHash(paymentHash = paymentHash)
                                 }
                             }
+                        }
 
-                            PaymentType.SENT -> {
-                                db.tagMetadataDao().searchByTxId(activity.v1.txId)?.let { tagMetadata ->
-                                    addTagsToTransaction(
-                                        paymentHashOrTxId = activity.v1.txId,
-                                        type = ActivityFilter.ONCHAIN,
-                                        txType = PaymentType.SENT,
-                                        tags = tagMetadata.tags
-                                    ).onSuccess {
-                                        Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
-                                        db.tagMetadataDao().deleteByTxId(activity.v1.txId)
+                        is Onchain -> {
+                            when (activity.v1.txType) {
+                                PaymentType.RECEIVED -> {
+                                    // TODO Temporary solution while whe ldk-node doesn't return the address directly
+                                    Logger.debug("Fetching data for txId: ${activity.v1.txId}", context = TAG)
+                                    runCatching {
+                                        addressChecker.getTransaction(activity.v1.txId)
+                                    }.onSuccess { txDetails ->
+                                        Logger.debug("Tx detail fetched with success: $txDetails", context = TAG)
+                                        txDetails.vout.map { vOut ->
+                                            async {
+                                                vOut.scriptpubkey_address?.let {
+                                                    Logger.debug("Extracted address: $it", context = TAG)
+                                                    db.tagMetadataDao().searchByAddress(it)
+                                                }?.let { tagMetadata ->
+                                                    Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
+                                                    addTagsToTransaction(
+                                                        paymentHashOrTxId = txDetails.txid,
+                                                        type = ActivityFilter.ONCHAIN,
+                                                        txType = PaymentType.RECEIVED,
+                                                        tags = tagMetadata.tags
+                                                    ).onSuccess {
+                                                        Logger.debug(
+                                                            "Tags synced with success! $tagMetadata",
+                                                            context = TAG
+                                                        )
+                                                        db.tagMetadataDao().deleteByTxId(activity.v1.txId)
+                                                    }
+                                                }
+                                            }
+                                        }.awaitAll()
+                                    }.onFailure {
+                                        Logger.warn("Failed getting transaction detail", context = TAG)
+                                    }
+                                }
+
+                                PaymentType.SENT -> {
+                                    db.tagMetadataDao().searchByTxId(activity.v1.txId)?.let { tagMetadata ->
+                                        addTagsToTransaction(
+                                            paymentHashOrTxId = activity.v1.txId,
+                                            type = ActivityFilter.ONCHAIN,
+                                            txType = PaymentType.SENT,
+                                            tags = tagMetadata.tags
+                                        ).onSuccess {
+                                            Logger.debug("Tags synced with success! $tagMetadata", context = TAG)
+                                            db.tagMetadataDao().deleteByTxId(activity.v1.txId)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
+            }.awaitAll()
         }
     }
 
