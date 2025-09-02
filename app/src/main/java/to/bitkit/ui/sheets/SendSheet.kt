@@ -39,6 +39,7 @@ import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.SendEffect
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.WalletViewModel
+import androidx.navigation.navOptions
 
 @Composable
 fun SendSheet(
@@ -72,7 +73,9 @@ fun SendSheet(
                     is SendEffect.PopBack -> navController.popBackStack(it.route, inclusive = false)
                     is SendEffect.PaymentSuccess -> {
                         appViewModel.clearClipboardForAutoRead()
-                        navController.navigate(SendRoute.Success)
+                        navController.navigate(SendRoute.Success) {
+                            popUpTo(startDestination) { inclusive = true }
+                        }
                     }
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
@@ -219,7 +222,9 @@ fun SendSheet(
                 SendQuickPayScreen(
                     quickPayData = requireNotNull(quickPayData),
                     onPaymentComplete = {
-                        navController.navigate(SendRoute.Success)
+                        navController.navigate(SendRoute.Success) {
+                            popUpTo(startDestination) { inclusive = true }
+                        }
                     },
                     onShowError = { errorMessage ->
                         navController.navigate(SendRoute.Error(errorMessage))
