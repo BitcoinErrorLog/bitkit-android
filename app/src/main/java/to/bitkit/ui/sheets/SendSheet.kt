@@ -39,7 +39,6 @@ import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.SendEffect
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.WalletViewModel
-import androidx.navigation.navOptions
 
 @Composable
 fun SendSheet(
