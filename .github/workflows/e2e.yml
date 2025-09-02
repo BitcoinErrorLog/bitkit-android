@@ -134,12 +134,18 @@ jobs:
           avd-name: Pixel_6
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: |
-            # adb port forwarding for regtest
-            adb reverse tcp:60001 tcp:60001
-            cd bitkit-e2e-tests && npm run e2e:android
+          script: cd bitkit-e2e-tests && ./ci_run_android.sh
         env:
           RECORD_VIDEO: true
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat_${{ github.run_number }}
+          path: bitkit-e2e-tests/artifacts/logcat.txt.gz
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload E2E Artifacts
         if: failure()
