@@ -15,6 +15,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
+import to.bitkit.models.NewTransactionSheetDetails
+import to.bitkit.models.NewTransactionSheetDirection
+import to.bitkit.models.NewTransactionSheetType
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.screens.wallets.send.PIN_CHECK_RESULT_KEY
@@ -72,8 +75,11 @@ fun SendSheet(
                     is SendEffect.PopBack -> navController.popBackStack(it.route, inclusive = false)
                     is SendEffect.PaymentSuccess -> {
                         appViewModel.clearClipboardForAutoRead()
-                        navController.navigate(SendRoute.Success)
+                        navController.navigate(SendRoute.Success) {
+                            popUpTo(startDestination) { inclusive = true }
+                        }
                     }
+
                     is SendEffect.NavigateToQuickPay -> navController.navigate(SendRoute.QuickPay)
                     is SendEffect.NavigateToWithdrawConfirm -> navController.navigate(SendRoute.WithdrawConfirm)
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
@@ -218,8 +224,19 @@ fun SendSheet(
                 val quickPayData by appViewModel.quickPayData.collectAsStateWithLifecycle()
                 SendQuickPayScreen(
                     quickPayData = requireNotNull(quickPayData),
-                    onPaymentComplete = {
-                        navController.navigate(SendRoute.Success)
+                    onPaymentComplete = { paymentHash, amountWithFee ->
+                        appViewModel.handlePaymentSuccess(
+                            NewTransactionSheetDetails(
+                                type = NewTransactionSheetType.LIGHTNING,
+                                direction = NewTransactionSheetDirection.SENT,
+                                paymentHashOrTxId = paymentHash,
+                                sats = amountWithFee,
+                            ),
+                        )
+
+                        navController.navigate(SendRoute.Success) {
+                            popUpTo(startDestination) { inclusive = true }
+                        }
                     },
                     onShowError = { errorMessage ->
                         navController.navigate(SendRoute.Error(errorMessage))
