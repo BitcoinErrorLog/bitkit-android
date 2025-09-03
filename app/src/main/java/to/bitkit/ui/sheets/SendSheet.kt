@@ -233,10 +233,6 @@ fun SendSheet(
                                 sats = amountWithFee,
                             ),
                         )
-
-                        navController.navigate(SendRoute.Success) {
-                            popUpTo(startDestination) { inclusive = true }
-                        }
                     },
                     onShowError = { errorMessage ->
                         navController.navigate(SendRoute.Error(errorMessage))
