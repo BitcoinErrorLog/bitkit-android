@@ -363,15 +363,15 @@ class ActivityRepo @Inject constructor(
                             when (activity.v1.txType) {
                                 PaymentType.RECEIVED -> {
                                     // TODO Temporary solution while whe ldk-node doesn't return the address directly
-                                    Logger.debug("Fetching data for txId: ${activity.v1.txId}", context = TAG)
+                                    Logger.verbose("Fetching data for txId: ${activity.v1.txId}", context = TAG)
                                     runCatching {
                                         addressChecker.getTransaction(activity.v1.txId)
                                     }.onSuccess { txDetails ->
-                                        Logger.debug("Tx detail fetched with success: $txDetails", context = TAG)
+                                        Logger.verbose("Tx detail fetched with success: $txDetails", context = TAG)
                                         txDetails.vout.map { vOut ->
                                             async {
                                                 vOut.scriptpubkey_address?.let {
-                                                    Logger.debug("Extracted address: $it", context = TAG)
+                                                    Logger.verbose("Extracted address: $it", context = TAG)
                                                     db.tagMetadataDao().searchByAddress(it)
                                                 }?.let { tagMetadata ->
                                                     Logger.debug("Tags metadata found! $tagMetadata", context = TAG)
