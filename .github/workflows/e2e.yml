@@ -133,11 +133,8 @@ jobs:
           arch: x86_64
           avd-name: Pixel_6
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: |
-            # adb port forwarding for regtest
-            adb reverse tcp:60001 tcp:60001
-            cd bitkit-e2e-tests && npm run e2e:android
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-front none
+          script: cd bitkit-e2e-tests && ./ci_run_android.sh
         env:
           RECORD_VIDEO: true
 
