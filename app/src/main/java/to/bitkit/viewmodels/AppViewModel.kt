@@ -258,7 +258,6 @@ class AppViewModel @Inject constructor(
                             }.onFailure { e ->
                                 Logger.warn("Failed displaying sheet for event: $Event", e)
                             }
-
                         }
 
                         is Event.PaymentClaimable -> Unit
@@ -397,7 +396,7 @@ class AppViewModel @Inject constructor(
             _sendUiState.update {
                 it.copy(
                     speed = speed,
-                    fee = fee,
+                    fee = SendFee.OnChain(fee),
                     selectedUtxos = if (shouldResetUtxos) null else it.selectedUtxos,
                 )
             }
@@ -439,6 +438,8 @@ class AppViewModel @Inject constructor(
         }
 
         refreshOnchainSendIfNeeded()
+        estimateLightningRoutingFeesIfNeeded()
+
         setSendEffect(SendEffect.NavigateToConfirm)
     }
 
@@ -1216,8 +1217,28 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(
                 fees = feesMap,
-                fee = currentFee,
+                fee = SendFee.OnChain(currentFee),
             )
+        }
+    }
+
+    private suspend fun estimateLightningRoutingFeesIfNeeded() {
+        val currentState = _sendUiState.value
+        if (currentState.payMethod != SendMethod.LIGHTNING) return
+        val decodedInvoice = currentState.decodedInvoice ?: return
+
+        val feeResult = if (decodedInvoice.amountSatoshis > 0uL) {
+            lightningRepo.estimateRoutingFees(decodedInvoice.bolt11)
+        } else {
+            lightningRepo.estimateRoutingFeesForAmount(decodedInvoice.bolt11, currentState.amount)
+        }
+
+        feeResult.onSuccess { fee ->
+            _sendUiState.update {
+                it.copy(
+                    fee = SendFee.Lightning(fee.toLong())
+                )
+            }
         }
     }
 
@@ -1506,7 +1527,7 @@ data class SendUiState(
     val speed: TransactionSpeed = TransactionSpeed.default(),
     val comment: String = "",
     val feeRates: FeeRates? = null,
-    val fee: Long = 0,
+    val fee: SendFee? = null,
     val fees: Map<FeeRate, Long> = emptyMap(),
 )
 
@@ -1516,6 +1537,11 @@ enum class SanityWarning(@StringRes val message: Int, val testTag: String) {
     FEE_OVER_HALF_VALUE(R.string.wallet__send_dialog3, "SendDialog3"),
     FEE_OVER_10_USD(R.string.wallet__send_dialog4, "SendDialog4"),
     // TODO SendDialog5 https://github.com/synonymdev/bitkit/blob/master/src/screens/Wallets/Send/ReviewAndSend.tsx#L457-L466
+}
+
+sealed class SendFee(open val value: Long) {
+    data class OnChain(override val value: Long) : SendFee(value)
+    data class Lightning(override val value: Long) : SendFee(value)
 }
 
 enum class SendMethod { ONCHAIN, LIGHTNING }

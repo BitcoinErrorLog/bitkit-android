@@ -51,6 +51,7 @@ import to.bitkit.ext.DatePattern
 import to.bitkit.ext.commentAllowed
 import to.bitkit.ext.formatted
 import to.bitkit.models.FeeRate
+import to.bitkit.models.TransactionSpeed
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BiometricsView
 import to.bitkit.ui.components.BodySSB
@@ -74,9 +75,10 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.rememberBiometricAuthSupported
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.viewmodels.SanityWarning
 import to.bitkit.viewmodels.LnurlParams
+import to.bitkit.viewmodels.SanityWarning
 import to.bitkit.viewmodels.SendEvent
+import to.bitkit.viewmodels.SendFee
 import to.bitkit.viewmodels.SendMethod
 import to.bitkit.viewmodels.SendUiState
 import java.time.Instant
@@ -272,7 +274,9 @@ private fun LnurlCommentSection(
         onValueChange = { onEvent(SendEvent.CommentChange(it)) },
         minLines = 3,
         maxLines = 3,
-        modifier = Modifier.fillMaxWidth().testTag("CommentInput")
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("CommentInput")
     )
 }
 
@@ -363,16 +367,26 @@ private fun OnChainDescription(
                             tint = fee.color,
                             modifier = Modifier.size(16.dp)
                         )
-                        uiState.fee.takeIf { it > 0 }
-                            ?.let { rememberMoneyText(it) }
-                            ?.let {
-                                BodySSB(
-                                    text = "${stringResource(fee.title)} ($it)".withAccent(accentColor = Colors.White),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.MiddleEllipsis,
-                                )
+                        when (val stateFee = uiState.fee) {
+                            is SendFee.OnChain -> {
+                                if (stateFee.value > 0) {
+                                    val feeText = let {
+                                        val prefix = stringResource(fee.title)
+                                        val value = rememberMoneyText(stateFee.value)
+                                        "$prefix ($value)"
+                                    }
+                                    BodySSB(
+                                        text = feeText.withAccent(accentColor = Colors.White),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.MiddleEllipsis,
+                                    )
+                                } else {
+                                    CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
+                                }
                             }
-                            ?: CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
+
+                            else -> CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
+                        }
                         Icon(
                             painterResource(R.drawable.ic_pencil_simple),
                             contentDescription = null,
@@ -470,7 +484,20 @@ private fun LightningDescription(
                         tint = Colors.Purple,
                         modifier = Modifier.size(16.dp)
                     )
-                    BodySSB(text = "Instant (±$0.01)") // TODO GET FROM STATE
+                    when (val fee = uiState.fee) {
+                        is SendFee.Lightning -> {
+                            val feeText = if (fee.value > 0) rememberMoneyText(fee.value) else null
+                            BodySSB(
+                                text = if (feeText != null) {
+                                    "${stringResource(R.string.fee__instant__title)} ($feeText)"
+                                } else {
+                                    stringResource(R.string.fee__instant__title)
+                                }
+                            )
+                        }
+
+                        else -> BodySSB(text = stringResource(R.string.fee__instant__title))
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
@@ -534,7 +561,6 @@ private fun sendUiState() = SendUiState(
         payeeNodeId = null,
         description = "Some invoice description",
     ),
-    fee = 45554,
 )
 
 @Preview(showSystemUi = true, group = "onchain")
@@ -545,6 +571,8 @@ private fun PreviewOnChain() {
             Content(
                 uiState = sendUiState().copy(
                     selectedTags = listOf("car", "house", "uber"),
+                    fee = SendFee.OnChain(1_234),
+                    speed = TransactionSpeed.Fast,
                 ),
                 isLoading = false,
                 showBiometrics = false,
@@ -561,8 +589,10 @@ private fun PreviewOnChainLongFeeSmallScreen() {
         BottomSheetPreview {
             Content(
                 uiState = sendUiState().copy(
+                    amount = 2_345_678u,
                     selectedTags = listOf("car", "house", "uber"),
-                    fee = 654321,
+                    fee = SendFee.OnChain(654_321),
+                    speed = TransactionSpeed.Custom(12_345u),
                 ),
                 isLoading = false,
                 showBiometrics = false,
@@ -580,7 +610,7 @@ private fun PreviewOnChainFeeLoading() {
             Content(
                 uiState = sendUiState().copy(
                     selectedTags = listOf("car", "house", "uber"),
-                    fee = 0,
+                    fee = null,
                 ),
                 isLoading = false,
                 showBiometrics = false,
@@ -600,6 +630,7 @@ private fun PreviewLightning() {
                     amount = 6_543u,
                     payMethod = SendMethod.LIGHTNING,
                     selectedTags = emptyList(),
+                    fee = SendFee.Lightning(43),
                 ),
                 isLoading = false,
                 showBiometrics = false,
