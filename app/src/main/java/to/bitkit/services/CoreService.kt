@@ -43,9 +43,11 @@ import com.synonym.bitkitcore.upsertActivity
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.ConfirmationStatus
 import org.lightningdevkit.ldknode.Network
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -156,6 +158,7 @@ class CoreService @Inject constructor(
 
 // region Activity
 private const val CHUNCK_SIZE = 50
+
 class ActivityService(
     private val coreService: CoreService,
     private val cacheStore: CacheStore,
@@ -253,34 +256,36 @@ class ActivityService(
 
     suspend fun syncLdkNodePayments(payments: List<PaymentDetails>, forceUpdate: Boolean = false) {
         ServiceQueue.CORE.background {
-            val allResults = mutableListOf<Result<String>>()
+            withContext(Dispatchers.IO) {
+                val allResults = mutableListOf<Result<String>>()
 
-            payments.chunked(CHUNCK_SIZE).forEach { chunk ->
-                val results = chunk.map { payment ->
-                    async {
-                        try {
-                            processSinglePayment(payment, forceUpdate)
-                            Result.success(payment.id)
-                        } catch (e: Throwable) {
-                            Logger.error("Error syncing payment ${payment.id}:", e, context = "CoreService")
-                            Result.failure<String>(e)
+                payments.chunked(CHUNCK_SIZE).forEach { chunk ->
+                    val results = chunk.map { payment ->
+                        async {
+                            try {
+                                processSinglePayment(payment, forceUpdate)
+                                Result.success(payment.id)
+                            } catch (e: Throwable) {
+                                Logger.error("Error syncing payment ${payment.id}:", e, context = "CoreService")
+                                Result.failure<String>(e)
+                            }
                         }
-                    }
-                }.awaitAll()
+                    }.awaitAll()
 
-                allResults.addAll(results)
-            }
+                    allResults.addAll(results)
+                }
 
-            val (successful, failed) = allResults.partition { it.isSuccess }
+                val (successful, failed) = allResults.partition { it.isSuccess }
 
-            Logger.info(
-                "Synced ${successful.size} payments successfully, ${failed.size} failed",
-                context = "CoreService"
-            )
+                Logger.info(
+                    "Synced ${successful.size} payments successfully, ${failed.size} failed",
+                    context = "CoreService"
+                )
 
-            // Throw if too many failed
-            if (failed.size > payments.size * 0.5) {
-                throw Exception("Too many payment sync failures: ${failed.size}/${payments.size}")
+                // Throw if too many failed
+                if (failed.size > payments.size * 0.5) {
+                    throw Exception("Too many payment sync failures: ${failed.size}/${payments.size}")
+                }
             }
         }
     }
