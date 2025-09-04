@@ -2,8 +2,7 @@ package to.bitkit.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.core.DataStoreFactory
-import androidx.datastore.dataStoreFile
+import androidx.datastore.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
@@ -19,14 +18,16 @@ import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.settingsDataStore: DataStore<SettingsData> by dataStore(
+    fileName = "settings.json",
+    serializer = SettingsSerializer
+)
+
 @Singleton
 class SettingsStore @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val store: DataStore<SettingsData> = DataStoreFactory.create(
-        serializer = SettingsSerializer,
-        produceFile = { context.dataStoreFile("settings.json") },
-    )
+    private val store = context.settingsDataStore
 
     val data: Flow<SettingsData> = store.data
 
