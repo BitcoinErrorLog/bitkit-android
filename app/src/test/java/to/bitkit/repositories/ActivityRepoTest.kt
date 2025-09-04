@@ -229,6 +229,27 @@ class ActivityRepoTest : BaseUnitTest() {
     }
 
     @Test
+    fun `replaceActivity updates and deletes successfully`() = test {
+        val activityId = "activity123"
+        val activityToDeleteId = "activity456"
+        val tagsMock = listOf("tag1", "tag2")
+        val cacheData = AppCacheData(deletedActivities = emptyList())
+        whenever(cacheStore.data).thenReturn(flowOf(cacheData))
+
+        wheneverBlocking { coreService.activity.update(activityId, testActivity) }.thenReturn(Unit)
+        wheneverBlocking { coreService.activity.delete(activityToDeleteId) }.thenReturn(true)
+        wheneverBlocking { cacheStore.addActivityToDeletedList(activityToDeleteId) }.thenReturn(Unit)
+
+        whenever(coreService.activity.tags(activityId)).thenAnswer { tagsMock }
+
+        val result = sut.replaceActivity(activityId, activityToDeleteId, testActivity)
+
+        assertTrue(result.isSuccess)
+        verify(coreService.activity).update(activityId, testActivity)
+        verify(coreService.activity).delete(activityToDeleteId)
+    }
+
+    @Test
     fun `deleteActivity deletes successfully`() = test {
         val activityId = "activity123"
         wheneverBlocking { coreService.activity.delete(activityId) }.thenReturn(true)

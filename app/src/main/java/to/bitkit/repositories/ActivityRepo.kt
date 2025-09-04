@@ -5,7 +5,6 @@ import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
-import com.synonym.bitkitcore.getTags
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -248,7 +247,7 @@ class ActivityRepo @Inject constructor(
                     context = TAG
                 )
 
-                val tags = getTags(activityIdToDelete)
+                val tags = coreService.activity.tags(activityIdToDelete)
                 addTagsToActivity(activityId = id, tags = tags)
 
                 deleteActivity(activityIdToDelete).onFailure { e ->
