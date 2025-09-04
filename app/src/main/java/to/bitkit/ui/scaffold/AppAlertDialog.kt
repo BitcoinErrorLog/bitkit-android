@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.DialogProperties
 import to.bitkit.R
@@ -84,7 +86,7 @@ fun AppAlertDialog(
         shape = MaterialTheme.shapes.medium,
         properties = properties,
         containerColor = Colors.Gray5,
-        modifier = modifier,
+        modifier = modifier.semantics { testTagsAsResourceId = true },
     )
 }
 
