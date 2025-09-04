@@ -205,6 +205,7 @@ class LightningRepo @Inject constructor(
 
             // Initial state sync
             syncState()
+            updateGeoBlockState()
 
             // Perform post-startup tasks
             connectToTrustedPeers().onFailure { e ->
@@ -236,6 +237,15 @@ class LightningRepo @Inject constructor(
                 Result.failure(e)
             }
         }
+    }
+
+    /**Updates the shouldBlockLightning state and returns the current value*/
+    private suspend fun updateGeoBlockState() : Boolean {
+        val shouldBlock = coreService.shouldBlockLightning()
+        _lightningState.update {
+            it.copy(shouldBlockLightning = shouldBlock)
+        }
+        return shouldBlock
     }
 
     fun setInitNodeLifecycleState() {
@@ -414,7 +424,7 @@ class LightningRepo @Inject constructor(
         description: String,
         expirySeconds: UInt = 86_400u,
     ): Result<String> = executeWhenNodeRunning("Create invoice") {
-        if (coreService.shouldBlockLightning()) {
+        if (updateGeoBlockState()) {
             return@executeWhenNodeRunning Result.failure(ServiceError.GeoBlocked)
         }
 
@@ -661,7 +671,6 @@ class LightningRepo @Inject constructor(
                 nodeStatus = getStatus(),
                 peers = getPeers().orEmpty(),
                 channels = getChannels().orEmpty(),
-                shouldBlockLightning = coreService.shouldBlockLightning()
             )
         }
     }
