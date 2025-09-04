@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -55,6 +58,7 @@ import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.MoneySSB
@@ -65,6 +69,7 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityAddTagSheet
 import to.bitkit.ui.screens.wallets.activity.components.ActivityIcon
+import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.sheets.BoostTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
@@ -216,6 +221,7 @@ private fun ActivityDetailContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Row(
@@ -703,5 +709,39 @@ private fun PreviewOnchain() {
             onCopy = {},
             onClickBoost = {},
         )
+    }
+}
+
+@Preview(showSystemUi = true, device = Devices.NEXUS_5)
+@Composable
+private fun PreviewSheetSmallScreen() {
+    AppThemeSurface {
+        BottomSheetPreview(
+            modifier = Modifier.sheetHeight(),
+        ) {
+            ActivityDetailContent(
+                item = Activity.Lightning(
+                    v1 = LightningActivity(
+                        id = "test-lightning-1",
+                        txType = PaymentType.SENT,
+                        status = PaymentState.SUCCEEDED,
+                        value = 50000UL,
+                        fee = 1UL,
+                        invoice = "lnbc...",
+                        message = "Thanks for paying at the bar. Here's my share.",
+                        timestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        preimage = null,
+                        createdAt = null,
+                        updatedAt = null,
+                    )
+                ),
+                tags = listOf("Lunch", "Drinks"),
+                onRemoveTag = {},
+                onAddTagClick = {},
+                onExploreClick = {},
+                onCopy = {},
+                onClickBoost = {},
+            )
+        }
     }
 }
