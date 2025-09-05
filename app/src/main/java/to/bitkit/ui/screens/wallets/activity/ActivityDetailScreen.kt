@@ -96,7 +96,6 @@ fun ActivityDetailScreen(
         return
     }
 
-
     val app = appViewModel ?: return
     val copyToastTitle = stringResource(R.string.common__copied)
 

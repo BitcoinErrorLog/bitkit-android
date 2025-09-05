@@ -601,7 +601,6 @@ class ActivityRepo @Inject constructor(
         tags: List<String>,
     ): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-
             require(tags.isNotEmpty())
 
             val entity = TagMetadataEntity(
@@ -621,7 +620,6 @@ class ActivityRepo @Inject constructor(
             Logger.error("getAllAvailableTags error", e, context = TAG)
         }
     }
-
 
     // MARK: - Development/Testing Methods
 

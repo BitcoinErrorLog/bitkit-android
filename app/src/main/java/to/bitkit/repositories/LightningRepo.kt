@@ -805,6 +805,30 @@ class LightningRepo @Inject constructor(
         }
     }
 
+    suspend fun estimateRoutingFees(bolt11: String): Result<ULong> =
+        executeWhenNodeRunning("estimateRoutingFees") {
+            Logger.info("Estimating routing fees for bolt11: $bolt11")
+            lightningService.estimateRoutingFees(bolt11)
+                .onSuccess {
+                    Logger.info("Routing fees estimated: $it")
+                }
+                .onFailure {
+                    Logger.error("Routing fees estimation failed", it)
+                }
+        }
+
+    suspend fun estimateRoutingFeesForAmount(bolt11: String, amountSats: ULong): Result<ULong> =
+        executeWhenNodeRunning("estimateRoutingFeesForAmount") {
+            Logger.info("Estimating routing fees for amount: $amountSats")
+            lightningService.estimateRoutingFeesForAmount(bolt11, amountSats)
+                .onSuccess {
+                    Logger.info("Routing fees estimated: $it")
+                }
+                .onFailure {
+                    Logger.error("Routing fees estimation failed", it)
+                }
+        }
+
     private companion object {
         const val TAG = "LightningRepo"
     }

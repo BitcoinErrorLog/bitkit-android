@@ -449,6 +449,41 @@ class LightningService @Inject constructor(
             }
         }
     }
+
+    suspend fun estimateRoutingFees(bolt11: String): Result<ULong> {
+        val node = this.node ?: throw ServiceError.NodeNotSetup
+
+        return ServiceQueue.LDK.background {
+            return@background try {
+                val invoice = Bolt11Invoice.fromStr(bolt11)
+                val feesMsat = node.bolt11Payment().estimateRoutingFees(invoice)
+                val feeSat = feesMsat / 1000u
+                Result.success(feeSat)
+            } catch (e: Exception) {
+                Result.failure(
+                    if (e is NodeException) LdkError(e) else e
+                )
+            }
+        }
+    }
+
+    suspend fun estimateRoutingFeesForAmount(bolt11: String, amountSats: ULong): Result<ULong> {
+        val node = this.node ?: throw ServiceError.NodeNotSetup
+
+        return ServiceQueue.LDK.background {
+            return@background try {
+                val invoice = Bolt11Invoice.fromStr(bolt11)
+                val amountMsat = amountSats * 1000u
+                val feesMsat = node.bolt11Payment().estimateRoutingFeesUsingAmount(invoice, amountMsat)
+                val feeSat = feesMsat / 1000u
+                Result.success(feeSat)
+            } catch (e: Exception) {
+                Result.failure(
+                    if (e is NodeException) LdkError(e) else e
+                )
+            }
+        }
+    }
     // endregion
 
     // region utxo selection

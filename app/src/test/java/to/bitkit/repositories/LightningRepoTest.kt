@@ -495,4 +495,80 @@ class LightningRepoTest : BaseUnitTest() {
         assertEquals(3, result.size)
         assertEquals(mockUtxos, result)
     }
+
+    @Test
+    fun `estimateRoutingFees should fail when node is not running`() = test {
+        val result = sut.estimateRoutingFees("lnbc1u1p0abcde")
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `estimateRoutingFees should succeed when node is running`() = test {
+        startNodeForTesting()
+        val testBolt11 = "lnbc1u1p0abcde"
+        val expectedFeesSats = 50uL
+
+        whenever(lightningService.estimateRoutingFees(testBolt11))
+            .thenReturn(Result.success(expectedFeesSats))
+
+        val result = sut.estimateRoutingFees(testBolt11)
+
+        assertTrue(result.isSuccess)
+        assertEquals(expectedFeesSats, result.getOrNull())
+        verify(lightningService).estimateRoutingFees(testBolt11)
+    }
+
+    @Test
+    fun `estimateRoutingFees should handle service failure`() = test {
+        startNodeForTesting()
+        val testBolt11 = "lnbc1u1p0abcde"
+        val serviceError = RuntimeException("Service error")
+
+        whenever(lightningService.estimateRoutingFees(testBolt11))
+            .thenReturn(Result.failure(serviceError))
+
+        val result = sut.estimateRoutingFees(testBolt11)
+
+        assertTrue(result.isFailure)
+        assertEquals(serviceError, result.exceptionOrNull())
+    }
+
+    @Test
+    fun `estimateRoutingFeesForAmount should fail when node is not running`() = test {
+        val result = sut.estimateRoutingFeesForAmount("lnbc1u1p0abcde", 1000uL)
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `estimateRoutingFeesForAmount should succeed when node is running`() = test {
+        startNodeForTesting()
+        val testBolt11 = "lnbc1u1p0abcde"
+        val testAmount = 1000uL
+        val expectedFeesSats = 25uL
+
+        whenever(lightningService.estimateRoutingFeesForAmount(testBolt11, testAmount))
+            .thenReturn(Result.success(expectedFeesSats))
+
+        val result = sut.estimateRoutingFeesForAmount(testBolt11, testAmount)
+
+        assertTrue(result.isSuccess)
+        assertEquals(expectedFeesSats, result.getOrNull())
+        verify(lightningService).estimateRoutingFeesForAmount(testBolt11, testAmount)
+    }
+
+    @Test
+    fun `estimateRoutingFeesForAmount should handle service failure`() = test {
+        startNodeForTesting()
+        val testBolt11 = "lnbc1u1p0abcde"
+        val testAmount = 1000uL
+        val serviceError = RuntimeException("Service error")
+
+        whenever(lightningService.estimateRoutingFeesForAmount(testBolt11, testAmount))
+            .thenReturn(Result.failure(serviceError))
+
+        val result = sut.estimateRoutingFeesForAmount(testBolt11, testAmount)
+
+        assertTrue(result.isFailure)
+        assertEquals(serviceError, result.exceptionOrNull())
+    }
 }
