@@ -367,26 +367,21 @@ private fun OnChainDescription(
                             tint = fee.color,
                             modifier = Modifier.size(16.dp)
                         )
-                        when (val stateFee = uiState.fee) {
-                            is SendFee.OnChain -> {
-                                if (stateFee.value > 0) {
-                                    val feeText = let {
-                                        val prefix = stringResource(fee.title)
-                                        val value = rememberMoneyText(stateFee.value)
-                                        "$prefix ($value)"
-                                    }
-                                    BodySSB(
-                                        text = feeText.withAccent(accentColor = Colors.White),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.MiddleEllipsis,
-                                    )
-                                } else {
-                                    CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
+                        (uiState.fee as? SendFee.OnChain)?.value
+                            ?.takeIf { it > 0 }
+                            ?.let { feeSat ->
+                                val feeText = let {
+                                    val prefix = stringResource(fee.title)
+                                    val value = rememberMoneyText(feeSat, showSymbol = true)
+                                    "$prefix ($value)"
                                 }
+                                BodySSB(
+                                    text = feeText.withAccent(accentColor = Colors.White),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.MiddleEllipsis,
+                                )
                             }
-
-                            else -> CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
-                        }
+                            ?: CircularProgressIndicator(Modifier.size(14.dp), Colors.White64, 2.dp)
                         Icon(
                             painterResource(R.drawable.ic_pencil_simple),
                             contentDescription = null,
@@ -484,20 +479,20 @@ private fun LightningDescription(
                         tint = Colors.Purple,
                         modifier = Modifier.size(16.dp)
                     )
-                    when (val fee = uiState.fee) {
-                        is SendFee.Lightning -> {
-                            val feeText = if (fee.value > 0) rememberMoneyText(fee.value) else null
+                    (uiState.fee as? SendFee.Lightning)?.value
+                        ?.takeIf { it > 0 }
+                        ?.let { feeSat ->
+                            val feeText = let {
+                                val prefix = stringResource(R.string.fee__instant__title)
+                                val value = rememberMoneyText(feeSat, showSymbol = true)
+                                "$prefix (± $value)"
+                            }
                             BodySSB(
-                                text = if (feeText != null) {
-                                    "${stringResource(R.string.fee__instant__title)} ($feeText)"
-                                } else {
-                                    stringResource(R.string.fee__instant__title)
-                                }
+                                text = feeText.withAccent(accentColor = Colors.White),
+                                maxLines = 1,
+                                overflow = TextOverflow.MiddleEllipsis,
                             )
-                        }
-
-                        else -> BodySSB(text = stringResource(R.string.fee__instant__title))
-                    }
+                        } ?: BodySSB(text = stringResource(R.string.fee__instant__title))
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
@@ -572,7 +567,7 @@ private fun PreviewOnChain() {
                 uiState = sendUiState().copy(
                     selectedTags = listOf("car", "house", "uber"),
                     fee = SendFee.OnChain(1_234),
-                    speed = TransactionSpeed.Fast,
+                    speed = TransactionSpeed.Medium,
                 ),
                 isLoading = false,
                 showBiometrics = false,
