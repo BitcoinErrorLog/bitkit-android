@@ -36,7 +36,7 @@ object Transitions {
 /**
  * Adds the [Composable] to the [NavGraphBuilder] with the default screen transitions.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList","MagicNumber")
 inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
     typeMap: Map<KType, NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
