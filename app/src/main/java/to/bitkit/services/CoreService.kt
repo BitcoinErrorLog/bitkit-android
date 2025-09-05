@@ -262,12 +262,11 @@ class ActivityService(
                 payments.chunked(CHUNCK_SIZE).forEach { chunk ->
                     val results = chunk.map { payment ->
                         async {
-                            try {
+                            runCatching {
                                 processSinglePayment(payment, forceUpdate)
-                                Result.success(payment.id)
-                            } catch (e: Throwable) {
+                                payment.id
+                            }.onFailure { e ->
                                 Logger.error("Error syncing payment ${payment.id}:", e, context = "CoreService")
-                                Result.failure<String>(e)
                             }
                         }
                     }.awaitAll()
@@ -281,11 +280,6 @@ class ActivityService(
                     "Synced ${successful.size} payments successfully, ${failed.size} failed",
                     context = "CoreService"
                 )
-
-                // Throw if too many failed
-                if (failed.size > payments.size * 0.5) {
-                    throw Exception("Too many payment sync failures: ${failed.size}/${payments.size}")
-                }
             }
         }
     }
