@@ -8,8 +8,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -22,33 +20,27 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
+import to.bitkit.ui.utils.Transitions.defaultEnterTrans
+import to.bitkit.ui.utils.Transitions.defaultExitTrans
+import to.bitkit.ui.utils.Transitions.defaultPopEnterTrans
+import to.bitkit.ui.utils.Transitions.defaultPopExitTrans
 import kotlin.reflect.KType
 
+@Suppress("MagicNumber")
 object Transitions {
     val slideInHorizontally = slideInHorizontally(animationSpec = tween(), initialOffsetX = { it })
     val slideOutHorizontally = slideOutHorizontally(animationSpec = tween(), targetOffsetX = { it })
-    val scaleIn = scaleIn(animationSpec = tween(), initialScale = 0.95f) + fadeIn()
-    val scaleOut = scaleOut(animationSpec = tween(), targetScale = 0.95f) + fadeOut()
     val slideInVertically = slideInVertically(animationSpec = tween(), initialOffsetY = { it })
     val slideOutVertically = slideOutVertically(animationSpec = tween(), targetOffsetY = { it })
-}
 
-/**
- * Adds the [Composable] to the [NavGraphBuilder] with the default screen transitions.
- */
-@Suppress("LongParameterList", "MagicNumber")
-inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
-    deepLinks: List<NavDeepLink> = emptyList(),
-    noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        // New screen slides in from the right
+    val defaultEnterTrans: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?) = {
         slideInHorizontally(
             initialOffsetX = { fullWidth -> fullWidth },
             animationSpec = tween(300, easing = FastOutSlowInEasing)
         )
-    },
-    noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        // Current screen slides out to the left (partially visible behind new screen)
+    }
+
+    val defaultExitTrans: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?) = {
         slideOutHorizontally(
             targetOffsetX = { fullWidth -> -fullWidth / 3 },
             animationSpec = tween(300, easing = FastOutSlowInEasing)
@@ -56,9 +48,9 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
             animationSpec = tween(300, easing = FastOutSlowInEasing),
             targetAlpha = 0.8f
         )
-    },
-    noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        // Previous screen slides in from the left (was partially visible)
+    }
+
+    val defaultPopEnterTrans: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?) = {
         slideInHorizontally(
             initialOffsetX = { fullWidth -> -fullWidth / 3 },
             animationSpec = tween(300, easing = FastOutSlowInEasing)
@@ -66,69 +58,32 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
             animationSpec = tween(300, easing = FastOutSlowInEasing),
             initialAlpha = 0.8f
         )
-    },
-    noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        // Current screen slides out to the right
+    }
+
+    val defaultPopExitTrans: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?) = {
         slideOutHorizontally(
             targetOffsetX = { fullWidth -> fullWidth },
             animationSpec = tween(300, easing = FastOutSlowInEasing)
         )
-    },
-    noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
-) {
-    composable<T>(
-        typeMap = typeMap,
-        deepLinks = deepLinks,
-        enterTransition = enterTransition,
-        exitTransition = exitTransition,
-        popEnterTransition = popEnterTransition,
-        popExitTransition = popExitTransition,
-        content = content,
-    )
+    }
 }
 
 /**
  * Construct a nested [NavGraph] with the default screen transitions.
  */
-@Suppress("LongParameterList", "MagicNumber")
+@Suppress("LongParameterList")
 inline fun <reified T : Any> NavGraphBuilder.navigationWithDefaultTransitions(
     startDestination: Any,
     typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
-    noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        // New screen slides in from the right
-        slideInHorizontally(
-            initialOffsetX = { fullWidth -> fullWidth },
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        )
-    },
-    noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        // Current screen slides out to the left (partially visible behind new screen)
-        slideOutHorizontally(
-            targetOffsetX = { fullWidth -> -fullWidth / 3 },
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        ) + fadeOut(
-            animationSpec = tween(300, easing = FastOutSlowInEasing),
-            targetAlpha = 0.8f
-        )
-    },
-    noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        // Previous screen slides in from the left (was partially visible)
-        slideInHorizontally(
-            initialOffsetX = { fullWidth -> -fullWidth / 3 },
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        ) + fadeIn(
-            animationSpec = tween(300, easing = FastOutSlowInEasing),
-            initialAlpha = 0.8f
-        )
-    },
-    noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        // Current screen slides out to the right
-        slideOutHorizontally(
-            targetOffsetX = { fullWidth -> fullWidth },
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        )
-    },
+    noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)?
+    = defaultEnterTrans,
+    noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)?
+    = defaultExitTrans,
+    noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)?
+    = defaultPopEnterTrans,
+    noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)?
+    = defaultPopExitTrans,
     noinline builder: NavGraphBuilder.() -> Unit,
 ) {
     navigation<T>(
@@ -140,5 +95,33 @@ inline fun <reified T : Any> NavGraphBuilder.navigationWithDefaultTransitions(
         popEnterTransition = popEnterTransition,
         popExitTransition = popExitTransition,
         builder = builder,
+    )
+}
+
+/**
+ * Adds the [Composable] to the [NavGraphBuilder] with the default screen transitions.
+ */
+@Suppress("LongParameterList")
+inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
+    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    deepLinks: List<NavDeepLink> = emptyList(),
+    noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)?
+    = defaultEnterTrans,
+    noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)?
+    = defaultExitTrans,
+    noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)?
+    = defaultPopEnterTrans,
+    noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)?
+    = defaultPopExitTrans,
+    noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
+) {
+    composable<T>(
+        typeMap = typeMap,
+        deepLinks = deepLinks,
+        enterTransition = enterTransition,
+        exitTransition = exitTransition,
+        popEnterTransition = popEnterTransition,
+        popExitTransition = popExitTransition,
+        content = content,
     )
 }
