@@ -84,7 +84,7 @@
     <ID>CyclomaticComplexMethod:ChannelDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Content( channel: ChannelUi, blocktankOrders: List&lt;IBtOrder&gt; = emptyList(), cjitEntries: List&lt;IcJitEntry&gt; = emptyList(), txDetails: TxDetails? = null, isRefreshing: Boolean = false, onBack: () -&gt; Unit = {}, onClose: () -&gt; Unit = {}, onRefresh: () -&gt; Unit = {}, onCopyText: (String) -&gt; Unit = {}, onOpenUrl: (String) -&gt; Unit = {}, onSupport: (Any) -&gt; Unit = {}, onCloseConnection: () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:ConfirmMnemonicScreen.kt$@Composable fun ConfirmMnemonicScreen( uiState: BackupContract.UiState, onContinue: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ContentView.kt$@Composable fun ContentView( appViewModel: AppViewModel, walletViewModel: WalletViewModel, blocktankViewModel: BlocktankViewModel, currencyViewModel: CurrencyViewModel, activityListViewModel: ActivityListViewModel, transferViewModel: TransferViewModel, settingsViewModel: SettingsViewModel, backupsViewModel: BackupsViewModel, )</ID>
-    <ID>CyclomaticComplexMethod:CoreService.kt$ActivityService$suspend fun syncLdkNodePayments(payments: List&lt;PaymentDetails&gt;, forceUpdate: Boolean = false)</ID>
+    <ID>CyclomaticComplexMethod:CoreService.kt$ActivityService$private suspend fun processOnchainPayment( kind: PaymentKind.Onchain, payment: PaymentDetails, forceUpdate: Boolean, )</ID>
     <ID>CyclomaticComplexMethod:HealthRepo.kt$HealthRepo$private fun collectState()</ID>
     <ID>CyclomaticComplexMethod:HomeScreen.kt$@Composable fun HomeScreen( mainUiState: MainUiState, drawerState: DrawerState, rootNavController: NavController, walletNavController: NavHostController, settingsViewModel: SettingsViewModel, walletViewModel: WalletViewModel, appViewModel: AppViewModel, activityListViewModel: ActivityListViewModel, homeViewModel: HomeViewModel = hiltViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class) @Composable private fun Content( mainUiState: MainUiState, homeUiState: HomeUiState, rootNavController: NavController, walletNavController: NavController, drawerState: DrawerState, hazeState: HazeState = rememberHazeState(), latestActivities: List&lt;Activity&gt;?, onClickProfile: () -&gt; Unit = {}, onRefresh: () -&gt; Unit = {}, onRemoveSuggestion: (Suggestion) -&gt; Unit = {}, onClickSuggestion: (Suggestion) -&gt; Unit = {}, onClickAddWidget: () -&gt; Unit = {}, onClickEditWidgetList: () -&gt; Unit = {}, onClickEditWidget: (WidgetType) -&gt; Unit = {}, onClickDeleteWidget: (WidgetType) -&gt; Unit = {}, onMoveWidget: (Int, Int) -&gt; Unit = { _, _ -&gt; }, onDismissEmptyState: () -&gt; Unit = {}, onDismissHighBalanceSheet: () -&gt; Unit = {}, onClickEmptyActivityRow: () -&gt; Unit = {}, balances: BalanceState = LocalBalances.current, )</ID>
@@ -121,10 +121,6 @@
     <ID>ForbiddenComment:BoostTransactionViewModel.kt$BoostTransactionUiState$// TODO: Implement dynamic time estimation</ID>
     <ID>ForbiddenComment:ChannelStatusView.kt$// TODO: handle closed channels marking &amp; detection</ID>
     <ID>ForbiddenComment:ContentView.kt$// TODO: display as sheet</ID>
-    <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: find address</ID>
-    <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: get from linked order</ID>
-    <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: get from somewhere</ID>
-    <ID>ForbiddenComment:CoreService.kt$ActivityService$// TODO: handle when paying for order</ID>
     <ID>ForbiddenComment:Env.kt$Env$// TODO: remove this to load from BT API instead</ID>
     <ID>ForbiddenComment:ExternalNodeViewModel.kt$ExternalNodeViewModel$// TODO: pass customFeeRate to ldk-node when supported</ID>
     <ID>ForbiddenComment:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$// TODO: sort channels to get consistent index; node.listChannels returns a list in random order</ID>
@@ -181,7 +177,6 @@
     <ID>LongMethod:AppViewModel.kt$AppViewModel$private suspend fun proceedWithPayment()</ID>
     <ID>LongMethod:ContentView.kt$private fun NavGraphBuilder.widgets( navController: NavHostController, settingsViewModel: SettingsViewModel, currencyViewModel: CurrencyViewModel, )</ID>
     <ID>LongMethod:CoreService.kt$ActivityService$suspend fun generateRandomTestData(count: Int = 100)</ID>
-    <ID>LongMethod:CoreService.kt$ActivityService$suspend fun syncLdkNodePayments(payments: List&lt;PaymentDetails&gt;, forceUpdate: Boolean = false)</ID>
     <ID>LongMethod:LightningRepo.kt$LightningRepo$suspend fun start( walletIndex: Int = 0, timeout: Duration? = null, shouldRetry: Boolean = true, eventHandler: NodeEventHandler? = null, customServer: ElectrumServer? = null, customRgsServerUrl: String? = null, ): Result&lt;Unit&gt;</ID>
     <ID>LongMethod:LightningService.kt$LightningService$private fun logEvent(event: Event)</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
@@ -203,7 +198,6 @@
     <ID>LongParameterList:TransferViewModel.kt$TransferViewModel$( @ApplicationContext private val context: Context, private val lightningRepo: LightningRepo, private val blocktankRepo: BlocktankRepo, private val walletRepo: WalletRepo, private val currencyRepo: CurrencyRepo, private val settingsStore: SettingsStore, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:WalletRepo.kt$WalletRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val db: AppDb, private val keychain: Keychain, private val coreService: CoreService, private val settingsStore: SettingsStore, private val addressChecker: AddressChecker, private val lightningRepo: LightningRepo, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:WidgetsRepo.kt$WidgetsRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val newsService: NewsService, private val factsService: FactsService, private val blocksService: BlocksService, private val weatherService: WeatherService, private val priceService: PriceService, private val widgetsStore: WidgetsStore, private val settingsStore: SettingsStore, )</ID>
-    <ID>LoopWithTooManyJumpStatements:CoreService.kt$ActivityService$for</ID>
     <ID>LoopWithTooManyJumpStatements:MonetaryVisualTransformation.kt$MonetaryVisualTransformation.&lt;no name provided&gt;$for</ID>
     <ID>LoopWithTooManyJumpStatements:TransferViewModel.kt$TransferViewModel$while</ID>
     <ID>MagicNumber:ActivityDetailScreen.kt$40</ID>
@@ -620,7 +614,6 @@
     <ID>TooGenericExceptionCaught:ChannelOrdersScreen.kt$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ContentView.kt$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:CoreService.kt$ActivityService$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:CoreService.kt$ActivityService$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:CoreService.kt$CoreService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Crypto.kt$Crypto$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CurrencyRepo.kt$CurrencyRepo$e: Exception</ID>
