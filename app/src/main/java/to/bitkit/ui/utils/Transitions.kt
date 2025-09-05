@@ -90,22 +90,44 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
 /**
  * Construct a nested [NavGraph] with the default screen transitions.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "MagicNumber")
 inline fun <reified T : Any> NavGraphBuilder.navigationWithDefaultTransitions(
     startDestination: Any,
     typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        Transitions.slideInHorizontally
+        // New screen slides in from the right
+        slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        )
     },
     noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        Transitions.scaleOut
+        // Current screen slides out to the left (partially visible behind new screen)
+        slideOutHorizontally(
+            targetOffsetX = { fullWidth -> -fullWidth / 3 },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeOut(
+            animationSpec = tween(300, easing = FastOutSlowInEasing),
+            targetAlpha = 0.8f
+        )
     },
     noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        Transitions.scaleIn
+        // Previous screen slides in from the left (was partially visible)
+        slideInHorizontally(
+            initialOffsetX = { fullWidth -> -fullWidth / 3 },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeIn(
+            animationSpec = tween(300, easing = FastOutSlowInEasing),
+            initialAlpha = 0.8f
+        )
     },
     noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        Transitions.slideOutHorizontally
+        // Current screen slides out to the right
+        slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        )
     },
     noinline builder: NavGraphBuilder.() -> Unit,
 ) {
