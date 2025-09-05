@@ -29,28 +29,31 @@ class VssBackupClient @Inject constructor(
     suspend fun setup() = withContext(bgDispatcher) {
         try {
             withTimeout(30.seconds) {
-                val vssServerUrl = Env.vssServerUrl
-                Logger.verbose("VSS client setting up…", context = TAG)
-                if (Env.lnurlAuthSeverUrl.isNotEmpty()) {
+                Logger.debug("VSS client setting up…", context = TAG)
+                val vssUrl = Env.vssServerUrl
+                val lnurlAuthServerUrl = Env.lnurlAuthServerUrl
+                Logger.verbose("Building VSS client with vssUrl: '$vssUrl'")
+                Logger.verbose("Building VSS client with lnurlAuthServerUrl: '$lnurlAuthServerUrl'")
+                if (lnurlAuthServerUrl.isNotEmpty()) {
                     val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)
                         ?: throw ServiceError.MnemonicNotFound
                     val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
 
                     vssNewClientWithLnurlAuth(
-                        baseUrl = vssServerUrl,
+                        baseUrl = vssUrl,
                         storeId = vssStoreIdProvider.getVssStoreId(),
                         mnemonic = mnemonic,
                         passphrase = passphrase,
-                        lnurlAuthServerUrl = Env.lnurlAuthSeverUrl,
+                        lnurlAuthServerUrl = lnurlAuthServerUrl,
                     )
                 } else {
                     vssNewClient(
-                        baseUrl = vssServerUrl,
+                        baseUrl = vssUrl,
                         storeId = vssStoreIdProvider.getVssStoreId(),
                     )
                 }
                 isSetup.complete(Unit)
-                Logger.info("VSS client setup with server: '$vssServerUrl'", context = TAG)
+                Logger.info("VSS client setup with server: '$vssUrl'", context = TAG)
             }
         } catch (e: Throwable) {
             isSetup.completeExceptionally(e)

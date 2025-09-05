@@ -113,16 +113,20 @@ class LightningService @Inject constructor(
 
         ServiceQueue.LDK.background {
             node = try {
-                if (Env.lnurlAuthSeverUrl.isNotEmpty()) {
+                val lnurlAuthServerUrl = Env.lnurlAuthServerUrl
+                val vssUrl = Env.vssServerUrl
+                Logger.verbose("Building ldk-node with vssUrl: '$vssUrl'")
+                Logger.verbose("Building ldk-node with lnurlAuthServerUrl: '$lnurlAuthServerUrl'")
+                if (lnurlAuthServerUrl.isNotEmpty()) {
                     builder.buildWithVssStore(
-                        vssUrl = Env.vssServerUrl,
+                        vssUrl = vssUrl,
                         storeId = vssStoreId,
-                        lnurlAuthServerUrl = Env.lnurlAuthSeverUrl,
+                        lnurlAuthServerUrl = lnurlAuthServerUrl,
                         fixedHeaders = emptyMap(),
                     )
                 } else {
                     builder.buildWithVssStoreAndFixedHeaders(
-                        vssUrl = Env.vssServerUrl,
+                        vssUrl = vssUrl,
                         storeId = vssStoreId,
                         fixedHeaders = emptyMap(),
                     )
