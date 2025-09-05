@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,16 +41,38 @@ inline fun <reified T : Any> NavGraphBuilder.composableWithDefaultTransitions(
     typeMap: Map<KType, NavType<*>> = emptyMap(),
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        Transitions.slideInHorizontally
+        // New screen slides in from the right
+        slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        )
     },
     noinline exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        Transitions.scaleOut
+        // Current screen slides out to the left (partially visible behind new screen)
+        slideOutHorizontally(
+            targetOffsetX = { fullWidth -> -fullWidth / 3 },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeOut(
+            animationSpec = tween(300, easing = FastOutSlowInEasing),
+            targetAlpha = 0.8f
+        )
     },
     noinline popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = {
-        Transitions.scaleIn
+        // Previous screen slides in from the left (was partially visible)
+        slideInHorizontally(
+            initialOffsetX = { fullWidth -> -fullWidth / 3 },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeIn(
+            animationSpec = tween(300, easing = FastOutSlowInEasing),
+            initialAlpha = 0.8f
+        )
     },
     noinline popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = {
-        Transitions.slideOutHorizontally
+        // Current screen slides out to the right
+        slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        )
     },
     noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
 ) {
