@@ -158,7 +158,7 @@ internal object Env {
             host = "electrum.blockstream.info",
             tcp = 60001, // or 50001
             ssl = 60002, // or 50002
-            protocol = ElectrumProtocol.TCP,
+            protocol = ElectrumProtocol.SSL,
         )
         val REGTEST = ElectrumServer(
             host = "34.65.252.32",
