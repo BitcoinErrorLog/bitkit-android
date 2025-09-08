@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,7 +38,6 @@ import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BottomSheetPreview
-import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.Keyboard
@@ -211,7 +209,7 @@ private fun SendAmountNodeRunning(
                     .testTag("SendNumberField")
             )
 
-            FillHeight(min = 12.dp)
+            Spacer(modifier = Modifier.weight(1f))
 
             val textAvailable = when {
                 uiState.lnurl is LnurlParams.LnurlWithdraw -> R.string.wallet__lnurl_w_max
@@ -284,12 +282,6 @@ private fun SendAmountNodeRunning(
                     .testTag("SendAmountNumberPad")
             )
 
-            Spacer(
-                modifier = Modifier
-                    .weight(1f)
-                    .sizeIn(minHeight = 16.dp, maxHeight = 41.dp)
-            )
-
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
                 enabled = uiState.isAmountInputValid,
@@ -330,23 +322,23 @@ private fun PaymentMethodButton(
     )
 }
 
-@Preview(showSystemUi = true, name = "Running - Lightning")
+@Preview(showSystemUi = true)
 @Composable
-private fun PreviewRunningLightning() {
+private fun PreviewLightningNoAmount() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100",
-                    isAmountInputValid = true,
+                    amountInput = "0",
+                    isAmountInputValid = false,
                     isUnified = false
                 ),
                 balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
                 walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 onBack = {},
                 onEvent = {},
-                input = "100",
+                input = "0",
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 primaryDisplay = PrimaryDisplay.FIAT,
                 currencyUiState = CurrencyUiState(),
@@ -357,9 +349,9 @@ private fun PreviewRunningLightning() {
     }
 }
 
-@Preview(showSystemUi = true, name = "Running - Unified")
+@Preview(showSystemUi = true)
 @Composable
-private fun PreviewRunningUnified() {
+private fun PreviewUnified() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
@@ -384,9 +376,9 @@ private fun PreviewRunningUnified() {
     }
 }
 
-@Preview(showSystemUi = true, name = "Running - Onchain")
+@Preview(showSystemUi = true)
 @Composable
-private fun PreviewRunningOnchain() {
+private fun PreviewOnchain() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
@@ -411,7 +403,7 @@ private fun PreviewRunningOnchain() {
     }
 }
 
-@Preview(showSystemUi = true, name = "Initializing")
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewInitializing() {
     AppThemeSurface {
@@ -419,7 +411,6 @@ private fun PreviewInitializing() {
             SendAmountContent(
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100"
                 ),
                 walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Initializing),
                 balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
@@ -509,7 +500,7 @@ private fun PreviewLnurlPay() {
     }
 }
 
-@Preview(showSystemUi = true, name = "Running - Short screen", device = NEXUS_5)
+@Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
 private fun PreviewSmallScreen() {
     AppThemeSurface {
@@ -519,7 +510,6 @@ private fun PreviewSmallScreen() {
                     payMethod = SendMethod.LIGHTNING,
                     amountInput = "100",
                     isAmountInputValid = true,
-                    isUnified = false
                 ),
                 balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
                 walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
