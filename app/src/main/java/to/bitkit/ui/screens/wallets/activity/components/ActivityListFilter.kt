@@ -11,16 +11,17 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
+import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.components.SearchInput
 import to.bitkit.ui.components.SearchInputIconButton
 import to.bitkit.ui.theme.AppThemeSurface
@@ -88,9 +89,17 @@ fun ActivityListFilter(
                 }
             ) {
                 tabs.map { tab ->
+                    val isSelected = tabs[currentTabIndex] == tab
                     Tab(
-                        text = { Text(tab.uiText) },
-                        selected = tabs[currentTabIndex] == tab,
+                        text = {
+                            CaptionB(
+                                tab.uiText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (isSelected) Colors.White else Colors.White50
+                            )
+                        },
+                        selected = isSelected,
                         onClick = { onTabChange(tab) },
                         unselectedContentColor = Colors.White64,
                         modifier = Modifier
