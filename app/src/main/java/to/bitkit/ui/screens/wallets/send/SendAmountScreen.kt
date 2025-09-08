@@ -67,6 +67,7 @@ import to.bitkit.viewmodels.SendUiState
 fun SendAmountScreen(
     uiState: SendUiState,
     walletUiState: MainUiState,
+    canGoBack: Boolean,
     currencyUiState: CurrencyUiState = LocalCurrencies.current,
     onBack: () -> Unit,
     onEvent: (SendEvent) -> Unit,
@@ -99,6 +100,7 @@ fun SendAmountScreen(
         displayUnit = currencyUiState.displayUnit,
         onInputChanged = { input = it },
         onEvent = onEvent,
+        canGoBack = canGoBack,
         onBack = onBack,
         onClickMax = { maxSats ->
             if (uiState.payMethod == SendMethod.LIGHTNING && uiState.lnurl == null) {
@@ -125,6 +127,7 @@ fun SendAmountContent(
     currencyUiState: CurrencyUiState,
     onInputChanged: (String) -> Unit,
     onEvent: (SendEvent) -> Unit,
+    canGoBack: Boolean = true,
     onBack: () -> Unit,
     onClickMax: (Long) -> Unit = {},
 ) {
@@ -141,10 +144,13 @@ fun SendAmountContent(
             else -> R.string.wallet__send_amount
         }
 
-        SheetTopBar(stringResource(titleRes)) {
-            onEvent(SendEvent.AmountReset)
-            onBack()
-        }
+        SheetTopBar(
+            titleText = stringResource(titleRes),
+            onBack = {
+                onEvent(SendEvent.AmountReset)
+                onBack()
+            }.takeIf { canGoBack }
+        )
 
         when (walletUiState.nodeLifecycleState) {
             is NodeLifecycleState.Running -> {

@@ -112,7 +112,12 @@ fun SendSheet(
                 SendAmountScreen(
                     uiState = uiState,
                     walletUiState = walletUiState,
-                    onBack = { navController.popBackStack() },
+                    canGoBack = startDestination != SendRoute.Amount,
+                    onBack = {
+                        if (!navController.popBackStack()) {
+                            appViewModel.hideSheet()
+                        }
+                    },
                     onEvent = { appViewModel.setSendEvent(it) }
                 )
             }
