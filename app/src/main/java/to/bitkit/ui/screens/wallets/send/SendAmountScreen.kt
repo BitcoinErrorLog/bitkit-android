@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.wallets.send
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +37,7 @@ import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.Keyboard
@@ -204,7 +204,7 @@ private fun SendAmountNodeRunning(
         Column(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
+            VerticalSpacer(16.dp)
 
             NumberPadTextField(
                 input = input,
@@ -215,7 +215,7 @@ private fun SendAmountNodeRunning(
                     .testTag("SendNumberField")
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            FillHeight(min = 12.dp)
 
             val textAvailable = when {
                 uiState.lnurl is LnurlParams.LnurlWithdraw -> R.string.wallet__lnurl_w_max
