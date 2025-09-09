@@ -168,7 +168,7 @@ fun SendSheet(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
                     canGoBack = startDestination != SendRoute.Confirm,
-                    onBack = { 
+                    onBack = {
                         if (!navController.popBackStack()) {
                             appViewModel.hideSheet()
                         }
