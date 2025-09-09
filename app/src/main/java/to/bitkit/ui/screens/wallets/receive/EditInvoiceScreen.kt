@@ -145,8 +145,14 @@ fun EditInvoiceScreen(
         tags = walletUiState.selectedTags,
         onBack = onBack,
         onTextChanged = onDescriptionUpdate,
-        numericKeyboardVisible = keyboardVisible,
-        onClickBalance = { keyboardVisible = true },
+        keyboardVisible = keyboardVisible,
+        onClickBalance = {
+            if (keyboardVisible) {
+                currencyVM.togglePrimaryDisplay()
+            } else {
+                keyboardVisible = true
+            }
+        },
         onInputChanged = onInputUpdated,
         onContinueKeyboard = { keyboardVisible = false },
         onContinueGeneral = {
@@ -164,7 +170,7 @@ fun EditInvoiceContent(
     input: String,
     noteText: String,
     isSoftKeyboardVisible: Boolean,
-    numericKeyboardVisible: Boolean,
+    keyboardVisible: Boolean,
     primaryDisplay: PrimaryDisplay,
     displayUnit: BitcoinDisplayUnit,
     tags: List<String>,
@@ -187,7 +193,7 @@ fun EditInvoiceContent(
         val maxHeight = this.maxHeight
 
         AnimatedVisibility(
-            visible = !numericKeyboardVisible && !isSoftKeyboardVisible,
+            visible = !keyboardVisible && !isSoftKeyboardVisible,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
@@ -234,7 +240,7 @@ fun EditInvoiceContent(
 
                 // Animated visibility for keyboard section
                 AnimatedVisibility(
-                    visible = numericKeyboardVisible,
+                    visible = keyboardVisible,
                     enter = slideInVertically(
                         initialOffsetY = { fullHeight -> fullHeight },
                         animationSpec = tween(durationMillis = 300)
@@ -289,7 +295,7 @@ fun EditInvoiceContent(
 
                 // Animated visibility for note section
                 AnimatedVisibility(
-                    visible = !numericKeyboardVisible,
+                    visible = !keyboardVisible,
                     enter = fadeIn(animationSpec = tween(durationMillis = 300)),
                     exit = fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
@@ -380,7 +386,7 @@ private fun Preview() {
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
-                numericKeyboardVisible = false,
+                keyboardVisible = false,
                 onClickBalance = {},
                 onInputChanged = {},
                 onContinueGeneral = {},
@@ -407,7 +413,7 @@ private fun PreviewWithTags() {
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
-                numericKeyboardVisible = false,
+                keyboardVisible = false,
                 onClickBalance = {},
                 onInputChanged = {},
                 onContinueGeneral = {},
@@ -434,7 +440,7 @@ private fun PreviewWithKeyboard() {
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
-                numericKeyboardVisible = true,
+                keyboardVisible = true,
                 onClickBalance = {},
                 onInputChanged = {},
                 onContinueGeneral = {},
@@ -461,7 +467,7 @@ private fun PreviewSmallScreen() {
                 displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
-                numericKeyboardVisible = true,
+                keyboardVisible = true,
                 onClickBalance = {},
                 onInputChanged = {},
                 onContinueGeneral = {},
