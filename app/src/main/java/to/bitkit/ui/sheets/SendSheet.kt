@@ -167,7 +167,12 @@ fun SendSheet(
                 SendConfirmScreen(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
-                    onBack = { navController.popBackStack() },
+                    canGoBack = startDestination != SendRoute.Confirm,
+                    onBack = { 
+                        if (!navController.popBackStack()) {
+                            appViewModel.hideSheet()
+                        }
+                    },
                     onEvent = { e -> appViewModel.setSendEvent(e) },
                     onClickAddTag = { navController.navigate(SendRoute.AddTag) },
                     onClickTag = { tag -> appViewModel.removeTag(tag) },
