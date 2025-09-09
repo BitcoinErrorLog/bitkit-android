@@ -535,8 +535,16 @@ class AppViewModel @Inject constructor(
 
     private suspend fun onScanOnchain(invoice: OnChainInvoice, scanResult: String) {
         val lnInvoice: LightningInvoice? = invoice.params?.get("lightning")?.let { bolt11 ->
-            val decoded = runCatching { decode(bolt11) }.getOrNull()
-            (decoded as? Scanner.Lightning)?.invoice
+            runCatching { decode(bolt11) }.getOrNull()
+                ?.let { it as? Scanner.Lightning }
+                ?.invoice
+                ?.takeIf { invoice ->
+                    val canSend = lightningRepo.canSend(invoice.amountSatoshis.coerceAtLeast(1u))
+                    if (!canSend) {
+                        Logger.debug("Cannot pay unified invoice using LN, defaulting to onchain-only", context = TAG)
+                    }
+                    return@takeIf canSend
+                }
         }
         _sendUiState.update {
             it.copy(
@@ -544,7 +552,7 @@ class AppViewModel @Inject constructor(
                 addressInput = scanResult,
                 isAddressInputValid = true,
                 amount = invoice.amountSatoshis,
-                isUnified = invoice.params?.containsKey("lightning") == true,
+                isUnified = lnInvoice != null,
                 decodedInvoice = lnInvoice,
                 payMethod = lnInvoice?.let { SendMethod.LIGHTNING } ?: SendMethod.ONCHAIN,
             )
