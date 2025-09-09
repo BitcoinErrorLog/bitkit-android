@@ -102,7 +102,7 @@ fun ReceiveAmountScreen(
         minCjitSats = minCjitSats,
         currencyUiState = currencies,
         isCreatingInvoice = isCreatingInvoice,
-        onInputChanged = { input = it },
+        onInputChange = { input = it },
         onClickMin = { overrideSats = it },
         onClickAmount = { currencyVM.togglePrimaryDisplay() },
         onBack = onBack,
@@ -158,7 +158,7 @@ private fun ReceiveAmountContent(
     currencyUiState: CurrencyUiState,
     isCreatingInvoice: Boolean,
     modifier: Modifier = Modifier,
-    onInputChanged: (String) -> Unit = {},
+    onInputChange: (String) -> Unit = {},
     onClickMin: (Long) -> Unit = {},
     onClickAmount: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -224,10 +224,10 @@ private fun ReceiveAmountContent(
 
                 Keyboard(
                     onClick = { number ->
-                        onInputChanged(if (input == "0") number else input + number)
+                        onInputChange(if (input == "0") number else input + number)
                     },
                     onClickBackspace = {
-                        onInputChanged(if (input.length > 1) input.dropLast(1) else "0")
+                        onInputChange(if (input.length > 1) input.dropLast(1) else "0")
                     },
                     isDecimal = currencyUiState.primaryDisplay == PrimaryDisplay.FIAT,
                     availableHeight = maxHeight,
