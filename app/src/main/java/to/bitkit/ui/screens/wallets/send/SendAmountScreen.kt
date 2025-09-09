@@ -103,6 +103,7 @@ fun SendAmountScreen(
         canGoBack = canGoBack,
         onBack = onBack,
         onClickMax = { maxSats ->
+            // TODO port the RN sendMax logic if still needed
             if (uiState.payMethod == SendMethod.LIGHTNING && uiState.lnurl == null) {
                 app?.toast(
                     type = Toast.ToastType.WARNING,
@@ -112,6 +113,7 @@ fun SendAmountScreen(
             }
             overrideSats = maxSats
         },
+        onClickAmount = { currencyVM.togglePrimaryDisplay() },
     )
 }
 
@@ -130,6 +132,7 @@ fun SendAmountContent(
     canGoBack: Boolean = true,
     onBack: () -> Unit,
     onClickMax: (Long) -> Unit = {},
+    onClickAmount: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -149,7 +152,7 @@ fun SendAmountContent(
             onBack = {
                 onEvent(SendEvent.AmountReset)
                 onBack()
-            }.takeIf { canGoBack }
+            }.takeIf { canGoBack },
         )
 
         when (walletUiState.nodeLifecycleState) {
@@ -164,6 +167,7 @@ fun SendAmountContent(
                     primaryDisplay = primaryDisplay,
                     onEvent = onEvent,
                     onClickMax = onClickMax,
+                    onClickAmount = onClickAmount,
                 )
             }
 
@@ -190,6 +194,7 @@ private fun SendAmountNodeRunning(
     onInputChanged: (String) -> Unit,
     onEvent: (SendEvent) -> Unit,
     onClickMax: (Long) -> Unit,
+    onClickAmount: () -> Unit,
 ) {
     BoxWithConstraints {
         val maxHeight = this.maxHeight
@@ -212,6 +217,7 @@ private fun SendAmountNodeRunning(
                 primaryDisplay = primaryDisplay,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clickableAlpha(onClick = onClickAmount)
                     .testTag("SendNumberField")
             )
 
@@ -230,10 +236,7 @@ private fun SendAmountNodeRunning(
             ) {
                 Column(
                     modifier = Modifier
-                        .clickableAlpha {
-                            // TODO port the RN sendMax logic
-                            onClickMax(availableAmount)
-                        }
+                        .clickableAlpha { onClickMax(availableAmount) }
                         .testTag("AvailableAmount")
                 ) {
                     Text13Up(
