@@ -26,13 +26,10 @@ import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.PrimaryDisplay
-import to.bitkit.models.Toast
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.blocktankViewModel
@@ -57,7 +54,6 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.walletViewModel
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.CurrencyUiState
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ReceiveAmountScreen(
@@ -111,40 +107,27 @@ fun ReceiveAmountScreen(
             scope.launch {
                 isCreatingInvoice = true
 
-                if (walletState.nodeLifecycleState == NodeLifecycleState.Starting) {
-                    while (walletState.nodeLifecycleState == NodeLifecycleState.Starting && isActive) {
-                        delay(5.milliseconds)
+                runCatching {
+                    require(walletState.nodeLifecycleState == NodeLifecycleState.Running) {
+                        "Should not be able to land on this screen if the node is not running."
                     }
-                }
 
-                if (walletState.nodeLifecycleState == NodeLifecycleState.Running) {
-                    runCatching {
-                        val entry = blocktank.createCjit(amountSats = sats)
-                        onCjitCreated(
-                            CjitEntryDetails(
-                                networkFeeSat = entry.networkFeeSat.toLong(),
-                                serviceFeeSat = entry.serviceFeeSat.toLong(),
-                                channelSizeSat = entry.channelSizeSat.toLong(),
-                                feeSat = entry.feeSat.toLong(),
-                                receiveAmountSats = satsAmount,
-                                invoice = entry.invoice.request,
-                            )
+                    val entry = blocktank.createCjit(amountSats = sats)
+                    onCjitCreated(
+                        CjitEntryDetails(
+                            networkFeeSat = entry.networkFeeSat.toLong(),
+                            serviceFeeSat = entry.serviceFeeSat.toLong(),
+                            channelSizeSat = entry.channelSizeSat.toLong(),
+                            feeSat = entry.feeSat.toLong(),
+                            receiveAmountSats = satsAmount,
+                            invoice = entry.invoice.request,
                         )
-                    }.onFailure { e ->
-                        app.toast(e)
-                        Logger.error("Failed to create CJIT", e)
-                    }
-
-                    isCreatingInvoice = false
-                } else {
-                    // TODO add missing localized texts
-                    app.toast(
-                        type = Toast.ToastType.WARNING,
-                        title = "Lightning not ready",
-                        description = "Lightning node must be running to create an invoice",
                     )
-                    isCreatingInvoice = false
+                }.onFailure { e ->
+                    app.toast(e)
+                    Logger.error("Failed to create CJIT", e)
                 }
+                isCreatingInvoice = false
             }
         }
     )
