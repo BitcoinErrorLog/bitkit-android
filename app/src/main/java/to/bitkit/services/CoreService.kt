@@ -160,7 +160,10 @@ class CoreService @Inject constructor(
      * @return Pair(isGeoBlocked, shouldBlockLightning)*/
     suspend fun checkGeoBlock(): Pair<Boolean, Boolean> {
         val geoBlocked = isGeoBlocked()
-        val shouldBlockLightning = geoBlocked && !hasExternalNode()
+        val shouldBlockLightning = when {
+            hasExternalNode() -> false
+            else -> geoBlocked
+        }
 
         return Pair(geoBlocked, shouldBlockLightning)
     }
