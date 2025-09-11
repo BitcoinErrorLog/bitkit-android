@@ -334,6 +334,7 @@ fun ContentView(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
                                     navController.navigate(Routes.ExternalConnection())
+                                    appViewModel.hideSheet()
                                 }
                             )
                         }
