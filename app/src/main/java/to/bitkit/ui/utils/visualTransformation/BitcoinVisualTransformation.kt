@@ -5,6 +5,8 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import to.bitkit.models.BitcoinDisplayUnit
+import to.bitkit.models.GROUPING_SEPARATOR
+import to.bitkit.models.formatToModernDisplay
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -34,16 +36,8 @@ class BitcoinVisualTransformation(
     }
 
     private fun formatModernDisplay(text: String): String {
-        val cleanText = text.replace(" ", "")
-        val longValue = cleanText.toLongOrNull() ?: return text
-
-        val formatSymbols = DecimalFormatSymbols(Locale.getDefault()).apply {
-            groupingSeparator = ' '
-        }
-        val formatter = DecimalFormat("#,###", formatSymbols).apply {
-            isGroupingUsed = true
-        }
-        return formatter.format(longValue)
+        val longValue = text.replace("$GROUPING_SEPARATOR", "").toLongOrNull() ?: return text
+        return longValue.formatToModernDisplay()
     }
 
     private fun formatClassicDisplay(text: String): String {

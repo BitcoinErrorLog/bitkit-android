@@ -115,9 +115,8 @@ fun rememberMoneyText(
 ): String? {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
-        val symbol = if (unit == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else "$"
         return buildString {
-            if (showSymbol) append("<accent>$symbol</accent> ")
+            if (showSymbol) append("<accent>${currencies.primarySymbol()}</accent> ")
             append(sats.formatToModernDisplay())
         }
     }

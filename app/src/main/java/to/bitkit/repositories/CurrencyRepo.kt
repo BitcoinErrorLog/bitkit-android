@@ -23,6 +23,7 @@ import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
+import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.BTC_SCALE
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.ConvertedAmount
@@ -252,5 +253,7 @@ data class CurrencyState(
     val currencySymbol: String = "$",
     val displayUnit: BitcoinDisplayUnit = BitcoinDisplayUnit.MODERN,
     val primaryDisplay: PrimaryDisplay = PrimaryDisplay.BITCOIN,
-    val lastSuccessfulRefresh: Long? = null
-)
+    val lastSuccessfulRefresh: Long? = null,
+) {
+    fun primarySymbol() = if (primaryDisplay == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else currencySymbol
+}
