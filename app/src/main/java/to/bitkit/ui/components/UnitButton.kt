@@ -14,25 +14,21 @@ import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.viewmodels.CurrencyUiState
+import to.bitkit.viewmodels.CurrencyViewModel
 
 @Composable
 fun UnitButton(
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
     color: Color = Colors.Brand,
-    primaryDisplay: PrimaryDisplay = LocalCurrencies.current.primaryDisplay,
+    currencies: CurrencyUiState = LocalCurrencies.current,
+    currency: CurrencyViewModel? = currencyViewModel,
+    onClick: () -> Unit = { currency?.togglePrimaryDisplay() },
 ) {
-    val currency = currencyViewModel
-    val currencies = LocalCurrencies.current
-    val text = if (primaryDisplay == PrimaryDisplay.BITCOIN) "Bitcoin" else currencies.selectedCurrency
-
     NumberPadActionButton(
-        text = text,
+        text = if (currencies.primaryDisplay == PrimaryDisplay.BITCOIN) "Bitcoin" else currencies.selectedCurrency,
         color = color,
-        onClick = {
-            currency?.togglePrimaryDisplay()
-            onClick()
-        },
+        onClick = onClick,
         icon = R.drawable.ic_transfer,
         modifier = modifier,
     )
@@ -46,8 +42,8 @@ private fun Preview() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            UnitButton(primaryDisplay = PrimaryDisplay.BITCOIN)
-            UnitButton(primaryDisplay = PrimaryDisplay.FIAT)
+            UnitButton(currencies = CurrencyUiState(primaryDisplay = PrimaryDisplay.BITCOIN))
+            UnitButton(currencies = CurrencyUiState(primaryDisplay = PrimaryDisplay.FIAT))
         }
     }
 }
