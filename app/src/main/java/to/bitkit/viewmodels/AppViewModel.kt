@@ -77,7 +77,6 @@ import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.HealthRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.CoreService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
@@ -95,7 +94,6 @@ class AppViewModel @Inject constructor(
     private val keychain: Keychain,
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
-    private val coreService: CoreService,
     private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
@@ -112,8 +110,14 @@ class AppViewModel @Inject constructor(
     var splashVisible by mutableStateOf(true)
         private set
 
-    var isGeoBlocked by mutableStateOf<Boolean?>(null) //TODO GET FROM LightningRepo
-        private set
+    val isGeoBlocked = lightningRepo.lightningState.map { it.shouldBlockLightning }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(
+                5000
+            ),
+            false
+        )
 
     private val _sendUiState = MutableStateFlow(SendUiState())
     val sendUiState = _sendUiState.asStateFlow()
@@ -187,7 +191,6 @@ class AppViewModel @Inject constructor(
 
         observeLdkNodeEvents()
         observeSendEvents()
-        checkGeoStatus()
     }
 
     private fun observeLdkNodeEvents() {
@@ -267,16 +270,6 @@ class AppViewModel @Inject constructor(
                 } catch (e: Exception) {
                     Logger.error("LDK event handler error", e, context = TAG)
                 }
-            }
-        }
-    }
-
-    private fun checkGeoStatus() {
-        viewModelScope.launch {
-            try {
-                isGeoBlocked = coreService.isGeoBlocked()
-            } catch (e: Throwable) {
-                Logger.error("Failed to check geo status: ${e.message}", e, context = TAG)
             }
         }
     }
