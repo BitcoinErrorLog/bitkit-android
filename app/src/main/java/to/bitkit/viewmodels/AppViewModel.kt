@@ -110,7 +110,7 @@ class AppViewModel @Inject constructor(
     var splashVisible by mutableStateOf(true)
         private set
 
-    val isGeoBlocked = lightningRepo.lightningState.map { it.shouldBlockLightning }
+    val isGeoBlocked = lightningRepo.lightningState.map { it.isGeoBlocked }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(
@@ -187,6 +187,9 @@ class AppViewModel @Inject constructor(
             resetIsAuthenticatedState()
             delay(500)
             splashVisible = false
+        }
+        viewModelScope.launch {
+            lightningRepo.updateGeoBlockState()
         }
 
         observeLdkNodeEvents()

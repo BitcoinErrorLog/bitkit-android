@@ -246,7 +246,7 @@ class LightningRepo @Inject constructor(
     }
 
     /**Updates the shouldBlockLightning state and returns the current value*/
-    private suspend fun updateGeoBlockState() {
+    suspend fun updateGeoBlockState() {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
             it.copy(shouldBlockLightning = shouldBlockLightning, isGeoBlocked = isGeoBlocked)
