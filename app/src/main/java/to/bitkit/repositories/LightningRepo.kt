@@ -408,7 +408,9 @@ class LightningRepo @Inject constructor(
     }
 
     suspend fun connectPeer(peer: LnPeer): Result<Unit> = executeWhenNodeRunning("connectPeer") {
-        lightningService.connectPeer(peer)
+        lightningService.connectPeer(peer).onFailure { e ->
+            return@executeWhenNodeRunning Result.failure(e)
+        }
         syncState()
         Result.success(Unit)
     }
