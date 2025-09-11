@@ -46,7 +46,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Before
     fun setUp() {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(false)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
         whenever(lightningRepo.getSyncFlow()).thenReturn(flowOf(Unit))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
@@ -137,7 +137,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should set receiveOnSpendingBalance as false if shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(true)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
         whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
 
@@ -338,7 +338,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `toggleReceiveOnSpendingBalance should return failure if shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(true)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
 
         if (sut.walletState.value.receiveOnSpendingBalance) {
             sut.toggleReceiveOnSpendingBalance()
@@ -370,9 +370,9 @@ class WalletRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `shouldRequestAdditionalLiquidity should return false when receiveOnSpendingBalance is false`() = test {
+    fun `shouldRequestAdditionalLiquidity should return false when geoBlocked is true`() = test {
         // Given
-        whenever(coreService.isGeoBlocked()).thenReturn(false)
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, false))
         sut.toggleReceiveOnSpendingBalance() // Set to false (initial is true)
 
         // When
@@ -386,7 +386,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `shouldRequestAdditionalLiquidity should return false when geo status is true`() = test {
         // Given
-        whenever(coreService.isGeoBlocked()).thenReturn(true)
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, false))
 
         // When
         val result = sut.shouldRequestAdditionalLiquidity()
@@ -399,7 +399,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `shouldRequestAdditionalLiquidity should return true when amount exceeds inbound capacity`() = test {
         // Given
-        whenever(coreService.isGeoBlocked()).thenReturn(false)
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
         val testChannels = listOf(
             mock<ChannelDetails> {
                 on { inboundCapacityMsat } doReturn 500_000u // 500 sats
@@ -422,7 +422,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `shouldRequestAdditionalLiquidity should return false when amount is less than inbound capacity`() = test {
         // Given
-        whenever(coreService.isGeoBlocked()).thenReturn(false)
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
         val testChannels = listOf(
             mock<ChannelDetails> {
                 on { inboundCapacityMsat } doReturn 500_000u // 500 sats
@@ -440,18 +440,6 @@ class WalletRepoTest : BaseUnitTest() {
         // Then
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
-    }
-
-    @Test
-    fun `shouldRequestAdditionalLiquidity should return failure when exception occurs`() = test {
-        // Given
-        whenever(coreService.isGeoBlocked()).thenThrow(RuntimeException("Test error"))
-
-        // When
-        val result = sut.shouldRequestAdditionalLiquidity()
-
-        // Then
-        assertTrue(result.isFailure)
     }
 }
 
