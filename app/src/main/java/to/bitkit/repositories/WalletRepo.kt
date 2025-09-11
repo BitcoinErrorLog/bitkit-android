@@ -113,8 +113,7 @@ class WalletRepo @Inject constructor(
             it.copy(
                 selectedTags = emptyList(),
                 bip21Description = "",
-                balanceInput = "",
-                bip21 = ""
+                bip21 = "",
             )
         }
 
@@ -347,10 +346,6 @@ class WalletRepo @Inject constructor(
         _walletState.update { it.copy(bip21Description = description) }
     }
 
-    fun updateBalanceInput(newText: String) {
-        _walletState.update { it.copy(balanceInput = newText) }
-    }
-
     suspend fun toggleReceiveOnSpendingBalance(): Result<Unit> = withContext(bgDispatcher) {
         if (!_walletState.value.receiveOnSpendingBalance && coreService.shouldBlockLightning()) {
             return@withContext Result.failure(ServiceError.GeoBlocked)
@@ -525,7 +520,6 @@ class WalletRepo @Inject constructor(
 
 data class WalletState(
     val onchainAddress: String = "",
-    val balanceInput: String = "",
     val bolt11: String = "",
     val bip21: String = "",
     val bip21AmountSats: ULong? = null,

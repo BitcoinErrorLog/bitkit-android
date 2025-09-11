@@ -9,13 +9,17 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.PrimaryDisplay
+import to.bitkit.models.STUB_RATE
+import to.bitkit.models.asBtc
+import to.bitkit.models.formatCurrency
 import to.bitkit.models.formatToModernDisplay
+import to.bitkit.repositories.CurrencyState
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.viewmodels.CurrencyUiState
+import java.math.BigDecimal
 
 @Composable
 fun MoneyDisplay(
@@ -109,15 +113,22 @@ fun MoneyCaptionB(
 fun rememberMoneyText(
     sats: Long,
     reversed: Boolean = false,
-    currencies: CurrencyUiState = LocalCurrencies.current,
+    currencies: CurrencyState = LocalCurrencies.current,
     unit: PrimaryDisplay = if (reversed) currencies.primaryDisplay.not() else currencies.primaryDisplay,
     showSymbol: Boolean = unit == PrimaryDisplay.FIAT,
 ): String? {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
+        val symbol = if (unit == PrimaryDisplay.BITCOIN) BITCOIN_SYMBOL else "$"
         return buildString {
-            if (showSymbol) append("<accent>${currencies.primarySymbol()}</accent> ")
-            append(sats.formatToModernDisplay())
+            if (showSymbol) append("<accent>$symbol</accent> ")
+            if (unit == PrimaryDisplay.BITCOIN) {
+                append(sats.formatToModernDisplay())
+            } else {
+                // For fiat preview, convert sats to fiat using STUB_RATE and formatCurrency
+                val fiatValue = sats.asBtc().multiply(BigDecimal.valueOf(STUB_RATE))
+                append(fiatValue.formatCurrency() ?: "0.00")
+            }
         }
     }
 

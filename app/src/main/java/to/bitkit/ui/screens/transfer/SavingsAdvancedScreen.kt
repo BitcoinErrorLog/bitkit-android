@@ -85,7 +85,7 @@ fun SavingsAdvancedScreen(
     SavingsAdvancedContent(
         channelItems = channelItems,
         onChannelItemClick = { channelId -> toggleChannel(channelId) },
-        onAmountClick = { currency.togglePrimaryDisplay() },
+        onAmountClick = { currency.switchUnit() },
         onContinueClick = {
             transfer.setSelectedChannelIds(
                 selectedChannelIds.takeUnless { it.size == openChannels.size } ?: emptySet()

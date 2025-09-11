@@ -25,9 +25,9 @@ class CurrencyViewModel @Inject constructor(
         }
     }
 
-    fun togglePrimaryDisplay() {
+    fun switchUnit() {
         viewModelScope.launch {
-            currencyRepo.togglePrimaryDisplay()
+            currencyRepo.switchUnit()
         }
     }
 
@@ -59,6 +59,3 @@ class CurrencyViewModel @Inject constructor(
         return uLongSats.toLong()
     }
 }
-
-// For backward compatibility, keeping the original data class name
-typealias CurrencyUiState = CurrencyState

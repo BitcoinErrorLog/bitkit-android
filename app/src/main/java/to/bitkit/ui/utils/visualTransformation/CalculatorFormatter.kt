@@ -3,10 +3,11 @@ package to.bitkit.ui.utils.visualTransformation
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.toLongOrDefault
 import to.bitkit.models.BitcoinDisplayUnit
+import to.bitkit.models.CLASSIC_DECIMALS
 import to.bitkit.models.SATS_IN_BTC
 import to.bitkit.models.asBtc
+import to.bitkit.models.formatCurrency
 import to.bitkit.models.formatToModernDisplay
-import to.bitkit.ui.utils.formatCurrency
 import to.bitkit.viewmodels.CurrencyViewModel
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -47,7 +48,7 @@ object CalculatorFormatter {
 
             BitcoinDisplayUnit.CLASSIC -> {
                 satsValue.asBtc()
-                    .formatCurrency(decimalPlaces = 8)
+                    .formatCurrency(decimalPlaces = CLASSIC_DECIMALS)
                     .orEmpty()
             }
         }

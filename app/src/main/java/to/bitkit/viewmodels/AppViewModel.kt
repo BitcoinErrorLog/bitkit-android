@@ -295,9 +295,9 @@ class AppViewModel @Inject constructor(
                     SendEvent.AddressReset -> resetAddressInput()
                     is SendEvent.AddressContinue -> onAddressContinue(it.data)
 
-                    is SendEvent.AmountChange -> onAmountChange(it.value)
+                    is SendEvent.AmountChange -> onAmountChange(it.amount)
                     SendEvent.AmountReset -> resetAmountInput()
-                    is SendEvent.AmountContinue -> onAmountContinue(it.amount)
+                    SendEvent.AmountContinue -> onAmountContinue()
                     SendEvent.PaymentMethodSwitch -> onPaymentMethodSwitch()
 
                     is SendEvent.CoinSelectionContinue -> onCoinSelectionContinue(it.utxos)
@@ -351,11 +351,11 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onAmountChange(value: String) {
+    private fun onAmountChange(amount: ULong) {
         _sendUiState.update {
             it.copy(
-                amountInput = value,
-                isAmountInputValid = validateAmount(value)
+                amount = amount,
+                isAmountInputValid = validateAmount(amount),
             )
         }
     }
@@ -413,15 +413,14 @@ class AppViewModel @Inject constructor(
         _sendUiState.update {
             it.copy(
                 payMethod = nextPaymentMethod,
-                isAmountInputValid = validateAmount(it.amountInput, nextPaymentMethod),
+                isAmountInputValid = validateAmount(it.amount, nextPaymentMethod),
             )
         }
     }
 
-    private suspend fun onAmountContinue(amount: String) {
+    private suspend fun onAmountContinue() {
         _sendUiState.update {
             it.copy(
-                amount = amount.toULongOrNull() ?: 0u,
                 selectedUtxos = null,
             )
         }
@@ -452,25 +451,20 @@ class AppViewModel @Inject constructor(
     }
 
     private fun validateAmount(
-        value: String,
+        amount: ULong,
         payMethod: SendMethod = _sendUiState.value.payMethod,
     ): Boolean {
-        if (value.isBlank()) return false
-        val amount = value.toULongOrNull() ?: return false
         if (amount == 0uL) return false
 
         return when (payMethod) {
             SendMethod.LIGHTNING -> when (val lnurl = _sendUiState.value.lnurl) {
                 null -> lightningRepo.canSend(amount)
+                is LnurlParams.LnurlWithdraw -> amount < lnurl.data.maxWithdrawableSat()
                 is LnurlParams.LnurlPay -> {
                     val minSat = lnurl.data.minSendableSat()
                     val maxSat = lnurl.data.maxSendableSat()
 
                     amount in minSat..maxSat && lightningRepo.canSend(amount)
-                }
-
-                is LnurlParams.LnurlWithdraw -> {
-                    amount < lnurl.data.maxWithdrawableSat()
                 }
             }
 
@@ -829,8 +823,8 @@ class AppViewModel @Inject constructor(
     private fun resetAmountInput() {
         _sendUiState.update { state ->
             state.copy(
-                amountInput = state.amount.toString(),
-                isAmountInputValid = validateAmount(state.amount.toString()),
+                amount = 0u,
+                isAmountInputValid = false,
             )
         }
     }
@@ -1520,7 +1514,6 @@ data class SendUiState(
     val addressInput: String = "",
     val isAddressInputValid: Boolean = false,
     val amount: ULong = 0u,
-    val amountInput: String = "",
     val isAmountInputValid: Boolean = false,
     val isUnified: Boolean = false,
     val payMethod: SendMethod = SendMethod.ONCHAIN,
@@ -1585,8 +1578,8 @@ sealed interface SendEvent {
     data class AddressContinue(val data: String) : SendEvent
 
     data object AmountReset : SendEvent
-    data class AmountContinue(val amount: String) : SendEvent
-    data class AmountChange(val value: String) : SendEvent
+    data object AmountContinue : SendEvent
+    data class AmountChange(val amount: ULong) : SendEvent
 
     data class CoinSelectionContinue(val utxos: List<SpendableUtxo>) : SendEvent
 

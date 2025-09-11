@@ -6,14 +6,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
-import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.PrimaryDisplay
-import to.bitkit.viewmodels.CurrencyUiState
+import to.bitkit.repositories.CurrencyState
 import to.bitkit.viewmodels.MainUiState
-import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendMethod
 import to.bitkit.viewmodels.SendUiState
+import to.bitkit.viewmodels.previewAmountInputViewModel
 
 class SendAmountContentTest {
 
@@ -22,8 +21,7 @@ class SendAmountContentTest {
 
     private val testUiState = SendUiState(
         payMethod = SendMethod.LIGHTNING,
-        amountInput = "100",
-        isAmountInputValid = true,
+        amount = 100u,
         isUnified = true
     )
 
@@ -35,21 +33,15 @@ class SendAmountContentTest {
     fun whenScreenLoaded_shouldShowAllComponents() {
         composeTestRule.setContent {
             SendAmountContent(
-                input = "100",
-                uiState = testUiState,
                 walletUiState = testWalletState,
-                currencyUiState = CurrencyUiState(primaryDisplay = PrimaryDisplay.BITCOIN),
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                onInputChanged = {},
-                onEvent = {},
-                onBack = {}
+                uiState = testUiState,
+                amountInputViewModel = previewAmountInputViewModel(),
             )
         }
 
         composeTestRule.onNodeWithTag("send_amount_screen").assertExists()
-//        composeTestRule.onNodeWithTag("amount_input_field").assertExists() doesn't displayed because of viewmodel injection
-        composeTestRule.onNodeWithTag("available_balance").assertExists()
+        composeTestRule.onNodeWithTag("SendNumberField").assertExists()
+        composeTestRule.onNodeWithTag("available_balance", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithTag("AssetButton-switch").assertExists()
         composeTestRule.onNodeWithTag("ContinueAmount").assertExists()
         composeTestRule.onNodeWithTag("SendAmountNumberPad").assertExists()
@@ -59,22 +51,16 @@ class SendAmountContentTest {
     fun whenNodeNotRunning_shouldShowSyncView() {
         composeTestRule.setContent {
             SendAmountContent(
-                input = "100",
-                uiState = testUiState,
                 walletUiState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Initializing
                 ),
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
-                onEvent = {},
-                onBack = {}
+                uiState = testUiState,
+                amountInputViewModel = previewAmountInputViewModel(),
             )
         }
 
         composeTestRule.onNodeWithTag("sync_node_view").assertExists()
-        composeTestRule.onNodeWithTag("amount_input_field").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("SendNumberField").assertDoesNotExist()
     }
 
     @Test
@@ -82,19 +68,10 @@ class SendAmountContentTest {
         var eventTriggered = false
         composeTestRule.setContent {
             SendAmountContent(
-                input = "100",
-                uiState = testUiState,
                 walletUiState = testWalletState,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
-                onEvent = { event ->
-                    if (event is SendEvent.PaymentMethodSwitch) {
-                        eventTriggered = true
-                    }
-                },
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                onBack = {}
+                uiState = testUiState,
+                amountInputViewModel = previewAmountInputViewModel(),
+                onClickPayMethod = { eventTriggered = true }
             )
         }
 
@@ -109,23 +86,14 @@ class SendAmountContentTest {
         var eventTriggered = false
         composeTestRule.setContent {
             SendAmountContent(
-                input = "100",
-                uiState = testUiState.copy(isAmountInputValid = true),
                 walletUiState = testWalletState,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
-                onEvent = { event ->
-                    if (event is SendEvent.AmountContinue) {
-                        eventTriggered = true
-                    }
-                },
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                onBack = {}
+                uiState = testUiState,
+                amountInputViewModel = previewAmountInputViewModel(),
+                onContinue = { eventTriggered = true }
             )
         }
 
-        composeTestRule.onNodeWithTag("continue_button")
+        composeTestRule.onNodeWithTag("ContinueAmount")
             .performClick()
 
         assert(eventTriggered)
@@ -135,18 +103,12 @@ class SendAmountContentTest {
     fun whenAmountInvalid_continueButtonShouldBeDisabled() {
         composeTestRule.setContent {
             SendAmountContent(
-                input = "100",
-                uiState = testUiState.copy(isAmountInputValid = false),
                 walletUiState = testWalletState,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
-                onEvent = {},
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                onBack = {}
+                uiState = testUiState.copy(amount = 0u),
+                amountInputViewModel = previewAmountInputViewModel(),
             )
         }
 
-        composeTestRule.onNodeWithTag("continue_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("ContinueAmount").assertIsNotEnabled()
     }
 }

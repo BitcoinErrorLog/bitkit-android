@@ -13,7 +13,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,26 +24,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.models.PrimaryDisplay
+import to.bitkit.repositories.CurrencyState
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.blocktankViewModel
-import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
-import to.bitkit.ui.components.Keyboard
 import to.bitkit.ui.components.MoneySSB
+import to.bitkit.ui.components.NumberPad
 import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -53,23 +51,23 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.walletViewModel
 import to.bitkit.utils.Logger
-import to.bitkit.viewmodels.CurrencyUiState
+import to.bitkit.viewmodels.AmountInputViewModel
+import to.bitkit.viewmodels.previewAmountInputViewModel
 
+@Suppress("ViewModelForwarding")
 @Composable
 fun ReceiveAmountScreen(
     onCjitCreated: (CjitEntryDetails) -> Unit,
     onBack: () -> Unit,
+    currencies: CurrencyState = LocalCurrencies.current,
+    amountInputViewModel: AmountInputViewModel = hiltViewModel(),
 ) {
     val app = appViewModel ?: return
     val wallet = walletViewModel ?: return
     val blocktank = blocktankViewModel ?: return
     val walletState by wallet.uiState.collectAsStateWithLifecycle()
-    val currencyVM = currencyViewModel ?: return
-    val currencies = LocalCurrencies.current
+    val amountInputUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
 
-    var input: String by remember { mutableStateOf("0") }
-    var overrideSats: Long? by remember { mutableStateOf(null) }
-    var satsAmount by remember { mutableLongStateOf(0L) }
     var isCreatingInvoice by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -77,49 +75,33 @@ fun ReceiveAmountScreen(
         blocktank.refreshMinCjitSats()
     }
 
-    AmountInputHandler(
-        input = input,
-        overrideSats = overrideSats,
-        primaryDisplay = currencies.primaryDisplay,
-        displayUnit = currencies.displayUnit,
-        onInputChanged = { newInput -> input = newInput },
-        onAmountCalculated = { sats ->
-            satsAmount = sats.toLongOrNull() ?: 0L
-            overrideSats = null
-        },
-        currencyVM = currencyVM,
-    )
-
     val minCjitSats by blocktank.minCjitSats.collectAsStateWithLifecycle()
 
     ReceiveAmountContent(
-        input = input,
-        satsAmount = satsAmount,
+        amountInputViewModel = amountInputViewModel,
         minCjitSats = minCjitSats,
-        currencyUiState = currencies,
+        currencies = currencies,
         isCreatingInvoice = isCreatingInvoice,
-        onInputChange = { input = it },
-        onClickMin = { overrideSats = it },
-        onClickAmount = { currencyVM.togglePrimaryDisplay() },
+        canContinue = amountInputUiState.amountSats >= (minCjitSats?.toLong() ?: 0),
         onBack = onBack,
+        onClickMin = { amountInputViewModel.setSats(it, currencies) },
         onContinue = {
-            val sats = satsAmount.toULong()
+            val sats = amountInputUiState.amountSats
             scope.launch {
                 isCreatingInvoice = true
-
                 runCatching {
                     require(walletState.nodeLifecycleState == NodeLifecycleState.Running) {
                         "Should not be able to land on this screen if the node is not running."
                     }
 
-                    val entry = blocktank.createCjit(amountSats = sats)
+                    val entry = blocktank.createCjit(amountSats = sats.toULong())
                     onCjitCreated(
                         CjitEntryDetails(
                             networkFeeSat = entry.networkFeeSat.toLong(),
                             serviceFeeSat = entry.serviceFeeSat.toLong(),
                             channelSizeSat = entry.channelSizeSat.toLong(),
                             feeSat = entry.feeSat.toLong(),
-                            receiveAmountSats = satsAmount,
+                            receiveAmountSats = sats,
                             invoice = entry.invoice.request,
                         )
                     )
@@ -133,17 +115,16 @@ fun ReceiveAmountScreen(
     )
 }
 
+@Suppress("ViewModelForwarding")
 @Composable
 private fun ReceiveAmountContent(
-    input: String,
-    satsAmount: Long,
+    amountInputViewModel: AmountInputViewModel,
     minCjitSats: Int?,
-    currencyUiState: CurrencyUiState,
     isCreatingInvoice: Boolean,
+    canContinue: Boolean,
     modifier: Modifier = Modifier,
-    onInputChange: (String) -> Unit = {},
+    currencies: CurrencyState = LocalCurrencies.current,
     onClickMin: (Long) -> Unit = {},
-    onClickAmount: () -> Unit = {},
     onBack: () -> Unit = {},
     onContinue: () -> Unit = {},
 ) {
@@ -167,12 +148,9 @@ private fun ReceiveAmountContent(
             ) {
                 VerticalSpacer(16.dp)
                 NumberPadTextField(
-                    input = input,
-                    displayUnit = currencyUiState.displayUnit,
-                    primaryDisplay = currencyUiState.primaryDisplay,
+                    viewModel = amountInputViewModel,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickableAlpha(onClick = onClickAmount)
                         .testTag("ReceiveNumberPadTextField")
                 )
 
@@ -199,20 +177,17 @@ private fun ReceiveAmountContent(
                     } ?: CircularProgressIndicator(modifier = Modifier.size(18.dp))
 
                     FillWidth()
-                    UnitButton(modifier = Modifier.testTag("ReceiveNumberPadUnit"))
+                    UnitButton(
+                        onClick = { amountInputViewModel.switchUnit(currencies) },
+                        modifier = Modifier.testTag("ReceiveNumberPadUnit")
+                    )
                 }
 
                 VerticalSpacer(16.dp)
                 HorizontalDivider()
 
-                Keyboard(
-                    onClick = { number ->
-                        onInputChange(if (input == "0") number else input + number)
-                    },
-                    onClickBackspace = {
-                        onInputChange(if (input.length > 1) input.dropLast(1) else "0")
-                    },
-                    isDecimal = currencyUiState.primaryDisplay == PrimaryDisplay.FIAT,
+                NumberPad(
+                    viewModel = amountInputViewModel,
                     availableHeight = maxHeight,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -221,7 +196,7 @@ private fun ReceiveAmountContent(
 
                 PrimaryButton(
                     text = stringResource(R.string.common__continue),
-                    enabled = !isCreatingInvoice && satsAmount != 0L,
+                    enabled = !isCreatingInvoice && canContinue,
                     isLoading = isCreatingInvoice,
                     onClick = onContinue,
                     modifier = Modifier.testTag("ContinueAmount")
@@ -239,10 +214,9 @@ private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveAmountContent(
-                input = "100",
-                satsAmount = 10000L,
+                amountInputViewModel = previewAmountInputViewModel(),
+                canContinue = true,
                 minCjitSats = 5000,
-                currencyUiState = CurrencyUiState(),
                 isCreatingInvoice = false,
                 modifier = Modifier.sheetHeight(),
             )
@@ -256,10 +230,9 @@ private fun PreviewSmallScreen() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveAmountContent(
-                input = "100",
-                satsAmount = 10000L,
+                amountInputViewModel = previewAmountInputViewModel(sats = 200),
+                canContinue = true,
                 minCjitSats = 5000,
-                currencyUiState = CurrencyUiState(),
                 isCreatingInvoice = false,
                 modifier = Modifier.sheetHeight(),
             )
