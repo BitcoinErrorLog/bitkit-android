@@ -113,27 +113,34 @@ class CoreService @Inject constructor(
     }
 
     /** Returns true if geo blocked */
-    suspend fun isGeoBlocked(): Boolean? {
+    suspend fun isGeoBlocked(): Boolean {
         return ServiceQueue.CORE.background {
-            Logger.verbose("Checking geo status…", context = "GeoCheck")
-            val response = httpClient.get(Env.geoCheckUrl)
+            runCatching {
+                Logger.verbose("Checking geo status…", context = "GeoCheck")
+                val response = httpClient.get(Env.geoCheckUrl)
 
-            when (response.status.value) {
-                HttpStatusCode.OK.value -> {
-                    Logger.verbose("Region allowed", context = "GeoCheck")
-                    false
-                }
+                when (response.status.value) {
+                    HttpStatusCode.OK.value -> {
+                        Logger.verbose("Region allowed", context = "GeoCheck")
+                        false
+                    }
 
-                HttpStatusCode.Forbidden.value -> {
-                    Logger.warn("Region blocked", context = "GeoCheck")
-                    true
-                }
+                    HttpStatusCode.Forbidden.value -> {
+                        Logger.warn("Region blocked", context = "GeoCheck")
+                        true
+                    }
 
-                else -> {
-                    Logger.warn("Unexpected status code: ${response.status.value}", context = "GeoCheck")
-                    null
+                    else -> {
+                        Logger.warn(
+                            "Unexpected status code: ${response.status.value}, defaulting to false",
+                            context = "GeoCheck"
+                        )
+                        false
+                    }
                 }
-            }
+            }.onFailure {
+                Logger.warn("Error. defaulting isGeoBlocked to false", context = "GeoCheck")
+            }.getOrDefault(false)
         }
     }
 
