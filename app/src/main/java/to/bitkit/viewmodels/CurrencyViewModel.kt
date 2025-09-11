@@ -49,8 +49,6 @@ class CurrencyViewModel @Inject constructor(
         }
     }
 
-    fun getCurrencySymbol(): String = currencyRepo.getCurrencySymbol()
-
     // UI Helpers
     fun convert(sats: Long, currency: String? = null): ConvertedAmount? {
         return currencyRepo.convertSatsToFiat(sats, currency).getOrNull()

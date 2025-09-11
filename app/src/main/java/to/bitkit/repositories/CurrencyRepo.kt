@@ -177,10 +177,6 @@ class CurrencyRepo @Inject constructor(
         refresh()
     }
 
-    fun getCurrencySymbol(): String {
-        return _currencyState.value.currencySymbol
-    }
-
     fun getCurrentRate(currency: String): FxRate? {
         return _currencyState.value.rates.firstOrNull { it.quote == currency }
     }

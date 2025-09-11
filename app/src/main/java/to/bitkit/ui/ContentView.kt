@@ -1069,7 +1069,7 @@ private fun NavGraphBuilder.widgets(
                     WidgetType.WEATHER -> navController.navigate(Routes.WeatherPreview)
                 }
             },
-            fiatSymbol = currencyViewModel.getCurrencySymbol()
+            fiatSymbol = LocalCurrencies.current.currencySymbol,
         )
     }
     composableWithDefaultTransitions<Routes.CalculatorPreview> {
