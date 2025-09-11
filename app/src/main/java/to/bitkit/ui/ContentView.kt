@@ -515,6 +515,8 @@ private fun RootNavHost(
             }
             composableWithDefaultTransitions<Routes.Funding> {
                 val hasSeenSpendingIntro by settingsViewModel.hasSeenSpendingIntro.collectAsState()
+                val isGeoBlocked by appViewModel.isGeoBlocked.collectAsStateWithLifecycle()
+
                 FundingScreen(
                     onTransfer = {
                         if (!hasSeenSpendingIntro) {
@@ -534,6 +536,7 @@ private fun RootNavHost(
                     onAdvanced = { navController.navigate(Routes.FundingAdvanced) },
                     onBackClick = { navController.popBackStack() },
                     onCloseClick = { navController.navigateToHome() },
+                    isGeoBlocked = isGeoBlocked
                 )
             }
             composableWithDefaultTransitions<Routes.FundingAdvanced> {

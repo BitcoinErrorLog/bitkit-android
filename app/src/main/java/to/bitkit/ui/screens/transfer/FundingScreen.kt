@@ -25,6 +25,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ui.LocalBalances
@@ -47,13 +48,13 @@ fun FundingScreen(
     onAdvanced: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
+    isGeoBlocked: Boolean
 ) {
     val balances = LocalBalances.current
     val canTransfer = remember(balances.totalOnchainSats) {
         balances.totalOnchainSats >= Env.TransactionDefaults.recommendedBaseFee
     }
     var showNoFundsAlert by remember { mutableStateOf(false) }
-    val isGeoBlocked = appViewModel?.isGeoBlocked == true
 
     ScreenColumn {
         AppTopBar(
@@ -164,6 +165,6 @@ fun FundingScreen(
 @Composable
 private fun FundingScreenPreview() {
     AppThemeSurface {
-        FundingScreen()
+        FundingScreen(isGeoBlocked = false)
     }
 }
