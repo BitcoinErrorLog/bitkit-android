@@ -113,7 +113,7 @@ class CoreService @Inject constructor(
     }
 
     /** Returns true if geo blocked */
-    suspend fun checkGeoStatus(): Boolean? {
+    suspend fun isGeoBlocked(): Boolean? {
         return ServiceQueue.CORE.background {
             Logger.verbose("Checking geo status…", context = "GeoCheck")
             val response = httpClient.get(Env.geoCheckUrl)
@@ -149,7 +149,7 @@ class CoreService @Inject constructor(
 
     suspend fun hasExternalNode() = getConnectedPeers().any { connectedPeer -> connectedPeer !in getLspPeers() }
 
-    suspend fun shouldBlockLightning() = checkGeoStatus() == true && !hasExternalNode()
+    suspend fun shouldBlockLightning() = isGeoBlocked() == true && !hasExternalNode()
 }
 
 // endregion

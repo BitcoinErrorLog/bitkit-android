@@ -112,7 +112,7 @@ class AppViewModel @Inject constructor(
     var splashVisible by mutableStateOf(true)
         private set
 
-    var isGeoBlocked by mutableStateOf<Boolean?>(null)
+    var isGeoBlocked by mutableStateOf<Boolean?>(null) //TODO GET FROM LightningRepo
         private set
 
     private val _sendUiState = MutableStateFlow(SendUiState())
@@ -274,7 +274,7 @@ class AppViewModel @Inject constructor(
     private fun checkGeoStatus() {
         viewModelScope.launch {
             try {
-                isGeoBlocked = coreService.checkGeoStatus()
+                isGeoBlocked = coreService.isGeoBlocked()
             } catch (e: Throwable) {
                 Logger.error("Failed to check geo status: ${e.message}", e, context = TAG)
             }
