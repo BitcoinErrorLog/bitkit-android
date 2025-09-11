@@ -46,7 +46,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Before
     fun setUp() {
-        wheneverBlocking { coreService.shouldBlockLightning() }.thenReturn(false)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(false)
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
         whenever(lightningRepo.getSyncFlow()).thenReturn(flowOf(Unit))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
@@ -137,7 +137,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should set receiveOnSpendingBalance as false if shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.shouldBlockLightning() }.thenReturn(true)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(true)
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
         whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
 
@@ -338,7 +338,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `toggleReceiveOnSpendingBalance should return failure if shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.shouldBlockLightning() }.thenReturn(true)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(true)
 
         if (sut.walletState.value.receiveOnSpendingBalance) {
             sut.toggleReceiveOnSpendingBalance()

@@ -157,7 +157,7 @@ class CoreService @Inject constructor(
     suspend fun hasExternalNode() = getConnectedPeers().any { connectedPeer -> connectedPeer !in getLspPeers() }
 
     /**@return a Pair (isGeoBlocked, shouldBlockLightning)*/
-    suspend fun shouldBlockLightning(): Pair<Boolean, Boolean> {
+    suspend fun checkGeoBlock(): Pair<Boolean, Boolean> {
         val geoBlocked = isGeoBlocked()
         val shouldBlockLightning = isGeoBlocked() && !hasExternalNode()
 
