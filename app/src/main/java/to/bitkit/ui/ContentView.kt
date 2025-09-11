@@ -333,7 +333,7 @@ fun ContentView(
                             ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
-                                    navController.navigate(Routes.ExternalConnection)
+                                    navController.navigate(Routes.ExternalConnection())
                                 }
                             )
                         }
