@@ -431,7 +431,7 @@ object BoostTransactionTestTags {
     const val ESTIMATE_TIME = "estimate_time"
     const val TOTAL_FEE_PRIMARY = "total_fee_primary"
     const val TOTAL_FEE_SECONDARY = "total_fee_secondary"
-    const val SWIPE_TO_CONFIRM = "GRAB"
+    const val SWIPE_TO_CONFIRM = "swipe_to_confirm"
     const val DECREASE_FEE_BUTTON = "Minus"
     const val INCREASE_FEE_BUTTON = "Plus"
     const val FEE_RATE_TEXT = "fee_rate_text"
