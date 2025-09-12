@@ -25,8 +25,6 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
-import kotlin.math.max
-import kotlin.math.min
 
 @HiltViewModel
 class BoostTransactionViewModel @Inject constructor(
@@ -88,9 +86,10 @@ class BoostTransactionViewModel @Inject constructor(
                 val feeRateResult = when (activityContent.txType) {
                     PaymentType.SENT -> {
                         // For RBF, use at least the original fee rate + 2 sat/vbyte, with a minimum of 2 sat/vbyte
-                        minFeeRate = (activityContent.feeRate + 2U).coerceAtLeast( 2U)
+                        minFeeRate = (activityContent.feeRate + 2U).coerceAtLeast(2U)
                         lightningRepo.getFeeRateForSpeed(speed = TransactionSpeed.Fast)
                     }
+
                     PaymentType.RECEIVED -> lightningRepo.calculateCpfpFeeRate(activityContent.txId)
                 }
 
