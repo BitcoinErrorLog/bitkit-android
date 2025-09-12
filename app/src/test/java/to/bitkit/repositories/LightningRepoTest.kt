@@ -63,7 +63,7 @@ class LightningRepoTest : BaseUnitTest() {
 
     @Before
     fun setUp() {
-        wheneverBlocking { coreService.shouldBlockLightning() }.thenReturn(false)
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
         sut = LightningRepo(
             bgDispatcher = testDispatcher,
             lightningService = lightningService,
