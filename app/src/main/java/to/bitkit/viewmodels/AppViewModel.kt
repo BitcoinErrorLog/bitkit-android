@@ -347,7 +347,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onAmountChange(value: String) {
+    private fun onAmountChange(value: String) = viewModelScope.launch {
         _sendUiState.update {
             it.copy(
                 amountInput = value,
@@ -401,7 +401,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onPaymentMethodSwitch() {
+    private fun onPaymentMethodSwitch() = viewModelScope.launch {
         val nextPaymentMethod = when (_sendUiState.value.payMethod) {
             SendMethod.ONCHAIN -> SendMethod.LIGHTNING
             SendMethod.LIGHTNING -> SendMethod.ONCHAIN
@@ -433,8 +433,10 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        _sendUiState.update { it.copy(isLoading = true) }
         refreshOnchainSendIfNeeded()
         estimateLightningRoutingFeesIfNeeded()
+        _sendUiState.update { it.copy(isLoading = false) }
 
         setSendEffect(SendEffect.NavigateToConfirm)
     }
@@ -447,7 +449,7 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.NavigateToConfirm)
     }
 
-    private fun validateAmount(
+    private suspend fun validateAmount(
         value: String,
         payMethod: SendMethod = _sendUiState.value.payMethod,
     ): Boolean {
@@ -822,7 +824,7 @@ class AppViewModel @Inject constructor(
         return false
     }
 
-    private fun resetAmountInput() {
+    private fun resetAmountInput() = viewModelScope.launch {
         _sendUiState.update { state ->
             state.copy(
                 amountInput = state.amount.toString(),

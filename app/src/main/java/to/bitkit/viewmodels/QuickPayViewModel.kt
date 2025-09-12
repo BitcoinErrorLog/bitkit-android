@@ -73,7 +73,11 @@ class QuickPayViewModel @Inject constructor(
         bolt11: String,
         amount: ULong? = null,
     ): Result<PaymentId> {
-        val hash = lightningRepo.payInvoice(bolt11 = bolt11, sats = amount).getOrThrow()
+        val hash = lightningRepo.payInvoice(bolt11 = bolt11, sats = amount)
+            .onFailure { exception ->
+                return Result.failure(exception)
+            }
+            .getOrDefault("")
 
         // Wait until matching payment event is received
         val result = ldkNodeEventBus.events.watchUntil { event ->

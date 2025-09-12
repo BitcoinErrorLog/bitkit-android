@@ -62,7 +62,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-private const val SYNC_TIMEOUT_MS = 10_000L
+private const val SYNC_TIMEOUT_MS = 15_000L
 
 @Singleton
 class LightningRepo @Inject constructor(
@@ -684,8 +684,13 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun canSend(amountSats: ULong): Boolean =
-        _lightningState.value.nodeLifecycleState.isRunning() && lightningService.canSend(amountSats)
+    suspend fun canSend(amountSats: ULong, fallbackToCachedBalance: Boolean = true): Boolean {
+        return if (!_lightningState.value.nodeLifecycleState.isRunning() && fallbackToCachedBalance) {
+            amountSats <= (cacheStore.data.first().balance?.maxSendLightningSats ?: 0u)
+        } else {
+            lightningService.canSend(amountSats)
+        }
+    }
 
     fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow()
 
