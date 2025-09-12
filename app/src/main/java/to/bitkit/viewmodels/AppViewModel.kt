@@ -341,7 +341,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onAmountChange(amount: ULong) {
+    private suspend fun onAmountChange(amount: ULong) {
         _sendUiState.update {
             it.copy(
                 amount = amount,
@@ -395,7 +395,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onPaymentMethodSwitch() {
+    private suspend fun onPaymentMethodSwitch() {
         val nextPaymentMethod = when (_sendUiState.value.payMethod) {
             SendMethod.ONCHAIN -> SendMethod.LIGHTNING
             SendMethod.LIGHTNING -> SendMethod.ONCHAIN
@@ -442,7 +442,7 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.NavigateToConfirm)
     }
 
-    private fun validateAmount(
+    private suspend fun validateAmount(
         amount: ULong,
         payMethod: SendMethod = _sendUiState.value.payMethod,
     ): Boolean {
