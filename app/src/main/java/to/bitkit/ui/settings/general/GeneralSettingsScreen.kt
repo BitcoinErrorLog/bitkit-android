@@ -42,8 +42,6 @@ fun GeneralSettingsScreen(
     val defaultTransactionSpeed by settings.defaultTransactionSpeed.collectAsStateWithLifecycle()
     val lastUsedTags by settings.lastUsedTags.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
-    val widgetsIntroSeen by settings.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
-
 
     GeneralSettingsContent(
         selectedCurrency = currencies.selectedCurrency,
@@ -55,7 +53,7 @@ fun GeneralSettingsScreen(
         onLocalCurrencyClick = { navController.navigateToLocalCurrencySettings() },
         onDefaultUnitClick = { navController.navigateToDefaultUnitSettings() },
         onTransactionSpeedClick = { navController.navigateToTransactionSpeedSettings() },
-        onWidgetsClick = { navController.navigateToWidgetsSettings(widgetsIntroSeen) },
+        onWidgetsClick = { navController.navigateToWidgetsSettings() },
         onQuickPayClick = { navController.navigateToQuickPaySettings(quickPayIntroSeen) },
         onTagsClick = { navController.navigateToTagsSettings() },
     )
