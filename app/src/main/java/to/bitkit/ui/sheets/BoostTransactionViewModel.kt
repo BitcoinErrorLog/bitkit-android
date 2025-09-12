@@ -25,6 +25,8 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
+import kotlin.math.max
+import kotlin.math.min
 
 @HiltViewModel
 class BoostTransactionViewModel @Inject constructor(
@@ -43,7 +45,6 @@ class BoostTransactionViewModel @Inject constructor(
     private companion object {
         const val TAG = "BoostTransactionViewModel"
         const val MAX_FEE_PERCENTAGE = 0.5
-        const val MIN_FEE_RATE = 1UL
         const val MAX_FEE_RATE = 100UL
         const val FEE_RATE_STEP = 1UL
     }
@@ -52,6 +53,7 @@ class BoostTransactionViewModel @Inject constructor(
     private var totalFeeSatsRecommended: ULong = 0U
     private var maxTotalFee: ULong = 0U
     private var feeRateRecommended: ULong = 0U
+    private var minFeeRate: ULong = 2U
     private var activity: Activity.Onchain? = null
 
     fun setupActivity(activity: Activity.Onchain) {
@@ -71,7 +73,6 @@ class BoostTransactionViewModel @Inject constructor(
     private fun initializeFeeEstimates() {
         viewModelScope.launch {
             try {
-                val speed = TransactionSpeed.Fast
                 val activityContent = activity?.v1 ?: run {
                     handleError("Activity value is null")
                     return@launch
@@ -85,7 +86,11 @@ class BoostTransactionViewModel @Inject constructor(
 
                 // Get recommended fee estimates
                 val feeRateResult = when (activityContent.txType) {
-                    PaymentType.SENT -> lightningRepo.getFeeRateForSpeed(speed = speed)
+                    PaymentType.SENT -> {
+                        // For RBF, use at least the original fee rate + 2 sat/vbyte, with a minimum of 2 sat/vbyte
+                        minFeeRate = (activityContent.feeRate + 2U).coerceAtLeast( 2U)
+                        lightningRepo.getFeeRateForSpeed(speed = TransactionSpeed.Fast)
+                    }
                     PaymentType.RECEIVED -> lightningRepo.calculateCpfpFeeRate(activityContent.txId)
                 }
 
@@ -96,13 +101,20 @@ class BoostTransactionViewModel @Inject constructor(
                 val totalFeeResult = lightningRepo.calculateTotalFee(
                     amountSats = activityContent.value,
                     utxosToSpend = sortedUtxos,
-                    speed = TransactionSpeed.Custom(feeRateResult.getOrDefault(0u).toUInt()),
+                    speed = TransactionSpeed.Custom(
+                        feeRateResult
+                            .getOrDefault(minFeeRate)
+                            .coerceAtLeast(minFeeRate)
+                            .toUInt()
+                    ),
                 )
 
                 when {
                     totalFeeResult.isSuccess && feeRateResult.isSuccess -> {
                         totalFeeSatsRecommended = totalFeeResult.getOrThrow()
-                        feeRateRecommended = feeRateResult.getOrThrow()
+                        feeRateRecommended = feeRateResult
+                            .getOrDefault(minFeeRate)
+                            .coerceAtLeast(minFeeRate)
 
                         updateUiStateWithFeeData(
                             totalFee = totalFeeSatsRecommended,
@@ -124,7 +136,7 @@ class BoostTransactionViewModel @Inject constructor(
     private fun updateUiStateWithFeeData(totalFee: ULong, feeRate: ULong) {
         val currentFee = activity?.v1?.fee ?: 0u
         val isIncreaseEnabled = totalFee < maxTotalFee && feeRate < MAX_FEE_RATE
-        val isDecreaseEnabled = totalFee > currentFee && feeRate > MIN_FEE_RATE
+        val isDecreaseEnabled = totalFee > currentFee && feeRate > minFeeRate
 
         _uiState.update {
             it.copy(
@@ -220,7 +232,7 @@ class BoostTransactionViewModel @Inject constructor(
         val newFeeRate = if (increase) {
             (currentFeeRate + FEE_RATE_STEP).coerceAtMost(MAX_FEE_RATE)
         } else {
-            (currentFeeRate - FEE_RATE_STEP).coerceAtLeast(MIN_FEE_RATE)
+            (currentFeeRate - FEE_RATE_STEP).coerceAtLeast(minFeeRate)
         }
 
         if (newFeeRate == currentFeeRate) {
