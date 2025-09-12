@@ -1352,8 +1352,8 @@ fun NavController.navigateToWidgetsSettings() = navigate(
     route = Routes.WidgetsSettings,
 )
 
-fun NavController.navigateToQuickPaySettings() = navigate(
-    route = Routes.QuickPaySettings,
+fun NavController.navigateToQuickPaySettings(hasSeenIntro: Boolean = true) = navigate(
+    route = if (hasSeenIntro) Routes.QuickPaySettings else Routes.QuickPayIntro,
 )
 
 fun NavController.navigateToTagsSettings() = navigate(
