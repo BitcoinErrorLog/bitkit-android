@@ -402,14 +402,16 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(coreService.checkGeoStatus()).thenReturn(false)
         val testChannels = listOf(
             mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 500_000u // 500 sats
+                on { inboundCapacityMsat } doReturn 500_000u
+                on { isChannelReady } doReturn true
             },
             mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 300_000u // 300 sats
+                on { inboundCapacityMsat } doReturn 300_000u
+                on { isChannelReady } doReturn true
             }
         )
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState(channels = testChannels)))
-        sut.updateBip21Invoice(amountSats = 1000uL) // 1000 sats
+        sut.updateBip21Invoice(amountSats = 1000uL)
 
         // When
         val result = sut.shouldRequestAdditionalLiquidity()
@@ -417,6 +419,18 @@ class WalletRepoTest : BaseUnitTest() {
         // Then
         assertTrue(result.isSuccess)
         assertTrue(result.getOrThrow())
+    }
+
+    @Test
+    fun `should not request additional liquidity for 0 channels`() = test {
+        whenever(coreService.checkGeoStatus()).thenReturn(false)
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
+        sut.updateBip21Invoice(amountSats = 1000uL)
+
+        val result = sut.shouldRequestAdditionalLiquidity()
+
+        assertTrue(result.isSuccess)
+        assertFalse(result.getOrThrow())
     }
 
     @Test
