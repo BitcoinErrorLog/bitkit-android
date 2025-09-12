@@ -39,6 +39,7 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
+import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
@@ -671,7 +672,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun syncState() {
+    suspend fun syncState(): Result<Unit> = executeWhenNodeRunning("sync State") {
         _lightningState.update {
             it.copy(
                 nodeId = getNodeId().orEmpty(),
@@ -680,18 +681,18 @@ class LightningRepo @Inject constructor(
                 channels = getChannels().orEmpty(),
             )
         }
+        cacheStore.update {
+            it.copy(availableOutboundLN = _lightningState.value.channels.totalNextOutboundHtlcLimitSats())
+        }
+        Result.success(Unit)
     }
 
-    fun canSend(amountSats: ULong): Boolean =
-        _lightningState.value.nodeLifecycleState.isRunning() && lightningService.canSend(amountSats)
-
-    suspend fun canSendAsync(amountSats: ULong): Result<Boolean> = executeWhenNodeRunning("canSendAsync") {
-        withTimeoutOrNull(3.seconds) {
-            while (_lightningState.value.channels.isEmpty()) {
-                delay(1.seconds)
-            }
+    suspend fun canSend(amountSats: ULong, fallbackToCachedBalance: Boolean = true): Boolean {
+        return if (!_lightningState.value.nodeLifecycleState.isRunning() && fallbackToCachedBalance) {
+            amountSats <= cacheStore.data.first().availableOutboundLN
+        } else {
+            lightningService.canSend(amountSats)
         }
-        Result.success(lightningService.canSend(amountSats))
     }
 
     fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow()

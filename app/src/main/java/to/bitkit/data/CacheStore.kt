@@ -172,4 +172,5 @@ data class AppCacheData(
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
     val transactionsMetadata: List<TransactionMetadata> = listOf(),
     val inProgressTransfers: List<InProgressTransfer> = listOf(),
+    val availableOutboundLN: ULong = 0U
 )
