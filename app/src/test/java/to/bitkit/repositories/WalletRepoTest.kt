@@ -423,7 +423,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `should not request additional liquidity for 0 channels`() = test {
-        whenever(coreService.checkGeoStatus()).thenReturn(false)
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
         sut.updateBip21Invoice(amountSats = 1000uL)
 
