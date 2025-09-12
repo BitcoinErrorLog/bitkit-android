@@ -681,15 +681,12 @@ class LightningRepo @Inject constructor(
                 channels = getChannels().orEmpty(),
             )
         }
-        cacheStore.update {
-            it.copy(availableOutboundLN = _lightningState.value.channels.totalNextOutboundHtlcLimitSats())
-        }
         Result.success(Unit)
     }
 
     suspend fun canSend(amountSats: ULong, fallbackToCachedBalance: Boolean = true): Boolean {
         return if (!_lightningState.value.nodeLifecycleState.isRunning() && fallbackToCachedBalance) {
-            amountSats <= cacheStore.data.first().availableOutboundLN
+            amountSats <= (cacheStore.data.first().balance?.maxSendLightningSats ?: 0u)
         } else {
             lightningService.canSend(amountSats)
         }
