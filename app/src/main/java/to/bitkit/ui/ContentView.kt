@@ -1348,8 +1348,8 @@ fun NavController.navigateToCustomFeeSettings() = navigate(
     route = Routes.CustomFeeSettings,
 )
 
-fun NavController.navigateToWidgetsSettings() = navigate(
-    route = Routes.WidgetsSettings,
+fun NavController.navigateToWidgetsSettings(hasSeenIntro: Boolean = true) = navigate(
+    route = if (hasSeenIntro) Routes.WidgetsSettings else Routes.WidgetsIntro,
 )
 
 fun NavController.navigateToQuickPaySettings(hasSeenIntro: Boolean = true) = navigate(
