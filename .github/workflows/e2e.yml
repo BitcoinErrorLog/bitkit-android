@@ -69,9 +69,8 @@ jobs:
       matrix:
         shard:
           - { name: onboarding_backup_numberpad, grep: "@onboarding|@backup|@numberpad" }
-          - { name: onchain_receive_widgets, grep: "@onchain|@receive|@widgets" }
+          - { name: onchain_boost_receive_widgets, grep: "@onchain|@boost|@receive|@widgets" }
           - { name: settings, grep: "@settings" }
-          - { name: boost, grep: "@boost" }
 
     name: e2e-tests - ${{ matrix.shard.name }}
 
