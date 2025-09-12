@@ -1,5 +1,6 @@
 package to.bitkit.ui
 
+import android.app.NotificationManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -70,10 +71,11 @@ class MainActivity : FragmentActivity() {
 
         initNotificationChannel()
         initNotificationChannel(
-            // TODO EXTRACT TO Strings
+            // TODO Transifex
             id = CHANNEL_ID_NODE,
             name = "Lightning node notification",
             desc = "Channel for LightningNodeService",
+            importance = NotificationManager.IMPORTANCE_LOW
         )
         startForegroundService(Intent(this, LightningNodeService::class.java))
         installSplashScreen()
