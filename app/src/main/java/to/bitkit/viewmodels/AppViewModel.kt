@@ -437,8 +437,10 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        _sendUiState.update { it.copy(isLoading = true) }
         refreshOnchainSendIfNeeded()
         estimateLightningRoutingFeesIfNeeded()
+        _sendUiState.update { it.copy(isLoading = false) }
 
         setSendEffect(SendEffect.NavigateToConfirm)
     }
