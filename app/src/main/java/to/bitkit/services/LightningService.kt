@@ -445,11 +445,13 @@ class LightningService @Inject constructor(
             .getOrElse { e -> throw LdkError(e as NodeException) }
 
         return ServiceQueue.LDK.background {
-            when (sats != null) {
-                true -> node.bolt11Payment().sendUsingAmount(bolt11Invoice, sats * 1000u, null)
-                else -> node.bolt11Payment().send(bolt11Invoice, null)
+            runCatching {
+                when (sats != null) {
+                    true -> node.bolt11Payment().sendUsingAmount(bolt11Invoice, sats * 1000u, null)
+                    else -> node.bolt11Payment().send(bolt11Invoice, null)
+                }
             }
-        }
+        }.getOrThrow()
     }
 
     suspend fun estimateRoutingFees(bolt11: String): Result<ULong> {

@@ -62,7 +62,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-private const val SYNC_TIMEOUT_MS = 10_000L
+private const val SYNC_TIMEOUT_MS = 15_000L
 
 @Singleton
 class LightningRepo @Inject constructor(
@@ -246,12 +246,11 @@ class LightningRepo @Inject constructor(
     }
 
     /**Updates the shouldBlockLightning state and returns the current value*/
-    private suspend fun updateGeoBlockState(): Boolean {
-        val shouldBlock = coreService.shouldBlockLightning()
+    suspend fun updateGeoBlockState() {
+        val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
-            it.copy(shouldBlockLightning = shouldBlock)
+            it.copy(shouldBlockLightning = shouldBlockLightning, isGeoBlocked = isGeoBlocked)
         }
-        return shouldBlock
     }
 
     fun setInitNodeLifecycleState() {
@@ -409,7 +408,9 @@ class LightningRepo @Inject constructor(
     }
 
     suspend fun connectPeer(peer: LnPeer): Result<Unit> = executeWhenNodeRunning("connectPeer") {
-        lightningService.connectPeer(peer)
+        lightningService.connectPeer(peer).onFailure { e ->
+            return@executeWhenNodeRunning Result.failure(e)
+        }
         syncState()
         Result.success(Unit)
     }
@@ -430,7 +431,8 @@ class LightningRepo @Inject constructor(
         description: String,
         expirySeconds: UInt = 86_400u,
     ): Result<String> = executeWhenNodeRunning("Create invoice") {
-        if (updateGeoBlockState()) {
+        updateGeoBlockState()
+        if (lightningState.value.shouldBlockLightning) {
             return@executeWhenNodeRunning Result.failure(ServiceError.GeoBlocked)
         }
 
@@ -682,8 +684,13 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun canSend(amountSats: ULong): Boolean =
-        _lightningState.value.nodeLifecycleState.isRunning() && lightningService.canSend(amountSats)
+    suspend fun canSend(amountSats: ULong, fallbackToCachedBalance: Boolean = true): Boolean {
+        return if (!_lightningState.value.nodeLifecycleState.isRunning() && fallbackToCachedBalance) {
+            amountSats <= (cacheStore.data.first().balance?.maxSendLightningSats ?: 0u)
+        } else {
+            lightningService.canSend(amountSats)
+        }
+    }
 
     fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow()
 
@@ -850,4 +857,5 @@ data class LightningState(
     val channels: List<ChannelDetails> = emptyList(),
     val isSyncingWallet: Boolean = false,
     val shouldBlockLightning: Boolean = false,
+    val isGeoBlocked: Boolean = false,
 )
