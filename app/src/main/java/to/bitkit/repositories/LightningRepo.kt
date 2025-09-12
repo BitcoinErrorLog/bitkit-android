@@ -39,7 +39,6 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
-import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
@@ -672,7 +671,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun syncState(): Result<Unit> = executeWhenNodeRunning("sync State") {
+    suspend fun syncState() {
         _lightningState.update {
             it.copy(
                 nodeId = getNodeId().orEmpty(),
@@ -681,7 +680,6 @@ class LightningRepo @Inject constructor(
                 channels = getChannels().orEmpty(),
             )
         }
-        Result.success(Unit)
     }
 
     suspend fun canSend(amountSats: ULong, fallbackToCachedBalance: Boolean = true): Boolean {
