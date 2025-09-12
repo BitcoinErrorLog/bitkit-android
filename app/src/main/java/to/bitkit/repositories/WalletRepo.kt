@@ -102,7 +102,7 @@ class WalletRepo @Inject constructor(
     suspend fun refreshBip21(force: Boolean = false): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("Refreshing bip21 (force: $force)", context = TAG)
 
-        if (coreService.shouldBlockLightning()) {
+        if (coreService.checkGeoBlock().second) {
             _walletState.update {
                 it.copy(receiveOnSpendingBalance = false)
             }
@@ -347,7 +347,7 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun toggleReceiveOnSpendingBalance(): Result<Unit> = withContext(bgDispatcher) {
-        if (!_walletState.value.receiveOnSpendingBalance && coreService.shouldBlockLightning()) {
+        if (!_walletState.value.receiveOnSpendingBalance && coreService.checkGeoBlock().second) {
             return@withContext Result.failure(ServiceError.GeoBlocked)
         }
 
@@ -419,7 +419,7 @@ class WalletRepo @Inject constructor(
         return@withContext try {
             if (!_walletState.value.receiveOnSpendingBalance) return@withContext Result.success(false)
 
-            if (coreService.checkGeoStatus() == true) return@withContext Result.success(false)
+            if (coreService.checkGeoBlock().first) return@withContext Result.success(false)
 
             val channels = lightningRepo.lightningState.value.channels
             if (channels.filterOpen().isEmpty()) return@withContext Result.success(false)

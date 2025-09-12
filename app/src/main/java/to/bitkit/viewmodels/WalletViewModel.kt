@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -162,7 +163,9 @@ class WalletViewModel @Inject constructor(
             walletRepo.syncNodeAndWallet()
                 .onFailure { error ->
                     Logger.error("Failed to refresh state: ${error.message}", error)
-                    ToastEventBus.send(error)
+                    if (error !is TimeoutCancellationException) {
+                        ToastEventBus.send(error)
+                    }
                 }
         }
     }
@@ -173,7 +176,9 @@ class WalletViewModel @Inject constructor(
             walletRepo.syncNodeAndWallet()
                 .onFailure { error ->
                     Logger.error("Failed to refresh state: ${error.message}", error)
-                    ToastEventBus.send(error)
+                    if (error !is TimeoutCancellationException) {
+                        ToastEventBus.send(error)
+                    }
                 }
             _uiState.update { it.copy(isRefreshing = false) }
         }

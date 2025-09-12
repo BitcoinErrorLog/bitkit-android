@@ -274,6 +274,7 @@ private fun SendAmountNodeRunning(
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
                 enabled = uiState.isAmountInputValid,
+                isLoading = uiState.isLoading,
                 onClick = onContinue,
                 modifier = Modifier.testTag("ContinueAmount")
             )

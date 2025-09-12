@@ -112,28 +112,34 @@ class CoreService @Inject constructor(
         }
     }
 
-    /** Returns true if geo blocked */
-    suspend fun checkGeoStatus(): Boolean? {
+    private suspend fun isGeoBlocked(): Boolean {
         return ServiceQueue.CORE.background {
-            Logger.verbose("Checking geo status…", context = "GeoCheck")
-            val response = httpClient.get(Env.geoCheckUrl)
+            runCatching {
+                Logger.verbose("Checking geo status…", context = "GeoCheck")
+                val response = httpClient.get(Env.geoCheckUrl)
 
-            when (response.status.value) {
-                HttpStatusCode.OK.value -> {
-                    Logger.verbose("Region allowed", context = "GeoCheck")
-                    false
-                }
+                when (response.status.value) {
+                    HttpStatusCode.OK.value -> {
+                        Logger.verbose("Region allowed", context = "GeoCheck")
+                        false
+                    }
 
-                HttpStatusCode.Forbidden.value -> {
-                    Logger.warn("Region blocked", context = "GeoCheck")
-                    true
-                }
+                    HttpStatusCode.Forbidden.value -> {
+                        Logger.warn("Region blocked", context = "GeoCheck")
+                        true
+                    }
 
-                else -> {
-                    Logger.warn("Unexpected status code: ${response.status.value}", context = "GeoCheck")
-                    null
+                    else -> {
+                        Logger.warn(
+                            "Unexpected status code: ${response.status.value}, defaulting to false",
+                            context = "GeoCheck"
+                        )
+                        false
+                    }
                 }
-            }
+            }.onFailure {
+                Logger.warn("Error. defaulting isGeoBlocked to false", context = "GeoCheck")
+            }.getOrDefault(false)
         }
     }
 
@@ -149,7 +155,18 @@ class CoreService @Inject constructor(
 
     suspend fun hasExternalNode() = getConnectedPeers().any { connectedPeer -> connectedPeer !in getLspPeers() }
 
-    suspend fun shouldBlockLightning() = checkGeoStatus() == true && !hasExternalNode()
+    /**
+     * This method checks if the device is geo blocked and if should block lighting features
+     * @return Pair(isGeoBlocked, shouldBlockLightning)*/
+    suspend fun checkGeoBlock(): Pair<Boolean, Boolean> {
+        val geoBlocked = isGeoBlocked()
+        val shouldBlockLightning = when {
+            hasExternalNode() -> false
+            else -> geoBlocked
+        }
+
+        return Pair(geoBlocked, shouldBlockLightning)
+    }
 }
 
 // endregion
