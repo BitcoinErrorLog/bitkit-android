@@ -77,8 +77,8 @@ class AmountInputViewModel @Inject constructor(
                 rawInputText = newText
                 _uiState.update {
                     it.copy(
-                        displayText = formatDisplayTextFromAmount(newAmount, primaryDisplay, isModern = true),
-                        amountSats = newAmount,
+                        text = formatDisplayTextFromAmount(newAmount, primaryDisplay, isModern = true),
+                        sats = newAmount,
                         errorKey = null
                     )
                 }
@@ -95,12 +95,12 @@ class AmountInputViewModel @Inject constructor(
                     rawInputText = newText
                     _uiState.update {
                         it.copy(
-                            displayText = if (primaryDisplay == PrimaryDisplay.FIAT) {
+                            text = if (primaryDisplay == PrimaryDisplay.FIAT) {
                                 formatFiatGroupingOnly(newText)
                             } else {
                                 newText
                             },
-                            amountSats = newAmount,
+                            sats = newAmount,
                             errorKey = null
                         )
                     }
@@ -113,8 +113,8 @@ class AmountInputViewModel @Inject constructor(
                 rawInputText = newText
                 _uiState.update {
                     it.copy(
-                        amountSats = 0,
-                        displayText = "",
+                        sats = 0,
+                        text = "",
                         errorKey = null
                     )
                 }
@@ -128,14 +128,14 @@ class AmountInputViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                amountSats = sats,
-                displayText = formatDisplayTextFromAmount(sats, primaryDisplay, isModern)
+                sats = sats,
+                text = formatDisplayTextFromAmount(sats, primaryDisplay, isModern)
             )
         }
         // Update raw input text based on the formatted display
         rawInputText = when (primaryDisplay) {
-            PrimaryDisplay.FIAT -> _uiState.value.displayText.replace(",", "")
-            else -> _uiState.value.displayText
+            PrimaryDisplay.FIAT -> _uiState.value.text.replace(",", "")
+            else -> _uiState.value.text
         }
     }
 
@@ -149,17 +149,17 @@ class AmountInputViewModel @Inject constructor(
             val newPrimaryDisplay = amountInputHandler.switchUnit(currencies.primaryDisplay)
 
             // Update display text when currency changes
-            val amountSats = _uiState.value.amountSats
+            val amountSats = _uiState.value.sats
             if (amountSats > 0) {
                 _uiState.update {
                     it.copy(
-                        displayText = formatDisplayTextFromAmount(amountSats, newPrimaryDisplay, isModern)
+                        text = formatDisplayTextFromAmount(amountSats, newPrimaryDisplay, isModern)
                     )
                 }
                 // Update raw input text based on the new display
                 rawInputText = when (newPrimaryDisplay) {
-                    PrimaryDisplay.FIAT -> _uiState.value.displayText.replace(",", "")
-                    else -> _uiState.value.displayText
+                    PrimaryDisplay.FIAT -> _uiState.value.text.replace(",", "")
+                    else -> _uiState.value.text
                 }
             } else if (currentRawInput.isNotEmpty()) {
                 // Convert the raw input from the old currency to the new currency
@@ -170,7 +170,7 @@ class AmountInputViewModel @Inject constructor(
                         val converted = amountInputHandler.convertSatsToFiatString(sats)
                         if (converted.isNotEmpty()) {
                             rawInputText = converted.replace(",", "")
-                            _uiState.update { it.copy(displayText = formatFiatGroupingOnly(rawInputText)) }
+                            _uiState.update { it.copy(text = formatFiatGroupingOnly(rawInputText)) }
                         }
                     }
 
@@ -179,7 +179,7 @@ class AmountInputViewModel @Inject constructor(
                         val sats = convertFiatToSats(currentRawInput)
                         if (sats != null) {
                             rawInputText = formatBitcoinFromSats(sats, isModern)
-                            _uiState.update { it.copy(displayText = rawInputText) }
+                            _uiState.update { it.copy(text = rawInputText) }
                         }
                     }
                 }
@@ -212,7 +212,7 @@ class AmountInputViewModel @Inject constructor(
     fun getPlaceholder(currencyState: CurrencyState): String {
         val primaryDisplay = currencyState.primaryDisplay
         val isModern = currencyState.displayUnit.isModern()
-        if (_uiState.value.displayText.isEmpty()) {
+        if (_uiState.value.text.isEmpty()) {
             return when (primaryDisplay) {
                 PrimaryDisplay.BITCOIN -> if (isModern) PLACEHOLDER_MODERN else PLACEHOLDER_CLASSIC
                 PrimaryDisplay.FIAT -> PLACEHOLDER_FIAT
@@ -223,8 +223,8 @@ class AmountInputViewModel @Inject constructor(
                     if (isModern) {
                         PLACEHOLDER_MODERN_DECIMALS
                     } else {
-                        if (_uiState.value.displayText.contains(".")) {
-                            val parts = _uiState.value.displayText.split(".", limit = 2)
+                        if (_uiState.value.text.contains(".")) {
+                            val parts = _uiState.value.text.split(".", limit = 2)
                             val decimalPart = if (parts.size > 1) parts[1] else ""
                             val remainingDecimals = CLASSIC_DECIMALS - decimalPart.length
                             if (remainingDecimals > 0) "0".repeat(remainingDecimals) else ""
@@ -235,8 +235,8 @@ class AmountInputViewModel @Inject constructor(
                 }
 
                 PrimaryDisplay.FIAT -> {
-                    if (_uiState.value.displayText.contains(".")) {
-                        val parts = _uiState.value.displayText.split(".", limit = 2)
+                    if (_uiState.value.text.contains(".")) {
+                        val parts = _uiState.value.text.split(".", limit = 2)
                         val decimalPart = if (parts.size > 1) parts[1] else ""
                         val remainingDecimals = FIAT_DECIMALS - decimalPart.length
                         if (remainingDecimals > 0) "0".repeat(remainingDecimals) else ""
@@ -406,8 +406,8 @@ class AmountInputViewModel @Inject constructor(
 }
 
 data class AmountInputUiState(
-    val amountSats: Long = 0L,
-    val displayText: String = "",
+    val sats: Long = 0L,
+    val text: String = "",
     val errorKey: String? = null,
 )
 

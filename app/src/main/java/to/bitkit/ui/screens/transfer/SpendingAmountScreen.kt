@@ -108,7 +108,7 @@ fun SpendingAmountScreen(
             viewModel.updateLimits(newAmountSats)
             amountInputViewModel.setSats(newAmountSats, currencies)
         },
-        onConfirmAmount = { viewModel.onConfirmAmount(amountUiState.amountSats) },
+        onConfirmAmount = { viewModel.onConfirmAmount(amountUiState.sats) },
     )
 }
 
@@ -238,7 +238,7 @@ private fun SpendingAmountNodeRunning(
         PrimaryButton(
             text = stringResource(R.string.common__continue),
             onClick = onConfirmAmount,
-            enabled = amountUiState.amountSats != 0L && amountUiState.amountSats <= uiState.maxAllowedToSend,
+            enabled = amountUiState.sats != 0L && amountUiState.sats <= uiState.maxAllowedToSend,
             isLoading = uiState.isLoading,
             modifier = Modifier.testTag("SpendingAmountContinue")
         )

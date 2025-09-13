@@ -88,7 +88,7 @@ fun EditInvoiceScreen(
 
     LaunchedEffect(Unit) {
         editInvoiceVM.editInvoiceEffect.collect { effect ->
-            val receiveSats = amountInputUiState.amountSats.toULong()
+            val receiveSats = amountInputUiState.sats.toULong()
             when (effect) {
                 is EditInvoiceVM.EditInvoiceScreenEffects.NavigateAddLiquidity -> {
                     updateInvoice(receiveSats)
@@ -140,7 +140,7 @@ fun EditInvoiceScreen(
         },
         onContinueKeyboard = { keyboardVisible = false },
         onContinueGeneral = {
-            updateInvoice(amountInputUiState.amountSats.toULong())
+            updateInvoice(amountInputUiState.sats.toULong())
             editInvoiceVM.onClickContinue()
         },
         onClickAddTag = onClickAddTag,

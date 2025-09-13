@@ -42,11 +42,11 @@ fun NumberPadTextField(
 ) {
     MoneyAmount(
         modifier = modifier.then(Modifier.clickableAlpha(onClick = onClick)),
-        value = uiState.value.displayText,
+        value = uiState.value.text,
         unit = currencies.primaryDisplay,
         placeholder = viewModel.getPlaceholder(currencies),
         showPlaceholder = true,
-        satoshis = uiState.value.amountSats,
+        satoshis = uiState.value.sats,
         currencySymbol = currencies.currencySymbol,
         showSecondaryField = showSecondaryField,
     )

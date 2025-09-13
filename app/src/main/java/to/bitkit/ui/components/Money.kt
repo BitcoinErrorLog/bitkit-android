@@ -125,7 +125,6 @@ fun rememberMoneyText(
             if (unit == PrimaryDisplay.BITCOIN) {
                 append(sats.formatToModernDisplay())
             } else {
-                // For fiat preview, convert sats to fiat using STUB_RATE and formatCurrency
                 val fiatValue = sats.asBtc().multiply(BigDecimal.valueOf(STUB_RATE))
                 append(fiatValue.formatCurrency() ?: "0.00")
             }

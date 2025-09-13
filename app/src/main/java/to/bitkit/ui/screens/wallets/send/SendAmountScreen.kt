@@ -87,8 +87,8 @@ fun SendAmountScreen(
         }
     }
 
-    LaunchedEffect(amountInputUiState.amountSats) {
-        currentOnEvent(SendEvent.AmountChange(amountInputUiState.amountSats.toULong()))
+    LaunchedEffect(amountInputUiState.sats) {
+        currentOnEvent(SendEvent.AmountChange(amountInputUiState.sats.toULong()))
     }
 
     SendAmountContent(

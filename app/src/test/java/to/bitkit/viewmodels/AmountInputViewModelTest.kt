@@ -89,20 +89,20 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val currency = mockCurrency(PrimaryDisplay.BITCOIN, BitcoinDisplayUnit.MODERN)
 
         viewModel.handleNumberPadInput("1", currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
-        assertEquals(1L, viewModel.uiState.value.amountSats)
+        assertEquals("1", viewModel.uiState.value.text)
+        assertEquals(1L, viewModel.uiState.value.sats)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("10", viewModel.uiState.value.displayText)
-        assertEquals(10L, viewModel.uiState.value.amountSats)
+        assertEquals("10", viewModel.uiState.value.text)
+        assertEquals(10L, viewModel.uiState.value.sats)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("100", viewModel.uiState.value.displayText)
-        assertEquals(100L, viewModel.uiState.value.amountSats)
+        assertEquals("100", viewModel.uiState.value.text)
+        assertEquals(100L, viewModel.uiState.value.sats)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1 000", viewModel.uiState.value.displayText)
-        assertEquals(1000L, viewModel.uiState.value.amountSats)
+        assertEquals("1 000", viewModel.uiState.value.text)
+        assertEquals(1000L, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -113,11 +113,11 @@ class AmountInputViewModelTest : BaseUnitTest() {
         "999999999".forEach { digit ->
             viewModel.handleNumberPadInput(digit.toString(), currency)
         }
-        assertEquals(AmountInputViewModel.MAX_AMOUNT, viewModel.uiState.value.amountSats)
+        assertEquals(AmountInputViewModel.MAX_AMOUNT, viewModel.uiState.value.sats)
 
         // Try to exceed max amount - should be blocked
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals(AmountInputViewModel.MAX_AMOUNT, viewModel.uiState.value.amountSats)
+        assertEquals(AmountInputViewModel.MAX_AMOUNT, viewModel.uiState.value.sats)
         assertNotNull(viewModel.uiState.value.errorKey)
     }
 
@@ -133,8 +133,8 @@ class AmountInputViewModelTest : BaseUnitTest() {
 
         viewModel.handleNumberPadInput("1", currency)
         viewModel.handleNumberPadInput(KEY_000, currency)
-        assertEquals("1 000", viewModel.uiState.value.displayText)
-        assertEquals(1000L, viewModel.uiState.value.amountSats)
+        assertEquals("1 000", viewModel.uiState.value.text)
+        assertEquals(1000L, viewModel.uiState.value.sats)
     }
 
     // MARK: - Classic Bitcoin Tests
@@ -144,16 +144,16 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val currency = mockCurrency(PrimaryDisplay.BITCOIN, BitcoinDisplayUnit.CLASSIC)
 
         viewModel.handleNumberPadInput("1", currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
+        assertEquals("1", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
-        assertEquals("1.", viewModel.uiState.value.displayText)
+        assertEquals("1.", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1.0", viewModel.uiState.value.displayText)
+        assertEquals("1.0", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1.00", viewModel.uiState.value.displayText)
+        assertEquals("1.00", viewModel.uiState.value.text)
     }
 
     @Test
@@ -167,11 +167,11 @@ class AmountInputViewModelTest : BaseUnitTest() {
         repeat(8) {
             viewModel.handleNumberPadInput("0", currency)
         }
-        assertEquals("1.00000000", viewModel.uiState.value.displayText)
+        assertEquals("1.00000000", viewModel.uiState.value.text)
 
         // Try to add more decimals - should be blocked
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1.00000000", viewModel.uiState.value.displayText) // Should not change
+        assertEquals("1.00000000", viewModel.uiState.value.text) // Should not change
     }
 
     @Test
@@ -183,7 +183,7 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", currency)
 
         // Should not allow "10" because 10 BTC > 999,999,999 sats
-        assertTrue(viewModel.uiState.value.amountSats <= AmountInputViewModel.MAX_AMOUNT)
+        assertTrue(viewModel.uiState.value.sats <= AmountInputViewModel.MAX_AMOUNT)
     }
 
     @Test
@@ -213,7 +213,7 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val currency = mockCurrency(PrimaryDisplay.FIAT)
 
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
-        assertEquals("0.", viewModel.uiState.value.displayText)
+        assertEquals("0.", viewModel.uiState.value.text)
     }
 
     @Test
@@ -222,10 +222,10 @@ class AmountInputViewModelTest : BaseUnitTest() {
 
         // Start with 0, then type a digit - should replace 0
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("", viewModel.uiState.value.displayText) // Modern Bitcoin shows empty for 0
+        assertEquals("", viewModel.uiState.value.text) // Modern Bitcoin shows empty for 0
 
         viewModel.handleNumberPadInput("1", currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
+        assertEquals("1", viewModel.uiState.value.text)
     }
 
     @Test
@@ -234,10 +234,10 @@ class AmountInputViewModelTest : BaseUnitTest() {
 
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
-        assertEquals("0.", viewModel.uiState.value.displayText)
+        assertEquals("0.", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("", viewModel.uiState.value.displayText)
+        assertEquals("", viewModel.uiState.value.text)
     }
 
     @Test
@@ -249,20 +249,20 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
         viewModel.handleNumberPadInput("5", currency)
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1.50", viewModel.uiState.value.displayText)
+        assertEquals("1.50", viewModel.uiState.value.text)
 
         // Delete back to "1."
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1.5", viewModel.uiState.value.displayText)
+        assertEquals("1.5", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1.", viewModel.uiState.value.displayText)
+        assertEquals("1.", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
+        assertEquals("1", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("", viewModel.uiState.value.displayText)
+        assertEquals("", viewModel.uiState.value.text)
     }
 
     @Test
@@ -272,11 +272,11 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("1", currency)
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
         viewModel.handleNumberPadInput("5", currency)
-        assertEquals("1.5", viewModel.uiState.value.displayText)
+        assertEquals("1.5", viewModel.uiState.value.text)
 
         // Try to add another decimal point
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
-        assertEquals("1.5", viewModel.uiState.value.displayText) // Should not change
+        assertEquals("1.5", viewModel.uiState.value.text) // Should not change
     }
 
     @Test
@@ -339,13 +339,13 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("0", currency)
 
-        assertEquals("100", viewModel.uiState.value.displayText)
-        assertEquals(100L, viewModel.uiState.value.amountSats)
+        assertEquals("100", viewModel.uiState.value.text)
+        assertEquals(100L, viewModel.uiState.value.sats)
 
         viewModel.clearInput()
 
-        assertEquals("", viewModel.uiState.value.displayText)
-        assertEquals(0L, viewModel.uiState.value.amountSats)
+        assertEquals("", viewModel.uiState.value.text)
+        assertEquals(0L, viewModel.uiState.value.sats)
         assertNull(viewModel.uiState.value.errorKey)
     }
 
@@ -354,8 +354,8 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val currency = mockCurrency(PrimaryDisplay.BITCOIN, BitcoinDisplayUnit.MODERN)
 
         viewModel.setSats(12345L, currency)
-        assertEquals(12345L, viewModel.uiState.value.amountSats)
-        assertEquals("12 345", viewModel.uiState.value.displayText)
+        assertEquals(12345L, viewModel.uiState.value.sats)
+        assertEquals("12 345", viewModel.uiState.value.text)
     }
 
     @Test
@@ -364,11 +364,11 @@ class AmountInputViewModelTest : BaseUnitTest() {
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData(primaryDisplay = PrimaryDisplay.FIAT)))
 
         viewModel.setSats(100000L, currency)
-        assertEquals(100000L, viewModel.uiState.value.amountSats)
-        assertEquals("115.15", viewModel.uiState.value.displayText)
+        assertEquals(100000L, viewModel.uiState.value.sats)
+        assertEquals("115.15", viewModel.uiState.value.text)
 
         viewModel.switchUnit(currency)
-        assertEquals("100 000", viewModel.uiState.value.displayText)
+        assertEquals("100 000", viewModel.uiState.value.text)
     }
 
     @Test
@@ -376,16 +376,16 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val currency = mockCurrency(PrimaryDisplay.FIAT)
 
         viewModel.handleNumberPadInput("1", currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
+        assertEquals("1", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("10", viewModel.uiState.value.displayText)
+        assertEquals("10", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("100", viewModel.uiState.value.displayText)
+        assertEquals("100", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1,000", viewModel.uiState.value.displayText)
+        assertEquals("1,000", viewModel.uiState.value.text)
     }
 
     @Test
@@ -397,22 +397,22 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1,000", viewModel.uiState.value.displayText)
+        assertEquals("1,000", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("0", currency)
-        assertEquals("1,000.00", viewModel.uiState.value.displayText)
+        assertEquals("1,000.00", viewModel.uiState.value.text)
 
         // Delete character by character
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1,000.0", viewModel.uiState.value.displayText)
+        assertEquals("1,000.0", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1,000.", viewModel.uiState.value.displayText)
+        assertEquals("1,000.", viewModel.uiState.value.text)
 
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
-        assertEquals("1,000", viewModel.uiState.value.displayText)
+        assertEquals("1,000", viewModel.uiState.value.text)
     }
 
     @Test
@@ -424,7 +424,7 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("0", currency)
         viewModel.handleNumberPadInput("1", currency)
-        assertEquals("1", viewModel.uiState.value.displayText)
+        assertEquals("1", viewModel.uiState.value.text)
     }
 
     @Test
@@ -432,13 +432,13 @@ class AmountInputViewModelTest : BaseUnitTest() {
         // Test for fiat
         val fiatCurrency = mockCurrency(PrimaryDisplay.FIAT)
         viewModel.handleNumberPadInput(KEY_DECIMAL, fiatCurrency)
-        assertEquals("0.", viewModel.uiState.value.displayText)
+        assertEquals("0.", viewModel.uiState.value.text)
 
         // Clear and test for classic Bitcoin
         viewModel.clearInput()
         val classicBtc = mockCurrency(PrimaryDisplay.BITCOIN, BitcoinDisplayUnit.CLASSIC)
         viewModel.handleNumberPadInput(KEY_DECIMAL, classicBtc)
-        assertEquals("0.", viewModel.uiState.value.displayText)
+        assertEquals("0.", viewModel.uiState.value.text)
     }
 
     @Test
@@ -531,15 +531,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("2", currency)
         viewModel.handleNumberPadInput("1", currency)
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another digit - should be blocked
         viewModel.handleNumberPadInput("5", currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -553,15 +553,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
             viewModel.handleNumberPadInput((digit + 1).toString(), currency)
         }
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another decimal digit - should be blocked
         viewModel.handleNumberPadInput("9", currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -571,20 +571,20 @@ class AmountInputViewModelTest : BaseUnitTest() {
         // Build up to max decimal length (20 characters)
         val maxLengthText = "1".repeat(AmountInputViewModel.MAX_DECIMAL_LENGTH)
         maxLengthText.forEach { digit ->
-            if (viewModel.uiState.value.displayText.length < AmountInputViewModel.MAX_DECIMAL_LENGTH) {
+            if (viewModel.uiState.value.text.length < AmountInputViewModel.MAX_DECIMAL_LENGTH) {
                 viewModel.handleNumberPadInput(digit.toString(), currency)
             }
         }
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another digit - should be blocked
         viewModel.handleNumberPadInput("9", currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -597,15 +597,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
             viewModel.handleNumberPadInput(digit.toString(), currency)
         }
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another digit - should be blocked
         viewModel.handleNumberPadInput("9", currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -619,15 +619,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("3", currency)
         viewModel.handleNumberPadInput("4", currency)
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another decimal point - should be blocked
         viewModel.handleNumberPadInput(KEY_DECIMAL, currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -637,15 +637,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
         // Start with "0"
         viewModel.handleNumberPadInput("0", currency)
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add another "0" - should be blocked (replaced with same value)
         viewModel.handleNumberPadInput("0", currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -657,15 +657,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
             viewModel.handleNumberPadInput(digit.toString(), currency)
         }
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add "000" - should be blocked (would exceed max length)
         viewModel.handleNumberPadInput(KEY_000, currency)
 
         // Both display and sats should remain unchanged
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -677,7 +677,7 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("1", modernBtc)
         viewModel.handleNumberPadInput("0", modernBtc)
         viewModel.handleNumberPadInput("0", modernBtc)
-        val originalSats = viewModel.uiState.value.amountSats
+        val originalSats = viewModel.uiState.value.sats
 
         // Simulate toggle to fiat (would show something like "1.00" with 2 decimals)
         viewModel.setSats(originalSats, fiat)
@@ -687,13 +687,13 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", fiat)
         viewModel.handleNumberPadInput("0", fiat)
 
-        val fiatSatsAfterFullInput = viewModel.uiState.value.amountSats
+        val fiatSatsAfterFullInput = viewModel.uiState.value.sats
 
         // Try to add another digit - should be blocked
         viewModel.handleNumberPadInput("5", fiat)
 
         // Sats amount should not change from the previous valid state
-        assertEquals(fiatSatsAfterFullInput, viewModel.uiState.value.amountSats)
+        assertEquals(fiatSatsAfterFullInput, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -707,14 +707,14 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("3", currency)
         viewModel.handleNumberPadInput("4", currency)
 
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialSats = viewModel.uiState.value.sats
 
         // Delete should still work even at decimal limit
         viewModel.handleNumberPadInput(KEY_DELETE, currency)
 
         // Display should change and sats should be different
-        assertEquals("12.3", viewModel.uiState.value.displayText)
-        assertTrue(viewModel.uiState.value.amountSats != initialSats)
+        assertEquals("12.3", viewModel.uiState.value.text)
+        assertTrue(viewModel.uiState.value.sats != initialSats)
     }
 
     @Test
@@ -727,17 +727,17 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("2", currency)
         viewModel.handleNumberPadInput("3", currency)
 
-        val initialDisplay = viewModel.uiState.value.displayText
-        val initialSats = viewModel.uiState.value.amountSats
+        val initialDisplay = viewModel.uiState.value.text
+        val initialSats = viewModel.uiState.value.sats
 
         // Try to add more decimal digits - should be blocked
         viewModel.handleNumberPadInput("4", currency)
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
 
         viewModel.handleNumberPadInput("5", currency)
-        assertEquals(initialDisplay, viewModel.uiState.value.displayText)
-        assertEquals(initialSats, viewModel.uiState.value.amountSats)
+        assertEquals(initialDisplay, viewModel.uiState.value.text)
+        assertEquals(initialSats, viewModel.uiState.value.sats)
     }
 
     @Test
@@ -750,15 +750,15 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput(KEY_DECIMAL, btc)
         viewModel.handleNumberPadInput("0", btc)
         viewModel.handleNumberPadInput("1", btc)
-        val originalSats = viewModel.uiState.value.amountSats
+        val originalSats = viewModel.uiState.value.sats
 
         // Toggle to fiat
         viewModel.switchUnit(fiat)
-        val satsAfterToggle = viewModel.uiState.value.amountSats
+        val satsAfterToggle = viewModel.uiState.value.sats
 
         // Toggle back to bitcoin
         viewModel.switchUnit(btc)
-        val finalSats = viewModel.uiState.value.amountSats
+        val finalSats = viewModel.uiState.value.sats
 
         // Sats amount should be preserved throughout
         assertEquals(originalSats, satsAfterToggle)
@@ -780,17 +780,17 @@ class AmountInputViewModelTest : BaseUnitTest() {
         )
 
         viewModel.handleNumberPadInput("5", btcClassic)
-        val originalSats = viewModel.uiState.value.amountSats
+        val originalSats = viewModel.uiState.value.sats
 
         // Switch unit to fiat
         viewModel.switchUnit(btcClassic)
-        val fiatDisplay = viewModel.uiState.value.displayText
-        val fiatSats = viewModel.uiState.value.amountSats
+        val fiatDisplay = viewModel.uiState.value.text
+        val fiatSats = viewModel.uiState.value.sats
 
         // Switch unit back to bitcoin
         viewModel.switchUnit(fiat)
-        val finalDisplay = viewModel.uiState.value.displayText
-        val finalSats = viewModel.uiState.value.amountSats
+        val finalDisplay = viewModel.uiState.value.text
+        val finalSats = viewModel.uiState.value.sats
 
         assertEquals("Sats amount should be preserved", originalSats, fiatSats)
         assertEquals("Sats amount should be preserved after round trip", originalSats, finalSats)
@@ -831,8 +831,8 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("9", btcClassic)
         viewModel.handleNumberPadInput("2", btcClassic)
 
-        val originalSats = viewModel.uiState.value.amountSats
-        val originalDisplay = viewModel.uiState.value.displayText
+        val originalSats = viewModel.uiState.value.sats
+        val originalDisplay = viewModel.uiState.value.text
 
         // Switch to fiat and back
         val btcState = currencyRepo.currencyState.value.copy(primaryDisplay = PrimaryDisplay.BITCOIN)
@@ -840,8 +840,8 @@ class AmountInputViewModelTest : BaseUnitTest() {
         val fiatState = currencyRepo.currencyState.value.copy(primaryDisplay = PrimaryDisplay.FIAT)
         viewModel.switchUnit(fiatState) // Fiat -> Bitcoin
 
-        val finalSats = viewModel.uiState.value.amountSats
-        val finalDisplay = viewModel.uiState.value.displayText
+        val finalSats = viewModel.uiState.value.sats
+        val finalDisplay = viewModel.uiState.value.text
 
         // Precision should be maintained
         assertEquals("Precise sats amount should be preserved", originalSats, finalSats)
@@ -856,20 +856,20 @@ class AmountInputViewModelTest : BaseUnitTest() {
 
         // Test with empty input
         viewModel.switchUnit(fiat)
-        assertEquals("Empty input should remain 0 sats", 0L, viewModel.uiState.value.amountSats)
-        assertEquals("Empty input should have empty display", "", viewModel.uiState.value.displayText)
+        assertEquals("Empty input should remain 0 sats", 0L, viewModel.uiState.value.sats)
+        assertEquals("Empty input should have empty display", "", viewModel.uiState.value.text)
 
         // Test with partial input "0."
         viewModel.handleNumberPadInput("0", fiat)
         viewModel.handleNumberPadInput(KEY_DECIMAL, fiat)
-        val partialSats = viewModel.uiState.value.amountSats
+        val partialSats = viewModel.uiState.value.sats
 
         // Toggle to Bitcoin and back
         viewModel.switchUnit(btcClassic)
         viewModel.switchUnit(fiat)
 
         // Should handle gracefully without crashes
-        assertEquals("Partial input sats should be preserved", partialSats, viewModel.uiState.value.amountSats)
+        assertEquals("Partial input sats should be preserved", partialSats, viewModel.uiState.value.sats)
 
         // Test toggling with just decimal point from Bitcoin side
         viewModel.clearInput()
@@ -897,13 +897,13 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", btcModern)
         viewModel.handleNumberPadInput("0", btcModern)
 
-        val modernDisplay = viewModel.uiState.value.displayText
-        val satsAmount = viewModel.uiState.value.amountSats
+        val modernDisplay = viewModel.uiState.value.text
+        val satsAmount = viewModel.uiState.value.sats
 
         // Note: Since we're using NoopAmountHandler, we can't actually test currency conversion
         // But we can test that switchUnit doesn't crash and preserves sats amount
         viewModel.switchUnit(fiat)
-        val afterToggleSats = viewModel.uiState.value.amountSats
+        val afterToggleSats = viewModel.uiState.value.sats
 
         // Verify display format for modern Bitcoin
         assertEquals("Modern Bitcoin should show formatted sats", "1 000", modernDisplay)
@@ -933,12 +933,12 @@ class AmountInputViewModelTest : BaseUnitTest() {
         // Test case 1: Use realistic amount that doesn't exceed MAX_AMOUNT
         // Input "5" BTC (5 * 100,000,000 = 500,000,000 sats, which is under MAX_AMOUNT)
         viewModel.handleNumberPadInput("5", btcClassic)
-        val largeBtcSats = viewModel.uiState.value.amountSats
+        val largeBtcSats = viewModel.uiState.value.sats
 
         // Toggle from Bitcoin to Fiat - pass current Bitcoin state
         val currentBtcState = currencyRepo.currencyState.value.copy(primaryDisplay = PrimaryDisplay.BITCOIN)
         viewModel.switchUnit(currentBtcState)
-        val largeBtcFiatDisplay = viewModel.uiState.value.displayText
+        val largeBtcFiatDisplay = viewModel.uiState.value.text
 
         // 5 BTC is a substantial amount and should not convert to tiny values like $0.10
         assertNotEquals("5 BTC should not convert to $0.10", "0.10", largeBtcFiatDisplay)
@@ -952,11 +952,11 @@ class AmountInputViewModelTest : BaseUnitTest() {
         viewModel.handleNumberPadInput("0", btcClassic)
         viewModel.handleNumberPadInput("0", btcClassic)
         viewModel.handleNumberPadInput("1", btcClassic)
-        val smallBtcSats = viewModel.uiState.value.amountSats
+        val smallBtcSats = viewModel.uiState.value.sats
 
         // Toggle from Bitcoin to Fiat - pass current Bitcoin state
         viewModel.switchUnit(currentBtcState)
-        val smallBtcFiatDisplay = viewModel.uiState.value.displayText
+        val smallBtcFiatDisplay = viewModel.uiState.value.text
 
         // 0.001 BTC should convert to reasonable fiat amount (not 0 or extremely large)
         assertTrue("Small BTC amount should have reasonable sats value", smallBtcSats > 0)

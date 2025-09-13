@@ -156,7 +156,7 @@ class CurrencyRepo @Inject constructor(
     }
 
     suspend fun switchUnit() = withContext(bgDispatcher) {
-        settingsStore.update { it.copy(primaryDisplay = _currencyState.value.primaryDisplay.not()) }
+        settingsStore.update { it.copy(primaryDisplay = it.primaryDisplay.not()) }
     }
 
     override suspend fun switchUnit(unit: PrimaryDisplay): PrimaryDisplay = withContext(bgDispatcher) {
@@ -265,17 +265,12 @@ interface AmountInputHandler {
 
     companion object {
         fun stub(state: CurrencyState = CurrencyState()) = object : AmountInputHandler {
-            private var currentPrimaryDisplay = state.primaryDisplay
-
             override fun convertSatsToFiatString(sats: Long): String {
                 return sats.asBtc().multiply(BigDecimal.valueOf(STUB_RATE)).formatCurrency() ?: ""
             }
 
             override fun convertFiatToSats(fiat: Double) = (fiat / STUB_RATE * SATS_IN_BTC).toLong()
-            override suspend fun switchUnit(unit: PrimaryDisplay): PrimaryDisplay {
-                currentPrimaryDisplay = currentPrimaryDisplay.not()
-                return currentPrimaryDisplay
-            }
+            override suspend fun switchUnit(unit: PrimaryDisplay) = unit.not()
         }
     }
 }

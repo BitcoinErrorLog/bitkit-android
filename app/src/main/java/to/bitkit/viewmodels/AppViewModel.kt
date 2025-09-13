@@ -87,6 +87,7 @@ import to.bitkit.utils.Logger
 import java.math.BigDecimal
 import javax.inject.Inject
 
+@Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel @Inject constructor(
     @ApplicationContext private val context: Context,

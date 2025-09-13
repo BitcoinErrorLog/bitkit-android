@@ -82,11 +82,11 @@ fun ReceiveAmountScreen(
         minCjitSats = minCjitSats,
         currencies = currencies,
         isCreatingInvoice = isCreatingInvoice,
-        canContinue = amountInputUiState.amountSats >= (minCjitSats?.toLong() ?: 0),
+        canContinue = amountInputUiState.sats >= (minCjitSats?.toLong() ?: 0),
         onBack = onBack,
         onClickMin = { amountInputViewModel.setSats(it, currencies) },
         onContinue = {
-            val sats = amountInputUiState.amountSats
+            val sats = amountInputUiState.sats
             scope.launch {
                 isCreatingInvoice = true
                 runCatching {
