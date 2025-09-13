@@ -31,6 +31,7 @@ import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
 import to.bitkit.models.BalanceState
 import to.bitkit.models.NodeLifecycleState
+import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
@@ -165,15 +166,18 @@ class WalletRepo @Inject constructor(
             val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
 
             val utxos = lightningRepo.listSpendableOutputs().getOrNull()
-            val feeForMaxAmount = lightningRepo.calculateTotalFee(amountSats = totalSats, utxosToSpend = utxos)
-                .getOrDefault(0UL)
+            val feeForMaxAmount = lightningRepo.calculateTotalFee(
+                amountSats = balance.totalOnchainBalanceSats,
+                speed = TransactionSpeed.Fast,
+                address = walletState.value.onchainAddress,
+                utxosToSpend = utxos
+            ).getOrDefault(1000uL)
 
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
                 totalLightningSats = balance.totalLightningBalanceSats,
                 maxSendLightningSats = lightningRepo.getChannels()?.totalNextOutboundHtlcLimitSats() ?: 0u,
-                maxSendOnchainSats = (balance.totalLightningBalanceSats - feeForMaxAmount)
-                    .coerceAtLeast(0u),
+                maxSendOnchainSats = (balance.totalOnchainBalanceSats - feeForMaxAmount).coerceAtLeast(0u),
                 totalSats = totalSats,
             )
             _balanceState.update { newBalance }
