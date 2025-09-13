@@ -164,10 +164,16 @@ class WalletRepo @Inject constructor(
         lightningRepo.getBalances()?.let { balance ->
             val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
 
+            val utxos = lightningRepo.listSpendableOutputs().getOrNull()
+            val feeForMaxAmount = lightningRepo.calculateTotalFee(amountSats = totalSats, utxosToSpend = utxos)
+                .getOrDefault(0UL)
+
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
                 totalLightningSats = balance.totalLightningBalanceSats,
                 maxSendLightningSats = lightningRepo.getChannels()?.totalNextOutboundHtlcLimitSats() ?: 0u,
+                maxSendOnchainSats = (balance.totalLightningBalanceSats - feeForMaxAmount)
+                    .coerceAtLeast(0u),
                 totalSats = totalSats,
             )
             _balanceState.update { newBalance }
