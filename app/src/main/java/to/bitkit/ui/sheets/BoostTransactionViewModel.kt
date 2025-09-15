@@ -331,6 +331,7 @@ class BoostTransactionViewModel @Inject constructor(
             v1 = currentActivity.copy(
                 isBoosted = true,
                 feeRate = _uiState.value.feeRate,
+                fee = _uiState.value.totalFeeSats,
                 updatedAt = nowTimestamp().toEpochMilli().toULong()
             )
         )
