@@ -87,7 +87,7 @@ class BoostTransactionViewModel @Inject constructor(
                 val feeRateResult = when (activityContent.txType) {
                     PaymentType.SENT -> {
                         // For RBF, use at least the original fee rate + 2 sat/vbyte, with a minimum of 2 sat/vbyte
-                        minFeeRate = (activityContent.feeRate + RBF_MIN_INCREASE).coerceAtLeast(RBF_MIN_INCREASE)
+                        minFeeRate = (activityContent.feeRate + RBF_MIN_INCREASE)
                         lightningRepo.getFeeRateForSpeed(speed = TransactionSpeed.Fast)
                     }
 
