@@ -708,10 +708,9 @@ class LightningRepo @Inject constructor(
     fun getChannels(): List<ChannelDetails>? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.channels else null
 
-    fun hasChannelsReady(): Boolean {
+    fun canReceive(): Boolean {
         val isRunning = _lightningState.value.nodeLifecycleState.isRunning()
-        val hasChannelsReady = lightningService.channels?.any { it.isChannelReady } == true
-        return isRunning && hasChannelsReady
+        return isRunning && lightningService.canReceive()
     }
 
     suspend fun registerForNotifications(token: String? = null) = executeWhenNodeRunning("registerForNotifications") {

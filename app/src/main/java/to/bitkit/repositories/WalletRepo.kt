@@ -382,8 +382,8 @@ class WalletRepo @Inject constructor(
             updateBip21AmountSats(amountSats)
             updateBip21Description(description)
 
-            val hasChannelsReady = lightningRepo.hasChannelsReady()
-            if (hasChannelsReady && _walletState.value.receiveOnSpendingBalance) {
+            val canReceive = lightningRepo.canReceive()
+            if (canReceive && _walletState.value.receiveOnSpendingBalance) {
                 lightningRepo.createInvoice(
                     amountSats = _walletState.value.bip21AmountSats,
                     description = _walletState.value.bip21Description,

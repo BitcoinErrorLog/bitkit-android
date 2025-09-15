@@ -254,25 +254,24 @@ class LightningRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `hasChannelsReady should return false when node is not running`() = test {
-        assertFalse(sut.hasChannelsReady())
+    fun `canReceive should return false when node is not running`() = test {
+        assertFalse(sut.canReceive())
     }
 
     @Test
-    fun `hasChannelsReady should return false when having non-ready channels`() = test {
+    fun `canReceive should return false when node is running but cannot receive`() = test {
         startNodeForTesting()
-        whenever(lightningService.channels).thenReturn(listOf(mock()))
+        whenever(lightningService.canReceive()).thenReturn(false)
 
-        assertFalse(sut.hasChannelsReady())
+        assertFalse(sut.canReceive())
     }
 
     @Test
-    fun `hasChannelsReady should return true when having channels ready`() = test {
+    fun `canReceive should return true when node can receive`() = test {
         startNodeForTesting()
-        val channelReady = mock<ChannelDetails> { on { isChannelReady } doReturn true }
-        whenever(lightningService.channels).thenReturn(listOf(channelReady))
+        whenever(lightningService.canReceive()).thenReturn(true)
 
-        assertTrue(sut.hasChannelsReady())
+        assertTrue(sut.canReceive())
     }
 
     @Test
