@@ -96,6 +96,7 @@ class BoostTransactionViewModel @Inject constructor(
                 val sortedUtxos = lightningRepo.listSpendableOutputs()
                     .getOrDefault(emptyList())
                     .sortedByDescending { it.valueSats }
+                    .takeIf { it.isNotEmpty() }
 
                 val totalFeeResult = lightningRepo.calculateTotalFee(
                     amountSats = activityContent.value,
