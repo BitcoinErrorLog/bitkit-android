@@ -254,8 +254,24 @@ class LightningRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `hasChannels should return false when node is not running`() = test {
-        assertFalse(sut.hasChannels())
+    fun `canReceive should return false when node is not running`() = test {
+        assertFalse(sut.canReceive())
+    }
+
+    @Test
+    fun `canReceive should return false when node is running but cannot receive`() = test {
+        startNodeForTesting()
+        whenever(lightningService.canReceive()).thenReturn(false)
+
+        assertFalse(sut.canReceive())
+    }
+
+    @Test
+    fun `canReceive should return true when node can receive`() = test {
+        startNodeForTesting()
+        whenever(lightningService.canReceive()).thenReturn(true)
+
+        assertTrue(sut.canReceive())
     }
 
     @Test
