@@ -1,34 +1,29 @@
 package to.bitkit.ui
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.robolectric.annotation.Config
 import to.bitkit.data.SettingsStore
 import to.bitkit.models.LnPeer
 import to.bitkit.repositories.BackupRepo
+import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LightningState
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WalletState
 import to.bitkit.test.BaseUnitTest
-import to.bitkit.test.TestApp
 import to.bitkit.viewmodels.RestoreState
 import to.bitkit.viewmodels.WalletViewModel
 
-@RunWith(AndroidJUnit4::class)
-@Config(application = TestApp::class)
 class WalletViewModelTest : BaseUnitTest() {
 
     private lateinit var sut: WalletViewModel
@@ -37,6 +32,7 @@ class WalletViewModelTest : BaseUnitTest() {
     private val lightningRepo: LightningRepo = mock()
     private val settingsStore: SettingsStore = mock()
     private val backupRepo: BackupRepo = mock()
+    private val blocktankRepo: BlocktankRepo = mock()
     private val mockLightningState = MutableStateFlow(LightningState())
     private val mockWalletState = MutableStateFlow(WalletState())
 
@@ -51,6 +47,7 @@ class WalletViewModelTest : BaseUnitTest() {
             lightningRepo = lightningRepo,
             settingsStore = settingsStore,
             backupRepo = backupRepo,
+            blocktankRepo = blocktankRepo,
         )
     }
 
@@ -65,6 +62,15 @@ class WalletViewModelTest : BaseUnitTest() {
         sut.refreshState()
 
         verify(walletRepo).syncNodeAndWallet()
+    }
+
+    @Test
+    fun `refreshReceiveState should refresh receive state`() = test {
+        sut.refreshReceiveState()
+
+        verify(lightningRepo).updateGeoBlockState()
+        verify(walletRepo).refreshBip21()
+        verify(blocktankRepo).refreshInfo()
     }
 
     @Test
