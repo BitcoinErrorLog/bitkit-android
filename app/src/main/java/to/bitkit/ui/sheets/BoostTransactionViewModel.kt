@@ -45,6 +45,7 @@ class BoostTransactionViewModel @Inject constructor(
         const val MAX_FEE_PERCENTAGE = 0.5
         const val MAX_FEE_RATE = 100UL
         const val FEE_RATE_STEP = 1UL
+        const val RBF_MIN_INCREASE = 2UL
     }
 
     // State variables
@@ -86,7 +87,7 @@ class BoostTransactionViewModel @Inject constructor(
                 val feeRateResult = when (activityContent.txType) {
                     PaymentType.SENT -> {
                         // For RBF, use at least the original fee rate + 2 sat/vbyte, with a minimum of 2 sat/vbyte
-                        minFeeRate = (activityContent.feeRate + 2U).coerceAtLeast(2U)
+                        minFeeRate = (activityContent.feeRate + RBF_MIN_INCREASE).coerceAtLeast(RBF_MIN_INCREASE)
                         lightningRepo.getFeeRateForSpeed(speed = TransactionSpeed.Fast)
                     }
 
@@ -96,7 +97,6 @@ class BoostTransactionViewModel @Inject constructor(
                 val sortedUtxos = lightningRepo.listSpendableOutputs()
                     .getOrDefault(emptyList())
                     .sortedByDescending { it.valueSats }
-                    .takeIf { it.isNotEmpty() }
 
                 val totalFeeResult = lightningRepo.calculateTotalFee(
                     amountSats = activityContent.value,
