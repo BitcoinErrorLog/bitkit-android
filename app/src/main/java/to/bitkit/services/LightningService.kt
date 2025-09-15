@@ -318,6 +318,17 @@ class LightningService @Inject constructor(
             Logger.warn("Peer disconnect error: $peer", LdkError(e))
         }
     }
+
+    private fun getLspPeers(): List<LnPeer> {
+        val lspPeers = Env.trustedLnPeers
+        // TODO get from blocktank info.nodes[] when setup uses it to set trustedPeers0conf
+        // pseudocode idea:
+        // val lspPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }
+        return lspPeers
+    }
+
+    fun hasExternalPeers() = peers?.any { it !in getLspPeers() } == true
+
     // endregion
 
     // region channels
@@ -374,6 +385,21 @@ class LightningService @Inject constructor(
     // endregion
 
     // region payments
+    fun canReceive(): Boolean {
+        val channels = this.channels
+        if (channels == null) {
+            Logger.warn("canReceive = false: Channels not available")
+            return false
+        }
+
+        if (channels.none { it.isChannelReady }) {
+            Logger.warn("canReceive = false: Found no LN channel ready to enable receive: $channels")
+            return false
+        }
+
+        return true
+    }
+
     suspend fun receive(sat: ULong? = null, description: String, expirySecs: UInt = 3600u): String {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 

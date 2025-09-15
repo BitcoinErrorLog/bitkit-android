@@ -245,11 +245,10 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    /**Updates the shouldBlockLightning state and returns the current value*/
     suspend fun updateGeoBlockState() {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
-            it.copy(shouldBlockLightning = shouldBlockLightning, isGeoBlocked = isGeoBlocked)
+            it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightningReceive = shouldBlockLightning)
         }
     }
 
@@ -432,7 +431,7 @@ class LightningRepo @Inject constructor(
         expirySeconds: UInt = 86_400u,
     ): Result<String> = executeWhenNodeRunning("Create invoice") {
         updateGeoBlockState()
-        if (lightningState.value.shouldBlockLightning) {
+        if (lightningState.value.shouldBlockLightningReceive) {
             return@executeWhenNodeRunning Result.failure(ServiceError.GeoBlocked)
         }
 
@@ -673,7 +672,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun syncState() {
+    fun syncState() {
         _lightningState.update {
             it.copy(
                 nodeId = getNodeId().orEmpty(),
@@ -709,8 +708,10 @@ class LightningRepo @Inject constructor(
     fun getChannels(): List<ChannelDetails>? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.channels else null
 
-    fun hasChannels(): Boolean =
-        _lightningState.value.nodeLifecycleState.isRunning() && lightningService.channels?.isNotEmpty() == true
+    fun canReceive(): Boolean {
+        val isRunning = _lightningState.value.nodeLifecycleState.isRunning()
+        return isRunning && lightningService.canReceive()
+    }
 
     suspend fun registerForNotifications(token: String? = null) = executeWhenNodeRunning("registerForNotifications") {
         return@executeWhenNodeRunning try {
@@ -856,6 +857,6 @@ data class LightningState(
     val peers: List<LnPeer> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
     val isSyncingWallet: Boolean = false,
-    val shouldBlockLightning: Boolean = false,
+    val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
 )
