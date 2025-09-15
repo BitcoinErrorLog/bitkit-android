@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -490,16 +489,16 @@ private fun Preview() {
     }
 }
 
-@Preview(showSystemUi = true, device = NEXUS_5)
+@Preview(showSystemUi = true)
 @Composable
-private fun PreviewSmall() {
+private fun PreviewNodeNotReady() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
                 cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
-                    nodeLifecycleState = NodeLifecycleState.Running,
+                    nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
                 onCjitToggle = {},
                 onClickEditInvoice = {},
@@ -510,16 +509,16 @@ private fun PreviewSmall() {
     }
 }
 
-@Preview(showSystemUi = true, device = Devices.PIXEL_TABLET)
+@Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
-private fun PreviewTablet() {
+private fun PreviewSmall() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
                 cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
-                    nodeLifecycleState = NodeLifecycleState.Starting,
+                    nodeLifecycleState = NodeLifecycleState.Running,
                 ),
                 onCjitToggle = {},
                 onClickEditInvoice = {},

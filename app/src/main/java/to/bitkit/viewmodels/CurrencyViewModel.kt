@@ -25,9 +25,9 @@ class CurrencyViewModel @Inject constructor(
         }
     }
 
-    fun togglePrimaryDisplay() {
+    fun switchUnit() {
         viewModelScope.launch {
-            currencyRepo.togglePrimaryDisplay()
+            currencyRepo.switchUnit()
         }
     }
 
@@ -49,8 +49,6 @@ class CurrencyViewModel @Inject constructor(
         }
     }
 
-    fun getCurrencySymbol(): String = currencyRepo.getCurrencySymbol()
-
     // UI Helpers
     fun convert(sats: Long, currency: String? = null): ConvertedAmount? {
         return currencyRepo.convertSatsToFiat(sats, currency).getOrNull()
@@ -61,6 +59,3 @@ class CurrencyViewModel @Inject constructor(
         return uLongSats.toLong()
     }
 }
-
-// For backward compatibility, keeping the original data class name
-typealias CurrencyUiState = CurrencyState

@@ -41,12 +41,12 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun FundingScreen(
+    isGeoBlocked: Boolean,
     onTransfer: () -> Unit = {},
     onFund: () -> Unit = {},
     onAdvanced: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
-    isGeoBlocked: Boolean
 ) {
     val balances = LocalBalances.current
     val canTransfer = remember(balances.totalOnchainSats) {

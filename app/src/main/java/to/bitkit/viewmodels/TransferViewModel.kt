@@ -49,6 +49,7 @@ import kotlin.time.Duration.Companion.seconds
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
 private const val EUR_CURRENCY = "EUR"
+private const val QUARTER = 0.25
 
 @HiltViewModel
 class TransferViewModel @Inject constructor(
@@ -81,40 +82,7 @@ class TransferViewModel @Inject constructor(
 
     // region Spending
 
-    fun onClickMaxAmount() {
-        _spendingUiState.update {
-            it.copy(
-                satsAmount = it.maxAllowedToSend,
-                overrideSats = it.maxAllowedToSend,
-            )
-        }
-        updateLimits()
-    }
-
-    fun onClickQuarter() {
-        val quarter = (_spendingUiState.value.balanceAfterFee.toDouble() * QUARTER).roundToLong()
-
-        if (quarter > _spendingUiState.value.maxAllowedToSend) {
-            setTransferEffect(
-                TransferEffect.ToastError(
-                    title = context.getString(R.string.lightning__spending_amount__error_max__title),
-                    description = context.getString(
-                        R.string.lightning__spending_amount__error_max__description
-                    ).replace("{amount}", _spendingUiState.value.maxAllowedToSend.toString()),
-                )
-            )
-        }
-
-        _spendingUiState.update {
-            it.copy(
-                satsAmount = min(quarter, it.maxAllowedToSend),
-                overrideSats = min(quarter, it.maxAllowedToSend),
-            )
-        }
-        updateLimits()
-    }
-
-    fun onConfirmAmount() {
+    fun onConfirmAmount(satsAmount: Long) {
         if (_transferValues.value.maxLspBalance == 0uL) {
             setTransferEffect(
                 TransferEffect.ToastError(
@@ -129,8 +97,8 @@ class TransferViewModel @Inject constructor(
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
 
-            val minAmount = getMinAmountToPurchase()
-            if (_spendingUiState.value.satsAmount < minAmount) {
+            val minAmount = getMinAmountToPurchase(satsAmount)
+            if (satsAmount < minAmount) {
                 setTransferEffect(
                     TransferEffect.ToastError(
                         title = context.getString(R.string.lightning__spending_amount__error_min__title),
@@ -139,7 +107,7 @@ class TransferViewModel @Inject constructor(
                         ).replace("{amount}", "$minAmount"),
                     )
                 )
-                _spendingUiState.update { it.copy(overrideSats = minAmount, isLoading = false) }
+                _spendingUiState.update { it.copy(isLoading = false) }
                 return@launch
             }
 
@@ -147,7 +115,7 @@ class TransferViewModel @Inject constructor(
                 isNodeRunning.first { it }
             }
 
-            blocktankRepo.createOrder(_spendingUiState.value.satsAmount.toULong())
+            blocktankRepo.createOrder(satsAmount.toULong())
                 .onSuccess { order ->
                     settingsStore.update { it.copy(lightningSetupStep = 0) }
                     onOrderCreated(order)
@@ -161,31 +129,8 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    fun onInputChanged(newInput: String) {
-        _spendingUiState.update { it.copy(input = newInput) }
-    }
-
-    fun handleCalculatedAmount(sats: Long) {
-        if (sats > _spendingUiState.value.maxAllowedToSend) {
-            setTransferEffect(
-                TransferEffect.ToastError(
-                    title = context.getString(R.string.lightning__spending_amount__error_max__title),
-                    description = context.getString(
-                        R.string.lightning__spending_amount__error_max__description
-                    ).replace("{amount}", _spendingUiState.value.maxAllowedToSend.toString()),
-                )
-            )
-            _spendingUiState.update { it.copy(overrideSats = it.satsAmount) }
-            return
-        }
-
-        _spendingUiState.update { it.copy(satsAmount = sats, overrideSats = null) }
-
-        updateLimits()
-    }
-
-    fun updateLimits() {
-        updateTransferValues(_spendingUiState.value.satsAmount.toULong())
+    fun updateLimits(satsAmount: Long = 0) {
+        updateTransferValues(satsAmount.toULong())
         updateAvailableAmount()
     }
 
@@ -257,8 +202,8 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getMinAmountToPurchase(): Long {
-        val fee = lightningRepo.calculateTotalFee(_spendingUiState.value.satsAmount.toULong()).getOrNull() ?: 0u
+    private suspend fun getMinAmountToPurchase(satsAmount: Long = 0L): Long {
+        val fee = lightningRepo.calculateTotalFee(satsAmount.toULong()).getOrNull() ?: 0u
         return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
     }
 
@@ -537,7 +482,6 @@ class TransferViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TransferViewModel"
-        private const val QUARTER = 0.25
     }
 }
 
@@ -546,13 +490,12 @@ data class TransferToSpendingUiState(
     val order: IBtOrder? = null,
     val defaultOrder: IBtOrder? = null,
     val isAdvanced: Boolean = false,
-    val satsAmount: Long = 0,
-    val overrideSats: Long? = null,
     val maxAllowedToSend: Long = 0,
     val balanceAfterFee: Long = 0,
     val isLoading: Boolean = false,
-    val input: String = "",
-)
+) {
+    fun balanceAfterFeeQuarter() = (balanceAfterFee.toDouble() * QUARTER).roundToLong()
+}
 
 data class TransferValues(
     val defaultLspBalance: ULong = 0u,

@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.LnurlPayData
 import com.synonym.bitkitcore.LnurlWithdrawData
 import to.bitkit.R
@@ -30,18 +32,17 @@ import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.models.BalanceState
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.Toast
+import to.bitkit.repositories.CurrencyState
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
-import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.FillWidth
 import to.bitkit.ui.components.HorizontalSpacer
-import to.bitkit.ui.components.Keyboard
 import to.bitkit.ui.components.MoneySSB
+import to.bitkit.ui.components.NumberPad
 import to.bitkit.ui.components.NumberPadActionButton
 import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
@@ -49,59 +50,56 @@ import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.viewmodels.CurrencyUiState
+import to.bitkit.viewmodels.AmountInputUiState
+import to.bitkit.viewmodels.AmountInputViewModel
 import to.bitkit.viewmodels.LnurlParams
 import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.SendMethod
 import to.bitkit.viewmodels.SendUiState
+import to.bitkit.viewmodels.previewAmountInputViewModel
 
+@Suppress("ViewModelForwarding")
 @Composable
 fun SendAmountScreen(
     uiState: SendUiState,
     walletUiState: MainUiState,
     canGoBack: Boolean,
-    currencyUiState: CurrencyUiState = LocalCurrencies.current,
     onBack: () -> Unit,
     onEvent: (SendEvent) -> Unit,
+    currencies: CurrencyState = LocalCurrencies.current,
+    amountInputViewModel: AmountInputViewModel = hiltViewModel(),
 ) {
-    val currencyVM = currencyViewModel ?: return
     val app = appViewModel
     val context = LocalContext.current
-    var input: String by remember { mutableStateOf(uiState.amountInput) }
-    var overrideSats: Long? by remember { mutableStateOf(null) }
+    val amountInputUiState: AmountInputUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnEvent by rememberUpdatedState(onEvent)
 
-    AmountInputHandler(
-        input = input,
-        overrideSats = overrideSats,
-        primaryDisplay = currencyUiState.primaryDisplay,
-        displayUnit = currencyUiState.displayUnit,
-        onInputChanged = { newInput -> input = newInput },
-        onAmountCalculated = { sats ->
-            onEvent(SendEvent.AmountChange(value = sats))
-            overrideSats = null
-        },
-        currencyVM = currencyVM,
-    )
+    LaunchedEffect(Unit) {
+        if (uiState.amount > 0u) {
+            amountInputViewModel.setSats(uiState.amount.toLong(), currencies)
+        }
+    }
+
+    LaunchedEffect(amountInputUiState.sats) {
+        currentOnEvent(SendEvent.AmountChange(amountInputUiState.sats.toULong()))
+    }
 
     SendAmountContent(
-        input = input,
-        uiState = uiState,
         walletUiState = walletUiState,
-        currencyUiState = currencyUiState,
-        primaryDisplay = currencyUiState.primaryDisplay,
-        displayUnit = currencyUiState.displayUnit,
-        onInputChanged = { input = it },
-        onEvent = onEvent,
-        canGoBack = canGoBack,
-        onBack = onBack,
+        uiState = uiState,
+        amountInputViewModel = amountInputViewModel,
+        currencies = currencies,
+        onBack = {
+            onEvent(SendEvent.AmountReset)
+            onBack()
+        }.takeIf { canGoBack },
         onClickMax = { maxSats ->
             // TODO port the RN sendMax logic if still needed
             if (uiState.payMethod == SendMethod.LIGHTNING && uiState.lnurl == null) {
@@ -111,28 +109,26 @@ fun SendAmountScreen(
                     description = context.getString(R.string.wallet__send_max_spending__description)
                 )
             }
-            overrideSats = maxSats
+            amountInputViewModel.setSats(maxSats, currencies)
         },
-        onClickAmount = { currencyVM.togglePrimaryDisplay() },
+        onClickPayMethod = { onEvent(SendEvent.PaymentMethodSwitch) },
+        onContinue = { onEvent(SendEvent.AmountContinue) },
     )
 }
 
+@Suppress("ViewModelForwarding")
 @Composable
 fun SendAmountContent(
-    input: String,
     walletUiState: MainUiState,
     uiState: SendUiState,
+    amountInputViewModel: AmountInputViewModel,
     modifier: Modifier = Modifier,
     balances: BalanceState = LocalBalances.current,
-    primaryDisplay: PrimaryDisplay,
-    displayUnit: BitcoinDisplayUnit,
-    currencyUiState: CurrencyUiState,
-    onInputChanged: (String) -> Unit,
-    onEvent: (SendEvent) -> Unit,
-    canGoBack: Boolean = true,
-    onBack: () -> Unit,
+    currencies: CurrencyState = LocalCurrencies.current,
+    onBack: (() -> Unit)? = {},
     onClickMax: (Long) -> Unit = {},
-    onClickAmount: () -> Unit = {},
+    onClickPayMethod: () -> Unit = {},
+    onContinue: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -149,25 +145,19 @@ fun SendAmountContent(
 
         SheetTopBar(
             titleText = stringResource(titleRes),
-            onBack = {
-                onEvent(SendEvent.AmountReset)
-                onBack()
-            }.takeIf { canGoBack },
+            onBack = onBack,
         )
 
         when (walletUiState.nodeLifecycleState) {
             is NodeLifecycleState.Running -> {
                 SendAmountNodeRunning(
-                    input = input,
+                    amountInputViewModel = amountInputViewModel,
                     uiState = uiState,
-                    currencyUiState = currencyUiState,
-                    onInputChanged = onInputChanged,
                     balances = balances,
-                    displayUnit = displayUnit,
-                    primaryDisplay = primaryDisplay,
-                    onEvent = onEvent,
+                    currencies = currencies,
+                    onClickPayMethod = onClickPayMethod,
                     onClickMax = onClickMax,
-                    onClickAmount = onClickAmount,
+                    onContinue = onContinue,
                 )
             }
 
@@ -183,18 +173,16 @@ fun SendAmountContent(
     }
 }
 
+@Suppress("ViewModelForwarding")
 @Composable
 private fun SendAmountNodeRunning(
-    input: String,
+    amountInputViewModel: AmountInputViewModel,
     uiState: SendUiState,
     balances: BalanceState,
-    primaryDisplay: PrimaryDisplay,
-    displayUnit: BitcoinDisplayUnit,
-    currencyUiState: CurrencyUiState,
-    onInputChanged: (String) -> Unit,
-    onEvent: (SendEvent) -> Unit,
+    currencies: CurrencyState,
+    onClickPayMethod: () -> Unit,
     onClickMax: (Long) -> Unit,
-    onClickAmount: () -> Unit,
+    onContinue: () -> Unit,
 ) {
     BoxWithConstraints {
         val maxHeight = this.maxHeight
@@ -212,12 +200,9 @@ private fun SendAmountNodeRunning(
             VerticalSpacer(16.dp)
 
             NumberPadTextField(
-                input = input,
-                displayUnit = displayUnit,
-                primaryDisplay = primaryDisplay,
+                viewModel = amountInputViewModel,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickableAlpha(onClick = onClickAmount)
                     .testTag("SendNumberField")
             )
 
@@ -252,7 +237,7 @@ private fun SendAmountNodeRunning(
 
                 val isLnurl = uiState.lnurl != null
                 if (!isLnurl) {
-                    PaymentMethodButton(uiState = uiState, onEvent = onEvent)
+                    PaymentMethodButton(uiState = uiState, onClick = onClickPayMethod)
                 }
                 if (uiState.lnurl is LnurlParams.LnurlPay) {
                     val max = minOf(
@@ -269,6 +254,7 @@ private fun SendAmountNodeRunning(
                 }
                 HorizontalSpacer(8.dp)
                 UnitButton(
+                    onClick = { amountInputViewModel.switchUnit(currencies) },
                     modifier = Modifier
                         .height(28.dp)
                         .testTag("SendNumberPadUnit")
@@ -277,14 +263,8 @@ private fun SendAmountNodeRunning(
 
             HorizontalDivider(modifier = Modifier.padding(top = 24.dp))
 
-            Keyboard(
-                onClick = { number ->
-                    onInputChanged(if (input == "0") number else input + number)
-                },
-                onClickBackspace = {
-                    onInputChanged(if (input.length > 1) input.dropLast(1) else "0")
-                },
-                isDecimal = currencyUiState.primaryDisplay == PrimaryDisplay.FIAT,
+            NumberPad(
+                viewModel = amountInputViewModel,
                 availableHeight = maxHeight,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -295,7 +275,7 @@ private fun SendAmountNodeRunning(
                 text = stringResource(R.string.common__continue),
                 enabled = uiState.isAmountInputValid,
                 isLoading = uiState.isLoading,
-                onClick = { onEvent(SendEvent.AmountContinue(uiState.amountInput)) },
+                onClick = onContinue,
                 modifier = Modifier.testTag("ContinueAmount")
             )
 
@@ -307,7 +287,7 @@ private fun SendAmountNodeRunning(
 @Composable
 private fun PaymentMethodButton(
     uiState: SendUiState,
-    onEvent: (SendEvent) -> Unit,
+    onClick: () -> Unit,
 ) {
     val testId = when {
         uiState.isUnified -> "switch"
@@ -324,7 +304,7 @@ private fun PaymentMethodButton(
             SendMethod.LIGHTNING -> Colors.Purple
         },
         icon = if (uiState.isUnified) R.drawable.ic_transfer else null,
-        onClick = { onEvent(SendEvent.PaymentMethodSwitch) },
+        onClick = onClick,
         enabled = uiState.isUnified,
         modifier = Modifier
             .height(28.dp)
@@ -338,22 +318,13 @@ private fun PreviewLightningNoAmount() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "0",
-                    isAmountInputValid = false,
-                    isUnified = false
                 ),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                onBack = {},
-                onEvent = {},
-                input = "0",
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.FIAT,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(maxSendLightningSats = 54_321u),
             )
         }
     }
@@ -364,23 +335,21 @@ private fun PreviewLightningNoAmount() {
 private fun PreviewUnified() {
     AppThemeSurface {
         BottomSheetPreview {
+            val currencies = remember {
+                CurrencyState(
+                    displayUnit = BitcoinDisplayUnit.CLASSIC,
+                )
+            }
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100",
-                    isAmountInputValid = true,
                     isUnified = true,
                 ),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                onBack = {},
-                onEvent = {},
-                input = "100",
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.FIAT,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(currencies = currencies),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(maxSendLightningSats = 54_321u),
+                currencies = currencies,
             )
         }
     }
@@ -392,22 +361,13 @@ private fun PreviewOnchain() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.ONCHAIN,
-                    amountInput = "5000",
-                    isAmountInputValid = true,
-                    isUnified = false
                 ),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-                onBack = {},
-                onEvent = {},
-                input = "5000",
-                currencyUiState = CurrencyUiState(),
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(totalOnchainSats = 654_321u),
             )
         }
     }
@@ -419,18 +379,11 @@ private fun PreviewInitializing() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Initializing),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
                 ),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Initializing),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-                onBack = {},
-                onEvent = {},
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                input = "100",
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -443,31 +396,24 @@ private fun PreviewWithdraw() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100",
                     lnurl = LnurlParams.LnurlWithdraw(
                         data = LnurlWithdrawData(
                             uri = "",
                             callback = "",
                             k1 = "",
                             defaultDescription = "Test",
-                            minWithdrawable = 1u,
-                            maxWithdrawable = 130u,
+                            minWithdrawable = 1_000u,
+                            maxWithdrawable = 51_234_000u,
                             tag = ""
                         ),
                     ),
                 ),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
-                onBack = {},
-                onEvent = {},
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                input = "100",
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
             )
         }
     }
@@ -479,9 +425,9 @@ private fun PreviewLnurlPay() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100",
                     lnurl = LnurlParams.LnurlPay(
                         data = LnurlPayData(
                             uri = "",
@@ -495,16 +441,9 @@ private fun PreviewLnurlPay() {
                         ),
                     ),
                 ),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
-                onBack = {},
-                onEvent = {},
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                input = "100",
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(maxSendLightningSats = 54_321u),
             )
         }
     }
@@ -516,21 +455,13 @@ private fun PreviewSmallScreen() {
     AppThemeSurface {
         BottomSheetPreview {
             SendAmountContent(
+                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
                 uiState = SendUiState(
                     payMethod = SendMethod.LIGHTNING,
-                    amountInput = "100",
-                    isAmountInputValid = true,
                 ),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, maxSendLightningSats = 100u),
-                walletUiState = MainUiState(nodeLifecycleState = NodeLifecycleState.Running),
-                onBack = {},
-                onEvent = {},
-                input = "100",
-                displayUnit = BitcoinDisplayUnit.MODERN,
-                primaryDisplay = PrimaryDisplay.FIAT,
-                currencyUiState = CurrencyUiState(),
-                onInputChanged = {},
+                amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
+                balances = BalanceState(maxSendLightningSats = 54_321u),
             )
         }
     }

@@ -21,10 +21,6 @@ import to.bitkit.env.Env
 import to.bitkit.ext.formatPlural
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import java.math.BigDecimal
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
 
 fun String.withAccent(
     defaultColor: Color = Color.Unspecified,
@@ -138,21 +134,6 @@ fun localizedRandom(@StringRes id: Int): String {
             localizedString
         }
     }
-}
-
-fun BigDecimal.formatCurrency(decimalPlaces: Int = 2): String? {
-    val symbols = DecimalFormatSymbols(Locale.getDefault()).apply {
-        decimalSeparator = '.'
-        groupingSeparator = ','
-    }
-
-    val decimalPlacesString = "0".repeat(decimalPlaces)
-    val formatter = DecimalFormat("#,##0.$decimalPlacesString", symbols).apply {
-        minimumFractionDigits = decimalPlaces
-        maximumFractionDigits = decimalPlaces
-    }
-
-    return runCatching { formatter.format(this) }.getOrNull()
 }
 
 fun getBlockExplorerUrl(

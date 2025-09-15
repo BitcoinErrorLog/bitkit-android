@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Event
-import org.lightningdevkit.ldknode.Txid
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
@@ -25,6 +24,7 @@ import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
+import to.bitkit.ext.filterOpen
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
@@ -113,8 +113,7 @@ class WalletRepo @Inject constructor(
             it.copy(
                 selectedTags = emptyList(),
                 bip21Description = "",
-                balanceInput = "",
-                bip21 = ""
+                bip21 = "",
             )
         }
 
@@ -347,10 +346,6 @@ class WalletRepo @Inject constructor(
         _walletState.update { it.copy(bip21Description = description) }
     }
 
-    fun updateBalanceInput(newText: String) {
-        _walletState.update { it.copy(balanceInput = newText) }
-    }
-
     suspend fun toggleReceiveOnSpendingBalance(): Result<Unit> = withContext(bgDispatcher) {
         if (!_walletState.value.receiveOnSpendingBalance && coreService.checkGeoBlock().second) {
             return@withContext Result.failure(ServiceError.GeoBlocked)
@@ -427,6 +422,8 @@ class WalletRepo @Inject constructor(
             if (coreService.checkGeoBlock().first) return@withContext Result.success(false)
 
             val channels = lightningRepo.lightningState.value.channels
+            if (channels.filterOpen().isEmpty()) return@withContext Result.success(false)
+
             val inboundBalanceSats = channels.sumOf { it.inboundCapacityMsat / 1000u }
 
             Result.success((_walletState.value.bip21AmountSats ?: 0uL) >= inboundBalanceSats)
@@ -466,27 +463,6 @@ class WalletRepo @Inject constructor(
             }
         }
 
-    suspend fun searchInvoiceByPaymentHash(paymentHash: String): Result<TagMetadataEntity> = withContext(bgDispatcher) {
-        return@withContext try {
-            val invoiceTag =
-                db.tagMetadataDao().searchByPaymentHash(paymentHash = paymentHash) ?: return@withContext Result.failure(
-                    Exception("Invoice not found")
-                )
-            Result.success(invoiceTag)
-        } catch (e: Throwable) {
-            Logger.error("searchInvoice error", e, context = TAG)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun deleteInvoice(txId: Txid) = withContext(bgDispatcher) {
-        try {
-            db.tagMetadataDao().deleteByPaymentHash(paymentHash = txId)
-        } catch (e: Throwable) {
-            Logger.error("deleteInvoice error", e, context = TAG)
-        }
-    }
-
     suspend fun deleteAllInvoices() = withContext(bgDispatcher) {
         try {
             db.tagMetadataDao().deleteAll()
@@ -525,7 +501,6 @@ class WalletRepo @Inject constructor(
 
 data class WalletState(
     val onchainAddress: String = "",
-    val balanceInput: String = "",
     val bolt11: String = "",
     val bip21: String = "",
     val bip21AmountSats: ULong? = null,

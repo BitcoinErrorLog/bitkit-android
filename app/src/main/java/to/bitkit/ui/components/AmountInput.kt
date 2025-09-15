@@ -193,7 +193,7 @@ fun AmountInput(
         // Visible balance display
         currency.convert(sats)?.let { converted ->
             Column(
-                modifier = modifier.clickableAlpha { currency.togglePrimaryDisplay() }
+                modifier = modifier.clickableAlpha { currency.switchUnit() }
             ) {
                 if (showConversion) {
                     val captionText = if (primaryDisplay == PrimaryDisplay.BITCOIN) {

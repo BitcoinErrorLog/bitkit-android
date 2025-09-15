@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,123 +39,108 @@ import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
-import to.bitkit.models.BitcoinDisplayUnit
-import to.bitkit.models.PrimaryDisplay
+import to.bitkit.repositories.CurrencyState
 import to.bitkit.repositories.WalletState
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.blocktankViewModel
-import to.bitkit.ui.components.AmountInputHandler
 import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
-import to.bitkit.ui.components.Keyboard
+import to.bitkit.ui.components.NumberPad
 import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.UnitButton
 import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
-import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.keyboardAsState
 import to.bitkit.utils.Logger
-import to.bitkit.viewmodels.CurrencyUiState
+import to.bitkit.viewmodels.AmountInputViewModel
+import to.bitkit.viewmodels.previewAmountInputViewModel
 
+@Suppress("ViewModelForwarding")
 @Composable
 fun EditInvoiceScreen(
-    currencyUiState: CurrencyUiState = LocalCurrencies.current,
-    editInvoiceVM: EditInvoiceVM = hiltViewModel(),
+    amountInputViewModel: AmountInputViewModel,
     walletUiState: WalletState,
     updateInvoice: (ULong?) -> Unit,
     onClickAddTag: () -> Unit,
     onClickTag: (String) -> Unit,
-    onInputUpdated: (String) -> Unit,
     onDescriptionUpdate: (String) -> Unit,
     onBack: () -> Unit,
     navigateReceiveConfirm: (CjitEntryDetails) -> Unit,
+    currencies: CurrencyState = LocalCurrencies.current,
+    editInvoiceVM: EditInvoiceVM = hiltViewModel(),
 ) {
-    val currencyVM = currencyViewModel ?: return
     val blocktankVM = blocktankViewModel ?: return
-    var satsString by rememberSaveable { mutableStateOf("") }
     var keyboardVisible by remember { mutableStateOf(false) }
     var isSoftKeyboardVisible by keyboardAsState()
+    val amountInputUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         editInvoiceVM.editInvoiceEffect.collect { effect ->
+            val receiveSats = amountInputUiState.sats.toULong()
             when (effect) {
                 is EditInvoiceVM.EditInvoiceScreenEffects.NavigateAddLiquidity -> {
-                    val receiveSats = satsString.toULongOrNull()
                     updateInvoice(receiveSats)
 
-                    if (receiveSats == null) {
+                    if (receiveSats == 0UL) {
                         onBack()
                         return@collect
                     }
 
-                    satsString.toULongOrNull()?.let { sats ->
-                        runCatching { blocktankVM.createCjit(sats) }.onSuccess { entry ->
-                            navigateReceiveConfirm(
-                                CjitEntryDetails(
-                                    networkFeeSat = entry.networkFeeSat.toLong(),
-                                    serviceFeeSat = entry.serviceFeeSat.toLong(),
-                                    channelSizeSat = entry.channelSizeSat.toLong(),
-                                    feeSat = entry.feeSat.toLong(),
-                                    receiveAmountSats = receiveSats.toLong(),
-                                    invoice = entry.invoice.request,
-                                )
+                    runCatching { blocktankVM.createCjit(receiveSats) }.onSuccess { entry ->
+                        navigateReceiveConfirm(
+                            CjitEntryDetails(
+                                networkFeeSat = entry.networkFeeSat.toLong(),
+                                serviceFeeSat = entry.serviceFeeSat.toLong(),
+                                channelSizeSat = entry.channelSizeSat.toLong(),
+                                feeSat = entry.feeSat.toLong(),
+                                receiveAmountSats = receiveSats.toLong(),
+                                invoice = entry.invoice.request,
                             )
-                        }.onFailure { e ->
-                            Logger.error(e = e, msg = "error creating cjit invoice", context = "EditInvoiceScreen")
-                            onBack()
-                        }
+                        )
+                    }.onFailure { e ->
+                        Logger.error("error creating cjit invoice", e, context = "EditInvoiceScreen")
+                        onBack()
                     }
                 }
 
                 EditInvoiceVM.EditInvoiceScreenEffects.UpdateInvoice -> {
-                    updateInvoice(satsString.toULongOrNull())
+                    updateInvoice(receiveSats)
                     onBack()
                 }
             }
         }
     }
 
-    AmountInputHandler(
-        input = walletUiState.balanceInput,
-        primaryDisplay = currencyUiState.primaryDisplay,
-        displayUnit = currencyUiState.displayUnit,
-        onInputChanged = onInputUpdated,
-        onAmountCalculated = { sats -> satsString = sats },
-        currencyVM = currencyVM
-    )
-
     EditInvoiceContent(
-        input = walletUiState.balanceInput,
+        amountInputViewModel = amountInputViewModel,
         noteText = walletUiState.bip21Description,
-        primaryDisplay = currencyUiState.primaryDisplay,
-        displayUnit = currencyUiState.displayUnit,
+        currencies = currencies,
         tags = walletUiState.selectedTags,
         onBack = onBack,
         onTextChanged = onDescriptionUpdate,
         keyboardVisible = keyboardVisible,
         onClickBalance = {
             if (keyboardVisible) {
-                currencyVM.togglePrimaryDisplay()
+                amountInputViewModel.switchUnit(currencies)
             } else {
                 keyboardVisible = true
             }
         },
-        onInputChanged = onInputUpdated,
         onContinueKeyboard = { keyboardVisible = false },
         onContinueGeneral = {
-            updateInvoice(satsString.toULongOrNull())
+            updateInvoice(amountInputUiState.sats.toULong())
             editInvoiceVM.onClickContinue()
         },
         onClickAddTag = onClickAddTag,
@@ -165,14 +149,13 @@ fun EditInvoiceScreen(
     )
 }
 
+@Suppress("ViewModelForwarding")
 @Composable
 fun EditInvoiceContent(
-    input: String,
+    amountInputViewModel: AmountInputViewModel,
     noteText: String,
     isSoftKeyboardVisible: Boolean,
     keyboardVisible: Boolean,
-    primaryDisplay: PrimaryDisplay,
-    displayUnit: BitcoinDisplayUnit,
     tags: List<String>,
     onBack: () -> Unit,
     onContinueKeyboard: () -> Unit,
@@ -181,8 +164,8 @@ fun EditInvoiceContent(
     onClickAddTag: () -> Unit,
     onTextChanged: (String) -> Unit,
     onClickTag: (String) -> Unit,
-    onInputChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
+    currencies: CurrencyState = LocalCurrencies.current,
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -229,12 +212,10 @@ fun EditInvoiceContent(
                 VerticalSpacer(16.dp)
 
                 NumberPadTextField(
-                    input = input,
-                    displayUnit = displayUnit,
-                    primaryDisplay = primaryDisplay,
+                    viewModel = amountInputViewModel,
+                    onClick = onClickBalance,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickableAlpha(onClick = onClickBalance)
                         .testTag("ReceiveNumberPadTextField")
                 )
 
@@ -243,11 +224,11 @@ fun EditInvoiceContent(
                     visible = keyboardVisible,
                     enter = slideInVertically(
                         initialOffsetY = { fullHeight -> fullHeight },
-                        animationSpec = tween(durationMillis = 300)
+                        animationSpec = tween()
                     ) + fadeIn(),
                     exit = slideOutVertically(
                         targetOffsetY = { fullHeight -> fullHeight },
-                        animationSpec = tween(durationMillis = 300)
+                        animationSpec = tween()
                     ) + fadeOut()
                 ) {
                     Column(
@@ -261,6 +242,7 @@ fun EditInvoiceContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             UnitButton(
+                                onClick = { amountInputViewModel.switchUnit(currencies) },
                                 modifier = Modifier
                                     .height(28.dp)
                                     .testTag("ReceiveNumberPadUnit")
@@ -269,18 +251,13 @@ fun EditInvoiceContent(
 
                         HorizontalDivider(modifier = Modifier.padding(top = 24.dp))
 
-                        Keyboard(
-                            onClick = { number ->
-                                onInputChanged(if (input == "0") number else input + number)
-                            },
-                            onClickBackspace = {
-                                onInputChanged(if (input.length > 1) input.dropLast(1) else "0")
-                            },
-                            isDecimal = primaryDisplay == PrimaryDisplay.FIAT,
+                        NumberPad(
+                            viewModel = amountInputViewModel,
+                            currencies = currencies,
                             availableHeight = maxHeight,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("amount_keyboard")
+                                .testTag("ReceiveNumberField")
                         )
 
                         PrimaryButton(
@@ -296,8 +273,8 @@ fun EditInvoiceContent(
                 // Animated visibility for note section
                 AnimatedVisibility(
                     visible = !keyboardVisible,
-                    enter = fadeIn(animationSpec = tween(durationMillis = 300)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300))
+                    enter = fadeIn(animationSpec = tween()),
+                    exit = fadeOut(animationSpec = tween())
                 ) {
                     Column {
                         VerticalSpacer(44.dp)
@@ -380,15 +357,12 @@ private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
             EditInvoiceContent(
-                input = "123",
+                amountInputViewModel = previewAmountInputViewModel(),
                 noteText = "",
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
                 keyboardVisible = false,
                 onClickBalance = {},
-                onInputChanged = {},
                 onContinueGeneral = {},
                 onContinueKeyboard = {},
                 tags = listOf(),
@@ -407,15 +381,12 @@ private fun PreviewWithTags() {
     AppThemeSurface {
         BottomSheetPreview {
             EditInvoiceContent(
-                input = "123",
+                amountInputViewModel = previewAmountInputViewModel(),
                 noteText = "Note text",
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
                 keyboardVisible = false,
                 onClickBalance = {},
-                onInputChanged = {},
                 onContinueGeneral = {},
                 onContinueKeyboard = {},
                 tags = listOf("Team", "Dinner", "Home", "Work"),
@@ -434,15 +405,12 @@ private fun PreviewWithKeyboard() {
     AppThemeSurface {
         BottomSheetPreview {
             EditInvoiceContent(
-                input = "123",
+                amountInputViewModel = previewAmountInputViewModel(),
                 noteText = "Note text",
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
                 keyboardVisible = true,
                 onClickBalance = {},
-                onInputChanged = {},
                 onContinueGeneral = {},
                 onContinueKeyboard = {},
                 tags = listOf("Team", "Dinner", "Home"),
@@ -461,15 +429,12 @@ private fun PreviewSmallScreen() {
     AppThemeSurface {
         BottomSheetPreview {
             EditInvoiceContent(
-                input = "123",
+                amountInputViewModel = previewAmountInputViewModel(),
                 noteText = "Note text",
-                primaryDisplay = PrimaryDisplay.BITCOIN,
-                displayUnit = BitcoinDisplayUnit.MODERN,
                 onBack = {},
                 onTextChanged = {},
                 keyboardVisible = true,
                 onClickBalance = {},
-                onInputChanged = {},
                 onContinueGeneral = {},
                 onContinueKeyboard = {},
                 tags = listOf("Team", "Dinner", "Home"),
