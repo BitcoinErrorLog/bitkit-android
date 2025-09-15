@@ -79,7 +79,6 @@ fun HomeNav(
             onSendClick = { appViewModel.showSheet(Sheet.Send()) },
             onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
             onScanClick = { rootNavController.navigateToScanner() },
-            modifier = Modifier.align(Alignment.BottomCenter)
         )
 
         DrawerMenu(
@@ -149,8 +148,10 @@ private fun NavContent(
             exitTransition = { Transitions.slideOutHorizontally },
         ) {
             val hasSeenSavingsIntro by settingsViewModel.hasSeenSavingsIntro.collectAsStateWithLifecycle()
+            val lightningActivities by activityListViewModel.lightningActivities.collectAsStateWithLifecycle()
             SpendingWalletScreen(
                 uiState = mainUiState,
+                lightningActivities = lightningActivities.orEmpty(),
                 onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
                 onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },

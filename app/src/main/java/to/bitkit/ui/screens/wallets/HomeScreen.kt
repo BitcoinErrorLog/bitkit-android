@@ -693,7 +693,7 @@ private fun Preview() {
                     totalSats = 200_000u,
                 ),
             )
-            TabBar(modifier = Modifier.align(Alignment.BottomCenter))
+            TabBar()
         }
     }
 }
@@ -712,13 +712,9 @@ private fun PreviewEmpty() {
                 walletNavController = rememberNavController(),
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Closed),
                 latestActivities = previewActivityItems.take(3),
-                balances = BalanceState(
-                    totalOnchainSats = 165_000u,
-                    totalLightningSats = 45_000u,
-                    totalSats = 200_000u,
-                )
+                balances = BalanceState(totalSats = 0u)
             )
-            TabBar(modifier = Modifier.align(Alignment.BottomCenter))
+            TabBar()
         }
     }
 }

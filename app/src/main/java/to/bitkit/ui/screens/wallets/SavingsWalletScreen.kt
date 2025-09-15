@@ -32,6 +32,7 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
@@ -134,16 +135,19 @@ fun SavingsWalletScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        SavingsWalletScreen(
-            isGeoBlocked = false,
-            onchainActivities = previewOnchainActivityItems(),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSpendingClick = {},
-            onBackClick = {},
-            balances = BalanceState(totalOnchainSats = 50_000u),
-        )
+        Box {
+            SavingsWalletScreen(
+                isGeoBlocked = false,
+                onchainActivities = previewOnchainActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSpendingClick = {},
+                onBackClick = {},
+                balances = BalanceState(totalOnchainSats = 50_000u),
+            )
+            TabBar()
+        }
     }
 }
 
@@ -151,16 +155,19 @@ private fun Preview() {
 @Composable
 private fun PreviewNoActivity() {
     AppThemeSurface {
-        SavingsWalletScreen(
-            isGeoBlocked = false,
-            onchainActivities = emptyList(),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSpendingClick = {},
-            onBackClick = {},
-            balances = BalanceState(totalOnchainSats = 50_000u),
-        )
+        Box {
+            SavingsWalletScreen(
+                isGeoBlocked = false,
+                onchainActivities = emptyList(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSpendingClick = {},
+                onBackClick = {},
+                balances = BalanceState(totalOnchainSats = 50_000u),
+            )
+            TabBar()
+        }
     }
 }
 
@@ -168,16 +175,19 @@ private fun PreviewNoActivity() {
 @Composable
 private fun PreviewGeoBlocked() {
     AppThemeSurface {
-        SavingsWalletScreen(
-            isGeoBlocked = true,
-            onchainActivities = previewOnchainActivityItems(),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSpendingClick = {},
-            onBackClick = {},
-            balances = BalanceState(totalOnchainSats = 50_000u),
-        )
+        Box {
+            SavingsWalletScreen(
+                isGeoBlocked = true,
+                onchainActivities = previewOnchainActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSpendingClick = {},
+                onBackClick = {},
+                balances = BalanceState(totalOnchainSats = 50_000u),
+            )
+            TabBar()
+        }
     }
 }
 
@@ -185,14 +195,17 @@ private fun PreviewGeoBlocked() {
 @Composable
 private fun PreviewEmpty() {
     AppThemeSurface {
-        SavingsWalletScreen(
-            isGeoBlocked = false,
-            onchainActivities = emptyList(),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSpendingClick = {},
-            onBackClick = {},
-        )
+        Box {
+            SavingsWalletScreen(
+                isGeoBlocked = false,
+                onchainActivities = emptyList(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSpendingClick = {},
+                onBackClick = {},
+            )
+            TabBar()
+        }
     }
 }

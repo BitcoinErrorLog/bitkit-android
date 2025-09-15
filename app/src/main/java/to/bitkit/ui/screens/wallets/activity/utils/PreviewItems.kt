@@ -125,3 +125,4 @@ val previewActivityItems = buildList {
 }
 
 fun previewOnchainActivityItems() = previewActivityItems.filter { it is Activity.Onchain }
+fun previewLightningActivityItems() = previewActivityItems.filter { it is Activity.Lightning }

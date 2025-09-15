@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,17 +25,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.synonym.bitkitcore.Activity
 import to.bitkit.R
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
-import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
+import to.bitkit.ui.screens.wallets.activity.utils.previewLightningActivityItems
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -45,6 +46,7 @@ import to.bitkit.viewmodels.MainUiState
 @Composable
 fun SpendingWalletScreen(
     uiState: MainUiState,
+    lightningActivities: List<Activity>,
     onAllActivityButtonClick: () -> Unit,
     onActivityItemClick: (String) -> Unit,
     onEmptyActivityRowClick: () -> Unit,
@@ -52,9 +54,10 @@ fun SpendingWalletScreen(
     onBackClick: () -> Unit,
     balances: BalanceState = LocalBalances.current,
 ) {
-    val showEmptyState by remember(balances.totalLightningSats) {
-        // TODO use && hasLnActivity + LN spendingSats
-        mutableStateOf(balances.totalLightningSats == 0uL)
+    val showEmptyState by remember(balances.totalLightningSats, lightningActivities.size) {
+        val hasLnFunds = balances.totalLightningSats == 0uL
+        val hasActivity = lightningActivities.isNotEmpty()
+        mutableStateOf(hasLnFunds && !hasActivity)
     }
     val canTransfer by remember(balances.totalLightningSats, uiState.channels.size) {
         val hasLnBalance = balances.totalLightningSats > 0uL
@@ -110,8 +113,6 @@ fun SpendingWalletScreen(
                         )
                     }
 
-                    val activity = activityListViewModel ?: return@Column
-                    val lightningActivities by activity.lightningActivities.collectAsState()
                     ActivityListGrouped(
                         items = lightningActivities,
                         onActivityItemClick = onActivityItemClick,
@@ -137,17 +138,43 @@ fun SpendingWalletScreen(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        SpendingWalletScreen(
-            uiState = MainUiState(
-                channels = listOf(createChannelDetails())
-            ),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSavingsClick = {},
-            onBackClick = {},
-            balances = BalanceState(totalLightningSats = 50_000u),
-        )
+        Box {
+            SpendingWalletScreen(
+                uiState = MainUiState(
+                    channels = listOf(createChannelDetails())
+                ),
+                lightningActivities = previewLightningActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSavingsClick = {},
+                onBackClick = {},
+                balances = BalanceState(totalLightningSats = 50_000u),
+            )
+            TabBar()
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewNoActivity() {
+    AppThemeSurface {
+        Box {
+            SpendingWalletScreen(
+                uiState = MainUiState(
+                    channels = listOf(createChannelDetails())
+                ),
+                lightningActivities = emptyList(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSavingsClick = {},
+                onBackClick = {},
+                balances = BalanceState(totalLightningSats = 50_000u),
+            )
+            TabBar()
+        }
     }
 }
 
@@ -155,13 +182,17 @@ private fun Preview() {
 @Composable
 private fun PreviewEmpty() {
     AppThemeSurface {
-        SpendingWalletScreen(
-            uiState = MainUiState(),
-            onAllActivityButtonClick = {},
-            onActivityItemClick = {},
-            onEmptyActivityRowClick = {},
-            onTransferToSavingsClick = {},
-            onBackClick = {},
-        )
+        Box {
+            SpendingWalletScreen(
+                uiState = MainUiState(),
+                lightningActivities = emptyList(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSavingsClick = {},
+                onBackClick = {},
+            )
+            TabBar()
+        }
     }
 }
