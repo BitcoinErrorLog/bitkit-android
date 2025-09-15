@@ -8,7 +8,7 @@ When performing a code review, ensure ViewModels are never injected as dependenc
 
 When performing a code review, verify that all async operations use `viewModelScope.launch` instead of `GlobalScope.launch` in ViewModels.
 
-When performing a code review, ensure Repository pattern is followed with proper data source abstraction.
+When performing a code review, ensure Repository pattern is followed
 
 When performing a code review, verify StateFlow is used for reactive state management in ViewModels with proper `_uiState` and `uiState` pattern.
 
@@ -17,10 +17,6 @@ When performing a code review, verify StateFlow is used for reactive state manag
 When performing a code review, flag any use of the not-null assertion operator (`!!`) and suggest safe calls (`?.`) with proper null handling.
 
 When performing a code review, ensure all coroutine operations use proper error handling with `runCatching`
-
-When performing a code review, verify that all Logger calls include the TAG as context parameter, e.g., `Logger.warn("message", e = e, context = TAG)`.
-
-When performing a code review, check that methods exist before they are called, especially after refactoring.
 
 ## UI & Compose Best Practices
 
@@ -34,7 +30,7 @@ When performing a code review, ensure proper state management patterns with `Mut
 
 ## Code Quality & Readability
 
-When performing a code review, focus on readability and avoid nested ternary operators.
+When performing a code review, focus on readability and avoid nested if-else, replacing with early return wherever possible.
 
 When performing a code review, ensure unused code is removed after refactoring.
 
@@ -48,11 +44,7 @@ When performing a code review, ensure services contain business logic and don't 
 
 ## Build & Testing
 
-When performing a code review, ensure proper build variant usage (dev for regtest, tnet for testnet).
-
-When performing a code review, verify that unit tests follow the pattern `./gradlew testDevDebugUnitTest --tests ClassName`.
-
-When performing a code review, suggest Unit Test com composable components and business logic covering the most important cases
+When performing a code review, suggest Unit Test for composable components and business logic covering the most important cases
 
 ## Lightning & Bitcoin Specific
 
