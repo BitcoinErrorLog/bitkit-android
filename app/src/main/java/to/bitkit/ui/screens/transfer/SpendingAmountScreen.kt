@@ -99,9 +99,9 @@ fun SpendingAmountScreen(
                         .replace("{amount}", "$max"),
                 )
             }
-            val quarterAmount = min(quarter, max)
-            viewModel.updateLimits(quarterAmount)
-            amountInputViewModel.setSats(quarterAmount, currencies)
+            val cappedQuarter = min(quarter, max)
+            viewModel.updateLimits(cappedQuarter)
+            amountInputViewModel.setSats(cappedQuarter, currencies)
         },
         onClickMaxAmount = {
             val newAmountSats = uiState.maxAllowedToSend
@@ -165,7 +165,6 @@ private fun SpendingAmountNodeRunning(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxSize()
-            .imePadding()
             .testTag("SpendingAmount")
     ) {
         val amountUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
@@ -225,15 +224,11 @@ private fun SpendingAmountNodeRunning(
                 modifier = Modifier.testTag("SpendingAmountMax")
             )
         }
+
         HorizontalDivider()
-
         VerticalSpacer(16.dp)
-        NumberPad(
-            viewModel = amountInputViewModel,
-            modifier = Modifier.fillMaxWidth()
-        )
 
-        VerticalSpacer(8.dp)
+        NumberPad(viewModel = amountInputViewModel)
 
         PrimaryButton(
             text = stringResource(R.string.common__continue),
@@ -247,13 +242,13 @@ private fun SpendingAmountNodeRunning(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
         Content(
             isNodeRunning = true,
-            uiState = TransferToSpendingUiState(),
+            uiState = TransferToSpendingUiState(maxAllowedToSend = 158_234, balanceAfterFee = 158_234),
             amountInputViewModel = previewAmountInputViewModel(),
             currencies = CurrencyState(),
             onBackClick = {},
@@ -265,13 +260,13 @@ private fun Preview() {
     }
 }
 
-@Preview(showBackground = true, device = NEXUS_5)
+@Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
 private fun PreviewSmall() {
     AppThemeSurface {
         Content(
             isNodeRunning = true,
-            uiState = TransferToSpendingUiState(),
+            uiState = TransferToSpendingUiState(maxAllowedToSend = 158_234, balanceAfterFee = 158_234),
             amountInputViewModel = previewAmountInputViewModel(),
             currencies = CurrencyState(),
             onBackClick = {},
@@ -283,7 +278,7 @@ private fun PreviewSmall() {
     }
 }
 
-@Preview(showBackground = true, device = NEXUS_5)
+@Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
 private fun PreviewInitializing() {
     AppThemeSurface {

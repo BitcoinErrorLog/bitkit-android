@@ -49,7 +49,6 @@ import kotlin.time.Duration.Companion.seconds
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
 private const val EUR_CURRENCY = "EUR"
-private const val QUARTER = 0.25
 
 @HiltViewModel
 class TransferViewModel @Inject constructor(
@@ -494,7 +493,7 @@ data class TransferToSpendingUiState(
     val balanceAfterFee: Long = 0,
     val isLoading: Boolean = false,
 ) {
-    fun balanceAfterFeeQuarter() = (balanceAfterFee.toDouble() * QUARTER).roundToLong()
+    fun balanceAfterFeeQuarter() = (balanceAfterFee.toDouble() * 0.25).roundToLong()
 }
 
 data class TransferValues(
