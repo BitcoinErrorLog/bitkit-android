@@ -41,12 +41,6 @@ class BlocktankViewModel @Inject constructor(
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    fun refreshInfo() {
-        viewModelScope.launch {
-            blocktankRepo.refreshInfo()
-        }
-    }
-
     fun refreshOrders() {
         viewModelScope.launch {
             blocktankRepo.refreshOrders()

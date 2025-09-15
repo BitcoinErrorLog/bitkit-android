@@ -14,11 +14,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.repositories.LightningState
-import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
@@ -34,8 +31,6 @@ fun ReceiveSheet(
     editInvoiceAmountViewModel: AmountInputViewModel = hiltViewModel(),
 ) {
     val wallet = requireNotNull(walletViewModel)
-    val blocktank = requireNotNull(blocktankViewModel)
-
     val navController = rememberNavController()
     LaunchedEffect(Unit) { editInvoiceAmountViewModel.clearInput() }
 
@@ -45,13 +40,7 @@ fun ReceiveSheet(
     val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        runCatching {
-            // TODO move to viewModel
-            coroutineScope {
-                launch { wallet.refreshBip21() }
-                launch { blocktank.refreshInfo() }
-            }
-        }
+        wallet.refreshReceiveState()
     }
 
     Column(
