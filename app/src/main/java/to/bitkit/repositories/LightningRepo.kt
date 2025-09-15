@@ -62,7 +62,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-private const val SYNC_TIMEOUT_MS = 15_000L
+private const val SYNC_TIMEOUT_MS = 20_000L
 
 @Singleton
 class LightningRepo @Inject constructor(

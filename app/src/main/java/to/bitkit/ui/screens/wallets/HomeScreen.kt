@@ -151,6 +151,7 @@ fun HomeScreen(
         drawerState = drawerState,
         latestActivities = latestActivities,
         onRefresh = {
+            activityListViewModel.fetchLatestActivities()
             walletViewModel.onPullToRefresh()
             homeViewModel.refreshWidgets()
             activityListViewModel.syncLdkNodePayments()

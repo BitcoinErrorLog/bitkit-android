@@ -69,7 +69,7 @@ fun BoostTransactionSheet(
     val haptic = LocalHapticFeedback.current
 
     // Setup activity when component is first created
-    LaunchedEffect(item) {
+    LaunchedEffect(Unit) {
         viewModel.setupActivity(item)
     }
 
