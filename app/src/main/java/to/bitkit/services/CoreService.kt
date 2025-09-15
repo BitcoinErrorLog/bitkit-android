@@ -58,7 +58,6 @@ import to.bitkit.async.ServiceQueue
 import to.bitkit.data.CacheStore
 import to.bitkit.env.Env
 import to.bitkit.ext.amountSats
-import to.bitkit.models.LnPeer
 import to.bitkit.models.toCoreNetwork
 import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
@@ -143,25 +142,14 @@ class CoreService @Inject constructor(
         }
     }
 
-    private suspend fun getLspPeers(): List<LnPeer> {
-        val blocktankPeers = Env.trustedLnPeers
-        // TODO get from blocktank info when lightningService.setup sets trustedPeers0conf using BT API
-        // pseudocode idea:
-        // val blocktankPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }.orEmpty()
-        return blocktankPeers
-    }
-
-    suspend fun getConnectedPeers(): List<LnPeer> = lightningService.peers.orEmpty()
-
-    suspend fun hasExternalNode() = getConnectedPeers().any { connectedPeer -> connectedPeer !in getLspPeers() }
-
     /**
-     * This method checks if the device is geo blocked and if should block lighting features
-     * @return Pair(isGeoBlocked, shouldBlockLightning)*/
+     * This method checks if the device is in a is geo blocked region and if lightning features should be blocked
+     * @return pair of `isGeoBlocked` to `shouldBlockLightning`
+     * */
     suspend fun checkGeoBlock(): Pair<Boolean, Boolean> {
         val geoBlocked = isGeoBlocked()
         val shouldBlockLightning = when {
-            hasExternalNode() -> false
+            lightningService.hasExternalPeers() -> false
             else -> geoBlocked
         }
 

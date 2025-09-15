@@ -102,10 +102,9 @@ class WalletRepo @Inject constructor(
     suspend fun refreshBip21(force: Boolean = false): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("Refreshing bip21 (force: $force)", context = TAG)
 
-        if (coreService.checkGeoBlock().second) {
-            _walletState.update {
-                it.copy(receiveOnSpendingBalance = false)
-            }
+        val shouldBlockLightning = coreService.checkGeoBlock().second
+        _walletState.update {
+            it.copy(receiveOnSpendingBalance = !shouldBlockLightning)
         }
 
         // Reset invoice state

@@ -136,7 +136,7 @@ class WalletRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `refreshBip21 should set receiveOnSpendingBalance as false if shouldBlockLightning is true`() = test {
+    fun `refreshBip21 should set receiveOnSpendingBalance false when shouldBlockLightning is true`() = test {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
         whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
@@ -145,6 +145,18 @@ class WalletRepoTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         assertEquals(false, sut.walletState.value.receiveOnSpendingBalance)
+    }
+
+    @Test
+    fun `refreshBip21 should set receiveOnSpendingBalance true when shouldBlockLightning is false`() = test {
+        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, false))
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
+
+        val result = sut.refreshBip21()
+
+        assertTrue(result.isSuccess)
+        assertEquals(true, sut.walletState.value.receiveOnSpendingBalance)
     }
 
     @Test

@@ -57,6 +57,7 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.any
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -318,6 +319,17 @@ class LightningService @Inject constructor(
             Logger.warn("Peer disconnect error: $peer", LdkError(e))
         }
     }
+
+    private fun getLspPeers(): List<LnPeer> {
+        val lspPeers = Env.trustedLnPeers
+        // TODO get from blocktank info.nodes[] when setup uses it to set trustedPeers0conf
+        // pseudocode idea:
+        // val lspPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }
+        return lspPeers
+    }
+
+    fun hasExternalPeers() = peers?.any { it !in getLspPeers() } == true
+
     // endregion
 
     // region channels
