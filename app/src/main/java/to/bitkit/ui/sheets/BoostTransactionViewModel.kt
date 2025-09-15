@@ -120,6 +120,10 @@ class BoostTransactionViewModel @Inject constructor(
                             totalFee = totalFeeSatsRecommended,
                             feeRate = feeRateRecommended
                         )
+
+                        if (_uiState.value.totalFeeSats >= maxTotalFee) {
+                            setBoostTransactionEffect(BoostTransactionEffects.OnMaxFee)
+                        }
                     }
 
                     else -> {
@@ -146,10 +150,6 @@ class BoostTransactionViewModel @Inject constructor(
                 decreaseEnabled = isDecreaseEnabled,
                 loading = false,
             )
-        }
-
-        if (totalFee >= maxTotalFee) {
-            setBoostTransactionEffect(BoostTransactionEffects.OnMaxFee)
         }
     }
 
