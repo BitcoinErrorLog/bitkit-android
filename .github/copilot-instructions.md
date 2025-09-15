@@ -48,8 +48,6 @@ When performing a code review, suggest Unit Test for composable components and b
 
 ## Lightning & Bitcoin Specific
 
-When performing a code review, ensure proper usage of LDK Node and bitkitcore library patterns.
-
 When performing a code review, verify that Bitcoin/Lightning operations are properly handled in the service layer.
 
 When performing a code review, verify that propper Bitcoin and Lightning technical terms are used when naming code components
