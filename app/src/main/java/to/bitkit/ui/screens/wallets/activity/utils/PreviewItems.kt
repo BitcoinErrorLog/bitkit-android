@@ -123,3 +123,5 @@ val previewActivityItems = buildList {
         )
     )
 }
+
+fun previewOnchainActivityItems() = previewActivityItems.filter { it is Activity.Onchain }

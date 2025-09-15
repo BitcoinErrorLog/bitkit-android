@@ -125,7 +125,12 @@ private fun NavContent(
             exitTransition = { Transitions.slideOutHorizontally },
         ) {
             val hasSeenSpendingIntro by settingsViewModel.hasSeenSpendingIntro.collectAsStateWithLifecycle()
+            val isGeoBlocked by appViewModel.isGeoBlocked.collectAsStateWithLifecycle()
+            val onchainActivities by activityListViewModel.onchainActivities.collectAsStateWithLifecycle()
+
             SavingsWalletScreen(
+                isGeoBlocked = isGeoBlocked,
+                onchainActivities = onchainActivities.orEmpty(),
                 onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
                 onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },

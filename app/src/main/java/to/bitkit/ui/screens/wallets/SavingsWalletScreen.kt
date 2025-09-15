@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,22 +25,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.synonym.bitkitcore.Activity
 import to.bitkit.R
 import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
-import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
+import to.bitkit.ui.screens.wallets.activity.utils.previewOnchainActivityItems
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun SavingsWalletScreen(
+    isGeoBlocked: Boolean,
+    onchainActivities: List<Activity>,
     onAllActivityButtonClick: () -> Unit,
     onEmptyActivityRowClick: () -> Unit,
     onActivityItemClick: (String) -> Unit,
@@ -49,8 +51,14 @@ fun SavingsWalletScreen(
     onBackClick: () -> Unit,
     balances: BalanceState = LocalBalances.current,
 ) {
-    val showEmptyState by remember(balances.totalOnchainSats) {
-        mutableStateOf(balances.totalOnchainSats == 0uL) // TODO use && hasOnchainActivity
+    val showEmptyState by remember(balances.totalOnchainSats, onchainActivities.size) {
+        val hasFunds = balances.totalOnchainSats > 0uL
+        val hasActivity = onchainActivities.isNotEmpty()
+        mutableStateOf(!hasFunds && !hasActivity)
+    }
+    val canTransfer by remember(balances.totalOnchainSats) {
+        val hasFunds = balances.totalOnchainSats > 0uL
+        mutableStateOf(hasFunds && !isGeoBlocked)
     }
 
     Box(
@@ -85,21 +93,22 @@ fun SavingsWalletScreen(
                 )
                 if (!showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
-                    SecondaryButton(
-                        onClick = onTransferToSpendingClick,
-                        text = "Transfer To Spending", // TODO add missing localized text
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_transfer),
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        },
-                        modifier = Modifier.testTag("TransferToSpending")
-                    )
 
-                    val activity = activityListViewModel ?: return@Column
-                    val onchainActivities by activity.onchainActivities.collectAsState()
+                    if (canTransfer) {
+                        SecondaryButton(
+                            onClick = onTransferToSpendingClick,
+                            text = "Transfer To Spending", // TODO add missing localized text
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_transfer),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                            modifier = Modifier.testTag("TransferToSpending")
+                        )
+                    }
+
                     ActivityListGrouped(
                         items = onchainActivities,
                         onActivityItemClick = onActivityItemClick,
@@ -126,6 +135,42 @@ fun SavingsWalletScreen(
 private fun Preview() {
     AppThemeSurface {
         SavingsWalletScreen(
+            isGeoBlocked = false,
+            onchainActivities = previewOnchainActivityItems(),
+            onAllActivityButtonClick = {},
+            onActivityItemClick = {},
+            onEmptyActivityRowClick = {},
+            onTransferToSpendingClick = {},
+            onBackClick = {},
+            balances = BalanceState(totalOnchainSats = 50_000u),
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewNoActivity() {
+    AppThemeSurface {
+        SavingsWalletScreen(
+            isGeoBlocked = false,
+            onchainActivities = emptyList(),
+            onAllActivityButtonClick = {},
+            onActivityItemClick = {},
+            onEmptyActivityRowClick = {},
+            onTransferToSpendingClick = {},
+            onBackClick = {},
+            balances = BalanceState(totalOnchainSats = 50_000u),
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewGeoBlocked() {
+    AppThemeSurface {
+        SavingsWalletScreen(
+            isGeoBlocked = true,
+            onchainActivities = previewOnchainActivityItems(),
             onAllActivityButtonClick = {},
             onActivityItemClick = {},
             onEmptyActivityRowClick = {},
@@ -141,6 +186,8 @@ private fun Preview() {
 private fun PreviewEmpty() {
     AppThemeSurface {
         SavingsWalletScreen(
+            isGeoBlocked = false,
+            onchainActivities = emptyList(),
             onAllActivityButtonClick = {},
             onActivityItemClick = {},
             onEmptyActivityRowClick = {},

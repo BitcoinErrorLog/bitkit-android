@@ -59,7 +59,6 @@ fun SpendingWalletScreen(
     val canTransfer by remember(balances.totalLightningSats, uiState.channels.size) {
         val hasLnBalance = balances.totalLightningSats > 0uL
         val hasChannels = uiState.channels.isNotEmpty()
-
         mutableStateOf(hasLnBalance && hasChannels)
     }
 
