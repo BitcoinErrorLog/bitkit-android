@@ -245,11 +245,10 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    /**Updates the shouldBlockLightning state and returns the current value*/
     suspend fun updateGeoBlockState() {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
-            it.copy(shouldBlockLightning = shouldBlockLightning, isGeoBlocked = isGeoBlocked)
+            it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightning = shouldBlockLightning)
         }
     }
 
@@ -673,7 +672,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun syncState() {
+    fun syncState() {
         _lightningState.update {
             it.copy(
                 nodeId = getNodeId().orEmpty(),
@@ -709,8 +708,11 @@ class LightningRepo @Inject constructor(
     fun getChannels(): List<ChannelDetails>? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.channels else null
 
-    fun hasChannels(): Boolean =
-        _lightningState.value.nodeLifecycleState.isRunning() && lightningService.channels?.isNotEmpty() == true
+    fun hasChannelsReady(): Boolean {
+        val isRunning = _lightningState.value.nodeLifecycleState.isRunning()
+        val hasChannelsReady = lightningService.channels?.any { it.isChannelReady } == true
+        return isRunning && hasChannelsReady
+    }
 
     suspend fun registerForNotifications(token: String? = null) = executeWhenNodeRunning("registerForNotifications") {
         return@executeWhenNodeRunning try {

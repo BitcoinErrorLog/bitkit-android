@@ -258,10 +258,10 @@ class WalletRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `updateBip21Invoice should create bolt11 when channels exist`() = test {
+    fun `updateBip21Invoice should create bolt11 when having channels ready`() = test {
         val testInvoice = "testInvoice"
-        whenever(lightningRepo.hasChannels()).thenReturn(true)
-        whenever(lightningRepo.createInvoice(1000uL, description = "test")).thenReturn(Result.success(testInvoice))
+        whenever(lightningRepo.hasChannelsReady()).thenReturn(true)
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(testInvoice))
 
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
             assertTrue(result.isSuccess)
@@ -271,8 +271,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `updateBip21Invoice should not create bolt11 when no channels exist`() = test {
-        whenever(lightningRepo.hasChannels()).thenReturn(false)
-
+        whenever(lightningRepo.hasChannelsReady()).thenReturn(false)
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
             assertTrue(result.isSuccess)
             assertEquals("", sut.walletState.value.bolt11)
@@ -283,7 +282,8 @@ class WalletRepoTest : BaseUnitTest() {
     fun `updateBip21Invoice should build correct BIP21 URL`() = test {
         val testAddress = "testAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        whenever(lightningRepo.hasChannels()).thenReturn(false)
+        whenever(lightningRepo.hasChannelsReady()).thenReturn(false)
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success("testInvoice"))
         sut = createSut()
 
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
