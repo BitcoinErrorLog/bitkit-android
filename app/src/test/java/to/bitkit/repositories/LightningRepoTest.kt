@@ -269,8 +269,8 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `hasChannelsReady should return true when having channels ready`() = test {
         startNodeForTesting()
-        whenever(lightningService.channels)
-            .thenReturn(listOf(mock<ChannelDetails> { on { isChannelReady } doReturn true }))
+        val channelReady = mock<ChannelDetails> { on { isChannelReady } doReturn true }
+        whenever(lightningService.channels).thenReturn(listOf(channelReady))
 
         assertTrue(sut.hasChannelsReady())
     }

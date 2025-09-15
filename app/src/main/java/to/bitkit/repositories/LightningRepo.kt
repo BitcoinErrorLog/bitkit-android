@@ -248,7 +248,7 @@ class LightningRepo @Inject constructor(
     suspend fun updateGeoBlockState() {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
-            it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightning = shouldBlockLightning)
+            it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightningReceive = shouldBlockLightning)
         }
     }
 
@@ -431,7 +431,7 @@ class LightningRepo @Inject constructor(
         expirySeconds: UInt = 86_400u,
     ): Result<String> = executeWhenNodeRunning("Create invoice") {
         updateGeoBlockState()
-        if (lightningState.value.shouldBlockLightning) {
+        if (lightningState.value.shouldBlockLightningReceive) {
             return@executeWhenNodeRunning Result.failure(ServiceError.GeoBlocked)
         }
 
@@ -858,6 +858,6 @@ data class LightningState(
     val peers: List<LnPeer> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
     val isSyncingWallet: Boolean = false,
-    val shouldBlockLightning: Boolean = false,
+    val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
 )

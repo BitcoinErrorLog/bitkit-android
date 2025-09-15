@@ -75,7 +75,7 @@ fun ReceiveSheet(
                     walletState = walletState,
                     onCjitToggle = { isOn ->
                         when {
-                            isOn && lightningState.shouldBlockLightning -> {
+                            isOn && lightningState.shouldBlockLightningReceive -> {
                                 navController.navigate(ReceiveRoute.GeoBlock)
                             }
 

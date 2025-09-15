@@ -57,7 +57,6 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.any
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -386,6 +385,21 @@ class LightningService @Inject constructor(
     // endregion
 
     // region payments
+    fun canReceive(): Boolean {
+        val channels = this.channels
+        if (channels == null) {
+            Logger.warn("canReceive = false: Channels not available")
+            return false
+        }
+
+        if (channels.none { it.isChannelReady }) {
+            Logger.warn("canReceive = false: Found no LN channel ready to enable receive: $channels")
+            return false
+        }
+
+        return true
+    }
+
     suspend fun receive(sat: ULong? = null, description: String, expirySecs: UInt = 3600u): String {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 

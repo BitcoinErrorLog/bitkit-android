@@ -144,16 +144,16 @@ class CoreService @Inject constructor(
 
     /**
      * This method checks if the device is in a is geo blocked region and if lightning features should be blocked
-     * @return pair of `isGeoBlocked` to `shouldBlockLightning`
+     * @return pair of `isGeoBlocked` to `shouldBlockLightningReceive`
      * */
     suspend fun checkGeoBlock(): Pair<Boolean, Boolean> {
         val geoBlocked = isGeoBlocked()
-        val shouldBlockLightning = when {
-            lightningService.hasExternalPeers() -> false
+        val shouldBlockLightningReceive = when {
+            lightningService.hasExternalPeers() -> !lightningService.canReceive()
             else -> geoBlocked
         }
 
-        return Pair(geoBlocked, shouldBlockLightning)
+        return Pair(geoBlocked, shouldBlockLightningReceive)
     }
 }
 
