@@ -53,7 +53,7 @@ class ExternalNodeViewModel @Inject constructor(
     private fun observeState() {
         viewModelScope.launch {
             walletRepo.balanceState.collect {
-                val maxAmount = walletRepo.getMaxSendAmount()
+                val maxAmount = walletRepo.balanceState.value.maxSendOnchainSats
                 _uiState.update { it.copy(amount = it.amount.copy(max = maxAmount.toLong())) }
             }
         }

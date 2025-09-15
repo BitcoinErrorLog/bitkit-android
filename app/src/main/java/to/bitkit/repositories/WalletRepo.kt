@@ -163,14 +163,16 @@ class WalletRepo @Inject constructor(
     suspend fun syncBalances() {
         lightningRepo.getBalances()?.let { balance ->
             val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
+            val fallbackMaxFee = (balance.totalOnchainBalanceSats.toDouble() * 0.1).toULong()
 
             val utxos = lightningRepo.listSpendableOutputs().getOrNull()
+
             val feeForMaxAmount = lightningRepo.calculateTotalFee(
                 amountSats = balance.totalOnchainBalanceSats,
-                speed = TransactionSpeed.Fast,
+                speed = TransactionSpeed.default(),
                 address = walletState.value.onchainAddress,
                 utxosToSpend = utxos
-            ).getOrDefault(1000uL)
+            ).getOrDefault(fallbackMaxFee)
 
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
@@ -326,24 +328,6 @@ class WalletRepo @Inject constructor(
     suspend fun saveBalanceState(balanceState: BalanceState) {
         runCatching { cacheStore.cacheBalance(balanceState) }
         _balanceState.update { balanceState }
-    }
-
-    suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val totalOnchainSats = balanceState.value.totalOnchainSats
-        if (totalOnchainSats == 0uL) {
-            return@withContext 0uL
-        }
-
-        try {
-            val fee = lightningRepo.calculateTotalFee(totalOnchainSats).getOrThrow()
-            val maxSendable = (totalOnchainSats - fee).coerceAtLeast(0u)
-
-            return@withContext maxSendable
-        } catch (_: Throwable) {
-            Logger.debug("Could not calculate max send amount, using as fallback 90% of total", context = TAG)
-            val fallbackMax = (totalOnchainSats.toDouble() * 0.9).toULong()
-            return@withContext fallbackMax
-        }
     }
 
     // BIP21 state management
