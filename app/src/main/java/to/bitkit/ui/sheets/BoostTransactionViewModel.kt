@@ -147,6 +147,10 @@ class BoostTransactionViewModel @Inject constructor(
                 loading = false,
             )
         }
+
+        if (totalFee >= maxTotalFee) {
+            setBoostTransactionEffect(BoostTransactionEffects.OnMaxFee)
+        }
     }
 
     fun onClickEdit() {
