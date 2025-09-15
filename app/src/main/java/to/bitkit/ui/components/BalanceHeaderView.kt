@@ -93,7 +93,7 @@ fun BalanceHeaderView(
                 hideBalance = shouldHideBalance,
                 isSwipeToHideEnabled = allowSwipeToHide,
                 showEyeIcon = showEyeIcon,
-                onClick = onClick ?: { currency.togglePrimaryDisplay() },
+                onClick = onClick ?: { currency.switchUnit() },
                 onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
                 testTag = testTag,
             )
@@ -111,7 +111,7 @@ fun BalanceHeaderView(
                 hideBalance = shouldHideBalance,
                 isSwipeToHideEnabled = allowSwipeToHide,
                 showEyeIcon = showEyeIcon,
-                onClick = { currency.togglePrimaryDisplay() },
+                onClick = { currency.switchUnit() },
                 onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
                 testTag = testTag,
             )

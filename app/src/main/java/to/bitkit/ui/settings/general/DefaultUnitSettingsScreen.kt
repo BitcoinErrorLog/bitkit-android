@@ -93,7 +93,7 @@ fun DefaultUnitSettingsScreenContent(
             BitcoinDisplayUnit.entries.forEach { unit ->
                 SettingsButtonRow(
                     title = stringResource(
-                        if (unit == BitcoinDisplayUnit.MODERN) {
+                        if (unit.isModern()) {
                             R.string.settings__general__denomination_modern
                         } else {
                             R.string.settings__general__denomination_classic
@@ -101,9 +101,7 @@ fun DefaultUnitSettingsScreenContent(
                     ),
                     value = SettingsButtonValue.BooleanValue(displayUnit == unit),
                     onClick = { onBitcoinUnitClick(unit) },
-                    modifier = Modifier.testTag(
-                        if (unit == BitcoinDisplayUnit.MODERN) "DenominationModern" else "DenominationClassic"
-                    )
+                    modifier = Modifier.testTag(if (unit.isModern()) "DenominationModern" else "DenominationClassic")
                 )
             }
 

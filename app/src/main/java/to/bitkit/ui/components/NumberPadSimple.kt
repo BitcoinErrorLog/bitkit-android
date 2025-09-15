@@ -10,13 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import to.bitkit.R
 import to.bitkit.ui.theme.AppThemeSurface
-
-const val KEY_DELETE = "delete"
 
 private val matrix = listOf(
     listOf("1", "2", "3"),
@@ -40,9 +36,10 @@ fun NumberPadSimple(
                     .fillMaxWidth()
             ) {
                 row.forEach { number ->
-                    KeyTextButton(
+                    NumberPadKeyButton(
                         text = number,
-                        onClick = onPress,
+                        onPress = onPress,
+                        height = 75.dp,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -56,16 +53,16 @@ fun NumberPadSimple(
                 .fillMaxWidth()
         ) {
             Box(modifier = Modifier.weight(1f))
-            KeyTextButton(
+            NumberPadKeyButton(
                 text = "0",
-                onClick = onPress,
+                onPress = onPress,
+                height = 75.dp,
                 modifier = Modifier.weight(1f)
             )
 
-            KeyIconButton(
-                icon = R.drawable.ic_backspace,
-                contentDescription = stringResource(R.string.common__delete),
-                onClick = { onPress(KEY_DELETE) },
+            NumberPadDeleteButton(
+                onPress = { onPress(KEY_DELETE) },
+                height = 75.dp,
                 modifier = Modifier
                     .weight(1f)
                     .testTag("NRemove")

@@ -77,7 +77,7 @@ fun SavingsConfirmScreen(
         hasSelected = hasSelected,
         onBackClick = onBackClick,
         onCloseClick = onCloseClick,
-        onAmountClick = { currency.togglePrimaryDisplay() },
+        onAmountClick = { currency.switchUnit() },
         onAdvancedClick = onAdvancedClick,
         onSelectAllClick = { transfer.setSelectedChannelIds(emptySet()) },
         onConfirm = {

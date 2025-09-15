@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -22,6 +23,7 @@ import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.walletViewModel
+import to.bitkit.viewmodels.AmountInputViewModel
 import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.WalletViewModelEffects
 
@@ -29,11 +31,13 @@ import to.bitkit.viewmodels.WalletViewModelEffects
 fun ReceiveSheet(
     navigateToExternalConnection: () -> Unit,
     walletState: MainUiState,
+    editInvoiceAmountViewModel: AmountInputViewModel = hiltViewModel(),
 ) {
     val wallet = requireNotNull(walletViewModel)
     val blocktank = requireNotNull(blocktankViewModel)
 
     val navController = rememberNavController()
+    LaunchedEffect(Unit) { editInvoiceAmountViewModel.clearInput() }
 
     val cjitInvoice = remember { mutableStateOf<String?>(null) }
     val showCreateCjit = remember { mutableStateOf(false) }
@@ -164,7 +168,9 @@ fun ReceiveSheet(
             }
             composableWithDefaultTransitions<ReceiveRoute.EditInvoice> {
                 val walletUiState by wallet.walletState.collectAsStateWithLifecycle()
+                @Suppress("ViewModelForwarding")
                 EditInvoiceScreen(
+                    amountInputViewModel = editInvoiceAmountViewModel,
                     walletUiState = walletUiState,
                     onBack = { navController.popBackStack() },
                     updateInvoice = { sats ->
@@ -178,9 +184,6 @@ fun ReceiveSheet(
                     },
                     onDescriptionUpdate = { newText ->
                         wallet.updateBip21Description(newText = newText)
-                    },
-                    onInputUpdated = { newText ->
-                        wallet.updateBalanceInput(newText)
                     },
                     navigateReceiveConfirm = { entry ->
                         cjitEntryDetails.value = entry

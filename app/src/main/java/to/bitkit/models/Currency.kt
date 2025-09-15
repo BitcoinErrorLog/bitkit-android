@@ -8,11 +8,16 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
+const val STUB_RATE = 115_150.0
 const val BITCOIN_SYMBOL = "₿"
+const val USD_SYMBOL = "$"
 const val SATS_IN_BTC = 100_000_000
 const val BTC_SCALE = 8
-const val BTC_PLACEHOLDER = "0.00000000"
-const val SATS_PLACEHOLDER = "0"
+const val SATS_GROUPING_SEPARATOR = ' '
+const val FIAT_GROUPING_SEPARATOR = ','
+const val DECIMAL_SEPARATOR = '.'
+const val CLASSIC_DECIMALS = 8
+const val FIAT_DECIMALS = 2
 
 @Serializable
 data class FxRateResponse(
@@ -42,11 +47,9 @@ data class FxRate(
 enum class PrimaryDisplay {
     BITCOIN, FIAT;
 
-    operator fun not(): PrimaryDisplay {
-        return when (this) {
-            BITCOIN -> FIAT
-            FIAT -> BITCOIN
-        }
+    operator fun not() = when (this) {
+        BITCOIN -> FIAT
+        FIAT -> BITCOIN
     }
 }
 
@@ -54,12 +57,12 @@ enum class PrimaryDisplay {
 enum class BitcoinDisplayUnit {
     MODERN, CLASSIC;
 
-    operator fun not(): BitcoinDisplayUnit {
-        return when (this) {
-            MODERN -> CLASSIC
-            CLASSIC -> MODERN
-        }
+    operator fun not() = when (this) {
+        MODERN -> CLASSIC
+        CLASSIC -> MODERN
     }
+
+    fun isModern() = this == MODERN
 }
 
 data class ConvertedAmount(
@@ -69,28 +72,17 @@ data class ConvertedAmount(
     val currency: String,
     val flag: String,
     val sats: Long,
+    val locale: Locale = Locale.getDefault(),
 ) {
-    val btcValue: BigDecimal = sats.asBtc()
-
     data class BitcoinDisplayComponents(
         val symbol: String,
         val value: String,
     )
 
     fun bitcoinDisplay(unit: BitcoinDisplayUnit): BitcoinDisplayComponents {
-        val spaceSeparator = ' '
         val formattedValue = when (unit) {
-            BitcoinDisplayUnit.MODERN -> {
-                sats.formatToModernDisplay()
-            }
-
-            BitcoinDisplayUnit.CLASSIC -> {
-                val formatSymbols = DecimalFormatSymbols(Locale.getDefault()).apply {
-                    groupingSeparator = spaceSeparator
-                }
-                val formatter = DecimalFormat("#,###.########", formatSymbols)
-                formatter.format(btcValue)
-            }
+            BitcoinDisplayUnit.MODERN -> sats.formatToModernDisplay(locale)
+            BitcoinDisplayUnit.CLASSIC -> sats.formatToClassicDisplay(locale)
         }
         return BitcoinDisplayComponents(
             symbol = BITCOIN_SYMBOL,
@@ -99,18 +91,43 @@ data class ConvertedAmount(
     }
 }
 
-fun Long.formatToModernDisplay(): String {
+fun Long.formatToModernDisplay(locale: Locale = Locale.getDefault()): String {
     val sats = this
-    val formatSymbols = DecimalFormatSymbols(Locale.getDefault()).apply {
-        groupingSeparator = ' '
+    val symbols = DecimalFormatSymbols(locale).apply {
+        groupingSeparator = SATS_GROUPING_SEPARATOR
     }
-    val formatter = DecimalFormat("#,###", formatSymbols).apply {
+    val formatter = DecimalFormat("#,###", symbols).apply {
         isGroupingUsed = true
     }
     return formatter.format(sats)
 }
 
-fun ULong.formatToModernDisplay(): String = this.toLong().formatToModernDisplay()
+fun ULong.formatToModernDisplay(locale: Locale = Locale.getDefault()): String = toLong().formatToModernDisplay(locale)
+
+fun Long.formatToClassicDisplay(locale: Locale = Locale.getDefault()): String {
+    val sats = this
+    val symbols = DecimalFormatSymbols(locale).apply {
+        decimalSeparator = DECIMAL_SEPARATOR
+    }
+    val formatter = DecimalFormat("###.########", symbols)
+    return formatter.format(sats.asBtc())
+}
+
+fun BigDecimal.formatCurrency(decimalPlaces: Int = FIAT_DECIMALS, locale: Locale = Locale.getDefault()): String? {
+    val symbols = DecimalFormatSymbols(locale).apply {
+        decimalSeparator = DECIMAL_SEPARATOR
+        groupingSeparator = FIAT_GROUPING_SEPARATOR
+    }
+
+    val decimalPlacesString = "0".repeat(decimalPlaces)
+    val formatter = DecimalFormat("#,##0.$decimalPlacesString", symbols).apply {
+        minimumFractionDigits = decimalPlaces
+        maximumFractionDigits = decimalPlaces
+        isGroupingUsed = true
+    }
+
+    return runCatching { formatter.format(this) }.getOrNull()
+}
 
 /** Represent this sat value in Bitcoin BigDecimal. */
 fun Long.asBtc(): BigDecimal = BigDecimal(this).divide(BigDecimal(SATS_IN_BTC), BTC_SCALE, RoundingMode.HALF_UP)

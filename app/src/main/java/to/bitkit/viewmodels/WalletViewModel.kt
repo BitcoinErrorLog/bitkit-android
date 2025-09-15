@@ -75,7 +75,6 @@ class WalletViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         onchainAddress = state.onchainAddress,
-                        balanceInput = state.balanceInput,
                         bolt11 = state.bolt11,
                         bip21 = state.bip21,
                         bip21AmountSats = state.bip21AmountSats,
@@ -291,10 +290,6 @@ class WalletViewModel @Inject constructor(
         walletRepo.updateBip21Description(newText)
     }
 
-    fun updateBalanceInput(newText: String) {
-        walletRepo.updateBalanceInput(newText = newText)
-    }
-
     suspend fun handleHideBalanceOnOpen() {
         val hideBalanceOnOpen = settingsStore.data.map { it.hideBalanceOnOpen }.first()
         if (hideBalanceOnOpen) {
@@ -306,7 +301,6 @@ class WalletViewModel @Inject constructor(
 // TODO rename to walletUiState
 data class MainUiState(
     val nodeId: String = "",
-    val balanceInput: String = "",
     val balanceDetails: BalanceDetails? = null,
     val onchainAddress: String = "",
     val bolt11: String = "",
