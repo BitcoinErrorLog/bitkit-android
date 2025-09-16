@@ -92,7 +92,7 @@ class ActivityListViewModel @Inject constructor(
         observeDateRange()
         observeSelectedTags()
 
-        syncState()
+        fetchLatestActivities()
     }
 
     @OptIn(FlowPreview::class)
@@ -129,7 +129,7 @@ class ActivityListViewModel @Inject constructor(
         }
     }
 
-    private fun syncState() {
+    fun fetchLatestActivities() {
         viewModelScope.launch(bgDispatcher) {
             try {
                 // Fetch latest activities for the home screen
@@ -221,7 +221,7 @@ class ActivityListViewModel @Inject constructor(
     fun syncLdkNodePayments() {
         viewModelScope.launch {
             activityRepo.syncActivities().onSuccess {
-                syncState()
+                fetchLatestActivities()
             }
         }
     }
@@ -229,14 +229,14 @@ class ActivityListViewModel @Inject constructor(
     fun generateRandomTestData(count: Int) {
         viewModelScope.launch(bgDispatcher) {
             coreService.activity.generateRandomTestData(count)
-            syncState()
+            fetchLatestActivities()
         }
     }
 
     fun removeAllActivities() {
         viewModelScope.launch(bgDispatcher) {
             coreService.activity.removeAll()
-            syncState()
+            fetchLatestActivities()
         }
     }
 }
