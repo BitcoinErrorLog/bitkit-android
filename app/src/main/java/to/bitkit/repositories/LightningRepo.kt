@@ -520,6 +520,7 @@ class LightningRepo @Inject constructor(
         feeRates: FeeRates? = null,
         isTransfer: Boolean = false,
         channelId: String? = null,
+        isMaxAmount: Boolean = false
     ): Result<Txid> =
         executeWhenNodeRunning("Send on-chain") {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
@@ -538,6 +539,7 @@ class LightningRepo @Inject constructor(
                 sats = sats,
                 satsPerVByte = satsPerVByte,
                 utxosToSpend = finalUtxosToSpend,
+                isMaxAmount = isMaxAmount
             )
             cacheStore.addTransactionMetadata(
                 TransactionMetadata(

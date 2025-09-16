@@ -163,22 +163,12 @@ class WalletRepo @Inject constructor(
     suspend fun syncBalances() {
         lightningRepo.getBalances()?.let { balance ->
             val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
-            val fallbackMaxFee = (balance.totalOnchainBalanceSats.toDouble() * 0.1).toULong()
-
-            val utxos = lightningRepo.listSpendableOutputs().getOrNull()
-
-            val feeForMaxAmount = lightningRepo.calculateTotalFee(
-                amountSats = balance.totalOnchainBalanceSats,
-                speed = TransactionSpeed.default(),
-                address = walletState.value.onchainAddress,
-                utxosToSpend = utxos
-            ).getOrDefault(fallbackMaxFee)
 
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
                 totalLightningSats = balance.totalLightningBalanceSats,
                 maxSendLightningSats = lightningRepo.getChannels()?.totalNextOutboundHtlcLimitSats() ?: 0u,
-                maxSendOnchainSats = (balance.totalOnchainBalanceSats - feeForMaxAmount).coerceAtLeast(0u),
+                maxSendOnchainSats = getMaxSendAmount(),
                 totalSats = totalSats,
             )
             _balanceState.update { newBalance }
@@ -470,6 +460,24 @@ class WalletRepo @Inject constructor(
         } catch (e: Throwable) {
             Logger.error("deleteExpiredInvoices error", e, context = TAG)
         }
+    }
+
+    private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
+        val totalOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
+        if (totalOnchainSats == 0uL) {
+            return@withContext 0uL
+        }
+        val fallbackMaxFee = (totalOnchainSats.toDouble() * 0.1).toULong()
+
+        val fee = lightningRepo.calculateTotalFee(
+            amountSats = totalOnchainSats,
+            speed = TransactionSpeed.default(),
+        ).onFailure {
+            Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
+        }.getOrDefault(fallbackMaxFee)
+
+        val maxSendable = (totalOnchainSats - fee).coerceAtLeast(0u)
+        maxSendable
     }
 
     private suspend fun Scanner.OnChain.extractLightningHash(): String? {
