@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,6 +67,7 @@ private fun ChangePinResultContent(
             PrimaryButton(
                 text = stringResource(R.string.common__ok),
                 onClick = onOkClick,
+                modifier = Modifier.testTag("OK")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
