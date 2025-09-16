@@ -464,7 +464,7 @@ class WalletRepo @Inject constructor(
     }
 
     private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val totalOnchainSats = walletState.value.balanceDetails?.totalOnchainBalanceSats ?: 0uL
+        val totalOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
         if (totalOnchainSats == 0uL) {
             return@withContext 0uL
         }
