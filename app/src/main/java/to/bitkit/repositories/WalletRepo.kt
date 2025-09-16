@@ -175,6 +175,8 @@ class WalletRepo @Inject constructor(
             )
             _balanceState.update { newBalance }
             saveBalanceState(newBalance)
+        }.onFailure {
+            Logger.warn("Could not sync balances", context = TAG)
         }
     }
 
