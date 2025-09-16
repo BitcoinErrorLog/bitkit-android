@@ -447,18 +447,27 @@ class LightningService @Inject constructor(
         sats: ULong,
         satsPerVByte: UInt,
         utxosToSpend: List<SpendableUtxo>? = null,
+        isMaxAmount: Boolean = false
     ): Txid {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
-        Logger.info("Sending $sats sats to $address with satsPerVByte=$satsPerVByte")
+        Logger.info("Sending $sats sats to $address, satsPerVByte=$satsPerVByte, isMaxAmount = $isMaxAmount")
 
         return ServiceQueue.LDK.background {
-            node.onchainPayment().sendToAddress(
-                address = address,
-                amountSats = sats,
-                feeRate = convertVByteToKwu(satsPerVByte),
-                utxosToSpend = utxosToSpend,
-            )
+            if (isMaxAmount) {
+                node.onchainPayment().sendAllToAddress(
+                    address = address,
+                    retainReserve = true,
+                    feeRate = FeeRate.fromSatPerVbUnchecked(satsPerVByte.toULong()),
+                )
+            } else {
+                node.onchainPayment().sendToAddress(
+                    address = address,
+                    amountSats = sats,
+                    feeRate = convertVByteToKwu(satsPerVByte),
+                    utxosToSpend = utxosToSpend,
+                )
+            }
         }
     }
 
