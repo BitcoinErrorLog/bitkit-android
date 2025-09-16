@@ -111,7 +111,7 @@ fun TermsOfUseScreen(
                 CheckButton(
                     title = stringResource(R.string.onboarding__pp_checkbox),
                     htmlText = stringResource(R.string.onboarding__pp_checkbox_value)
-                        .withAccentLink("https://bitkit.to/privacy-policy"),
+                        .withAccentLink(Env.PRIVACY_POLICY_URL),
                     isChecked = privacyAccepted,
                     onCheckedChange = { privacyAccepted = it },
                     modifier = Modifier

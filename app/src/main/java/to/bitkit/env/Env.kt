@@ -191,6 +191,7 @@ internal object Env {
     const val BITKIT_GITHUB = "https://github.com/synonymdev"
     const val BITKIT_HELP_CENTER = "https://help.bitkit.to"
     const val TERMS_OF_USE_URL = "https://bitkit.to/terms-of-use"
+    const val PRIVACY_POLICY_URL = "https://bitkit.to/privacy-policy"
     const val STORING_BITCOINS_URL = "https://en.bitcoin.it/wiki/Storing_bitcoins"
     const val SUPPORT_EMAIL = "support@synonym.to"
 }
