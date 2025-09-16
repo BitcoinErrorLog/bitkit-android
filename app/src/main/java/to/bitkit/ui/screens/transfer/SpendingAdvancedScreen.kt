@@ -16,23 +16,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ext.mockOrder
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.appViewModel
-import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.components.AmountInput
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Display
@@ -42,8 +40,12 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.TransferEffect
+import to.bitkit.viewmodels.TransferToSpendingUiState
+import to.bitkit.viewmodels.TransferValues
 import to.bitkit.viewmodels.TransferViewModel
 
 @Composable
@@ -53,18 +55,64 @@ fun SpendingAdvancedScreen(
     onCloseClick: () -> Unit = {},
     onOrderCreated: () -> Unit = {},
 ) {
-    val scope = rememberCoroutineScope()
     val app = appViewModel ?: return
-    val blocktank = blocktankViewModel ?: return
-    val currencies = LocalCurrencies.current
     val state by viewModel.spendingUiState.collectAsStateWithLifecycle()
     val order = state.order ?: return
+    val transferValues by viewModel.transferValues.collectAsState()
+
+    LaunchedEffect(order.clientBalanceSat) {
+        viewModel.updateTransferValues(order.clientBalanceSat)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.transferEffects.collect { effect ->
+            when (effect) {
+                TransferEffect.OnOrderCreated -> onOrderCreated()
+                is TransferEffect.ToastException -> app.toast(effect.e)
+                is TransferEffect.ToastError -> app.toast(
+                    type = to.bitkit.models.Toast.ToastType.ERROR,
+                    title = effect.title,
+                    description = effect.description,
+                )
+            }
+        }
+    }
+
+    val isValid = transferValues.let {
+        val isAboveMin = state.receivingAmount.toULong() >= it.minLspBalance
+        val isBelowMax = state.receivingAmount.toULong() <= it.maxLspBalance
+        state.receivingAmount > 0 && isAboveMin && isBelowMax
+    }
+
+    Content(
+        uiState = state,
+        transferValues = transferValues,
+        isValid = isValid,
+        onBack = onBackClick,
+        onClose = onCloseClick,
+        onAmountChange = viewModel::onReceivingAmountChange,
+        onContinue = viewModel::onSpendingAdvancedContinue,
+    )
+}
+
+@Composable
+private fun Content(
+    uiState: TransferToSpendingUiState,
+    transferValues: TransferValues,
+    isValid: Boolean,
+    onBack: () -> Unit,
+    onClose: () -> Unit,
+    onAmountChange: (Long) -> Unit,
+    onContinue: () -> Unit,
+) {
+    val currencies = LocalCurrencies.current
+    uiState.order ?: return
 
     ScreenColumn {
         AppTopBar(
             titleText = stringResource(R.string.lightning__transfer__nav_title),
-            onBackClick = onBackClick,
-            actions = { CloseNavIcon(onCloseClick) },
+            onBackClick = onBack,
+            actions = { CloseNavIcon(onClose) },
         )
         Column(
             modifier = Modifier
@@ -73,37 +121,8 @@ fun SpendingAdvancedScreen(
                 .imePadding()
                 .testTag("SpendingAdvanced")
         ) {
-            var receivingSatsAmount by rememberSaveable { mutableLongStateOf(0) }
             var overrideSats: Long? by remember { mutableStateOf(null) }
-
-            val clientBalance = order.clientBalanceSat
-            var feeEstimate: Long? by remember { mutableStateOf(null) }
             var isLoading by remember { mutableStateOf(false) }
-
-            val transferValues by viewModel.transferValues.collectAsState()
-
-            LaunchedEffect(clientBalance) {
-                viewModel.updateTransferValues(clientBalance)
-            }
-
-            val isValid = transferValues.let {
-                val isAboveMin = receivingSatsAmount.toULong() >= it.minLspBalance
-                val isBelowMax = receivingSatsAmount.toULong() <= it.maxLspBalance
-                isAboveMin && isBelowMax
-            }
-
-            // Update feeEstimate
-            LaunchedEffect(receivingSatsAmount, transferValues) {
-                feeEstimate = null
-                if (!isValid) return@LaunchedEffect
-                runCatching {
-                    val estimate = blocktank.estimateOrderFee(
-                        spendingBalanceSats = clientBalance,
-                        receivingBalanceSats = receivingSatsAmount.toULong(),
-                    )
-                    feeEstimate = estimate.feeSat.toLong()
-                }
-            }
 
             Spacer(modifier = Modifier.height(32.dp))
             Display(
@@ -113,10 +132,11 @@ fun SpendingAdvancedScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             AmountInput(
+                defaultValue = uiState.receivingAmount,
                 primaryDisplay = currencies.primaryDisplay,
                 overrideSats = overrideSats,
                 onSatsChange = { sats ->
-                    receivingSatsAmount = sats
+                    onAmountChange(sats)
                     overrideSats = null
                 },
                 modifier = Modifier.testTag("SpendingAdvancedNumberField")
@@ -132,7 +152,7 @@ fun SpendingAdvancedScreen(
                     color = Colors.White64,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                feeEstimate?.let {
+                uiState.feeEstimate?.let {
                     MoneySSB(it)
                 } ?: run {
                     Caption13Up(text = "—", color = Colors.White64)
@@ -184,20 +204,7 @@ fun SpendingAdvancedScreen(
                 text = stringResource(R.string.common__continue),
                 onClick = {
                     isLoading = true
-                    scope.launch {
-                        try {
-                            val newOrder = blocktank.createOrder(
-                                spendingBalanceSats = clientBalance,
-                                receivingBalanceSats = receivingSatsAmount.toULong(),
-                            )
-                            viewModel.onAdvancedOrderCreated(newOrder)
-                            onOrderCreated()
-                        } catch (e: Throwable) {
-                            app.toast(e)
-                        } finally {
-                            isLoading = false
-                        }
-                    }
+                    onContinue()
                 },
                 enabled = !isLoading && isValid,
                 isLoading = isLoading,
@@ -206,5 +213,78 @@ fun SpendingAdvancedScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun Preview() {
+    AppThemeSurface {
+        Content(
+            uiState = TransferToSpendingUiState(
+                order = mockOrder().copy(clientBalanceSat = 100_000u),
+                receivingAmount = 55_000L,
+                feeEstimate = 2_500L,
+            ),
+            transferValues = TransferValues(
+                defaultLspBalance = 50_000u,
+                minLspBalance = 10_000u,
+                maxLspBalance = 90_000u,
+            ),
+            isValid = true,
+            onBack = {},
+            onClose = {},
+            onAmountChange = {},
+            onContinue = {},
+        )
+    }
+}
+
+@Preview(showSystemUi = true, device = NEXUS_5)
+@Composable
+private fun PreviewSmall() {
+    AppThemeSurface {
+        Content(
+            uiState = TransferToSpendingUiState(
+                order = mockOrder().copy(clientBalanceSat = 50_000u),
+                receivingAmount = 120_521L,
+                feeEstimate = 12_461L,
+            ),
+            transferValues = TransferValues(
+                defaultLspBalance = 50_000u,
+                minLspBalance = 10_000u,
+                maxLspBalance = 90_000u,
+            ),
+            isValid = true,
+            onBack = {},
+            onClose = {},
+            onAmountChange = {},
+            onContinue = {},
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewLoading() {
+    AppThemeSurface {
+        Content(
+            uiState = TransferToSpendingUiState(
+                order = mockOrder().copy(clientBalanceSat = 50_000u),
+                receivingAmount = 20_000L,
+                feeEstimate = null,
+                isLoading = true,
+            ),
+            transferValues = TransferValues(
+                defaultLspBalance = 25_000u,
+                minLspBalance = 10_000u,
+                maxLspBalance = 40_000u,
+            ),
+            isValid = true,
+            onBack = {},
+            onClose = {},
+            onAmountChange = {},
+            onContinue = {},
+        )
     }
 }

@@ -61,8 +61,8 @@ class BlocktankViewModel @Inject constructor(
     suspend fun estimateOrderFee(
         spendingBalanceSats: ULong,
         receivingBalanceSats: ULong,
-    ): IBtEstimateFeeResponse2 {
-        return blocktankRepo.estimateOrderFee(spendingBalanceSats, receivingBalanceSats).getOrThrow()
+    ): Result<IBtEstimateFeeResponse2> {
+        return blocktankRepo.estimateOrderFee(spendingBalanceSats, receivingBalanceSats)
     }
 
     suspend fun openChannel(orderId: String): IBtOrder {

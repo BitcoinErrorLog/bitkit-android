@@ -133,9 +133,61 @@ class TransferViewModel @Inject constructor(
         updateAvailableAmount()
     }
 
-    fun onAdvancedOrderCreated(order: IBtOrder) {
-        val defaultOrder = _spendingUiState.value.order
-        _spendingUiState.update { it.copy(order = order, defaultOrder = defaultOrder, isAdvanced = true) }
+    fun onReceivingAmountChange(amount: Long) {
+        viewModelScope.launch {
+            _spendingUiState.update { it.copy(receivingAmount = amount, feeEstimate = null) }
+
+            if (amount == 0L) return@launch
+
+            val transferValues = _transferValues.value
+            if (transferValues.minLspBalance == 0uL) return@launch
+
+            val isValid = amount.toULong() >= transferValues.minLspBalance &&
+                amount.toULong() <= transferValues.maxLspBalance
+
+            if (!isValid) return@launch
+
+            val result = blocktankRepo.estimateOrderFee(
+                spendingBalanceSats = _spendingUiState.value.order?.clientBalanceSat ?: 0u,
+                receivingBalanceSats = amount.toULong(),
+            )
+
+            result.fold(
+                onSuccess = { response ->
+                    _spendingUiState.update {
+                        it.copy(feeEstimate = response.feeSat.toLong())
+                    }
+                },
+                onFailure = { error ->
+                    Logger.error("Failed to estimate fee", error, context = TAG)
+                    _spendingUiState.update {
+                        it.copy(feeEstimate = null)
+                    }
+                }
+            )
+        }
+    }
+
+    fun onSpendingAdvancedContinue() {
+        viewModelScope.launch {
+            runCatching {
+                val oldOrder = _spendingUiState.value.order ?: return@launch
+                val newOrder = blocktankRepo.createOrder(
+                    spendingBalanceSats = oldOrder.clientBalanceSat,
+                    receivingBalanceSats = _spendingUiState.value.receivingAmount.toULong(),
+                ).getOrThrow()
+                _spendingUiState.update {
+                    it.copy(
+                        order = newOrder,
+                        defaultOrder = oldOrder,
+                        isAdvanced = true,
+                    )
+                }
+                setTransferEffect(TransferEffect.OnOrderCreated)
+            }.onFailure { e ->
+                setTransferEffect(TransferEffect.ToastException(e))
+            }
+        }
     }
 
     /** Pays for the order and start watching it for state updates */
@@ -492,6 +544,8 @@ data class TransferToSpendingUiState(
     val maxAllowedToSend: Long = 0,
     val balanceAfterFee: Long = 0,
     val isLoading: Boolean = false,
+    val receivingAmount: Long = 0,
+    val feeEstimate: Long? = null,
 ) {
     fun balanceAfterFeeQuarter() = (balanceAfterFee.toDouble() * 0.25).roundToLong()
 }
