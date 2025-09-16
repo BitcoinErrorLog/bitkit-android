@@ -40,7 +40,6 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.TransactionSpeed
@@ -148,11 +147,11 @@ class LightningRepo @Inject constructor(
 
     private suspend fun setup(
         walletIndex: Int,
-        customServer: ElectrumServer? = null,
+        customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ) = withContext(bgDispatcher) {
         return@withContext try {
-            lightningService.setup(walletIndex, customServer, customRgsServerUrl)
+            lightningService.setup(walletIndex, customServerUrl, customRgsServerUrl)
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.error("Node setup error", e, context = TAG)
@@ -160,12 +159,13 @@ class LightningRepo @Inject constructor(
         }
     }
 
+    @Suppress("LongMethod", "LongParameterList")
     suspend fun start(
         walletIndex: Int = 0,
         timeout: Duration? = null,
         shouldRetry: Boolean = true,
         eventHandler: NodeEventHandler? = null,
-        customServer: ElectrumServer? = null,
+        customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
         val initialLifecycleState = _lightningState.value.nodeLifecycleState
@@ -179,7 +179,7 @@ class LightningRepo @Inject constructor(
 
             // Setup if not already setup
             if (lightningService.node == null) {
-                val setupResult = setup(walletIndex, customServer, customRgsServerUrl)
+                val setupResult = setup(walletIndex, customServerUrl, customRgsServerUrl)
                 if (setupResult.isFailure) {
                     _lightningState.update {
                         it.copy(
@@ -232,7 +232,7 @@ class LightningRepo @Inject constructor(
                     timeout = timeout,
                     shouldRetry = false,
                     eventHandler = eventHandler,
-                    customServer = customServer,
+                    customServerUrl = customServerUrl,
                     customRgsServerUrl = customRgsServerUrl,
                 )
             } else {
@@ -312,8 +312,8 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    suspend fun restartWithElectrumServer(newServer: ElectrumServer): Result<Unit> = withContext(bgDispatcher) {
-        Logger.info("Changing ldk-node electrum server to: $newServer")
+    suspend fun restartWithElectrumServer(newServerUrl: String): Result<Unit> = withContext(bgDispatcher) {
+        Logger.info("Changing ldk-node electrum server to: '$newServerUrl'")
 
         waitForNodeToStop().onFailure { return@withContext Result.failure(it) }
         stop().onFailure {
@@ -321,26 +321,26 @@ class LightningRepo @Inject constructor(
             return@withContext Result.failure(it)
         }
 
-        Logger.debug("Starting node with new electrum server: $newServer")
+        Logger.debug("Starting node with new electrum server: '$newServerUrl'")
 
         start(
             eventHandler = cachedEventHandler,
-            customServer = newServer,
+            customServerUrl = newServerUrl,
             shouldRetry = false,
         ).onFailure { startError ->
             Logger.warn("Failed ldk-node config change, attempting recovery…")
             restartWithPreviousConfig()
             return@withContext Result.failure(startError)
         }.onSuccess {
-            settingsStore.update { it.copy(electrumServer = newServer) }
+            settingsStore.update { it.copy(electrumServer = newServerUrl) }
 
-            Logger.info("Successfully changed electrum server connection")
+            Logger.info("Successfully changed electrum server")
             return@withContext Result.success(Unit)
         }
     }
 
     suspend fun restartWithRgsServer(newRgsUrl: String): Result<Unit> = withContext(bgDispatcher) {
-        Logger.info("Changing ldk-node RGS server to: $newRgsUrl")
+        Logger.info("Changing ldk-node RGS server to: '$newRgsUrl'")
 
         waitForNodeToStop().onFailure { return@withContext Result.failure(it) }
         stop().onFailure {
@@ -348,7 +348,7 @@ class LightningRepo @Inject constructor(
             return@withContext Result.failure(it)
         }
 
-        Logger.debug("Starting node with new RGS server: $newRgsUrl")
+        Logger.debug("Starting node with new RGS server: '$newRgsUrl'")
 
         start(
             eventHandler = cachedEventHandler,

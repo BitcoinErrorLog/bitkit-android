@@ -11,7 +11,6 @@ import to.bitkit.data.serializers.SettingsSerializer
 import to.bitkit.env.Env
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransactionSpeed
@@ -105,7 +104,7 @@ data class SettingsData(
     val balanceWarningTimes: Int = 0,
     val coinSelectAuto: Boolean = true,
     val coinSelectPreference: CoinSelectionPreference = CoinSelectionPreference.BranchAndBound,
-    val electrumServer: ElectrumServer = Env.defaultElectrumServer,
+    val electrumServer: String = Env.defaultElectrumServer,
     val rgsServerUrl: String? = Env.ldkRgsServerUrl,
 )
 

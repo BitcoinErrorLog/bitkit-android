@@ -10,7 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,8 +50,8 @@ fun TextInput(
         },
         isError = isError,
         textStyle = textStyle,
-        value = value,
-        onValueChange = onValueChange,
+        value = TextFieldValue(value, TextRange(value.length)),
+        onValueChange = { textFieldValue -> onValueChange(textFieldValue.text) },
         maxLines = maxLines,
         minLines = minLines,
         singleLine = singleLine,
