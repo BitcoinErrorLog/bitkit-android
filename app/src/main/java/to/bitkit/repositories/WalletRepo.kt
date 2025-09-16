@@ -464,21 +464,21 @@ class WalletRepo @Inject constructor(
     }
 
     private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val totalOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
-        if (totalOnchainSats == 0uL) {
+        val spendableOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
+        if (spendableOnchainSats == 0uL) {
             return@withContext 0uL
         }
-        val fallbackMaxFee = (totalOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
+        val fallbackMaxFee = (spendableOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
 
         val fee = lightningRepo.calculateTotalFee(
-            amountSats = totalOnchainSats,
+            amountSats = spendableOnchainSats,
             speed = TransactionSpeed.default(),
             utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
         ).onFailure {
             Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
         }.getOrDefault(fallbackMaxFee)
 
-        val maxSendable = (totalOnchainSats - fee).coerceAtLeast(0u)
+        val maxSendable = (spendableOnchainSats - fee).coerceAtLeast(0u)
         maxSendable
     }
 
