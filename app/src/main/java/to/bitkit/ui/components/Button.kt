@@ -6,15 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -51,7 +49,7 @@ enum class ButtonSize {
 
 @Composable
 fun PrimaryButton(
-    text: String,
+    text: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: (@Composable () -> Unit)? = null,
@@ -61,11 +59,114 @@ fun PrimaryButton(
     fullWidth: Boolean = true,
     color: Color = Colors.White16,
 ) {
+    val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
         colors = AppButtonDefaults.primaryColors.copy(containerColor = color),
-        contentPadding = PaddingValues(horizontal = size.horizontalPadding),
+        contentPadding = contentPadding,
+        modifier = Modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+            .requiredHeight(size.height)
+            .then(modifier)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Colors.White32,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(size.height / 2)
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (icon != null) {
+                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                        icon()
+                    }
+                }
+                text?.let {
+                    Text(
+                        text = text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SecondaryButton(
+    text: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+    isLoading: Boolean = false,
+    size: ButtonSize = ButtonSize.Large,
+    enabled: Boolean = true,
+    fullWidth: Boolean = true,
+) {
+    val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
+    val border = BorderStroke(2.dp, if (enabled) Colors.White16 else Color.Transparent)
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled && !isLoading,
+        colors = AppButtonDefaults.secondaryColors,
+        contentPadding = contentPadding,
+        border = border,
+        modifier = Modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+            .requiredHeight(size.height)
+            .then(modifier)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Colors.White32,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(size.height / 2)
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (icon != null) {
+                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                        icon()
+                    }
+                }
+                text?.let {
+                    Text(
+                        text = text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TertiaryButton(
+    text: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+    isLoading: Boolean = false,
+    size: ButtonSize = ButtonSize.Large,
+    enabled: Boolean = true,
+    fullWidth: Boolean = true,
+) {
+    val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
+    TextButton(
+        onClick = onClick,
+        enabled = enabled && !isLoading,
+        colors = AppButtonDefaults.tertiaryColors,
+        contentPadding = contentPadding,
         modifier = Modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
@@ -82,102 +183,14 @@ fun PrimaryButton(
                 Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
                     icon()
                 }
-                Spacer(modifier = Modifier.width(8.dp))
             }
-            Text(
-                text = text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-fun SecondaryButton(
-    text: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: (@Composable () -> Unit)? = null,
-    isLoading: Boolean = false,
-    size: ButtonSize = ButtonSize.Large,
-    enabled: Boolean = true,
-    fullWidth: Boolean = true,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled && !isLoading,
-        colors = AppButtonDefaults.secondaryColors,
-        contentPadding = PaddingValues(horizontal = size.horizontalPadding),
-        border = BorderStroke(2.dp, if (enabled) Colors.White16 else Color.Transparent),
-        modifier = Modifier
-            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-            .height(size.height)
-            .then(modifier)
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                color = Colors.White32,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(size.height / 2)
-            )
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (icon != null) {
-                    icon()
-                }
-                text?.let {
-                    Text(
-                        text = text,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            text?.let {
+                Text(
+                    text = text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        }
-    }
-}
-
-@Composable
-fun TertiaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: (@Composable () -> Unit)? = null,
-    isLoading: Boolean = false,
-    size: ButtonSize = ButtonSize.Large,
-    enabled: Boolean = true,
-    fullWidth: Boolean = true,
-) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled && !isLoading,
-        colors = AppButtonDefaults.tertiaryColors,
-        contentPadding = PaddingValues(horizontal = size.horizontalPadding),
-        modifier = Modifier
-            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-            .height(size.height)
-            .then(modifier)
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                color = Colors.White32,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(size.height / 2)
-            )
-        } else {
-            if (icon != null) {
-                icon()
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -246,6 +259,39 @@ private fun PrimaryButtonPreview() {
                 onClick = {},
                 enabled = false,
             )
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                PrimaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Large,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+                PrimaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Small,
+                    enabled = false,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+            }
         }
     }
 }
@@ -261,18 +307,6 @@ private fun SecondaryButtonPreview() {
             SecondaryButton(
                 text = "Secondary",
                 onClick = {},
-            )
-            SecondaryButton(
-                text = null,
-                onClick = {},
-                fullWidth = false,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = "",
-                        modifier = Modifier.size(16.dp)
-                    )
-                },
             )
             SecondaryButton(
                 text = "Secondary With Icon",
@@ -294,6 +328,13 @@ private fun SecondaryButtonPreview() {
                 text = "Secondary Disabled",
                 onClick = {},
                 enabled = false,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "",
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
             )
             SecondaryButton(
                 text = "Secondary Small",
@@ -312,6 +353,39 @@ private fun SecondaryButtonPreview() {
                 onClick = {},
                 enabled = false,
             )
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SecondaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Large,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+                SecondaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Small,
+                    enabled = false,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+            }
         }
     }
 }
@@ -366,6 +440,39 @@ private fun TertiaryButtonPreview() {
                 enabled = false,
                 onClick = {}
             )
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TertiaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Large,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+                TertiaryButton(
+                    text = null,
+                    onClick = {},
+                    fullWidth = false,
+                    size = ButtonSize.Small,
+                    enabled = false,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                )
+            }
         }
     }
 }

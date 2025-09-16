@@ -6,8 +6,6 @@ import org.lightningdevkit.ldknode.Network
 import to.bitkit.BuildConfig
 import to.bitkit.ext.ensureDir
 import to.bitkit.models.BlocktankNotificationType
-import to.bitkit.models.ElectrumProtocol
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.utils.Logger
 import java.io.File
@@ -151,33 +149,13 @@ internal object Env {
     }
 
     object ElectrumServers {
-        val BITCOIN = ElectrumServer(
-            host = "35.187.18.233",
-            tcp = 8911,
-            ssl = 8900,
-            protocol = ElectrumProtocol.SSL,
-        )
-        val TESTNET = ElectrumServer(
-            host = "electrum.blockstream.info",
-            tcp = 60001, // or 50001
-            ssl = 60002, // or 50002
-            protocol = ElectrumProtocol.SSL,
-        )
-        val REGTEST = ElectrumServer(
-            host = "34.65.252.32",
-            tcp = 18483,
-            ssl = 18484,
-            protocol = ElectrumProtocol.TCP,
-        )
-        val E2E = ElectrumServer(
-            host = "127.0.0.1",
-            tcp = 60001,
-            ssl = 60002,
-            protocol = ElectrumProtocol.TCP,
-        )
+        const val BITCOIN = "ssl://35.187.18.233:8900"
+        const val TESTNET = "ssl://electrum.blockstream.info:60002"
+        const val REGTEST = "tcp://34.65.252.32:18483"
+        const val E2E = "tcp://127.0.0.1:60001"
     }
 
-    val defaultElectrumServer: ElectrumServer
+    val defaultElectrumServer: String
         get() {
             if (isE2eTest) return ElectrumServers.E2E
             return when (network) {
@@ -211,6 +189,7 @@ internal object Env {
     const val BITKIT_GITHUB = "https://github.com/synonymdev"
     const val BITKIT_HELP_CENTER = "https://help.bitkit.to"
     const val TERMS_OF_USE_URL = "https://bitkit.to/terms-of-use"
+    const val PRIVACY_POLICY_URL = "https://bitkit.to/privacy-policy"
     const val STORING_BITCOINS_URL = "https://en.bitcoin.it/wiki/Storing_bitcoins"
     const val SUPPORT_EMAIL = "support@synonym.to"
 }

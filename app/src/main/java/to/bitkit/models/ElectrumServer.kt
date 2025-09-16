@@ -24,6 +24,42 @@ data class ElectrumServer(
     }
 
     companion object {
+        const val MAX_VALID_PORT = 65535
+
+        fun parse(url: String): ElectrumServer {
+            val url = url.trim()
+            require(url.isNotBlank()) { "URL cannot be blank" }
+
+            val parts = url.split("://", limit = 2)
+            require(parts.size == 2) { "Invalid URL format, expected 'scheme://host:port'" }
+
+            val scheme = parts[0].lowercase()
+            val protocol = when (scheme) {
+                "tcp" -> ElectrumProtocol.TCP
+                "ssl" -> ElectrumProtocol.SSL
+                else -> throw IllegalArgumentException("Invalid scheme: $scheme, expected 'tcp' or 'ssl'")
+            }
+
+            val hostPort = parts[1].split(":", limit = 2)
+            require(hostPort.size == 2) { "Invalid URL format, expected 'scheme://host:port'" }
+
+            val host = hostPort[0].trim()
+            require(host.isNotBlank()) { "Host cannot be blank" }
+
+            val port = hostPort[1].trim().toIntOrNull()
+            require(port != null && port > 0 && port <= MAX_VALID_PORT) { "Invalid port: ${hostPort[1]}" }
+
+            val defaultTcp = ElectrumProtocol.TCP.getDefaultPort()
+            val defaultSsl = ElectrumProtocol.SSL.getDefaultPort()
+
+            return ElectrumServer(
+                host = host,
+                tcp = if (protocol == ElectrumProtocol.TCP) port else defaultTcp,
+                ssl = if (protocol == ElectrumProtocol.SSL) port else defaultSsl,
+                protocol = protocol,
+            )
+        }
+
         fun fromUserInput(
             host: String,
             port: Int,
