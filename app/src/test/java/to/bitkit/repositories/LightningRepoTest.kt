@@ -388,7 +388,8 @@ class LightningRepoTest : BaseUnitTest() {
                 address = any(),
                 sats = any(),
                 satsPerVByte = any(),
-                utxosToSpend = anyOrNull()
+                utxosToSpend = anyOrNull(),
+                isMaxAmount = any()
             )
         ).thenReturn("testPaymentId")
 
