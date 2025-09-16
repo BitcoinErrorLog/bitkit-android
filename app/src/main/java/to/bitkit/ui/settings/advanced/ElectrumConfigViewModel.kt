@@ -113,12 +113,12 @@ class ElectrumConfigViewModel @Inject constructor(
     fun resetToDefault() {
         val defaultServer = ElectrumServer.parse(Env.defaultElectrumServer)
         _uiState.update {
-            it.copy(
+            val newState = it.copy(
                 host = defaultServer.host,
                 port = defaultServer.getPort().toString(),
                 protocol = defaultServer.protocol,
-                hasEdited = false,
             )
+            newState.copy(hasEdited = computeHasEdited(newState))
         }
     }
 
