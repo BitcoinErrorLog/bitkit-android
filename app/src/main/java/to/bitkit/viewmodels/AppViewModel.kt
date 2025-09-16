@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -218,7 +219,7 @@ class AppViewModel @Inject constructor(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = ((channel.outboundCapacityMsat + (channel.unspendablePunishmentReserve ?: 0UL)) / 1000u).toLong(),
+                                        sats = channel.getAmountSend(),
                                     ),
                                     event = event
                                 )
@@ -1491,12 +1492,18 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
 
+    private fun ChannelDetails.getAmountSend(): Long {
+        return ((this.outboundCapacityMsat + (this.unspendablePunishmentReserve ?: 0UL)) / MILLISATS).toLong()
+    }
+
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
         private const val TEN_USD = 10
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
+
+        private const val MILLISATS = 1000U
     }
 }
 
