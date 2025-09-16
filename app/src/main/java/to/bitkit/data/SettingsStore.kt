@@ -11,7 +11,6 @@ import to.bitkit.data.serializers.SettingsSerializer
 import to.bitkit.env.Env
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransactionSpeed

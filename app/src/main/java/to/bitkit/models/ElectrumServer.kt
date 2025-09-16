@@ -24,6 +24,8 @@ data class ElectrumServer(
     }
 
     companion object {
+        const val MAX_VALID_PORT = 65535
+
         fun parse(url: String): ElectrumServer {
             val url = url.trim()
             require(url.isNotBlank()) { "URL cannot be blank" }
@@ -45,7 +47,7 @@ data class ElectrumServer(
             require(host.isNotBlank()) { "Host cannot be blank" }
 
             val port = hostPort[1].trim().toIntOrNull()
-            require(port != null && port > 0 && port <= 65535) { "Invalid port: ${hostPort[1]}" }
+            require(port != null && port > 0 && port <= MAX_VALID_PORT) { "Invalid port: ${hostPort[1]}" }
 
             val defaultTcp = ElectrumProtocol.TCP.getDefaultPort()
             val defaultSsl = ElectrumProtocol.SSL.getDefaultPort()

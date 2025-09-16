@@ -6,8 +6,6 @@ import org.lightningdevkit.ldknode.Network
 import to.bitkit.BuildConfig
 import to.bitkit.ext.ensureDir
 import to.bitkit.models.BlocktankNotificationType
-import to.bitkit.models.ElectrumProtocol
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.utils.Logger
 import java.io.File

@@ -31,7 +31,6 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceState
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.TransactionSpeed

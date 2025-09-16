@@ -159,6 +159,7 @@ class LightningRepo @Inject constructor(
         }
     }
 
+    @Suppress("LongMethod", "LongParameterList")
     suspend fun start(
         walletIndex: Int = 0,
         timeout: Duration? = null,

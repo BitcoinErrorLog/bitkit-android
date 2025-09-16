@@ -28,7 +28,6 @@
     <ID>ComposableParamOrder:HomeScreen.kt$Content</ID>
     <ID>ComposableParamOrder:InfoScreenContent.kt$InfoScreenContent</ID>
     <ID>ComposableParamOrder:Money.kt$MoneyCaptionB</ID>
-    <ID>ComposableParamOrder:NumberPadTextField.kt$MoneyAmount</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingSlidesScreen</ID>
     <ID>ComposableParamOrder:OnboardingSlidesScreen.kt$OnboardingTab</ID>
     <ID>ComposableParamOrder:PriceCard.kt$PriceCard</ID>
@@ -168,13 +167,11 @@
     <ID>LongMethod:AppViewModel.kt$AppViewModel$private suspend fun proceedWithPayment()</ID>
     <ID>LongMethod:ContentView.kt$private fun NavGraphBuilder.widgets( navController: NavHostController, settingsViewModel: SettingsViewModel, currencyViewModel: CurrencyViewModel, )</ID>
     <ID>LongMethod:CoreService.kt$ActivityService$suspend fun generateRandomTestData(count: Int = 100)</ID>
-    <ID>LongMethod:LightningRepo.kt$LightningRepo$suspend fun start( walletIndex: Int = 0, timeout: Duration? = null, shouldRetry: Boolean = true, eventHandler: NodeEventHandler? = null, customServer: ElectrumServer? = null, customRgsServerUrl: String? = null, ): Result&lt;Unit&gt;</ID>
     <ID>LongMethod:LightningService.kt$LightningService$private fun logEvent(event: Event)</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
     <ID>LongMethod:WakeNodeWorker.kt$WakeNodeWorker$private suspend fun handleLdkEvent(event: Event)</ID>
     <ID>LongParameterList:ActivityRepo.kt$ActivityRepo$( filter: ActivityFilter? = null, txType: PaymentType? = null, tags: List&lt;String&gt;? = null, search: String? = null, minDate: ULong? = null, maxDate: ULong? = null, limit: UInt? = null, sortDirection: SortDirection? = null, )</ID>
     <ID>LongParameterList:ActivityRepo.kt$ActivityRepo$( id: String, paymentHash: String? = null, txId: String? = null, address: String, isReceive: Boolean, tags: List&lt;String&gt;, )</ID>
-    <ID>LongParameterList:AppViewModel.kt$AppViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val keychain: Keychain, private val lightningRepo: LightningRepo, private val walletRepo: WalletRepo, private val coreService: CoreService, private val ldkNodeEventBus: LdkNodeEventBus, private val settingsStore: SettingsStore, private val currencyRepo: CurrencyRepo, private val activityRepo: ActivityRepo, private val blocktankRepo: BlocktankRepo, connectivityRepo: ConnectivityRepo, healthRepo: HealthRepo, )</ID>
     <ID>LongParameterList:BiometricPrompt.kt$( activity: Context, title: String, cancelButtonText: String, onAuthSucceed: () -&gt; Unit, onAuthFailed: (() -&gt; Unit), onAuthError: ((errorCode: Int, errString: CharSequence) -&gt; Unit), )</ID>
     <ID>LongParameterList:BiometricPrompt.kt$( activity: Context, title: String, cancelButtonText: String, onAuthSucceeded: () -&gt; Unit, onAuthFailed: (() -&gt; Unit), onAuthError: ((errorCode: Int, errString: CharSequence) -&gt; Unit), onUnsupported: () -&gt; Unit, )</ID>
     <ID>LongParameterList:CoreService.kt$ActivityService$( filter: ActivityFilter? = null, txType: PaymentType? = null, tags: List&lt;String&gt;? = null, search: String? = null, minDate: ULong? = null, maxDate: ULong? = null, limit: UInt? = null, sortDirection: SortDirection? = null, )</ID>
@@ -184,7 +181,6 @@
     <ID>LongParameterList:LightningConnectionsViewModel.kt$LightningConnectionsViewModel$( @ApplicationContext private val context: Context, @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val lightningRepo: LightningRepo, internal val blocktankRepo: BlocktankRepo, private val logsRepo: LogsRepo, private val addressChecker: AddressChecker, private val ldkNodeEventBus: LdkNodeEventBus, private val walletRepo: WalletRepo, )</ID>
     <ID>LongParameterList:LightningRepo.kt$LightningRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val lightningService: LightningService, private val ldkNodeEventBus: LdkNodeEventBus, private val settingsStore: SettingsStore, private val coreService: CoreService, private val lspNotificationsService: LspNotificationsService, private val firebaseMessaging: FirebaseMessaging, private val keychain: Keychain, private val lnurlService: LnurlService, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:LightningRepo.kt$LightningRepo$( address: Address, sats: ULong, speed: TransactionSpeed? = null, utxosToSpend: List&lt;SpendableUtxo&gt;? = null, feeRates: FeeRates? = null, isTransfer: Boolean = false, channelId: String? = null, )</ID>
-    <ID>LongParameterList:LightningRepo.kt$LightningRepo$( walletIndex: Int = 0, timeout: Duration? = null, shouldRetry: Boolean = true, eventHandler: NodeEventHandler? = null, customServer: ElectrumServer? = null, customRgsServerUrl: String? = null, )</ID>
     <ID>LongParameterList:Notifications.kt$( title: String?, text: String?, extras: Bundle? = null, bigText: String? = null, id: Int = Random.nextInt(), context: Context, )</ID>
     <ID>LongParameterList:TransferViewModel.kt$TransferViewModel$( @ApplicationContext private val context: Context, private val lightningRepo: LightningRepo, private val blocktankRepo: BlocktankRepo, private val walletRepo: WalletRepo, private val currencyRepo: CurrencyRepo, private val settingsStore: SettingsStore, private val cacheStore: CacheStore, )</ID>
     <ID>LongParameterList:WalletRepo.kt$WalletRepo$( @BgDispatcher private val bgDispatcher: CoroutineDispatcher, private val db: AppDb, private val keychain: Keychain, private val coreService: CoreService, private val settingsStore: SettingsStore, private val addressChecker: AddressChecker, private val lightningRepo: LightningRepo, private val cacheStore: CacheStore, )</ID>
@@ -389,7 +385,6 @@
     <ID>MaxLineLength:BlocktankRegtestScreen.kt$"Initiating channel close with fundingTxId: $fundingTxId, vout: $vout, forceCloseAfter: $forceCloseAfter"</ID>
     <ID>MaxLineLength:BlocktankRepo.kt$BlocktankRepo$"Buying channel with lspBalanceSat: $receivingBalanceSats, channelExpiryWeeks: $channelExpiryWeeks, options: $options"</ID>
     <ID>MaxLineLength:ChannelOrdersScreen.kt$lnurl = "LNURL1DP68GURN8GHJ7CTSDYH8XARPVUHXYMR0VD4HGCTWDVH8GME0VFKX7CMTW3SKU6E0V9CXJTMKXGHKCTENVV6NVDP4XUEJ6ETRX33Z6DPEXU6Z6C34XQEZ6DT9XENX2WFNXQ6RXDTXGQAH4MLNURL1DP68GURN8GHJ7CTSDYH8XARPVUHXYMR0VD4HGCTWDVH8GME0VFKX7CMTW3SKU6E0V9CXJTMKXGHKCTENVV6NVDP4XUEJ6ETRX33Z6DPEXU6Z6C34XQEZ6DT9XENX2WFNXQ6RXDTXGQAH4M"</ID>
-    <ID>MaxLineLength:CoreService.kt$CoreService$// val blocktankPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }.orEmpty()</ID>
     <ID>MaxLineLength:CryptoTest.kt$CryptoTest$val ciphertext = "l2fInfyw64gO12odo8iipISloQJ45Rc4WjFmpe95brdaAMDq+T/L9ZChcmMCXnR0J6BXd8sSIJe/0bmby8uSZZJuVCzwF76XHfY5oq0Y1/hKzyZTn8nG3dqfiLHnAPy1tZFQfm5ALgjwWnViYJLXoGFpXs7kLMA=".fromBase64()</ID>
     <ID>MaxLineLength:CryptoTest.kt$CryptoTest$val decryptedPayload = """{"source":"blocktank","type":"incomingHtlc","payload":{"secretMessage":"hello"},"createdAt":"2024-09-18T13:33:52.555Z"}"""</ID>
     <ID>MaxLineLength:HeadlineCard.kt$headline = "How Bitcoin changed El Salvador in more ways a big headline to test the text overflooooooow"</ID>
@@ -554,14 +549,6 @@
     <ID>PreviewPublic:EmptyWalletView.kt$EmptyStateViewPreview</ID>
     <ID>PreviewPublic:HighlightLabel.kt$FlexibleLogoPreview</ID>
     <ID>PreviewPublic:HighlightLabel.kt$LongTextLogoPreview</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountBitcoinClassicEmpty</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountBitcoinClassicWithValue</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountBitcoinModernEmpty</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountBitcoinModernWithValue</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountBitcoinPartial</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountFiatEmpty</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountFiatPartial</ID>
-    <ID>PreviewPublic:NumberPadTextField.kt$PreviewMoneyAmountFiatWithValue</ID>
     <ID>PreviewPublic:RestoreWalletScreen.kt$RestoreWalletViewPreview</ID>
     <ID>PreviewPublic:SplashScreen.kt$SplashScreenPreview</ID>
     <ID>PrintStackTrace:ShareSheet.kt$e</ID>
@@ -577,7 +564,6 @@
     <ID>TooGenericExceptionCaught:ActivityRepo.kt$ActivityRepo$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AddressChecker.kt$AddressChecker$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AppViewModel.kt$AppViewModel$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:AppViewModel.kt$AppViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ArticleModel.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BackupNavSheetViewModel.kt$BackupNavSheetViewModel$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:BackupRepo.kt$BackupRepo$e: Throwable</ID>
