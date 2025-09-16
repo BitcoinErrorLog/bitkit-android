@@ -161,7 +161,9 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncBalances() {
-        lightningRepo.getBalances()?.let { balance ->
+        lightningRepo.getBalancesAsync().onSuccess { balance ->
+            _walletState.update { it.copy(balanceDetails = balance) }
+
             val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
 
             val newBalance = BalanceState(
@@ -172,7 +174,6 @@ class WalletRepo @Inject constructor(
                 totalSats = totalSats,
             )
             _balanceState.update { newBalance }
-            _walletState.update { it.copy(balanceDetails = lightningRepo.getBalances()) }
             saveBalanceState(newBalance)
         }
     }

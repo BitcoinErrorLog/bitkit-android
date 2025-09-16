@@ -701,6 +701,11 @@ class LightningRepo @Inject constructor(
     fun getBalances(): BalanceDetails? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.balances else null
 
+
+    suspend fun getBalancesAsync(): Result<BalanceDetails> = executeWhenNodeRunning("getBalancesAsync") {
+        Result.success(checkNotNull(lightningService.balances))
+    }
+
     fun getStatus(): NodeStatus? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.status else null
 
