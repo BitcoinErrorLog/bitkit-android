@@ -537,7 +537,7 @@ private fun RootNavHost(
                     onAdvanced = { navController.navigate(Routes.FundingAdvanced) },
                     onBackClick = { navController.popBackStack() },
                     onCloseClick = { navController.navigateToHome() },
-                    isGeoBlocked = isGeoBlocked
+                    isGeoBlocked = isGeoBlocked,
                 )
             }
             composableWithDefaultTransitions<Routes.FundingAdvanced> {
