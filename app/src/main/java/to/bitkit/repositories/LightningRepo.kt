@@ -520,7 +520,7 @@ class LightningRepo @Inject constructor(
         feeRates: FeeRates? = null,
         isTransfer: Boolean = false,
         channelId: String? = null,
-        isMaxAmount: Boolean = false
+        isMaxAmount: Boolean = false,
     ): Result<Txid> =
         executeWhenNodeRunning("Send on-chain") {
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
@@ -700,7 +700,7 @@ class LightningRepo @Inject constructor(
 
     fun getBalances(): BalanceDetails? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.balances else null
-    
+
     suspend fun getBalancesAsync(): Result<BalanceDetails> = executeWhenNodeRunning("getBalancesAsync") {
         Result.success(checkNotNull(lightningService.balances))
     }
