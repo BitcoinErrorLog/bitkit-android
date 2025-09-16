@@ -211,7 +211,7 @@ class WalletRepoTest : BaseUnitTest() {
             on { totalLightningBalanceSats } doReturn 500uL
             on { totalOnchainBalanceSats } doReturn 1000uL
         }
-        whenever(lightningRepo.getBalances()).thenReturn(balanceDetails)
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balanceDetails))
 
         val channels = listOf(
             mock<ChannelDetails> {
@@ -236,7 +236,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `syncBalances should update wallet state with balance details`() = test {
         val balanceDetails = mock<BalanceDetails>()
-        whenever(lightningRepo.getBalances()).thenReturn(balanceDetails)
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balanceDetails))
 
         sut.syncBalances()
 

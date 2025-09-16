@@ -218,7 +218,7 @@ class TransferViewModel @Inject constructor(
             _spendingUiState.update { it.copy(isLoading = true) }
 
             // Get the max available balance discounting onChain fee
-            val availableAmount = walletRepo.getMaxSendAmount()
+            val availableAmount = walletRepo.balanceState.value.maxSendOnchainSats
 
             withTimeoutOrNull(1.minutes) {
                 isNodeRunning.first { it }

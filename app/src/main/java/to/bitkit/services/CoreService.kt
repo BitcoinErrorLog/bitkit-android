@@ -414,7 +414,7 @@ class ActivityService(
         }
 
         if (onChain.id in cacheStore.data.first().deletedActivities && !forceUpdate) {
-            Logger.debug("Activity ${onChain.id} was already deleted, skipping", context = TAG)
+            Logger.verbose("Activity ${onChain.id} was already deleted, skipping", context = TAG)
             return
         }
 

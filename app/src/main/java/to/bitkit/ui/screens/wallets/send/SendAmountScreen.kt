@@ -102,7 +102,7 @@ fun SendAmountScreen(
         }.takeIf { canGoBack },
         onClickMax = { maxSats ->
             // TODO port the RN sendMax logic if still needed
-            if (uiState.payMethod == SendMethod.LIGHTNING && uiState.lnurl == null) {
+            if (uiState.lnurl == null) {
                 app?.toast(
                     type = Toast.ToastType.WARNING,
                     title = context.getString(R.string.wallet__send_max_spending__title),
@@ -190,7 +190,7 @@ private fun SendAmountNodeRunning(
 
         val availableAmount = when {
             isLnurlWithdraw -> uiState.lnurl.data.maxWithdrawableSat().toLong()
-            uiState.payMethod == SendMethod.ONCHAIN -> balances.totalOnchainSats.toLong()
+            uiState.payMethod == SendMethod.ONCHAIN -> balances.maxSendOnchainSats.toLong()
             else -> balances.maxSendLightningSats.toLong()
         }
 
