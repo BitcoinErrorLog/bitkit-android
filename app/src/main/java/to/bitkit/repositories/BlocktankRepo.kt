@@ -101,11 +101,10 @@ class BlocktankRepo @Inject constructor(
         return@withContext runCatching {
             val channel = lightningService.channels?.find { it.channelId == channelId }
 
-            getOrders(
-                orderIds = null,
-                filter = null,
-                refresh = true
-            ).any { order -> order.channel?.shortChannelId == channel?.shortChannelId.toString() }
+            _blocktankState.value.cjitEntries.any { order ->
+                order.channel?.shortChannelId?.toULongOrNull() == channel?.shortChannelId &&
+                    channel?.shortChannelId != null
+            }
         }.getOrDefault(false)
     }
 
