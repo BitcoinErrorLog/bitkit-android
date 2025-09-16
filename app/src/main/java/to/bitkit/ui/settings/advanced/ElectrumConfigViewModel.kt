@@ -58,7 +58,8 @@ class ElectrumConfigViewModel @Inject constructor(
 
         viewModelScope.launch(bgDispatcher) {
             settingsStore.data.map { it.electrumServer }.distinctUntilChanged()
-                .collect { electrumServer ->
+                .collect { electrumServerUrl ->
+                    val electrumServer = ElectrumServer.parse(electrumServerUrl)
                     val connectedPeer = ElectrumServerPeer(
                         host = electrumServer.host,
                         port = electrumServer.getPort().toString(),
@@ -110,7 +111,7 @@ class ElectrumConfigViewModel @Inject constructor(
     }
 
     fun resetToDefault() {
-        val defaultServer = Env.defaultElectrumServer
+        val defaultServer = ElectrumServer.parse(Env.defaultElectrumServer)
         _uiState.update {
             it.copy(
                 host = defaultServer.host,
@@ -139,8 +140,9 @@ class ElectrumConfigViewModel @Inject constructor(
                     port = port,
                     protocol = protocol,
                 )
+                val serverUrl = electrumServer.toString()
 
-                lightningRepo.restartWithElectrumServer(electrumServer)
+                lightningRepo.restartWithElectrumServer(serverUrl)
                     .onSuccess {
                         _uiState.update {
                             it.copy(

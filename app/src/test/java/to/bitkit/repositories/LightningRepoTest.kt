@@ -436,16 +436,16 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `restartWithElectrumServer should setup with new server`() = test {
         startNodeForTesting()
-        val customServer = mock<ElectrumServer>()
+        val customServerUrl = "ssl://test.example.com:50002"
         whenever(lightningService.node).thenReturn(null)
         whenever(lightningService.stop()).thenReturn(Unit)
 
-        val result = sut.restartWithElectrumServer(customServer)
+        val result = sut.restartWithElectrumServer(customServerUrl)
 
         assertTrue(result.isSuccess)
         val inOrder = inOrder(lightningService)
         inOrder.verify(lightningService).stop()
-        inOrder.verify(lightningService).setup(any(), eq(customServer), anyOrNull())
+        inOrder.verify(lightningService).setup(any(), eq(customServerUrl), anyOrNull())
         inOrder.verify(lightningService).start(anyOrNull(), any())
         assertEquals(NodeLifecycleState.Running, sut.lightningState.value.nodeLifecycleState)
     }
@@ -453,10 +453,10 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `restartWithElectrumServer should handle stop failure`() = test {
         startNodeForTesting()
-        val customServer = mock<ElectrumServer>()
+        val customServerUrl = "ssl://test.example.com:50002"
         whenever(lightningService.stop()).thenThrow(RuntimeException("Stop failed"))
 
-        val result = sut.restartWithElectrumServer(customServer)
+        val result = sut.restartWithElectrumServer(customServerUrl)
 
         assertTrue(result.isFailure)
     }

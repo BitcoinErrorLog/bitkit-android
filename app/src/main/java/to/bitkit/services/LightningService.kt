@@ -44,7 +44,6 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
-import to.bitkit.models.ElectrumServer
 import to.bitkit.models.LnPeer
 import to.bitkit.models.LnPeer.Companion.toLnPeer
 import to.bitkit.utils.LdkError
@@ -78,7 +77,7 @@ class LightningService @Inject constructor(
 
     suspend fun setup(
         walletIndex: Int,
-        customServer: ElectrumServer? = null,
+        customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ) {
         val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound
@@ -102,7 +101,7 @@ class LightningService @Inject constructor(
         val builder = Builder.fromConfig(config).apply {
             setFilesystemLogger(generateLogFilePath(), Env.ldkLogLevel)
 
-            configureChainSource(customServer)
+            configureChainSource(customServerUrl)
             configureGossipSource(customRgsServerUrl)
 
             setEntropyBip39Mnemonic(mnemonic, passphrase)
@@ -151,10 +150,9 @@ class LightningService @Inject constructor(
         }
     }
 
-    private suspend fun Builder.configureChainSource(customServer: ElectrumServer? = null) {
-        val electrumServer = customServer ?: settingsStore.data.first().electrumServer
-        val serverUrl = electrumServer.toString()
-        Logger.info("Using onchain source Electrum url: $serverUrl")
+    private suspend fun Builder.configureChainSource(customServerUrl: String? = null) {
+        val serverUrl = customServerUrl ?: settingsStore.data.first().electrumServer
+        Logger.info("Using onchain source Electrum Sever url: $serverUrl")
         setChainSourceElectrum(
             serverUrl = serverUrl,
             config = ElectrumSyncConfig(
