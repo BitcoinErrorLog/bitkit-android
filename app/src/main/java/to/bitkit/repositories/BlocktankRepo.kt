@@ -7,6 +7,7 @@ import com.synonym.bitkitcore.IBtEstimateFeeResponse2
 import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
+import com.synonym.bitkitcore.getOrders
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -94,6 +95,18 @@ class BlocktankRepo @Inject constructor(
                     }
                 }
         }
+    }
+
+    suspend fun isCjitOrder(channelId: String): Boolean = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            val channel = lightningService.channels?.find { it.channelId == channelId }
+
+            getOrders(
+                orderIds = null,
+                filter = null,
+                refresh = true
+            ).any { order -> order.channel?.shortChannelId == channel?.shortChannelId.toString() }
+        }.getOrDefault(false)
     }
 
     suspend fun refreshInfo() = withContext(bgDispatcher) {

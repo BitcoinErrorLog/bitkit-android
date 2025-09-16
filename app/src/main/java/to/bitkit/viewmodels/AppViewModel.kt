@@ -211,9 +211,8 @@ class AppViewModel @Inject constructor(
                         is Event.ChannelPending -> Unit // Only relevant for channels to external nodes
 
                         is Event.ChannelReady -> {
-                            // TODO: handle ONLY cjit as payment received. This makes it look like any channel confirmed is a received payment.
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            if (channel != null) {
+                            if (channel != null && blocktankRepo.isCjitOrder(event.channelId)) {
                                 Logger.debug("Channel oppened $channel")
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
