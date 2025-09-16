@@ -464,7 +464,7 @@ class WalletRepo @Inject constructor(
     }
 
     private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val totalOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
+        val totalOnchainSats = walletState.value.balanceDetails?.totalOnchainBalanceSats ?: 0uL
         if (totalOnchainSats == 0uL) {
             return@withContext 0uL
         }
@@ -473,6 +473,7 @@ class WalletRepo @Inject constructor(
         val fee = lightningRepo.calculateTotalFee(
             amountSats = totalOnchainSats,
             speed = TransactionSpeed.default(),
+            utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
         ).onFailure {
             Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
         }.getOrDefault(fallbackMaxFee)
