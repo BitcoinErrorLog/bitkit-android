@@ -468,7 +468,7 @@ class WalletRepo @Inject constructor(
         if (totalOnchainSats == 0uL) {
             return@withContext 0uL
         }
-        val fallbackMaxFee = (totalOnchainSats.toDouble() * 0.1).toULong()
+        val fallbackMaxFee = (totalOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
 
         val fee = lightningRepo.calculateTotalFee(
             amountSats = totalOnchainSats,
@@ -498,6 +498,7 @@ class WalletRepo @Inject constructor(
 
     private companion object {
         const val TAG = "WalletRepo"
+        const val FALLBACK_FEE_PERCENT = 0.1
     }
 }
 
