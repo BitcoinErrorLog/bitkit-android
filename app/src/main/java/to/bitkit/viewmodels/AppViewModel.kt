@@ -214,11 +214,12 @@ class AppViewModel @Inject constructor(
                             // TODO: handle ONLY cjit as payment received. This makes it look like any channel confirmed is a received payment.
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
                             if (channel != null) {
+                                Logger.debug("Channel oppened $channel")
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = (channel.inboundCapacityMsat / 1000u).toLong(),
+                                        sats = ((channel.outboundCapacityMsat + (channel.unspendablePunishmentReserve ?: 0UL)) / 1000u).toLong(),
                                     ),
                                     event = event
                                 )
