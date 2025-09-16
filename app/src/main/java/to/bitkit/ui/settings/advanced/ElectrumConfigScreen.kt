@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -153,6 +155,11 @@ private fun Content(
                 value = uiState.host,
                 onValueChange = onChangeHost,
                 placeholder = "127.0.0.1",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    capitalization = KeyboardCapitalization.None,
+                    imeAction = ImeAction.Next,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("HostInput")
@@ -166,8 +173,11 @@ private fun Content(
             TextInput(
                 value = uiState.port,
                 onValueChange = onChangePort,
-                placeholder = "50001",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                placeholder = "60001",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("PortInput")
