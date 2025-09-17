@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +64,7 @@ fun SpendingAdvancedScreen(
     currencies: CurrencyState = LocalCurrencies.current,
     amountInputViewModel: AmountInputViewModel = hiltViewModel(),
 ) {
+    val currentOnOrderCreated by rememberUpdatedState(onOrderCreated)
     val app = appViewModel ?: return
     val state by viewModel.spendingUiState.collectAsStateWithLifecycle()
     val order = state.order ?: return
@@ -81,7 +83,7 @@ fun SpendingAdvancedScreen(
     LaunchedEffect(Unit) {
         viewModel.transferEffects.collect { effect ->
             when (effect) {
-                TransferEffect.OnOrderCreated -> onOrderCreated()
+                TransferEffect.OnOrderCreated -> currentOnOrderCreated()
                 is TransferEffect.ToastException -> {
                     isLoading = false
                     app.toast(effect.e)
