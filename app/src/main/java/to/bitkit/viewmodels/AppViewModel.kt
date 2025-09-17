@@ -213,7 +213,7 @@ class AppViewModel @Inject constructor(
 
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            if (channel != null && blocktankRepo.isCjitOrder(event.channelId)) {
+                            if (channel != null && blocktankRepo.isCjitOrder(channel)) {
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
