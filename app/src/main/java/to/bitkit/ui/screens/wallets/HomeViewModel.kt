@@ -49,7 +49,6 @@ class HomeViewModel @Inject constructor(
         setupStateObservation()
         setupArticleRotation()
         setupFactRotation()
-        checkHighBalance()
     }
 
     private fun setupStateObservation() {
@@ -91,6 +90,7 @@ class HomeViewModel @Inject constructor(
                     showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
                 )
             }.collect { newState ->
+                checkHighBalance()
                 _uiState.update { newState }
             }
         }
