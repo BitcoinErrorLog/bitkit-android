@@ -15,6 +15,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.di.json
+import to.bitkit.ext.amountOnClose
 import to.bitkit.models.BlocktankNotificationType
 import to.bitkit.models.BlocktankNotificationType.cjitPaymentArrived
 import to.bitkit.models.BlocktankNotificationType.incomingHtlc
@@ -140,7 +141,7 @@ class WakeNodeWorker @AssistedInject constructor(
                     self.bestAttemptContent?.body = "Via new channel"
 
                     lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
-                        val sats = channel.outboundCapacityMsat / 1000u
+                        val sats = channel.amountOnClose
                         self.bestAttemptContent?.title = "Received ⚡ $sats sats"
                         // Save for UI to pick up
                         NewTransactionSheetDetails.save(
@@ -148,7 +149,7 @@ class WakeNodeWorker @AssistedInject constructor(
                             NewTransactionSheetDetails(
                                 type = NewTransactionSheetType.LIGHTNING,
                                 direction = NewTransactionSheetDirection.RECEIVED,
-                                sats = sats.toLong(),
+                                sats = channel.amountOnClose.toLong(),
                             )
                         )
                     }

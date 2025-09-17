@@ -1499,8 +1499,6 @@ class AppViewModel @Inject constructor(
         private const val TEN_USD = 10
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
-
-        private const val MILLISATS = 1000U
     }
 }
 
