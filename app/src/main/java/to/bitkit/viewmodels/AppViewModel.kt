@@ -231,13 +231,7 @@ class AppViewModel @Inject constructor(
                             }
                         }
 
-                        is Event.ChannelClosed -> {
-                            toast(
-                                type = Toast.ToastType.LIGHTNING,
-                                title = "Channel closed",
-                                description = "Balance moved from spending to savings"
-                            )
-                        }
+                        is Event.ChannelClosed -> Unit
 
                         is Event.PaymentSuccessful -> {
                             val paymentHash = event.paymentHash
