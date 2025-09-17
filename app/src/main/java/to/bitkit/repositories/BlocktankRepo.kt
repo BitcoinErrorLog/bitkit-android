@@ -100,7 +100,8 @@ class BlocktankRepo @Inject constructor(
         return@withContext runCatching {
             val channel = lightningService.channels?.find { it.channelId == channelId }
             _blocktankState.value.cjitEntries.any { order ->
-                order.lspNode.pubkey == channel?.counterpartyNodeId
+                order.channelSizeSat == channel?.channelValueSats &&
+                order.lspNode.pubkey == channel.counterpartyNodeId
             }
         }.getOrDefault(false)
     }
