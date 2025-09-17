@@ -103,7 +103,7 @@ fun SendAmountScreen(
         onClickMax = { maxSats ->
             if (uiState.lnurl == null) {
                 app?.toast(
-                    type = Toast.ToastType.WARNING,
+                    type = Toast.ToastType.INFO,
                     title = context.getString(R.string.wallet__send_max_spending__title),
                     description = context.getString(R.string.wallet__send_max_spending__description)
                 )
