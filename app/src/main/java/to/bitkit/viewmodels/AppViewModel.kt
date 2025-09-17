@@ -1,6 +1,8 @@
 package to.bitkit.viewmodels
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -1493,6 +1495,132 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
 
+    fun handleDeeplinkIntent(intent: Intent) {
+        intent.data?.let { uri ->
+            Logger.debug("Received deeplink: $uri")
+            processDeeplink(uri)
+        }
+    }
+
+    private fun processDeeplink(uri: Uri) {
+        val scheme = uri.scheme?.lowercase()
+        val data = uri.toString()
+
+        //TODO CHECK IF WALLET EXISTS
+
+        when (scheme) {
+            "bitcoin", "BITCOIN" -> {
+                Logger.debug("Processing Bitcoin URI: $data")
+                onDeeplinkReceived(data)
+            }
+            "lightning", "LIGHTNING" -> {
+                Logger.debug("Processing Lightning URI: $data")
+                onDeeplinkReceived(data)
+            }
+            "lnurl", "lnurlw", "lnurlc", "lnurlp" -> {
+                Logger.debug("Processing LNURL: $data")
+                onDeeplinkReceived(data)
+            }
+            "bitkit" -> {
+                Logger.debug("Processing Bitkit deeplink: $data")
+                processBitkitDeeplink(uri)
+            }
+            "https" -> {
+                // Handle universal links
+                if (uri.host == "www.bitkit.to" && uri.path == "/treasure-hunt") {
+                    Logger.debug("Processing treasure hunt link: $data")
+                    processTreasureHuntLink(uri)
+                } else {
+                    Logger.debug("Processing HTTPS link: $data")
+                    onDeeplinkReceived(data)
+                }
+            }
+            else -> {
+                Logger.debug("Unknown scheme: $scheme, treating as payment data")
+                onDeeplinkReceived(data)
+            }
+        }
+    }
+
+    private fun processBitkitDeeplink(uri: Uri) {
+        // Handle bitkit:// scheme deeplinks
+        val path = uri.path
+
+        when (path) {
+            "/send" -> {
+                val address = uri.getQueryParameter("address")
+                val amount = uri.getQueryParameter("amount")
+                if (address != null) {
+                    onDeeplinkReceived("bitcoin:$address" + if (amount != null) "?amount=$amount" else "")
+                }
+            }
+            "/receive" -> {
+                // Navigate to receive screen
+                onDeeplinkReceived("receive")
+            }
+            "/settings" -> {
+                // Navigate to settings
+                onDeeplinkReceived("settings")
+            }
+            "/transfer" -> {
+                onDeeplinkReceived("transfer")
+            }
+            "/scanner" -> {
+                onDeeplinkReceived("scanner")
+            }
+            else -> {
+                Logger.debug("Unknown Bitkit deeplink path: $path")
+            }
+        }
+    }
+
+    fun onDeeplinkReceived(data: String) {
+        Logger.debug("Processing deeplink data: $data")
+
+        when {
+            data.startsWith("receive") -> {
+                // Navigate to home first, then show receive sheet
+                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Home))
+                viewModelScope.launch {
+                    delay(100) // Small delay to ensure navigation completes
+                    showSheet(Sheet.Receive)
+                }
+            }
+            data.startsWith("settings") -> {
+                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Settings))
+            }
+            data.startsWith("transfer") -> {
+                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.TransferRoot))
+            }
+            data.startsWith("scanner") -> {
+                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.QrScanner))
+            }
+            data.startsWith("treasure_hunt:") -> {
+                // Handle treasure hunt data
+                val query = data.substringAfter("treasure_hunt:")
+                Logger.debug("Processing treasure hunt with query: $query")
+                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Home))
+                // You can add specific treasure hunt handling here
+                // For example, show a special dialog or navigate to a treasure hunt screen
+            }
+            else -> {
+                // Treat as payment data (Bitcoin, Lightning, LNURL, etc.)
+                _mainScreenEffect.tryEmit(MainScreenEffect.ProcessDeeplinkPayment(data))
+            }
+        }
+    }
+
+    private fun processTreasureHuntLink(uri: Uri) {
+        // Handle treasure hunt universal links
+        val code = uri.getQueryParameter("code")
+        val treasure = uri.getQueryParameter("treasure")
+
+        if (code != null || treasure != null) {
+            onDeeplinkReceived("treasure_hunt:${uri.query}")
+        }
+    }
+
+
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
@@ -1561,6 +1689,7 @@ sealed class MainScreenEffect {
     data class Navigate(val route: Routes) : MainScreenEffect()
     data object WipeWallet : MainScreenEffect()
     data class ProcessClipboardAutoRead(val data: String) : MainScreenEffect()
+    data class ProcessDeeplinkPayment(val data: String) : MainScreenEffect()
 }
 
 sealed interface SendEvent {
