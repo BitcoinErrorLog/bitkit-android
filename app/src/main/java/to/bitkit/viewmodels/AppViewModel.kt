@@ -214,7 +214,6 @@ class AppViewModel @Inject constructor(
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
                             if (channel != null && blocktankRepo.isCjitOrder(event.channelId)) {
-                                Logger.debug("Channel oppened $channel")
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
@@ -1495,7 +1494,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun ChannelDetails.getAmountSend(): Long {
-        return ((this.outboundCapacityMsat + (this.unspendablePunishmentReserve ?: 0UL)) / MILLISATS).toLong()
+        return ((this.outboundCapacityMsat / MILLISATS + (this.unspendablePunishmentReserve ?: 0UL))).toLong()
     }
 
     companion object {
