@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -61,10 +60,9 @@ fun NumberPad(
     currencies: CurrencyState = LocalCurrencies.current,
     type: NumberPadType = viewModel.getNumberPadType(currencies),
     availableHeight: Dp? = null,
+    errorKey: String? = viewModel.uiState.collectAsStateWithLifecycle().value.errorKey,
+    onPress: (String) -> Unit = { key -> viewModel.handleNumberPadInput(key, currencies) },
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val errorKey: String? = uiState.errorKey
-    val onPress: (String) -> Unit = { key -> viewModel.handleNumberPadInput(key, currencies) }
 
     BoxWithConstraints(modifier = modifier) {
         val constraintsHeight = this.maxHeight
