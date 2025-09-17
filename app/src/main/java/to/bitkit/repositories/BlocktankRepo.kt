@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.data.CacheStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
@@ -94,6 +95,15 @@ class BlocktankRepo @Inject constructor(
                     }
                 }
         }
+    }
+
+    suspend fun isCjitOrder(channel: ChannelDetails): Boolean = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            _blocktankState.value.cjitEntries.any { order ->
+                order.channelSizeSat == channel.channelValueSats &&
+                    order.lspNode.pubkey == channel.counterpartyNodeId
+            }
+        }.getOrDefault(false)
     }
 
     suspend fun refreshInfo() = withContext(bgDispatcher) {

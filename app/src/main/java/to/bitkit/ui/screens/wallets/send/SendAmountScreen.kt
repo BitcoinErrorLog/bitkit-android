@@ -101,7 +101,6 @@ fun SendAmountScreen(
             onBack()
         }.takeIf { canGoBack },
         onClickMax = { maxSats ->
-            // TODO port the RN sendMax logic if still needed
             if (uiState.lnurl == null) {
                 app?.toast(
                     type = Toast.ToastType.WARNING,

@@ -48,6 +48,7 @@ import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
+import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.getClipboardText
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.ext.maxSendableSat
@@ -211,33 +212,26 @@ class AppViewModel @Inject constructor(
                         is Event.ChannelPending -> Unit // Only relevant for channels to external nodes
 
                         is Event.ChannelReady -> {
-                            // TODO: handle ONLY cjit as payment received. This makes it look like any channel confirmed is a received payment.
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            if (channel != null) {
+                            if (channel != null && blocktankRepo.isCjitOrder(channel)) {
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = (channel.inboundCapacityMsat / 1000u).toLong(),
+                                        sats = channel.amountOnClose.toLong(),
                                     ),
                                     event = event
                                 )
                             } else {
                                 toast(
-                                    type = Toast.ToastType.ERROR,
-                                    title = "Channel opened",
-                                    description = "Ready to send"
+                                    type = Toast.ToastType.LIGHTNING,
+                                    title = context.getString(R.string.lightning__channel_opened_title),
+                                    description = context.getString(R.string.lightning__channel_opened_msg),
                                 )
                             }
                         }
 
-                        is Event.ChannelClosed -> {
-                            toast(
-                                type = Toast.ToastType.LIGHTNING,
-                                title = "Channel closed",
-                                description = "Balance moved from spending to savings"
-                            )
-                        }
+                        is Event.ChannelClosed -> Unit
 
                         is Event.PaymentSuccessful -> {
                             val paymentHash = event.paymentHash
