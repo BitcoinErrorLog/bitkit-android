@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -49,6 +48,7 @@ import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
+import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.getClipboardText
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.ext.maxSendableSat
@@ -218,7 +218,7 @@ class AppViewModel @Inject constructor(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = channel.getAmountSend(),
+                                        sats = channel.amountOnClose.toLong(),
                                     ),
                                     event = event
                                 )
@@ -1491,10 +1491,6 @@ class AppViewModel @Inject constructor(
 
         _successSendUiState.update { details }
         setSendEffect(SendEffect.PaymentSuccess(details))
-    }
-
-    private fun ChannelDetails.getAmountSend(): Long {
-        return ((this.outboundCapacityMsat / MILLISATS + (this.unspendablePunishmentReserve ?: 0UL))).toLong()
     }
 
     companion object {
