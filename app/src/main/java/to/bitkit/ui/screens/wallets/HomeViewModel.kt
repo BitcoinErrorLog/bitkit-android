@@ -147,6 +147,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun checkHighBalance() {
+        if (_uiState.value.highBalanceSheetVisible) return
+
         viewModelScope.launch {
             delay(CHECK_DELAY_MILLISECONDS)
 
