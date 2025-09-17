@@ -225,7 +225,10 @@ private fun SpendingAmountNodeRunning(
         HorizontalDivider()
         VerticalSpacer(16.dp)
 
-        NumberPad(viewModel = amountInputViewModel)
+        NumberPad(
+            viewModel = amountInputViewModel,
+            currencies = currencies,
+        )
 
         PrimaryButton(
             text = stringResource(R.string.common__continue),
@@ -240,6 +243,8 @@ private fun SpendingAmountNodeRunning(
 }
 
 @Preview(showSystemUi = true)
+@Preview(showSystemUi = true, device = "id:pixel_9_pro_xl", name = "Large")
+@Preview(showSystemUi = true, device = NEXUS_5, name = "Small")
 @Composable
 private fun Preview() {
     AppThemeSurface {
@@ -257,25 +262,7 @@ private fun Preview() {
     }
 }
 
-@Preview(showSystemUi = true, device = NEXUS_5)
-@Composable
-private fun PreviewSmall() {
-    AppThemeSurface {
-        Content(
-            isNodeRunning = true,
-            uiState = TransferToSpendingUiState(maxAllowedToSend = 158_234, balanceAfterFee = 158_234),
-            amountInputViewModel = previewAmountInputViewModel(),
-            currencies = CurrencyState(),
-            onBackClick = {},
-            onCloseClick = {},
-            onClickQuarter = {},
-            onClickMaxAmount = {},
-            onConfirmAmount = {},
-        )
-    }
-}
-
-@Preview(showSystemUi = true, device = NEXUS_5)
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewInitializing() {
     AppThemeSurface {

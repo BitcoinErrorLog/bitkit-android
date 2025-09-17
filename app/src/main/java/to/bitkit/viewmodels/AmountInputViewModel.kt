@@ -1,5 +1,6 @@
 package to.bitkit.viewmodels
 
+import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -411,6 +412,7 @@ data class AmountInputUiState(
     val errorKey: String? = null,
 )
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun previewAmountInputViewModel(
     sats: Long = 4_567,

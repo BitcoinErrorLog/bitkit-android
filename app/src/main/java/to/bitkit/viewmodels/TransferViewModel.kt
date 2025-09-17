@@ -168,13 +168,13 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    fun onSpendingAdvancedContinue() {
+    fun onSpendingAdvancedContinue(receivingAmountSats: Long) {
         viewModelScope.launch {
             runCatching {
                 val oldOrder = _spendingUiState.value.order ?: return@launch
                 val newOrder = blocktankRepo.createOrder(
                     spendingBalanceSats = oldOrder.clientBalanceSat,
-                    receivingBalanceSats = _spendingUiState.value.receivingAmount.toULong(),
+                    receivingBalanceSats = receivingAmountSats.toULong(),
                 ).getOrThrow()
                 _spendingUiState.update {
                     it.copy(
