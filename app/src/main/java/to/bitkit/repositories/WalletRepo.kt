@@ -471,10 +471,11 @@ class WalletRepo @Inject constructor(
             return@withContext 0uL
         }
         val fallbackMaxFee = (spendableOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
+        val speed = settingsStore.data.first().defaultTransactionSpeed
 
         val fee = lightningRepo.calculateTotalFee(
             amountSats = spendableOnchainSats,
-            speed = TransactionSpeed.default(),
+            speed = speed,
             utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
         ).onFailure {
             Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
