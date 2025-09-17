@@ -155,7 +155,11 @@ class HomeViewModel @Inject constructor(
             val totalOnChainSats = walletRepo.balanceState.value.totalSats
             val balanceUsd = satsToUsd(totalOnChainSats) ?: return@launch
             val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
-            val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis - ASK_INTERVAL_MILLIS > ASK_INTERVAL_MILLIS
+            val isTimeOutOver = if (settings.lastTimeAskedBalanceWarningMillis == 0L) {
+                true
+            } else {
+                settings.lastTimeAskedBalanceWarningMillis - ASK_INTERVAL_MILLIS > ASK_INTERVAL_MILLIS
+            }
             val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
             if (thresholdReached && isTimeOutOver && belowMaxWarnings && !_uiState.value.highBalanceSheetVisible) {
