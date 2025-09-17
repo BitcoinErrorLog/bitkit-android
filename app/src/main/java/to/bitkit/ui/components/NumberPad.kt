@@ -42,7 +42,7 @@ import to.bitkit.viewmodels.previewAmountInputViewModel
 const val KEY_DELETE = "delete"
 const val KEY_000 = "000"
 const val KEY_DECIMAL = "."
-private val maxKeyboardHeight = 300.dp
+private val defaultHeight = 300.dp
 private val idealButtonHeight = 75.dp
 private val minButtonHeight = 50.dp
 private const val ROWS = 4
@@ -59,23 +59,13 @@ fun NumberPad(
     onPress: (String) -> Unit,
     modifier: Modifier = Modifier,
     type: NumberPadType = NumberPadType.SIMPLE,
-    availableHeight: Dp? = null,
+    availableHeight: Dp = defaultHeight,
     errorKey: String? = null,
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val constraintsHeight = this.maxHeight
-        val effectiveHeight = availableHeight ?: constraintsHeight
-        val idealTotalHeight = idealButtonHeight * ROWS
-
-        val maxAllowedHeight = minOf(maxKeyboardHeight, effectiveHeight)
-
         val buttonHeight = when {
-            // If we have plenty of space, use ideal height
-            maxAllowedHeight >= idealTotalHeight -> idealButtonHeight
-            // If space is limited, calculate proportional height but ensure minimum
-            maxAllowedHeight >= (minButtonHeight * ROWS) -> maxAllowedHeight / ROWS
-            // If extremely limited, use absolute minimum
-            else -> minButtonHeight
+            constraints.hasFixedHeight -> maxHeight / ROWS
+            else -> (availableHeight / ROWS).coerceIn(minButtonHeight, idealButtonHeight)
         }
 
         val totalKeyboardHeight = buttonHeight * ROWS
@@ -146,7 +136,7 @@ fun NumberPad(
     modifier: Modifier = Modifier,
     currencies: CurrencyState = LocalCurrencies.current,
     type: NumberPadType = viewModel.getNumberPadType(currencies),
-    availableHeight: Dp? = null,
+    availableHeight: Dp = defaultHeight,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     NumberPad(
@@ -253,7 +243,6 @@ private fun Preview() {
             FillHeight()
             NumberPad(
                 viewModel = previewAmountInputViewModel(),
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -299,6 +288,80 @@ private fun PreviewSmall() {
             FillHeight()
             NumberPad(
                 viewModel = previewAmountInputViewModel(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewSimple() {
+    AppThemeSurface {
+        ScreenColumn {
+            FillHeight()
+            NumberPad(
+                onPress = {},
+                type = NumberPadType.SIMPLE,
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewHeight() {
+    AppThemeSurface {
+        ScreenColumn {
+            FillHeight()
+            NumberPad(
+                onPress = {},
+                type = NumberPadType.SIMPLE,
+                modifier = Modifier.height(350.dp),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewMaxHeight() {
+    AppThemeSurface {
+        ScreenColumn {
+            FillHeight()
+            NumberPad(
+                onPress = {},
+                type = NumberPadType.SIMPLE,
+                availableHeight = 350.dp,
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewHeightXs() {
+    AppThemeSurface {
+        ScreenColumn {
+            FillHeight()
+            NumberPad(
+                onPress = {},
+                type = NumberPadType.SIMPLE,
+                modifier = Modifier.height(100.dp),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewMaxHeightXs() {
+    AppThemeSurface {
+        ScreenColumn {
+            FillHeight()
+            NumberPad(
+                onPress = {},
+                type = NumberPadType.SIMPLE,
+                availableHeight = 100.dp,
             )
         }
     }
