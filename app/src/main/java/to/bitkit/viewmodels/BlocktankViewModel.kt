@@ -2,7 +2,6 @@ package to.bitkit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.synonym.bitkitcore.IBtEstimateFeeResponse2
 import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
@@ -49,20 +48,6 @@ class BlocktankViewModel @Inject constructor(
 
     suspend fun createCjit(amountSats: ULong): IcJitEntry {
         return blocktankRepo.createCjit(amountSats).getOrThrow()
-    }
-
-    suspend fun createOrder(
-        spendingBalanceSats: ULong,
-        receivingBalanceSats: ULong = spendingBalanceSats * 2u,
-    ): IBtOrder {
-        return blocktankRepo.createOrder(spendingBalanceSats, receivingBalanceSats).getOrThrow()
-    }
-
-    suspend fun estimateOrderFee(
-        spendingBalanceSats: ULong,
-        receivingBalanceSats: ULong,
-    ): Result<IBtEstimateFeeResponse2> {
-        return blocktankRepo.estimateOrderFee(spendingBalanceSats, receivingBalanceSats)
     }
 
     suspend fun openChannel(orderId: String): IBtOrder {
