@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -51,19 +52,16 @@ private val pressHaptic = HapticFeedbackType.VirtualKey
 private val errorHaptic = HapticFeedbackType.Reject
 
 /**
- * Numeric keyboard. Can be used together with [NumberPadTextField] for amounts.
+ * Numeric keyboard.
  */
 @Composable
 fun NumberPad(
-    viewModel: AmountInputViewModel,
+    onPress: (String) -> Unit,
     modifier: Modifier = Modifier,
-    currencies: CurrencyState = LocalCurrencies.current,
-    type: NumberPadType = viewModel.getNumberPadType(currencies),
+    type: NumberPadType = NumberPadType.SIMPLE,
     availableHeight: Dp? = null,
-    errorKey: String? = viewModel.uiState.collectAsStateWithLifecycle().value.errorKey,
-    onPress: (String) -> Unit = { key -> viewModel.handleNumberPadInput(key, currencies) },
+    errorKey: String? = null,
 ) {
-
     BoxWithConstraints(modifier = modifier) {
         val constraintsHeight = this.maxHeight
         val effectiveHeight = availableHeight ?: constraintsHeight
@@ -137,6 +135,27 @@ fun NumberPad(
             }
         }
     }
+}
+
+/**
+ * Numeric keyboard for amount input. Can be used together with [NumberPadTextField].
+ */
+@Composable
+fun NumberPad(
+    viewModel: AmountInputViewModel,
+    modifier: Modifier = Modifier,
+    currencies: CurrencyState = LocalCurrencies.current,
+    type: NumberPadType = viewModel.getNumberPadType(currencies),
+    availableHeight: Dp? = null,
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    NumberPad(
+        onPress = { key -> viewModel.handleNumberPadInput(key, currencies) },
+        modifier = modifier,
+        type = type,
+        availableHeight = availableHeight,
+        errorKey = uiState.errorKey,
+    )
 }
 
 enum class NumberPadType { SIMPLE, INTEGER, DECIMAL }

@@ -28,7 +28,8 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.KEY_DELETE
-import to.bitkit.ui.components.NumberPadSimple
+import to.bitkit.ui.components.NumberPad
+import to.bitkit.ui.components.NumberPadType
 import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -139,8 +140,9 @@ private fun PinCheckContent(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            NumberPadSimple(
+            NumberPad(
                 onPress = onKeyPress,
+                type = NumberPadType.SIMPLE,
                 modifier = Modifier
                     .height(350.dp)
                     .background(Colors.Black)
