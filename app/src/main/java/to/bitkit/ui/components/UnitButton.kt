@@ -12,18 +12,15 @@ import to.bitkit.R
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.repositories.CurrencyState
 import to.bitkit.ui.LocalCurrencies
-import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.viewmodels.CurrencyViewModel
 
 @Composable
 fun UnitButton(
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     color: Color = Colors.Brand,
     currencies: CurrencyState = LocalCurrencies.current,
-    currencyVM: CurrencyViewModel? = currencyViewModel,
-    onClick: () -> Unit = { currencyVM?.switchUnit() },
 ) {
     NumberPadActionButton(
         text = if (currencies.primaryDisplay == PrimaryDisplay.BITCOIN) "Bitcoin" else currencies.selectedCurrency,
@@ -42,8 +39,8 @@ private fun Preview() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            UnitButton(currencies = CurrencyState(primaryDisplay = PrimaryDisplay.BITCOIN))
-            UnitButton(currencies = CurrencyState(primaryDisplay = PrimaryDisplay.FIAT))
+            UnitButton(currencies = CurrencyState(primaryDisplay = PrimaryDisplay.BITCOIN), onClick = {})
+            UnitButton(currencies = CurrencyState(primaryDisplay = PrimaryDisplay.FIAT), onClick = {})
         }
     }
 }

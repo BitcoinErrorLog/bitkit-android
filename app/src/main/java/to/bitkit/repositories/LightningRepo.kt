@@ -512,6 +512,7 @@ class LightningRepo @Inject constructor(
             Result.success(paymentId)
         }
 
+    @Suppress("LongParameterList")
     suspend fun sendOnChain(
         address: Address,
         sats: ULong,

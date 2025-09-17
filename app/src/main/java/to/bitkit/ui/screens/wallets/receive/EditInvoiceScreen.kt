@@ -256,7 +256,6 @@ fun EditInvoiceContent(
                             currencies = currencies,
                             availableHeight = maxHeight,
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .testTag("ReceiveNumberField")
                         )
 

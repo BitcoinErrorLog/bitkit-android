@@ -264,9 +264,9 @@ private fun SendAmountNodeRunning(
 
             NumberPad(
                 viewModel = amountInputViewModel,
+                currencies = currencies,
                 availableHeight = maxHeight,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .testTag("SendAmountNumberPad")
             )
 

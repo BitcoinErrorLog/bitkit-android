@@ -253,7 +253,6 @@ private fun PreviewClassic() {
                 currencies = CurrencyState(
                     displayUnit = BitcoinDisplayUnit.CLASSIC,
                 ),
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -270,7 +269,6 @@ private fun PreviewFiat() {
                 currencies = CurrencyState(
                     primaryDisplay = PrimaryDisplay.FIAT,
                 ),
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -284,7 +282,6 @@ private fun PreviewSmall() {
             FillHeight()
             NumberPad(
                 viewModel = previewAmountInputViewModel(),
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

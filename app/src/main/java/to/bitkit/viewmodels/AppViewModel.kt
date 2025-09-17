@@ -544,12 +544,13 @@ class AppViewModel @Inject constructor(
                 payMethod = lnInvoice?.let { SendMethod.LIGHTNING } ?: SendMethod.ONCHAIN,
             )
         }
-        val isLnInvoiceWithAmount = lnInvoice?.amountSatoshis?.takeIf { it > 0uL } != null
-        if (isLnInvoiceWithAmount) {
+
+        val lnAmountSats = lnInvoice?.amountSatoshis ?: 0u
+        if (lnAmountSats > 0u) {
             Logger.info("Found amount in unified invoice, checking QuickPay conditions", context = TAG)
 
             val quickPayHandled = handleQuickPayIfApplicable(
-                amountSats = lnInvoice.amountSatoshis,
+                amountSats = lnAmountSats,
                 invoice = lnInvoice,
             )
             if (quickPayHandled) return
@@ -562,8 +563,14 @@ class AppViewModel @Inject constructor(
             }
             return
         }
-        Logger.info("No amount found in invoice, proceeding to enter amount manually", context = TAG)
-        resetAmountInput()
+
+        Logger.info(
+            when (invoice.amountSatoshis > 0u) {
+                true -> "Found amount in invoice, proceeding to edit amount"
+                else -> "No amount found in invoice, proceeding to enter amount"
+            },
+            context = TAG,
+        )
 
         if (isMainScanner) {
             showSheet(Sheet.Send(SendRoute.Amount))
@@ -614,8 +621,7 @@ class AppViewModel @Inject constructor(
             }
             return
         }
-        Logger.info("No amount found in invoice, proceeding to enter amount manually", context = TAG)
-        resetAmountInput()
+        Logger.info("No amount found in invoice, proceeding to enter amount", context = TAG)
 
         if (isMainScanner) {
             showSheet(Sheet.Send(SendRoute.Amount))
