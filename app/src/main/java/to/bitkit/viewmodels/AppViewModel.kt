@@ -225,8 +225,8 @@ class AppViewModel @Inject constructor(
                             } else {
                                 toast(
                                     type = Toast.ToastType.LIGHTNING,
-                                    title = "Channel opened",
-                                    description = "Ready to send"
+                                    title = context.getString(R.string.lightning__channel_opened_title),
+                                    description = context.getString(R.string.lightning__channel_opened_msg),
                                 )
                             }
                         }
