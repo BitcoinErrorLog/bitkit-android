@@ -110,14 +110,7 @@ class ExternalNodeViewModel @Inject constructor(
             return
         }
 
-        _uiState.update { it.copy(amount = it.amount.copy(sats = sats, overrideSats = null)) }
-    }
-
-    fun onAmountOverride(sats: Long) {
-        val max = _uiState.value.amount.max
-        val nextAmount = minOf(sats, max)
-
-        _uiState.update { it.copy(amount = it.amount.copy(overrideSats = nextAmount)) }
+        _uiState.update { it.copy(amount = it.amount.copy(sats = sats)) }
     }
 
     fun onAmountContinue() {
@@ -234,7 +227,6 @@ interface ExternalNodeContract {
         data class Amount(
             val sats: Long = 0,
             val max: Long = 0,
-            val overrideSats: Long? = null,
         )
     }
 

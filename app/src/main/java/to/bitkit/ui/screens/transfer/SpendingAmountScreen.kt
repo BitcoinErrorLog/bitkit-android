@@ -3,11 +3,8 @@ package to.bitkit.ui.screens.transfer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
@@ -99,9 +96,9 @@ fun SpendingAmountScreen(
                         .replace("{amount}", "$max"),
                 )
             }
-            val quarterAmount = min(quarter, max)
-            viewModel.updateLimits(quarterAmount)
-            amountInputViewModel.setSats(quarterAmount, currencies)
+            val cappedQuarter = min(quarter, max)
+            viewModel.updateLimits(cappedQuarter)
+            amountInputViewModel.setSats(cappedQuarter, currencies)
         },
         onClickMaxAmount = {
             val newAmountSats = uiState.maxAllowedToSend
@@ -165,7 +162,6 @@ private fun SpendingAmountNodeRunning(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxSize()
-            .imePadding()
             .testTag("SpendingAmount")
     ) {
         val amountUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
@@ -203,7 +199,7 @@ private fun SpendingAmountNodeRunning(
                     color = Colors.White64,
                     modifier = Modifier.testTag("SpendingAmountAvailable")
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                VerticalSpacer(8.dp)
                 MoneySSB(sats = uiState.balanceAfterFee, modifier = Modifier.testTag("SpendingAmountUnit"))
             }
             FillWidth()
@@ -225,15 +221,14 @@ private fun SpendingAmountNodeRunning(
                 modifier = Modifier.testTag("SpendingAmountMax")
             )
         }
-        HorizontalDivider()
 
+        HorizontalDivider()
         VerticalSpacer(16.dp)
+
         NumberPad(
             viewModel = amountInputViewModel,
-            modifier = Modifier.fillMaxWidth()
+            currencies = currencies,
         )
-
-        VerticalSpacer(8.dp)
 
         PrimaryButton(
             text = stringResource(R.string.common__continue),
@@ -247,13 +242,15 @@ private fun SpendingAmountNodeRunning(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
+@Preview(showSystemUi = true, device = "id:pixel_9_pro_xl", name = "Large")
+@Preview(showSystemUi = true, device = NEXUS_5, name = "Small")
 @Composable
 private fun Preview() {
     AppThemeSurface {
         Content(
             isNodeRunning = true,
-            uiState = TransferToSpendingUiState(),
+            uiState = TransferToSpendingUiState(maxAllowedToSend = 158_234, balanceAfterFee = 158_234),
             amountInputViewModel = previewAmountInputViewModel(),
             currencies = CurrencyState(),
             onBackClick = {},
@@ -265,25 +262,7 @@ private fun Preview() {
     }
 }
 
-@Preview(showBackground = true, device = NEXUS_5)
-@Composable
-private fun PreviewSmall() {
-    AppThemeSurface {
-        Content(
-            isNodeRunning = true,
-            uiState = TransferToSpendingUiState(),
-            amountInputViewModel = previewAmountInputViewModel(),
-            currencies = CurrencyState(),
-            onBackClick = {},
-            onCloseClick = {},
-            onClickQuarter = {},
-            onClickMaxAmount = {},
-            onConfirmAmount = {},
-        )
-    }
-}
-
-@Preview(showBackground = true, device = NEXUS_5)
+@Preview(showSystemUi = true)
 @Composable
 private fun PreviewInitializing() {
     AppThemeSurface {
