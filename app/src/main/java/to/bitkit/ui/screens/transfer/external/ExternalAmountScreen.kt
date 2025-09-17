@@ -162,7 +162,10 @@ private fun Content(
             HorizontalDivider()
             VerticalSpacer(16.dp)
 
-            NumberPad(viewModel = amountInputViewModel)
+            NumberPad(
+                viewModel = amountInputViewModel,
+                currencies = currencies,
+            )
 
             PrimaryButton(
                 text = stringResource(R.string.common__continue),
@@ -177,19 +180,10 @@ private fun Content(
 }
 
 @Preview(showSystemUi = true)
+@Preview(showSystemUi = true, device = "id:pixel_9_pro_xl", name = "Large")
+@Preview(showSystemUi = true, device = NEXUS_5, name = "Small")
 @Composable
 private fun Preview() {
-    AppThemeSurface {
-        Content(
-            amountState = ExternalNodeContract.UiState.Amount(max = 429_327),
-            amountInputViewModel = previewAmountInputViewModel(),
-        )
-    }
-}
-
-@Preview(showSystemUi = true, device = NEXUS_5)
-@Composable
-private fun PreviewSmall() {
     AppThemeSurface {
         Content(
             amountState = ExternalNodeContract.UiState.Amount(max = 429_327),
