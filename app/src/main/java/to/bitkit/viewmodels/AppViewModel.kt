@@ -225,7 +225,7 @@ class AppViewModel @Inject constructor(
                                 )
                             } else {
                                 toast(
-                                    type = Toast.ToastType.ERROR,
+                                    type = Toast.ToastType.LIGHTNING,
                                     title = "Channel opened",
                                     description = "Ready to send"
                                 )
