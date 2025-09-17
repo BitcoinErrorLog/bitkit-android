@@ -118,11 +118,7 @@ fun SendConfirmScreen(
 
     // Confirm with pin or bio if required
     LaunchedEffect(uiState.shouldConfirmPay) {
-        if (!uiState.shouldConfirmPay) {
-            isLoading = false
-            return@LaunchedEffect
-        }
-
+        if (!uiState.shouldConfirmPay) return@LaunchedEffect
         if (isPinEnabled && pinForPayments) {
             currentOnEvent(SendEvent.ClearPayConfirmation)
             if (isBiometricEnabled && isBiometrySupported) {
