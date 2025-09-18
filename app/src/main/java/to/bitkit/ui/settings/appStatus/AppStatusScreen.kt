@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.datetime.Clock
 import to.bitkit.R
+import to.bitkit.ext.startActivityAppSettings
 import to.bitkit.ext.toLocalizedTimestamp
 import to.bitkit.models.HealthState
 import to.bitkit.models.NodeLifecycleState
@@ -61,10 +62,7 @@ fun AppStatusScreen(
         uiState = uiState,
         onBack = { navController.popBackStack() },
         onClose = { navController.navigateToHome() },
-        onInternetClick = {
-            val intent = Intent(Settings.ACTION_SETTINGS)
-            context.startActivity(intent)
-        },
+        onInternetClick = { context.startActivityAppSettings() },
         onElectrumClick = { navController.navigate(Routes.ElectrumConfig) },
         onNodeClick = { navController.navigate(Routes.NodeInfo) },
         onChannelsClick = { navController.navigate(Routes.LightningConnections) },

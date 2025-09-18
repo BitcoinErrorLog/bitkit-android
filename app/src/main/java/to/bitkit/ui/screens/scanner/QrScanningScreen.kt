@@ -4,10 +4,8 @@ package to.bitkit.ui.screens.scanner
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import android.view.View.LAYER_TYPE_HARDWARE
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -82,6 +80,7 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.AppViewModel
 import java.util.concurrent.Executors
+import to.bitkit.ext.startActivityAppSettings
 
 const val SCAN_REQUEST_KEY = "SCAN_REQUEST"
 const val SCAN_RESULT_KEY = "SCAN_RESULT"
@@ -206,7 +205,9 @@ fun QrScanningScreen(
             DeniedContent(
                 shouldShowRationale = cameraPermissionState.status.shouldShowRationale,
                 inSheet = inSheet,
-                onClickOpenSettings = { context.startActivity(Intent(Settings.ACTION_SETTINGS)) },
+                onClickOpenSettings = {
+                    context.startActivityAppSettings()
+                },
                 onClickRetry = cameraPermissionState::launchPermissionRequest,
                 onClickPaste = handlePaste(context, app, setScanResult),
                 onBack = onBack,
