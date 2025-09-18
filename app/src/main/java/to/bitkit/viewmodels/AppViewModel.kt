@@ -1508,7 +1508,7 @@ class AppViewModel @Inject constructor(
 
         val data = uri.toString()
         delay(SCREEN_TRANSITION_DELAY_MS)
-        handleScan(data)
+        handleScan(data.removeLightningSchemes())
     }
 
     // Todo Temporaary fix while these schemes can't be decoded
