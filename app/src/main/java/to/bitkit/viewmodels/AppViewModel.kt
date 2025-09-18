@@ -903,7 +903,7 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun proceedWithPayment() {
-        delay(300) // wait for screen transitions when applicable
+        delay(SCREEN_TRANSITION_DELAY_MS) // wait for screen transitions when applicable
 
         val amount = _sendUiState.value.amount
 
@@ -1507,6 +1507,9 @@ class AppViewModel @Inject constructor(
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()
+        if (!lightningRepo.lightningState.value.nodeLifecycleState.isRunning()) {
+            delay(SCREEN_TRANSITION_DELAY_MS)
+        }
         handleScan(data)
     }
 
@@ -1516,6 +1519,7 @@ class AppViewModel @Inject constructor(
         private const val TEN_USD = 10
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
+        private const val SCREEN_TRANSITION_DELAY_MS = 300L
     }
 }
 
