@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -1502,25 +1503,13 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun processDeeplink(uri: Uri) {
+    private fun processDeeplink(uri: Uri) = viewModelScope.launch {
+        if (!walletRepo.walletExists()) return@launch
+
         val scheme = uri.scheme?.lowercase()
         val data = uri.toString()
 
-        //TODO CHECK IF WALLET EXISTS
-
         when (scheme) {
-            "bitcoin", "BITCOIN" -> {
-                Logger.debug("Processing Bitcoin URI: $data")
-                onDeeplinkReceived(data)
-            }
-            "lightning", "LIGHTNING" -> {
-                Logger.debug("Processing Lightning URI: $data")
-                onDeeplinkReceived(data)
-            }
-            "lnurl", "lnurlw", "lnurlc", "lnurlp" -> {
-                Logger.debug("Processing LNURL: $data")
-                onDeeplinkReceived(data)
-            }
             "bitkit" -> {
                 Logger.debug("Processing Bitkit deeplink: $data")
                 processBitkitDeeplink(uri)
@@ -1536,7 +1525,7 @@ class AppViewModel @Inject constructor(
                 }
             }
             else -> {
-                Logger.debug("Unknown scheme: $scheme, treating as payment data")
+                Logger.debug("Treating $scheme as payment data")
                 onDeeplinkReceived(data)
             }
         }
@@ -1574,38 +1563,29 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun onDeeplinkReceived(data: String) {
+    private fun onDeeplinkReceived(data: String) {
         Logger.debug("Processing deeplink data: $data")
 
         when {
             data.startsWith("receive") -> {
-                // Navigate to home first, then show receive sheet
-                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Home))
-                viewModelScope.launch {
-                    delay(100) // Small delay to ensure navigation completes
-                    showSheet(Sheet.Receive)
-                }
+                showSheet(Sheet.Receive)
             }
             data.startsWith("settings") -> {
-                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Settings))
+                mainScreenEffect(MainScreenEffect.Navigate(Routes.Settings))
             }
             data.startsWith("transfer") -> {
-                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.TransferRoot))
+                mainScreenEffect(MainScreenEffect.Navigate(Routes.TransferRoot))
             }
             data.startsWith("scanner") -> {
-                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.QrScanner))
+                mainScreenEffect(MainScreenEffect.Navigate(Routes.QrScanner))
             }
             data.startsWith("treasure_hunt:") -> {
-                // Handle treasure hunt data
-                val query = data.substringAfter("treasure_hunt:")
-                Logger.debug("Processing treasure hunt with query: $query")
-                _mainScreenEffect.tryEmit(MainScreenEffect.Navigate(Routes.Home))
-                // You can add specific treasure hunt handling here
-                // For example, show a special dialog or navigate to a treasure hunt screen
+                Logger.warn("treasure_hunt not implemented")
             }
             else -> {
-                // Treat as payment data (Bitcoin, Lightning, LNURL, etc.)
-                _mainScreenEffect.tryEmit(MainScreenEffect.ProcessDeeplinkPayment(data))
+                viewModelScope.launch {
+                    handleScan(data)
+                }
             }
         }
     }
@@ -1689,7 +1669,6 @@ sealed class MainScreenEffect {
     data class Navigate(val route: Routes) : MainScreenEffect()
     data object WipeWallet : MainScreenEffect()
     data class ProcessClipboardAutoRead(val data: String) : MainScreenEffect()
-    data class ProcessDeeplinkPayment(val data: String) : MainScreenEffect()
 }
 
 sealed interface SendEvent {
