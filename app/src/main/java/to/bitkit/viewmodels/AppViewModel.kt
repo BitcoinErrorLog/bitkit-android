@@ -1507,9 +1507,7 @@ class AppViewModel @Inject constructor(
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()
-        if (!lightningRepo.lightningState.value.nodeLifecycleState.isRunning()) {
-            delay(SCREEN_TRANSITION_DELAY_MS)
-        }
+        delay(SCREEN_TRANSITION_DELAY_MS)
         handleScan(data)
     }
 
