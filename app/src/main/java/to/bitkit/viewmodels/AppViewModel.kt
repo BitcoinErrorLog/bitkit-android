@@ -759,16 +759,16 @@ class AppViewModel @Inject constructor(
     private fun onScanNodeId(data: Scanner.NodeId) {
         val (url, network) = data
         val appNetwork = Env.network.toCoreNetworkType()
-//        if (network != appNetwork) {
-//            toast(
-//                type = Toast.ToastType.WARNING,
-//                title = context.getString(R.string.other__qr_error_network_header),
-//                description = context.getString(R.string.other__qr_error_network_text)
-//                    .replace("{selectedNetwork}", appNetwork.name)
-//                    .replace("{dataNetwork}", network.name),
-//            )
-//            return
-//        }
+        if (network != appNetwork) {
+            toast(
+                type = Toast.ToastType.WARNING,
+                title = context.getString(R.string.other__qr_error_network_header),
+                description = context.getString(R.string.other__qr_error_network_text)
+                    .replace("{selectedNetwork}", appNetwork.name)
+                    .replace("{dataNetwork}", network.name),
+            )
+            return
+        }
         hideSheet() // hide scan sheet if opened
         val nextRoute = Routes.ExternalConnection(url)
         mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
