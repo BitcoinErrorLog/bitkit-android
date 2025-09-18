@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -1514,6 +1513,7 @@ class AppViewModel @Inject constructor(
                 Logger.debug("Processing Bitkit deeplink: $data")
                 processBitkitDeeplink(uri)
             }
+
             "https" -> {
                 // Handle universal links
                 if (uri.host == "www.bitkit.to" && uri.path == "/treasure-hunt") {
@@ -1524,6 +1524,7 @@ class AppViewModel @Inject constructor(
                     onDeeplinkReceived(data)
                 }
             }
+
             else -> {
                 Logger.debug("Treating $scheme as payment data")
                 onDeeplinkReceived(data)
@@ -1543,20 +1544,25 @@ class AppViewModel @Inject constructor(
                     onDeeplinkReceived("bitcoin:$address" + if (amount != null) "?amount=$amount" else "")
                 }
             }
+
             "/receive" -> {
                 // Navigate to receive screen
                 onDeeplinkReceived("receive")
             }
+
             "/settings" -> {
                 // Navigate to settings
                 onDeeplinkReceived("settings")
             }
+
             "/transfer" -> {
                 onDeeplinkReceived("transfer")
             }
+
             "/scanner" -> {
                 onDeeplinkReceived("scanner")
             }
+
             else -> {
                 Logger.debug("Unknown Bitkit deeplink path: $path")
             }
@@ -1570,18 +1576,23 @@ class AppViewModel @Inject constructor(
             data.startsWith("receive") -> {
                 showSheet(Sheet.Receive)
             }
+
             data.startsWith("settings") -> {
                 mainScreenEffect(MainScreenEffect.Navigate(Routes.Settings))
             }
+
             data.startsWith("transfer") -> {
                 mainScreenEffect(MainScreenEffect.Navigate(Routes.TransferRoot))
             }
+
             data.startsWith("scanner") -> {
                 mainScreenEffect(MainScreenEffect.Navigate(Routes.QrScanner))
             }
+
             data.startsWith("treasure_hunt:") -> {
                 Logger.warn("treasure_hunt not implemented")
             }
+
             else -> {
                 viewModelScope.launch {
                     handleScan(data)
