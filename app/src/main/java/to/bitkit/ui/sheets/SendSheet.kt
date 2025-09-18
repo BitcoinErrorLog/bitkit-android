@@ -1,8 +1,10 @@
 package to.bitkit.ui.sheets
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +38,7 @@ import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.navigationWithDefaultTransitions
 import to.bitkit.viewmodels.AppViewModel
@@ -184,7 +187,12 @@ fun SendSheet(
                 NewTransactionSheetView(
                     details = sendDetail,
                     onCloseClick = { appViewModel.hideSheet() },
-                    onDetailClick = { appViewModel.onClickSendDetail() }
+                    onDetailClick = { appViewModel.onClickSendDetail() },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .gradientBackground()
+                        .navigationBarsPadding()
+                        .testTag("SendSuccess")
                 )
             }
             composableWithDefaultTransitions<SendRoute.WithdrawConfirm> {
