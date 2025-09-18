@@ -1506,7 +1506,6 @@ class AppViewModel @Inject constructor(
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()
-
         handleScan(data)
     }
 
