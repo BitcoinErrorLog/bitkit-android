@@ -294,6 +294,7 @@ class AppViewModel @Inject constructor(
                     is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
+                    SendEvent.ClearPayConfirmation -> _sendUiState.update { it.copy(shouldConfirmPay = false) }
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
                     SendEvent.NavToAddress -> setSendEffect(SendEffect.NavigateToAddress)
                 }
@@ -1586,6 +1587,7 @@ sealed interface SendEvent {
     data class ConfirmAmountWarning(val warning: SanityWarning) : SendEvent
     data object DismissAmountWarning : SendEvent
     data object PayConfirmed : SendEvent
+    data object ClearPayConfirmation : SendEvent
     data object BackToAmount : SendEvent
     data object NavToAddress : SendEvent
 }

@@ -205,8 +205,7 @@ private fun PinPad(
             pin = pin,
             modifier = Modifier.padding(vertical = 16.dp),
         )
-        NumberPadSimple(
-            modifier = Modifier.height(310.dp),
+        NumberPad(
             onPress = { key ->
                 if (key == KEY_DELETE) {
                     if (pin.isNotEmpty()) {
@@ -216,6 +215,8 @@ private fun PinPad(
                     pin += key
                 }
             },
+            type = NumberPadType.SIMPLE,
+            modifier = Modifier.height(310.dp),
         )
     }
 }
