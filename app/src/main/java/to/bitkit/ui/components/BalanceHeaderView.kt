@@ -76,46 +76,27 @@ fun BalanceHeaderView(
     val shouldHideBalance = useSwipeToHide && hideBalance
     val allowSwipeToHide = useSwipeToHide && isSwipeToHideEnabled
 
-    converted?.let { converted ->
-        val btcComponents = converted.bitcoinDisplay(displayUnit)
+    converted?.let { fiat ->
+        val btc = fiat.bitcoinDisplay(displayUnit)
+        val isBitcoinPrimary = primaryDisplay == PrimaryDisplay.BITCOIN
 
-        if (primaryDisplay == PrimaryDisplay.BITCOIN) {
-            BalanceHeader(
-                modifier = modifier,
-                smallRowSymbol = converted.symbol,
-                smallRowText = converted.formatted,
-                smallRowModifier = Modifier.testTag("$testTag-secondary"),
-                largeRowPrefix = prefix,
-                largeRowText = btcComponents.value,
-                largeRowSymbol = btcComponents.symbol,
-                largeRowModifier = Modifier.testTag("$testTag-primary"),
-                showSymbol = showBitcoinSymbol,
-                hideBalance = shouldHideBalance,
-                isSwipeToHideEnabled = allowSwipeToHide,
-                showEyeIcon = showEyeIcon,
-                onClick = onClick ?: { currency.switchUnit() },
-                onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
-                testTag = testTag,
-            )
-        } else {
-            BalanceHeader(
-                modifier = modifier,
-                smallRowSymbol = btcComponents.symbol,
-                smallRowText = btcComponents.value,
-                smallRowModifier = Modifier.testTag("$testTag-secondary"),
-                largeRowPrefix = prefix,
-                largeRowText = converted.formatted,
-                largeRowSymbol = converted.symbol,
-                largeRowModifier = Modifier.testTag("$testTag-primary"),
-                showSymbol = true,
-                hideBalance = shouldHideBalance,
-                isSwipeToHideEnabled = allowSwipeToHide,
-                showEyeIcon = showEyeIcon,
-                onClick = { currency.switchUnit() },
-                onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
-                testTag = testTag,
-            )
-        }
+        BalanceHeader(
+            modifier = modifier,
+            smallRowSymbol = if (isBitcoinPrimary) fiat.symbol else btc.symbol,
+            smallRowText = if (isBitcoinPrimary) fiat.formatted else btc.value,
+            smallRowModifier = Modifier.testTag("$testTag-secondary"),
+            largeRowPrefix = prefix,
+            largeRowText = if (isBitcoinPrimary) btc.value else fiat.formatted,
+            largeRowSymbol = if (isBitcoinPrimary) btc.symbol else fiat.symbol,
+            largeRowModifier = Modifier.testTag("$testTag-primary"),
+            showSymbol = if (isBitcoinPrimary) showBitcoinSymbol else true,
+            hideBalance = shouldHideBalance,
+            isSwipeToHideEnabled = allowSwipeToHide,
+            showEyeIcon = showEyeIcon,
+            onClick = onClick ?: { currency.switchUnit() },
+            onToggleHideBalance = { settings.setHideBalance(!hideBalance) },
+            testTag = testTag,
+        )
     }
 }
 
