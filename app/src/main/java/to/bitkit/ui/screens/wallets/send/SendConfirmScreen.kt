@@ -275,9 +275,9 @@ fun ContentRunning(
             SendMethod.LIGHTNING -> LightningDescription(uiState = uiState, onEvent = onEvent)
         }
 
-        val isLnurlPay = uiState.lnurl is LnurlParams.LnurlPay
 
-        if (isLnurlPay) {
+
+        if (uiState.lnurl is LnurlParams.LnurlPay) {
             if (uiState.lnurl.data.commentAllowed()) {
                 LnurlCommentSection(uiState, onEvent)
             }
