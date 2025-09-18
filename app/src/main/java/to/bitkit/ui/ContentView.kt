@@ -970,7 +970,7 @@ private fun NavGraphBuilder.qrScanner(
 private fun NavGraphBuilder.authCheck(
     navController: NavHostController,
 ) {
-    composable<Routes.AuthCheck> {
+    composableWithDefaultTransitions<Routes.AuthCheck> {
         val route = it.toRoute<Routes.AuthCheck>()
         AuthCheckScreen(
             route = route,

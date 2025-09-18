@@ -21,7 +21,8 @@ import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.KEY_DELETE
-import to.bitkit.ui.components.NumberPadSimple
+import to.bitkit.ui.components.NumberPad
+import to.bitkit.ui.components.NumberPadType
 import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.navigateToChangePinConfirm
 import to.bitkit.ui.navigateToHome
@@ -93,9 +94,10 @@ private fun ChangePinNewContent(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            NumberPadSimple(
-                modifier = Modifier.height(350.dp),
+            NumberPad(
                 onPress = onKeyPress,
+                type = NumberPadType.SIMPLE,
+                modifier = Modifier.height(350.dp),
             )
         }
     }

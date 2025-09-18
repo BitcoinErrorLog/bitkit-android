@@ -23,7 +23,8 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.LargeRow
-import to.bitkit.ui.components.NumberPadSimple
+import to.bitkit.ui.components.NumberPad
+import to.bitkit.ui.components.NumberPadType
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SectionHeader
@@ -95,8 +96,9 @@ private fun Content(
 
             FillHeight()
 
-            NumberPadSimple(
+            NumberPad(
                 onPress = onKeyPress,
+                type = NumberPadType.SIMPLE,
                 modifier = Modifier.height(350.dp)
             )
             PrimaryButton(

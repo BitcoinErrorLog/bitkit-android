@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -95,9 +96,9 @@ fun SendConfirmScreen(
     onNavigateToPin: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    // TODO handle loading via uiState?
     var isLoading by rememberSaveable { mutableStateOf(false) }
     var showBiometrics by remember { mutableStateOf(false) }
+    val currentOnEvent by rememberUpdatedState(onEvent)
 
     val settings = settingsViewModel ?: return
     val isPinEnabled by settings.isPinEnabled.collectAsStateWithLifecycle()
@@ -115,18 +116,18 @@ fun SendConfirmScreen(
             }
     }
 
-    // Handle pay confirm with auth check if needed
+    // Confirm with pin or bio if required
     LaunchedEffect(uiState.shouldConfirmPay) {
-        if (uiState.shouldConfirmPay) {
-            if (isPinEnabled && pinForPayments) {
-                if (isBiometricEnabled && isBiometrySupported) {
-                    showBiometrics = true
-                } else {
-                    onNavigateToPin()
-                }
+        if (!uiState.shouldConfirmPay) return@LaunchedEffect
+        if (isPinEnabled && pinForPayments) {
+            currentOnEvent(SendEvent.ClearPayConfirmation)
+            if (isBiometricEnabled && isBiometrySupported) {
+                showBiometrics = true
             } else {
-                onEvent(SendEvent.PayConfirmed)
+                onNavigateToPin()
             }
+        } else {
+            currentOnEvent(SendEvent.PayConfirmed)
         }
     }
 

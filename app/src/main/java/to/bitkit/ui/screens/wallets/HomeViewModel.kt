@@ -49,7 +49,6 @@ class HomeViewModel @Inject constructor(
         setupStateObservation()
         setupArticleRotation()
         setupFactRotation()
-        checkHighBalance()
     }
 
     private fun setupStateObservation() {
@@ -91,6 +90,7 @@ class HomeViewModel @Inject constructor(
                     showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
                 )
             }.collect { newState ->
+                checkHighBalance()
                 _uiState.update { newState }
             }
         }
@@ -147,22 +147,28 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun checkHighBalance() {
+        if (_uiState.value.highBalanceSheetVisible) return
+
         viewModelScope.launch {
             delay(CHECK_DELAY_MILLISECONDS)
 
             val settings = settingsStore.data.first()
+            val currentTime = Clock.System.now().toEpochMilliseconds()
 
             val totalOnChainSats = walletRepo.balanceState.value.totalSats
             val balanceUsd = satsToUsd(totalOnChainSats) ?: return@launch
             val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
-            val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis - ASK_INTERVAL_MILLIS > ASK_INTERVAL_MILLIS
+
+            val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis == 0L ||
+                (currentTime - settings.lastTimeAskedBalanceWarningMillis > ASK_INTERVAL_MILLIS)
+
             val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
-            if (thresholdReached && isTimeOutOver && belowMaxWarnings && !_uiState.value.highBalanceSheetVisible) {
+            if (thresholdReached && isTimeOutOver && belowMaxWarnings) {
                 settingsStore.update {
                     it.copy(
                         balanceWarningTimes = it.balanceWarningTimes + 1,
-                        lastTimeAskedBalanceWarningMillis = Clock.System.now().toEpochMilliseconds()
+                        lastTimeAskedBalanceWarningMillis = currentTime
                     )
                 }
                 _uiState.update { it.copy(highBalanceSheetVisible = true) }
@@ -170,9 +176,7 @@ class HomeViewModel @Inject constructor(
 
             if (!thresholdReached) {
                 settingsStore.update {
-                    it.copy(
-                        balanceWarningTimes = 0,
-                    )
+                    it.copy(balanceWarningTimes = 0)
                 }
             }
         }

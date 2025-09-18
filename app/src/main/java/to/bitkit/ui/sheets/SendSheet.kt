@@ -220,7 +220,12 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.PinCheck> {
                 SendPinCheckScreen(
-                    onBack = { navController.popBackStack() },
+                    onBack = {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(PIN_CHECK_RESULT_KEY, false)
+                        navController.popBackStack()
+                    },
                     onSuccess = {
                         navController.previousBackStackEntry
                             ?.savedStateHandle
