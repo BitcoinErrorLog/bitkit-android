@@ -54,6 +54,7 @@ fun NewTransactionSheet(
     appViewModel: AppViewModel,
     currencyViewModel: CurrencyViewModel,
     settingsViewModel: SettingsViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val currencies by currencyViewModel.uiState.collectAsState()
     val newTransaction by appViewModel.newTransaction.collectAsState()
@@ -72,7 +73,7 @@ fun NewTransactionSheet(
                 onDetailClick = {
                     appViewModel.onClickActivityDetail()
                 },
-                modifier = Modifier
+                modifier = modifier
                     .sheetHeight(isModal = true)
                     .gradientBackground()
                     .navigationBarsPadding()

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalPermissionsApi::class)
-
 package to.bitkit.ui.screens.scanner
 
 import android.Manifest
@@ -66,6 +64,7 @@ import kotlinx.coroutines.withContext
 import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ext.getClipboardText
+import to.bitkit.ext.startActivityAppSettings
 import to.bitkit.models.Toast
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.PrimaryButton
@@ -80,11 +79,11 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.AppViewModel
 import java.util.concurrent.Executors
-import to.bitkit.ext.startActivityAppSettings
 
 const val SCAN_REQUEST_KEY = "SCAN_REQUEST"
 const val SCAN_RESULT_KEY = "SCAN_RESULT"
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QrScanningScreen(
     navController: NavController,

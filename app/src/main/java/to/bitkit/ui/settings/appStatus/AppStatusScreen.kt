@@ -1,7 +1,5 @@
 package to.bitkit.ui.settings.appStatus
 
-import android.content.Intent
-import android.provider.Settings
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
