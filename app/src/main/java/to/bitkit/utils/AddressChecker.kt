@@ -3,9 +3,7 @@ package to.bitkit.utils
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import to.bitkit.env.Env
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,17 +32,8 @@ class AddressChecker @Inject constructor(
         try {
             val response = client.get("${Env.esploraServerUrl}/tx/$txid")
 
-            // Debug: Check content type and body
-            Logger.debug("Response status: ${response.status}")
-            Logger.debug("Response content type: ${response.contentType()}")
-
-            val bodyAsString = response.body<String>()
-            Logger.debug("Response body: $bodyAsString")
-
-            // Parse manually to see if the JSON structure is correct
-            return Json.decodeFromString<TxDetails>(bodyAsString)
+            return response.body<TxDetails>()
         } catch (e: Exception) {
-            Logger.error("getTransaction error", e)
             throw AddressCheckerError.NetworkError(e)
         }
     }
