@@ -31,7 +31,6 @@ class AppUpdaterService @Inject constructor(
             )
         }
     }
-
 }
 
 sealed class AppUpdaterError(message: String) : AppError(message) {
