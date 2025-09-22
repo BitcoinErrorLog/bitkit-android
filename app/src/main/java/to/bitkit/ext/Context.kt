@@ -9,9 +9,12 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import to.bitkit.R
 import to.bitkit.utils.Logger
 import java.io.File
@@ -56,13 +59,6 @@ fun Context.copyAssetToStorage(asset: String, dest: String) {
     }
 }
 
-fun Context.findActivity(): Activity? =
-    when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-    }
-
 // Clipboard
 fun Context.setClipboardText(text: String, label: String = getString(R.string.app_name)) {
     this.clipboardManager.setPrimaryClip(
@@ -72,4 +68,25 @@ fun Context.setClipboardText(text: String, label: String = getString(R.string.ap
 
 fun Context.getClipboardText(): String? {
     return this.clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+}
+
+// Other
+
+fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
+fun Context.startActivityAppSettings() {
+    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        this.data = "package:$packageName".toUri()
+    }
+
+    if (intent.resolveActivity(packageManager) != null) {
+        startActivity(intent)
+    } else {
+        startActivity(Intent(Settings.ACTION_SETTINGS))
+    }
 }

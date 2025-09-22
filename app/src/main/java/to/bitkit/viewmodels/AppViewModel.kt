@@ -1312,6 +1312,8 @@ class AppViewModel @Inject constructor(
             return@launch
         }
 
+        hideSheet()
+
         if (event is Event.PaymentReceived) {
             val activity = activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = event.paymentHash,

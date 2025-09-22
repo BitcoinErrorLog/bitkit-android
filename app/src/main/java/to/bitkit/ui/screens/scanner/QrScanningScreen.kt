@@ -1,13 +1,9 @@
-@file:OptIn(ExperimentalPermissionsApi::class)
-
 package to.bitkit.ui.screens.scanner
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import android.view.View.LAYER_TYPE_HARDWARE
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -68,6 +64,7 @@ import kotlinx.coroutines.withContext
 import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ext.getClipboardText
+import to.bitkit.ext.startActivityAppSettings
 import to.bitkit.models.Toast
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.PrimaryButton
@@ -86,6 +83,7 @@ import java.util.concurrent.Executors
 const val SCAN_REQUEST_KEY = "SCAN_REQUEST"
 const val SCAN_RESULT_KEY = "SCAN_RESULT"
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QrScanningScreen(
     navController: NavController,
@@ -206,7 +204,9 @@ fun QrScanningScreen(
             DeniedContent(
                 shouldShowRationale = cameraPermissionState.status.shouldShowRationale,
                 inSheet = inSheet,
-                onClickOpenSettings = { context.startActivity(Intent(Settings.ACTION_SETTINGS)) },
+                onClickOpenSettings = {
+                    context.startActivityAppSettings()
+                },
                 onClickRetry = cameraPermissionState::launchPermissionRequest,
                 onClickPaste = handlePaste(context, app, setScanResult),
                 onBack = onBack,

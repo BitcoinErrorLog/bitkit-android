@@ -31,7 +31,6 @@ import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
 import to.bitkit.models.BalanceState
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
