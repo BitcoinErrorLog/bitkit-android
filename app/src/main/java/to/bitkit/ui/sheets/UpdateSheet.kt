@@ -47,7 +47,6 @@ fun UpdateSheet(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
-
         SheetTopBar(titleText = stringResource(R.string.other__update_nav_title))
         VerticalSpacer(16.dp)
 

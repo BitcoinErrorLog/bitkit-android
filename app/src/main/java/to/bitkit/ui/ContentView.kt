@@ -33,7 +33,6 @@ import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
-import to.bitkit.ui.Routes.*
 import to.bitkit.ui.components.AuthCheckScreen
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
@@ -337,7 +336,7 @@ fun ContentView(
                             ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
-                                    navController.navigate(ExternalConnection())
+                                    navController.navigate(Routes.ExternalConnection())
                                     appViewModel.hideSheet()
                                 }
                             )
