@@ -1,5 +1,6 @@
 package to.bitkit.ui.sheets
 
+import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,12 +11,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import to.bitkit.R
+import to.bitkit.env.Env
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
@@ -34,6 +38,8 @@ import to.bitkit.ui.utils.withAccent
 fun UpdateSheet(
     onCancel: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .sheetHeight(SheetSize.LARGE)
@@ -84,7 +90,9 @@ fun UpdateSheet(
             PrimaryButton(
                 text = stringResource(R.string.other__update_button),
                 fullWidth = false,
-                onClick = {}, // TODO
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Env.PLAY_STORE_URL.toUri()))
+                },
                 modifier = Modifier
                     .weight(1f),
             )
