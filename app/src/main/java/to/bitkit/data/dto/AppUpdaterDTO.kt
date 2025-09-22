@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * Represents the root of the JSON object.
  */
 @Serializable
-data class PlatformsResponse(
+data class ReleaseInfoDTO(
     @SerialName("platforms")
     val platforms: Platforms,
 )

@@ -5,7 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
-import to.bitkit.data.dto.PlatformsResponse
+import to.bitkit.data.dto.ReleaseInfoDTO
 import to.bitkit.env.Env
 import to.bitkit.utils.AppError
 import javax.inject.Inject
@@ -16,11 +16,11 @@ class AppUpdaterService @Inject constructor(
     private val client: HttpClient,
 ) {
 
-    suspend fun getReleaseInfo(): PlatformsResponse {
+    suspend fun getReleaseInfo(): ReleaseInfoDTO {
         val response: HttpResponse = client.get(Env.RELEASE_URL)
         return when (response.status.isSuccess()) {
             true -> {
-                val responseBody = runCatching { response.body<PlatformsResponse>() }.getOrElse {
+                val responseBody = runCatching { response.body<ReleaseInfoDTO>() }.getOrElse {
                     throw AppUpdaterError.InvalidResponse(it.message.orEmpty())
                 }
                 responseBody
