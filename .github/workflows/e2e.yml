@@ -150,6 +150,7 @@ jobs:
           script: cd bitkit-e2e-tests && ./ci_run_android.sh --mochaOpts.grep "${{ matrix.shard.grep }}"
         env:
           RECORD_VIDEO: true
+          ATTEMPT: 1
 
       - name: Run E2E Tests 2 (${{ matrix.shard.name }})
         continue-on-error: true
@@ -166,6 +167,7 @@ jobs:
           script: cd bitkit-e2e-tests && ./ci_run_android.sh --mochaOpts.grep "${{ matrix.shard.grep }}"
         env:
           RECORD_VIDEO: true
+          ATTEMPT: 2
 
       - name: Run E2E Tests 3 (${{ matrix.shard.name }})
         id: test3
@@ -181,6 +183,7 @@ jobs:
           script: cd bitkit-e2e-tests && ./ci_run_android.sh --mochaOpts.grep "${{ matrix.shard.grep }}"
         env:
           RECORD_VIDEO: true
+          ATTEMPT: 3
 
       - name: Upload E2E Artifacts (${{ matrix.shard.name }})
         if: failure()
