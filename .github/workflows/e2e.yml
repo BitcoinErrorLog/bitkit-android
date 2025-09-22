@@ -168,7 +168,6 @@ jobs:
           RECORD_VIDEO: true
 
       - name: Run E2E Tests 3 (${{ matrix.shard.name }})
-        continue-on-error: true
         id: test3
         if: steps.test1.outcome != 'success' && steps.test2.outcome != 'success'
         uses: reactivecircus/android-emulator-runner@v2
