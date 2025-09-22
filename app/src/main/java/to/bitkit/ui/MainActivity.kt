@@ -80,6 +80,7 @@ class MainActivity : FragmentActivity() {
         startForegroundService(Intent(this, LightningNodeService::class.java))
         installSplashScreen()
         enableAppEdgeToEdge()
+        appViewModel.handleDeeplinkIntent(intent)
         setContent {
             AppThemeSurface(
                 modifier = Modifier.semantics {
@@ -160,6 +161,13 @@ class MainActivity : FragmentActivity() {
                 SplashScreen(appViewModel.splashVisible)
             }
         }
+
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        appViewModel.handleDeeplinkIntent(intent)
     }
 }
 
