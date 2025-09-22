@@ -1660,4 +1660,7 @@ sealed interface Routes {
 
     @Serializable
     data object AppStatus : Routes
+
+    @Serializable
+    data object CriticalUpdate : Routes
 }
