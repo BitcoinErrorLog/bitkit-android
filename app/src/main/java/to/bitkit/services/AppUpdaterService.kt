@@ -1,0 +1,39 @@
+package to.bitkit.services
+
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
+import to.bitkit.data.dto.PlatformsResponse
+import to.bitkit.env.Env
+import to.bitkit.utils.AppError
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class AppUpdaterService @Inject constructor(
+    private val client: HttpClient,
+) {
+
+    suspend fun getReleaseInfo(): PlatformsResponse {
+        val response: HttpResponse = client.get(Env.RELEASE_URL)
+        return when (response.status.isSuccess()) {
+            true -> {
+                val responseBody = runCatching { response.body<PlatformsResponse>() }.getOrElse {
+                    throw AppUpdaterError.InvalidResponse(it.message.orEmpty())
+                }
+                responseBody
+            }
+
+            else -> throw AppUpdaterError.InvalidResponse(
+                "Failed to fetch release info: ${response.status.description}"
+            )
+        }
+    }
+
+}
+
+sealed class AppUpdaterError(message: String) : AppError(message) {
+    data class InvalidResponse(override val message: String) : AppUpdaterError(message)
+}
