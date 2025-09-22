@@ -60,7 +60,7 @@ fun CriticalUpdateScreen() {
         VerticalSpacer(32.dp)
 
         PrimaryButton(
-            text = stringResource(R.string.other__update_button),
+            text = stringResource(R.string.other__update_critical_button),
             fullWidth = true,
             onClick = {}, // TODO
         )
