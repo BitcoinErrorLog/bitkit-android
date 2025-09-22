@@ -1594,7 +1594,8 @@ sealed class SendEffect {
 
 sealed class MainScreenEffect {
     data class Navigate(
-        val route: Routes, val navOptions: NavOptions? = null,
+        val route: Routes,
+        val navOptions: NavOptions? = null,
     ) : MainScreenEffect()
 
     data object WipeWallet : MainScreenEffect()
