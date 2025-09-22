@@ -33,6 +33,7 @@ import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
+import to.bitkit.ui.Routes.*
 import to.bitkit.ui.components.AuthCheckScreen
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
@@ -136,6 +137,7 @@ import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
+import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.Transitions
@@ -320,6 +322,7 @@ fun ContentView(
                 onDismiss = { appViewModel.hideSheet() },
                 sheets = {
                     when (val sheet = currentSheet) {
+                        null -> Unit
                         is Sheet.Send -> {
                             SendSheet(
                                 appViewModel = appViewModel,
@@ -333,7 +336,7 @@ fun ContentView(
                             ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
-                                    navController.navigate(Routes.ExternalConnection())
+                                    navController.navigate(ExternalConnection())
                                     appViewModel.hideSheet()
                                 }
                             )
@@ -344,7 +347,7 @@ fun ContentView(
                         is Sheet.Pin -> PinSheet(sheet, appViewModel)
                         is Sheet.Backup -> BackupSheet(sheet, appViewModel)
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                        null -> Unit
+                        Sheet.Update -> UpdateSheet(onCancel = { appViewModel.hideSheet() })
                     }
                 }
             ) {
