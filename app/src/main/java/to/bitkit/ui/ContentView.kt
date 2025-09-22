@@ -40,6 +40,7 @@ import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
+import to.bitkit.ui.screens.CriticalUpdateScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
@@ -211,7 +212,7 @@ fun ContentView(
     LaunchedEffect(appViewModel) {
         appViewModel.mainScreenEffect.collect {
             when (it) {
-                is MainScreenEffect.Navigate -> navController.navigate(it.route)
+                is MainScreenEffect.Navigate -> navController.navigate(it.route, navOptions = it.navOptions)
                 is MainScreenEffect.ProcessClipboardAutoRead -> {
                     val isOnHome = navController.currentDestination?.hasRoute<Routes.Home>() == true
                     if (!isOnHome) {
@@ -407,6 +408,7 @@ private fun RootNavHost(
         suggestions(navController)
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
+        update()
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
@@ -1004,6 +1006,12 @@ private fun NavGraphBuilder.suggestions(
         BuyIntroScreen(
             onBackClick = { navController.popBackStack() }
         )
+    }
+}
+
+private fun NavGraphBuilder.update() {
+    composableWithDefaultTransitions<Routes.CriticalUpdate> {
+        CriticalUpdateScreen()
     }
 }
 

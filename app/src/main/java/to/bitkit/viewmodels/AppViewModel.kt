@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavOptions
+import androidx.navigation.navOptions
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -1471,12 +1473,19 @@ class AppViewModel @Inject constructor(
                 if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@launch
 
                 if (androidReleaseInfo.isCritical) {
-                    mainScreenEffect(MainScreenEffect.Navigate(Routes.CriticalUpdate))
+                    mainScreenEffect(
+                        MainScreenEffect.Navigate(
+                            route = Routes.CriticalUpdate,
+                            navOptions = navOptions {
+                                popUpTo(Routes.CriticalUpdate) { inclusive = true }
+                            }
+                        )
+                    )
                 } else {
                     showSheet(sheetType = Sheet.Update)
                 }
             }.onFailure { e ->
-                Logger.warn("Failure fetching for new releases", e = e)
+                Logger.warn("Failure fetching new releases", e = e)
             }
         }
     }
@@ -1584,7 +1593,10 @@ sealed class SendEffect {
 }
 
 sealed class MainScreenEffect {
-    data class Navigate(val route: Routes) : MainScreenEffect()
+    data class Navigate(
+        val route: Routes, val navOptions: NavOptions? = null,
+    ) : MainScreenEffect()
+
     data object WipeWallet : MainScreenEffect()
     data class ProcessClipboardAutoRead(val data: String) : MainScreenEffect()
 }
