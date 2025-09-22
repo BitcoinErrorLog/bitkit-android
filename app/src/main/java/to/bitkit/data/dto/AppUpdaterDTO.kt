@@ -16,6 +16,8 @@ data class ReleaseInfoDTO(
 data class Platforms(
     @SerialName("android")
     val android: PlatformDetails,
+    @SerialName("ios")
+    val ios: PlatformDetails?,
 )
 
 /**

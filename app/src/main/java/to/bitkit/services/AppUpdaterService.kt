@@ -1,10 +1,11 @@
 package to.bitkit.services
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import kotlinx.serialization.json.Json
 import to.bitkit.data.dto.ReleaseInfoDTO
 import to.bitkit.env.Env
 import to.bitkit.utils.AppError
@@ -20,7 +21,9 @@ class AppUpdaterService @Inject constructor(
         val response: HttpResponse = client.get(Env.RELEASE_URL)
         return when (response.status.isSuccess()) {
             true -> {
-                val responseBody = runCatching { response.body<ReleaseInfoDTO>() }.getOrElse {
+                val responseBody = runCatching {
+                    Json.decodeFromString<ReleaseInfoDTO>(response.bodyAsText())
+                }.getOrElse {
                     throw AppUpdaterError.InvalidResponse(it.message.orEmpty())
                 }
                 responseBody
