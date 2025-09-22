@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -21,8 +22,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
@@ -55,6 +54,7 @@ fun NewTransactionSheet(
     appViewModel: AppViewModel,
     currencyViewModel: CurrencyViewModel,
     settingsViewModel: SettingsViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val currencies by currencyViewModel.uiState.collectAsState()
     val newTransaction by appViewModel.newTransaction.collectAsState()
@@ -73,6 +73,11 @@ fun NewTransactionSheet(
                 onDetailClick = {
                     appViewModel.onClickActivityDetail()
                 },
+                modifier = modifier
+                    .sheetHeight(isModal = true)
+                    .gradientBackground()
+                    .navigationBarsPadding()
+                    .testTag("new_transaction_sheet")
             )
         }
     }
@@ -83,14 +88,9 @@ fun NewTransactionSheetView(
     details: NewTransactionSheetDetails,
     onCloseClick: () -> Unit,
     onDetailClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = Modifier
-            .semantics { testTagsAsResourceId = true }
-            .sheetHeight(isModal = true)
-            .gradientBackground()
-            .testTag("new_transaction_sheet")
-    ) {
+    Box(modifier = modifier) {
         if (details.direction == NewTransactionSheetDirection.RECEIVED) {
             Image(
                 painter = painterResource(R.drawable.coin_stack_5),
@@ -158,13 +158,7 @@ fun NewTransactionSheetView(
                 onClick = { onDetailClick },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(
-                        if (details.direction == NewTransactionSheetDirection.SENT) {
-                            "SendSuccess"
-                        } else {
-                            "ReceivedTransaction"
-                        }
-                    )
+                    .testTag("ReceivedTransaction")
             )
 
             Spacer(modifier = Modifier.weight(1f))
