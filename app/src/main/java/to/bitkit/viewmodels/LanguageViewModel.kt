@@ -119,11 +119,6 @@ class LanguageViewModel @Inject constructor(
 //                }
 //            }
 
-            // If still empty, add common fallback languages
-            if (supportedLanguages.isEmpty()) {
-                supportedLanguages.addAll(Language.getCommonLanguages().take(8)) // Limit to 8 common languages
-            }
-
             supportedLanguages.toList()
         } catch (e: Exception) {
             // Ultimate fallback

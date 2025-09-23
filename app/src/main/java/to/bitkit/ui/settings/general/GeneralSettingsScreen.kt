@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
+import to.bitkit.models.Language
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.transactionSpeedUiText
@@ -22,6 +23,7 @@ import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.navigateToDefaultUnitSettings
 import to.bitkit.ui.navigateToHome
+import to.bitkit.ui.navigateToLanguageSettings
 import to.bitkit.ui.navigateToLocalCurrencySettings
 import to.bitkit.ui.navigateToQuickPaySettings
 import to.bitkit.ui.navigateToTagsSettings
@@ -42,6 +44,7 @@ fun GeneralSettingsScreen(
     val defaultTransactionSpeed by settings.defaultTransactionSpeed.collectAsStateWithLifecycle()
     val lastUsedTags by settings.lastUsedTags.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
+    val selectedLanguage by settings.selectedLanguage.collectAsStateWithLifecycle()
 
     GeneralSettingsContent(
         selectedCurrency = currencies.selectedCurrency,
@@ -56,6 +59,8 @@ fun GeneralSettingsScreen(
         onWidgetsClick = { navController.navigateToWidgetsSettings() },
         onQuickPayClick = { navController.navigateToQuickPaySettings(quickPayIntroSeen) },
         onTagsClick = { navController.navigateToTagsSettings() },
+        onLanguageSettingsClick = { navController.navigateToLanguageSettings() },
+        selectedLanguage = selectedLanguage
     )
 }
 
@@ -65,6 +70,7 @@ private fun GeneralSettingsContent(
     primaryDisplay: PrimaryDisplay,
     defaultTransactionSpeed: TransactionSpeed,
     showTagsButton: Boolean = false,
+    selectedLanguage: String,
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
     onLocalCurrencyClick: () -> Unit = {},
@@ -72,6 +78,7 @@ private fun GeneralSettingsContent(
     onTransactionSpeedClick: () -> Unit = {},
     onWidgetsClick: () -> Unit = {},
     onQuickPayClick: () -> Unit = {},
+    onLanguageSettingsClick: () -> Unit = {},
     onTagsClick: () -> Unit = {},
 ) {
     ScreenColumn {
@@ -85,6 +92,12 @@ private fun GeneralSettingsContent(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            SettingsButtonRow(
+                title = "Language",
+                value = SettingsButtonValue.StringValue(selectedLanguage),
+                onClick = onLanguageSettingsClick,
+                modifier = Modifier.testTag("LanguageSettings")
+            )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__general__currency_local),
                 value = SettingsButtonValue.StringValue(selectedCurrency),
@@ -138,6 +151,7 @@ private fun Preview() {
             primaryDisplay = PrimaryDisplay.BITCOIN,
             defaultTransactionSpeed = TransactionSpeed.Medium,
             showTagsButton = true,
+            selectedLanguage = Language.SYSTEM_DEFAULT.displayName
         )
     }
 }

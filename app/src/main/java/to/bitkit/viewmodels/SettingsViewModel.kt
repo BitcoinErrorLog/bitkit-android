@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
+import to.bitkit.models.Language
 import to.bitkit.models.TransactionSpeed
 import javax.inject.Inject
 
@@ -18,6 +19,9 @@ class SettingsViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
 ) : ViewModel() {
     fun reset() = viewModelScope.launch { settingsStore.reset() }
+
+    val selectedLanguage = settingsStore.data.map { it.selectedLanguage.displayName }
+        .asStateFlow(initialValue = "")
 
     val hasSeenSpendingIntro = settingsStore.data.map { it.hasSeenSpendingIntro }
         .asStateFlow(initialValue = false)
