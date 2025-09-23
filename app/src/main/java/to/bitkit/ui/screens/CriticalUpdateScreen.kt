@@ -34,7 +34,7 @@ fun CriticalUpdateScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 32.dp)
             .systemBarsPadding()
     ) {
         AppTopBar(
@@ -47,7 +47,6 @@ fun CriticalUpdateScreen() {
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 28.dp)
                 .aspectRatio(1.0f)
                 .weight(1f)
         )
