@@ -11,6 +11,7 @@ import to.bitkit.data.serializers.SettingsSerializer
 import to.bitkit.env.Env
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.CoinSelectionPreference
+import to.bitkit.models.Language
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransactionSpeed
@@ -106,6 +107,7 @@ data class SettingsData(
     val coinSelectPreference: CoinSelectionPreference = CoinSelectionPreference.BranchAndBound,
     val electrumServer: String = Env.defaultElectrumServer,
     val rgsServerUrl: String? = Env.ldkRgsServerUrl,
+    val selectedLanguage: Language = Language.SYSTEM_DEFAULT,
 )
 
 fun SettingsData.resetPin() = this.copy(
