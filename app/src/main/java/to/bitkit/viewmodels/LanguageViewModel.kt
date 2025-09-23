@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
 import to.bitkit.models.Language
@@ -21,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LanguageViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LanguageUiState())
@@ -45,17 +46,13 @@ class LanguageViewModel @Inject constructor(
     fun selectLanguage(language: Language) {
         viewModelScope.launch {
             runCatching {
-
                 settingsStore.update { currentSettings ->
                     currentSettings.copy(selectedLanguage = language)
                 }
 
-                // Apply the language change
                 applyLanguageChange(language)
 
-                _uiState.value = _uiState.value.copy(
-                    selectedLanguage = language,
-                )
+                _uiState.update { it.copy(selectedLanguage = language) }
             }.onFailure { e ->
                 Logger.warn("fail to set language", e = e)
             }
@@ -169,5 +166,5 @@ class LanguageViewModel @Inject constructor(
 
 data class LanguageUiState(
     val selectedLanguage: Language = Language.SYSTEM_DEFAULT,
-    val languages: List<Language> = listOf()
+    val languages: List<Language> = listOf(),
 )
