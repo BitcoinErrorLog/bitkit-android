@@ -1477,7 +1477,7 @@ class AppViewModel @Inject constructor(
                         MainScreenEffect.Navigate(
                             route = Routes.CriticalUpdate,
                             navOptions = navOptions {
-                                popUpTo(Routes.CriticalUpdate) { inclusive = true }
+                                popUpTo(0) { inclusive = true }
                             }
                         )
                     )
