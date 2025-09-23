@@ -6,7 +6,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.models.Language
@@ -23,27 +22,23 @@ class LanguageViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(
-                settingsStore.data,
-                _uiState
-            ) { settings, currentState ->
-                currentState.copy(
-                    selectedLanguage = settings.selectedLanguage,
-                    languages = getAvailableLanguages()
-                )
-            }.collect { newState ->
-                _uiState.value = newState
-            }
+            loadInitialLanguage()
         }
     }
 
     private fun loadInitialLanguage() {
-        val currentLanguage = appLocaleManager.getLanguageCode()
-        _uiState.update { it.copy(selectedLanguage = language) }
+        val currentLanguage = appLocaleManager.getCurrentLanguage()
+
+        _uiState.update {
+            it.copy(
+                selectedLanguage = currentLanguage,
+                languages = appLocaleManager.getSupportedLanguages()
+            )
+        }
     }
 
-    fun changeLanguage(language: Language) {
-        appLocaleManager.changeLanguage(language.code)
+    fun selectLanguage(language: Language) {
+        appLocaleManager.changeLanguage(language)
         _uiState.update { it.copy(selectedLanguage = language) }
     }
 }
