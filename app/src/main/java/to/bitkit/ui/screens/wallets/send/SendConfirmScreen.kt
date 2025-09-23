@@ -62,6 +62,7 @@ import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SwipeToConfirm
+import to.bitkit.ui.components.SyncNodeView
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.components.VerticalSpacer
@@ -88,6 +89,7 @@ import java.time.Instant
 fun SendConfirmScreen(
     savedStateHandle: SavedStateHandle,
     uiState: SendUiState,
+    isNodeRunning: Boolean,
     canGoBack: Boolean,
     onBack: () -> Unit,
     onEvent: (SendEvent) -> Unit,
@@ -133,6 +135,7 @@ fun SendConfirmScreen(
 
     Content(
         uiState = uiState,
+        isNodeRunning = isNodeRunning,
         isLoading = isLoading,
         showBiometrics = showBiometrics,
         canGoBack = canGoBack,
@@ -163,6 +166,7 @@ fun SendConfirmScreen(
 @Composable
 private fun Content(
     uiState: SendUiState,
+    isNodeRunning: Boolean,
     isLoading: Boolean,
     showBiometrics: Boolean,
     modifier: Modifier = Modifier,
@@ -194,47 +198,22 @@ private fun Content(
 
             Spacer(Modifier.height(16.dp))
 
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                BalanceHeaderView(
-                    sats = uiState.amount.toLong(),
-                    useSwipeToHide = false,
-                    onClick = { onEvent(SendEvent.BackToAmount) },
+            if (isNodeRunning) {
+                ContentRunning(
+                    uiState = uiState,
+                    onEvent = onEvent,
+                    isLoading = isLoading,
+                    onClickAddTag = onClickAddTag,
+                    onClickTag = onClickTag,
+                    onSwipeToConfirm = onSwipeToConfirm,
+                )
+            } else {
+                SyncNodeView(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("ReviewAmount"),
-                    testTag = "ReviewAmount"
+                        .weight(1f)
+                        .testTag("sync_node_view")
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                when (uiState.payMethod) {
-                    SendMethod.ONCHAIN -> OnChainDescription(uiState = uiState, onEvent = onEvent)
-                    SendMethod.LIGHTNING -> LightningDescription(uiState = uiState, onEvent = onEvent)
-                }
-
-                if (isLnurlPay) {
-                    if (uiState.lnurl.data.commentAllowed()) {
-                        LnurlCommentSection(uiState, onEvent)
-                    }
-                } else {
-                    TagsSection(uiState, onClickTag, onClickAddTag)
-                }
-
-                FillHeight()
-                VerticalSpacer(16.dp)
-
-                SwipeToConfirm(
-                    text = stringResource(R.string.wallet__send_swipe),
-                    loading = isLoading,
-                    confirmed = isLoading,
-                    onConfirm = onSwipeToConfirm,
-                )
-                VerticalSpacer(16.dp)
             }
         }
 
@@ -261,6 +240,59 @@ private fun Content(
                     .testTag(dialog.testTag),
             )
         }
+    }
+}
+
+@Composable
+fun ContentRunning(
+    uiState: SendUiState,
+    onEvent: (SendEvent) -> Unit,
+    isLoading: Boolean,
+    onClickAddTag: () -> Unit,
+    onClickTag: (String) -> Unit,
+    onSwipeToConfirm: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        BalanceHeaderView(
+            sats = uiState.amount.toLong(),
+            useSwipeToHide = false,
+            onClick = { onEvent(SendEvent.BackToAmount) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("ReviewAmount"),
+            testTag = "ReviewAmount"
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when (uiState.payMethod) {
+            SendMethod.ONCHAIN -> OnChainDescription(uiState = uiState, onEvent = onEvent)
+            SendMethod.LIGHTNING -> LightningDescription(uiState = uiState, onEvent = onEvent)
+        }
+
+        if (uiState.lnurl is LnurlParams.LnurlPay) {
+            if (uiState.lnurl.data.commentAllowed()) {
+                LnurlCommentSection(uiState, onEvent)
+            }
+        } else {
+            TagsSection(uiState, onClickTag, onClickAddTag)
+        }
+
+        FillHeight()
+        VerticalSpacer(16.dp)
+
+        SwipeToConfirm(
+            text = stringResource(R.string.wallet__send_swipe),
+            loading = isLoading,
+            confirmed = isLoading,
+            onConfirm = onSwipeToConfirm,
+        )
+        VerticalSpacer(16.dp)
     }
 }
 
@@ -574,6 +606,7 @@ private fun PreviewOnChain() {
                     fee = SendFee.OnChain(1_234),
                     speed = TransactionSpeed.Medium,
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
@@ -594,6 +627,7 @@ private fun PreviewOnChainLongFeeSmallScreen() {
                     fee = SendFee.OnChain(654_321),
                     speed = TransactionSpeed.Custom(12_345u),
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
@@ -612,6 +646,7 @@ private fun PreviewOnChainFeeLoading() {
                     selectedTags = listOf("car", "house", "uber"),
                     fee = null,
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
@@ -632,6 +667,7 @@ private fun PreviewLightning() {
                     selectedTags = emptyList(),
                     fee = SendFee.Lightning(43),
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
@@ -661,6 +697,7 @@ private fun PreviewLnurl() {
                         ),
                     ),
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
@@ -676,6 +713,7 @@ private fun PreviewBio() {
         BottomSheetPreview {
             Content(
                 uiState = sendUiState(),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = true,
                 modifier = Modifier.sheetHeight(),
@@ -693,8 +731,39 @@ private fun PreviewDialog() {
                 uiState = sendUiState().copy(
                     showSanityWarningDialog = SanityWarning.VALUE_OVER_100_USD,
                 ),
+                isNodeRunning = true,
                 isLoading = false,
                 showBiometrics = true,
+                modifier = Modifier.sheetHeight(),
+            )
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewNodeNotRunning() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            Content(
+                uiState = sendUiState().copy(
+                    payMethod = SendMethod.LIGHTNING,
+                    lnurl = LnurlParams.LnurlPay(
+                        data = LnurlPayData(
+                            uri = "veryLongLnurlPayUri12345677890123456789012345678901234567890",
+                            callback = "",
+                            metadataStr = "",
+                            commentAllowed = 255u,
+                            minSendable = 1000u,
+                            maxSendable = 1000_000u,
+                            allowsNostr = false,
+                            nostrPubkey = null,
+                        ),
+                    ),
+                ),
+                isNodeRunning = false,
+                isLoading = false,
+                showBiometrics = false,
                 modifier = Modifier.sheetHeight(),
             )
         }

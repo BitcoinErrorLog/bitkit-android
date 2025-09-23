@@ -167,9 +167,12 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
+                val walletUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+
                 SendConfirmScreen(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
+                    isNodeRunning = walletUiState.nodeLifecycleState.isRunning(),
                     canGoBack = startDestination != SendRoute.Confirm,
                     onBack = {
                         if (!navController.popBackStack()) {

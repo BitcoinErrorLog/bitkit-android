@@ -1,6 +1,8 @@
 package to.bitkit.viewmodels
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -907,7 +909,7 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun proceedWithPayment() {
-        delay(300) // wait for screen transitions when applicable
+        delay(SCREEN_TRANSITION_DELAY_MS) // wait for screen transitions when applicable
 
         val amount = _sendUiState.value.amount
 
@@ -1528,12 +1530,37 @@ class AppViewModel @Inject constructor(
         setSendEffect(SendEffect.PaymentSuccess(details))
     }
 
+    fun handleDeeplinkIntent(intent: Intent) {
+        intent.data?.let { uri ->
+            Logger.debug("Received deeplink: $uri")
+            processDeeplink(uri)
+        }
+    }
+
+    private fun processDeeplink(uri: Uri) = viewModelScope.launch {
+        if (!walletRepo.walletExists()) return@launch
+
+        val data = uri.toString()
+        delay(SCREEN_TRANSITION_DELAY_MS)
+        handleScan(data.removeLightningSchemes())
+    }
+
+    // Todo Temporaary fix while these schemes can't be decoded
+    private fun String.removeLightningSchemes(): String {
+        return this
+            .replace("lnurl:", "")
+            .replace("lnurlw:", "")
+            .replace("lnurlc:", "")
+            .replace("lnurlp:", "")
+    }
+
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
         private const val TEN_USD = 10
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
+        private const val SCREEN_TRANSITION_DELAY_MS = 300L
     }
 }
 
