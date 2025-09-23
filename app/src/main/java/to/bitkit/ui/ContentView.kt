@@ -39,6 +39,7 @@ import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
+import to.bitkit.ui.screens.CriticalUpdateScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
@@ -136,6 +137,7 @@ import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
+import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.Transitions
@@ -209,7 +211,7 @@ fun ContentView(
     LaunchedEffect(appViewModel) {
         appViewModel.mainScreenEffect.collect {
             when (it) {
-                is MainScreenEffect.Navigate -> navController.navigate(it.route)
+                is MainScreenEffect.Navigate -> navController.navigate(it.route, navOptions = it.navOptions)
                 is MainScreenEffect.ProcessClipboardAutoRead -> {
                     val isOnHome = navController.currentDestination?.hasRoute<Routes.Home>() == true
                     if (!isOnHome) {
@@ -320,6 +322,7 @@ fun ContentView(
                 onDismiss = { appViewModel.hideSheet() },
                 sheets = {
                     when (val sheet = currentSheet) {
+                        null -> Unit
                         is Sheet.Send -> {
                             SendSheet(
                                 appViewModel = appViewModel,
@@ -344,7 +347,7 @@ fun ContentView(
                         is Sheet.Pin -> PinSheet(sheet, appViewModel)
                         is Sheet.Backup -> BackupSheet(sheet, appViewModel)
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                        null -> Unit
+                        Sheet.Update -> UpdateSheet(onCancel = { appViewModel.hideSheet() })
                     }
                 }
             ) {
@@ -404,6 +407,7 @@ private fun RootNavHost(
         suggestions(navController)
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
+        update()
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
@@ -1001,6 +1005,12 @@ private fun NavGraphBuilder.suggestions(
         BuyIntroScreen(
             onBackClick = { navController.popBackStack() }
         )
+    }
+}
+
+private fun NavGraphBuilder.update() {
+    composableWithDefaultTransitions<Routes.CriticalUpdate> {
+        CriticalUpdateScreen()
     }
 }
 
@@ -1657,4 +1667,7 @@ sealed interface Routes {
 
     @Serializable
     data object AppStatus : Routes
+
+    @Serializable
+    data object CriticalUpdate : Routes
 }

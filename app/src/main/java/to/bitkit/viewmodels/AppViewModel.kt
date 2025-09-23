@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavOptions
+import androidx.navigation.navOptions
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -43,6 +45,7 @@ import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
+import to.bitkit.BuildConfig
 import to.bitkit.R
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
@@ -80,6 +83,7 @@ import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.HealthRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
+import to.bitkit.services.AppUpdaterService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
@@ -103,8 +107,9 @@ class AppViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
     private val blocktankRepo: BlocktankRepo,
-    connectivityRepo: ConnectivityRepo,
-    healthRepo: HealthRepo,
+    private val connectivityRepo: ConnectivityRepo,
+    private val healthRepo: HealthRepo,
+    private val appUpdaterService: AppUpdaterService,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -192,6 +197,7 @@ class AppViewModel @Inject constructor(
 
         observeLdkNodeEvents()
         observeSendEvents()
+        fetchNewReleases()
     }
 
     private fun observeLdkNodeEvents() {
@@ -1314,8 +1320,6 @@ class AppViewModel @Inject constructor(
             return@launch
         }
 
-        hideSheet()
-
         if (event is Event.PaymentReceived) {
             val activity = activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = event.paymentHash,
@@ -1330,6 +1334,8 @@ class AppViewModel @Inject constructor(
                 return@launch
             }
         }
+
+        hideSheet()
 
         _newTransaction.update { details }
         showNewTransaction = true
@@ -1457,6 +1463,32 @@ class AppViewModel @Inject constructor(
     fun onClipboardAutoRead(data: String) {
         viewModelScope.launch {
             mainScreenEffect(MainScreenEffect.ProcessClipboardAutoRead(data))
+        }
+    }
+
+    private fun fetchNewReleases() {
+        viewModelScope.launch(bgDispatcher) {
+            runCatching {
+                val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
+                val currentBuildNumber = BuildConfig.VERSION_CODE
+
+                if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@launch
+
+                if (androidReleaseInfo.isCritical) {
+                    mainScreenEffect(
+                        MainScreenEffect.Navigate(
+                            route = Routes.CriticalUpdate,
+                            navOptions = navOptions {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        )
+                    )
+                } else {
+                    showSheet(sheetType = Sheet.Update)
+                }
+            }.onFailure { e ->
+                Logger.warn("Failure fetching new releases", e = e)
+            }
         }
     }
 
@@ -1588,7 +1620,11 @@ sealed class SendEffect {
 }
 
 sealed class MainScreenEffect {
-    data class Navigate(val route: Routes) : MainScreenEffect()
+    data class Navigate(
+        val route: Routes,
+        val navOptions: NavOptions? = null,
+    ) : MainScreenEffect()
+
     data object WipeWallet : MainScreenEffect()
     data class ProcessClipboardAutoRead(val data: String) : MainScreenEffect()
 }
