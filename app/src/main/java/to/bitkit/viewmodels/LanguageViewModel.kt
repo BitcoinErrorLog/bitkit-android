@@ -71,7 +71,7 @@ class LanguageViewModel @Inject constructor(
         AppCompatDelegate.setApplicationLocales(localeToSet)
     }
 
-    fun getAvailableLanguages(): List<Language> {
+    private fun getAvailableLanguages(): List<Language> {
         val availableLanguages = mutableListOf<Language>()
 
         // Always add System Default as the first option
@@ -169,4 +169,5 @@ class LanguageViewModel @Inject constructor(
 
 data class LanguageUiState(
     val selectedLanguage: Language = Language.SYSTEM_DEFAULT,
+    val languages: List<Language> = listOf()
 )
