@@ -83,7 +83,7 @@ private fun Preview() {
         Content(
             uiState = LanguageUiState(
                 selectedLanguage = Language.SPANISH,
-                languages = Language.getSupportedLanguages()
+                languages = Language.entries
             ),
             onBackClick = {},
             onCloseClick = {},
