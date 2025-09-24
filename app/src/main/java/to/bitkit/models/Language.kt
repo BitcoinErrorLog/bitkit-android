@@ -50,7 +50,7 @@ fun Language.getLanguageTag(): String {
         ""
     } else {
         if (countryCode != null) {
-            "${languageCode}-${countryCode}"
+            "$languageCode-$countryCode"
         } else {
             languageCode
         }

@@ -62,7 +62,7 @@ private fun Content(
         )
 
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .padding(horizontal = 16.dp)
         ) {
             Text13Up("Interface Language", color = Colors.White64, modifier = Modifier.padding(vertical = 16.dp))
