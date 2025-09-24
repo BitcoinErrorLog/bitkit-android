@@ -1,5 +1,6 @@
 package to.bitkit.ui.settings
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +17,6 @@ import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
-import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -49,10 +49,8 @@ private fun Content(
     onClickLanguage: (Language) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ScreenColumn(
-        modifier = modifier
-            .screen()
-            .padding(horizontal = 16.dp)
+    Column(
+        modifier = modifier.screen()
     ) {
         AppTopBar(
             titleText = "Language", // TODO Transifex
@@ -60,15 +58,20 @@ private fun Content(
             actions = { CloseNavIcon(onClick = onCloseClick) }
         )
 
-        Text13Up("Interface Language", color = Colors.White64, modifier = Modifier.padding(vertical = 16.dp))
+        Column(
+            modifier = modifier
+                .padding(horizontal = 16.dp)
+        ) {
+            Text13Up("Interface Language", color = Colors.White64, modifier = Modifier.padding(vertical = 16.dp))
 
-        LazyColumn {
-            items(uiState.languages, { item -> item.displayName }) { item ->
-                SettingsButtonRow(
-                    title = item.displayName,
-                    value = SettingsButtonValue.BooleanValue(item == uiState.selectedLanguage),
-                    onClick = { onClickLanguage(item) }
-                )
+            LazyColumn {
+                items(uiState.languages, { item -> item.displayName }) { item ->
+                    SettingsButtonRow(
+                        title = item.displayName,
+                        value = SettingsButtonValue.BooleanValue(item == uiState.selectedLanguage),
+                        onClick = { onClickLanguage(item) }
+                    )
+                }
             }
         }
     }
