@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_settings_backup"
+        android:shortcutId="recovery-mode"
+        android:shortcutShortLabel="@string/security__recovery">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="bitkit://recovery-mode"
+            android:targetClass="to.bitkit.ui.MainActivity" />
+    </shortcut>
+</shortcuts>
