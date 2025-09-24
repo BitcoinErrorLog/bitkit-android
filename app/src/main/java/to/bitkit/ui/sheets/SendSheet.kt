@@ -227,6 +227,7 @@ fun SendSheet(
                         navController.popBackStack()
                     },
                     tqgInputTestTag = "TagInputSend",
+                    addButtonTestTag = "SendTagsSubmit",
                 )
             }
             composableWithDefaultTransitions<SendRoute.PinCheck> {
