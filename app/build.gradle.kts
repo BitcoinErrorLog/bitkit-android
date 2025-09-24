@@ -129,6 +129,8 @@ android {
     androidResources {
         @Suppress("UnstableApiUsage")
         localeFilters.addAll(listOf("en", "ar", "ca", "cs", "de", "el", "es", "fr", "it", "nl", "pl", "pt", "ru"))
+        @Suppress("UnstableApiUsage")
+        generateLocaleConfig = true
     }
     packaging {
         resources {

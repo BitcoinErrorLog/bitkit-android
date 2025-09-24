@@ -8,15 +8,12 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ReleaseInfoDTO(
-    @SerialName("platforms")
     val platforms: Platforms,
 )
 
 @Serializable
 data class Platforms(
-    @SerialName("android")
     val android: PlatformDetails,
-    @SerialName("ios")
     val ios: PlatformDetails?,
 )
 
@@ -25,19 +22,15 @@ data class Platforms(
  */
 @Serializable
 data class PlatformDetails(
-    @SerialName("version")
     val version: String,
 
-    @SerialName("buildNumber")
     val buildNumber: Int,
 
-    @SerialName("notes")
     val notes: String,
 
     @SerialName("pub_date")
     val pubDate: String,
 
-    @SerialName("url")
     val url: String,
 
     @SerialName("critical")
