@@ -41,6 +41,16 @@ class LanguageViewModel @Inject constructor(
         appLocaleManager.changeLanguage(language)
         _uiState.update { it.copy(selectedLanguage = language) }
     }
+
+    fun fetchSelectedLanguage() {
+        val currentLanguage = appLocaleManager.getCurrentLanguage()
+
+        _uiState.update {
+            it.copy(
+                selectedLanguage = currentLanguage,
+            )
+        }
+    }
 }
 
 data class LanguageUiState(

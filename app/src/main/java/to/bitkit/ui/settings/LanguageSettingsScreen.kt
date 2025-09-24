@@ -34,8 +34,8 @@ fun LanguageSettingsScreen(
 
     Content(
         uiState = uiState,
-        onCloseClick = onBackClick,
-        onBackClick = onCloseClick,
+        onCloseClick = onCloseClick,
+        onBackClick = onBackClick,
         onClickLanguage = { selectedLanguage -> viewmodel.selectLanguage(selectedLanguage) },
         modifier = modifier,
     )
