@@ -50,7 +50,7 @@ fun GeneralSettingsScreen(
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
     val languageUiState by languageViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { languageViewModel.fetchSelectedLanguage() }
+    LaunchedEffect(Unit) { languageViewModel.fetchLanguageInfo() }
 
     GeneralSettingsContent(
         selectedCurrency = currencies.selectedCurrency,

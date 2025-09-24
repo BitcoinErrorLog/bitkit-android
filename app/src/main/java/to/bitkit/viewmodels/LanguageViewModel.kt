@@ -22,11 +22,11 @@ class LanguageViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            loadInitialLanguage()
+            fetchLanguageInfo()
         }
     }
 
-    private fun loadInitialLanguage() {
+    fun fetchLanguageInfo() {
         val currentLanguage = appLocaleManager.getCurrentLanguage()
 
         _uiState.update {
@@ -40,16 +40,6 @@ class LanguageViewModel @Inject constructor(
     fun selectLanguage(language: Language) {
         appLocaleManager.changeLanguage(language)
         _uiState.update { it.copy(selectedLanguage = language) }
-    }
-
-    fun fetchSelectedLanguage() {
-        val currentLanguage = appLocaleManager.getCurrentLanguage()
-
-        _uiState.update {
-            it.copy(
-                selectedLanguage = currentLanguage,
-            )
-        }
     }
 }
 
