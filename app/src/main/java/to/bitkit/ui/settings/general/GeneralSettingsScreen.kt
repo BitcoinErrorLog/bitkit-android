@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
@@ -34,17 +35,19 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.viewmodels.LanguageViewModel
 
 @Composable
 fun GeneralSettingsScreen(
     navController: NavController,
+    languageViewModel: LanguageViewModel = hiltViewModel(),
 ) {
     val settings = settingsViewModel ?: return
     val currencies = LocalCurrencies.current
     val defaultTransactionSpeed by settings.defaultTransactionSpeed.collectAsStateWithLifecycle()
     val lastUsedTags by settings.lastUsedTags.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
-    val selectedLanguage by settings.selectedLanguage.collectAsStateWithLifecycle()
+    val languageUiState by languageViewModel.uiState.collectAsStateWithLifecycle()
 
     GeneralSettingsContent(
         selectedCurrency = currencies.selectedCurrency,
@@ -60,7 +63,7 @@ fun GeneralSettingsScreen(
         onQuickPayClick = { navController.navigateToQuickPaySettings(quickPayIntroSeen) },
         onTagsClick = { navController.navigateToTagsSettings() },
         onLanguageSettingsClick = { navController.navigateToLanguageSettings() },
-        selectedLanguage = selectedLanguage
+        selectedLanguage = languageUiState.selectedLanguage.displayName
     )
 }
 

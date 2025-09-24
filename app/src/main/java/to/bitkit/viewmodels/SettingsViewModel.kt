@@ -20,9 +20,6 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
     fun reset() = viewModelScope.launch { settingsStore.reset() }
 
-    val selectedLanguage = settingsStore.data.map { it.selectedLanguage.displayName }
-        .asStateFlow(initialValue = "")
-
     val hasSeenSpendingIntro = settingsStore.data.map { it.hasSeenSpendingIntro }
         .asStateFlow(initialValue = false)
 
