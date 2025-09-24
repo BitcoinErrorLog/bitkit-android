@@ -45,6 +45,18 @@ enum class Language(
     }
 }
 
+fun Language.getLanguageTag(): String {
+    return if (isSystemDefault) {
+        ""
+    } else {
+        if (countryCode != null) {
+            "${languageCode}-${countryCode}"
+        } else {
+            languageCode
+        }
+    }
+}
+
 fun Locale.toLanguage(): Language? {
     return Language.fromLocale(this)
 }

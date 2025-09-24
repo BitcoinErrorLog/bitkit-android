@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import to.bitkit.models.Language
+import to.bitkit.models.getLanguageTag
 import to.bitkit.models.toLanguage
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,26 +18,22 @@ class AppLocaleManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     fun changeLanguage(language: Language) {
-        val languageTag = if (language.isSystemDefault) {
-            // Clear application locales to use system default
-            ""
-        } else {
-            // Create language tag from language code and optional country code
-            if (language.countryCode != null) {
-                "${language.languageCode}-${language.countryCode}"
-            } else {
-                language.languageCode
-            }
-        }
+        val languageTag = language.getLanguageTag()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.getSystemService(LocaleManager::class.java).applicationLocales =
-                if (languageTag.isEmpty()) LocaleList.getEmptyLocaleList()
-                else LocaleList.forLanguageTags(languageTag)
+                if (languageTag.isEmpty()) {
+                    LocaleList.getEmptyLocaleList()
+                } else {
+                    LocaleList.forLanguageTags(languageTag)
+                }
         } else {
             AppCompatDelegate.setApplicationLocales(
-                if (languageTag.isEmpty()) LocaleListCompat.getEmptyLocaleList()
-                else LocaleListCompat.forLanguageTags(languageTag)
+                if (languageTag.isEmpty()) {
+                    LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    LocaleListCompat.forLanguageTags(languageTag)
+                }
             )
         }
     }
