@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
-import to.bitkit.models.Language
 import to.bitkit.models.TransactionSpeed
 import javax.inject.Inject
 

@@ -31,7 +31,6 @@ enum class Language(
     SPANISH("Español", "es", "ES"),
     SPANISH_LATIN_AMERICA("Español (Latinoamérica)", "es", "419");
 
-
     companion object {
         fun fromLanguageCode(languageCode: String, countryCode: String? = null): Language? {
             return entries.find { language ->

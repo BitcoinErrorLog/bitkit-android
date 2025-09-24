@@ -55,7 +55,7 @@ private fun Content(
             .padding(horizontal = 16.dp)
     ) {
         AppTopBar(
-            titleText = "Language", //TODO Transifex
+            titleText = "Language", // TODO Transifex
             onBackClick = onBackClick,
             actions = { CloseNavIcon(onClick = onCloseClick) }
         )
@@ -69,11 +69,9 @@ private fun Content(
                     value = SettingsButtonValue.BooleanValue(item == uiState.selectedLanguage),
                     onClick = { onClickLanguage(item) }
                 )
-
             }
         }
     }
-
 }
 
 @Preview
