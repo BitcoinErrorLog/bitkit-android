@@ -5,6 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,3 +86,11 @@ fun Modifier.blockPointerInputPassthrough(): Modifier {
         }
     }
 }
+
+@Composable
+fun Modifier.screen(
+    noBackground: Boolean = false
+): Modifier = this
+    .fillMaxSize()
+    .then(if (noBackground) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
+    .systemBarsPadding()

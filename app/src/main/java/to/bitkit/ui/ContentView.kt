@@ -101,6 +101,7 @@ import to.bitkit.ui.settings.BackupSettingsScreen
 import to.bitkit.ui.settings.BlocktankRegtestScreen
 import to.bitkit.ui.settings.CJitDetailScreen
 import to.bitkit.ui.settings.ChannelOrdersScreen
+import to.bitkit.ui.settings.LanguageSettingsScreen
 import to.bitkit.ui.settings.LogDetailScreen
 import to.bitkit.ui.settings.LogsScreen
 import to.bitkit.ui.settings.OrderDetailScreen
@@ -676,6 +677,12 @@ private fun NavGraphBuilder.settings(
     }
     composableWithDefaultTransitions<Routes.RegtestSettings> {
         BlocktankRegtestScreen(navController)
+    }
+    composableWithDefaultTransitions<Routes.LanguageSettings> {
+        LanguageSettingsScreen(
+            onBackClick = { navController.popBackStack() },
+            onCloseClick = { navController.navigateToHome() },
+        )
     }
 }
 
@@ -1374,6 +1381,10 @@ fun NavController.navigateToTagsSettings() = navigate(
     route = Routes.TagsSettings,
 )
 
+fun NavController.navigateToLanguageSettings() = navigate(
+    route = Routes.LanguageSettings,
+)
+
 fun NavController.navigateToAdvancedSettings() = navigate(
     route = Routes.AdvancedSettings,
 )
@@ -1595,6 +1606,9 @@ sealed interface Routes {
 
     @Serializable
     data object QuickPaySettings : Routes
+
+    @Serializable
+    data object LanguageSettings : Routes
 
     @Serializable
     data object ProfileIntro : Routes
