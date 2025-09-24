@@ -93,31 +93,4 @@ class AppLocaleManager @Inject constructor(
         return languages
     }
 
-    /**
-     * Get the current effective locale being used by the app
-     */
-    fun getCurrentEffectiveLocale(): Locale {
-        val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val localeList = context.getSystemService(LocaleManager::class.java)?.applicationLocales
-            if (localeList != null && !localeList.isEmpty) localeList.get(0) else null
-        } else {
-            val localeListCompat = AppCompatDelegate.getApplicationLocales()
-            if (!localeListCompat.isEmpty) localeListCompat.get(0) else null
-        }
-
-        return locale ?: Locale.getDefault()
-    }
-
-    /**
-     * Check if the app is using system default language
-     */
-    fun isUsingSystemDefault(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val localeList = context.getSystemService(LocaleManager::class.java)?.applicationLocales
-            localeList == null || localeList.isEmpty
-        } else {
-            val localeListCompat = AppCompatDelegate.getApplicationLocales()
-            localeListCompat.isEmpty
-        }
-    }
 }
