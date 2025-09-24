@@ -8,7 +8,22 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import to.bitkit.models.Language
-import java.util.Locale
+import to.bitkit.models.Language.Companion.ARABIC
+import to.bitkit.models.Language.Companion.CATALAN
+import to.bitkit.models.Language.Companion.CZECH
+import to.bitkit.models.Language.Companion.DUTCH
+import to.bitkit.models.Language.Companion.ENGLISH
+import to.bitkit.models.Language.Companion.FRENCH
+import to.bitkit.models.Language.Companion.GERMAN
+import to.bitkit.models.Language.Companion.GREEK
+import to.bitkit.models.Language.Companion.ITALIAN
+import to.bitkit.models.Language.Companion.POLISH
+import to.bitkit.models.Language.Companion.PORTUGUESE
+import to.bitkit.models.Language.Companion.RUSSIAN
+import to.bitkit.models.Language.Companion.SPANISH
+import to.bitkit.models.Language.Companion.SPANISH_LATIN_AMERICA
+import to.bitkit.models.Language.Companion.SYSTEM_DEFAULT
+import to.bitkit.models.toLanguage
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,14 +65,26 @@ class AppLocaleManager @Inject constructor(
             if (!localeListCompat.isEmpty) localeListCompat.get(0) else null
         }
 
-        return if (locale == null) {
-            Language.SYSTEM_DEFAULT
-        } else {
-            Language.createFromLocale(locale)
-        }
+        return locale?.toLanguage() ?: Language.SYSTEM_DEFAULT
     }
 
     fun getSupportedLanguages(): List<Language> {
-        return Language.getSupportedLanguages()
+        return listOf(
+            SYSTEM_DEFAULT,
+            ARABIC,
+            CATALAN,
+            CZECH,
+            DUTCH,
+            ENGLISH,
+            FRENCH,
+            GERMAN,
+            GREEK,
+            ITALIAN,
+            POLISH,
+            PORTUGUESE,
+            RUSSIAN,
+            SPANISH,
+            SPANISH_LATIN_AMERICA
+        ).sortedWith(compareBy<Language> { !it.isSystemDefault }.thenBy { it.displayName })
     }
 }
