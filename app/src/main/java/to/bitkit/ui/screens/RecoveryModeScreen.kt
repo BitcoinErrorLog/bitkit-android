@@ -18,8 +18,10 @@ import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
 fun RecoveryModeScreen() {
-    Column (
-        modifier = Modifier.screen().padding(horizontal = 16.dp)
+    Column(
+        modifier = Modifier
+            .screen()
+            .padding(horizontal = 16.dp)
     ) {
         AppTopBar(
             titleText = stringResource(R.string.security__recovery),
