@@ -71,7 +71,8 @@ jobs:
           - { name: onboarding_backup_numberpad, grep: "@onboarding|@backup|@numberpad" }
           - { name: onchain_boost_receive_widgets, grep: "@onchain|@boost|@receive|@widgets" }
           - { name: settings, grep: "@settings" }
-          - { name: security_send, grep: "@security|@send" }
+          - { name: send, grep: "@send" }
+          - { name: lightning_security, grep: "@lightning|@security" }
 
     name: e2e-tests - ${{ matrix.shard.name }}
 
