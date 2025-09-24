@@ -26,12 +26,20 @@ data class Language(
             isSystemDefault = true
         )
 
-        // Common predefined languages for fallback
+        val ARABIC = Language("العربية", "ar")
+        val CATALAN = Language("Català", "ca")
+        val CZECH = Language("Čeština", "cs")
+        val GERMAN = Language("Deutsch", "de")
+        val GREEK = Language("Ελληνικά", "el")
         val ENGLISH = Language("English", "en", "US")
         val SPANISH = Language("Español", "es", "ES")
+        val SPANISH_LATIN_AMERICA = Language("Español (Latinoamérica)", "es", "419")
         val FRENCH = Language("Français", "fr", "FR")
+        val ITALIAN = Language("Italiano", "it")
+        val DUTCH = Language("Nederlands", "nl")
+        val POLISH = Language("Polski", "pl")
         val PORTUGUESE = Language("Português", "pt", "BR")
-
+        val RUSSIAN = Language("Русский", "ru")
 
         fun createFromLocale(locale: Locale): Language {
             val displayName = locale.getDisplayName(locale).replaceFirstChar {
@@ -45,14 +53,24 @@ data class Language(
             )
         }
 
-        // Get fallback languages if no system locales are available
-        fun getCommonLanguages(): List<Language> {
+        fun getSupportedLanguages(): List<Language> {
             return listOf(
+                SYSTEM_DEFAULT,
+                ARABIC,
+                CATALAN,
+                CZECH,
+                DUTCH,
                 ENGLISH,
-                SPANISH,
                 FRENCH,
+                GERMAN,
+                GREEK,
+                ITALIAN,
+                POLISH,
                 PORTUGUESE,
-            )
+                RUSSIAN,
+                SPANISH,
+                SPANISH_LATIN_AMERICA
+            ).sortedWith(compareBy<Language> { !it.isSystemDefault }.thenBy { it.displayName })
         }
     }
 }

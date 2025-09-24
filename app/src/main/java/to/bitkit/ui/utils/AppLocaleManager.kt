@@ -16,7 +16,6 @@ import javax.inject.Singleton
 class AppLocaleManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-
     fun changeLanguage(language: Language) {
         val languageTag = if (language.isSystemDefault) {
             // Clear application locales to use system default
@@ -59,38 +58,6 @@ class AppLocaleManager @Inject constructor(
     }
 
     fun getSupportedLanguages(): List<Language> {
-        val languages = mutableListOf<Language>()
-
-        // Always add system default as first option
-        languages.add(Language.SYSTEM_DEFAULT)
-
-        // Try to get available locales from the system
-        val availableLocales = try {
-            Locale.getAvailableLocales().toList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-
-        if (availableLocales.isNotEmpty()) {
-            // Filter and convert system locales to Language objects
-            val systemLanguages = availableLocales
-                .filter { locale ->
-                    // Filter out locales without language codes or with empty display names
-                    locale.language.isNotEmpty() &&
-                        locale.getDisplayName(locale).isNotEmpty() &&
-                        locale.getDisplayName(locale) != locale.toString()
-                }
-                .distinctBy { "${it.language}-${it.country}" } // Remove duplicates
-                .sortedBy { it.getDisplayName(it) } // Sort alphabetically
-                .map { Language.createFromLocale(it) }
-
-            languages.addAll(systemLanguages)
-        } else {
-            // Fallback to common languages if system locales are not available
-            languages.addAll(Language.getCommonLanguages())
-        }
-
-        return languages
+        return Language.getSupportedLanguages()
     }
-
 }
