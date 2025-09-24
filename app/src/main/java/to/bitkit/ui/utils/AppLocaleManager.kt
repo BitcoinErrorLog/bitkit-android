@@ -44,10 +44,10 @@ class AppLocaleManager @Inject constructor(
     fun getCurrentLanguage(): Language {
         val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val localeList = context.getSystemService(LocaleManager::class.java)?.applicationLocales
-            if (localeList != null && !localeList.isEmpty) localeList.get(0) else null
+            localeList?.get(0).takeIf { localeList != null && !localeList.isEmpty }
         } else {
             val localeListCompat = AppCompatDelegate.getApplicationLocales()
-            if (!localeListCompat.isEmpty) localeListCompat.get(0) else null
+            localeListCompat.get(0).takeIf { !localeListCompat.isEmpty }
         }
 
         return locale?.toLanguage() ?: Language.SYSTEM_DEFAULT
