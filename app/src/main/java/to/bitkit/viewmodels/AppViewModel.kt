@@ -1538,6 +1538,19 @@ class AppViewModel @Inject constructor(
     }
 
     private fun processDeeplink(uri: Uri) = viewModelScope.launch {
+
+        if (uri.toString().contains("recovery-mode")) {
+            mainScreenEffect(
+                MainScreenEffect.Navigate(
+                    route = Routes.RecoveryMode,
+                    navOptions = navOptions {
+                        popUpTo(0) { inclusive = true }
+                    }
+                )
+            )
+            return@launch
+        }
+
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()

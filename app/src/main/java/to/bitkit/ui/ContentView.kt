@@ -40,6 +40,7 @@ import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
 import to.bitkit.ui.screens.CriticalUpdateScreen
+import to.bitkit.ui.screens.RecoveryModeScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
@@ -409,6 +410,7 @@ private fun RootNavHost(
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
         update()
+        recoveryMode()
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
@@ -1018,6 +1020,12 @@ private fun NavGraphBuilder.suggestions(
 private fun NavGraphBuilder.update() {
     composableWithDefaultTransitions<Routes.CriticalUpdate> {
         CriticalUpdateScreen()
+    }
+}
+
+private fun NavGraphBuilder.recoveryMode() {
+    composableWithDefaultTransitions<Routes.RecoveryMode> {
+        RecoveryModeScreen()
     }
 }
 
@@ -1684,4 +1692,7 @@ sealed interface Routes {
 
     @Serializable
     data object CriticalUpdate : Routes
+
+    @Serializable
+    data object RecoveryMode : Routes
 }
