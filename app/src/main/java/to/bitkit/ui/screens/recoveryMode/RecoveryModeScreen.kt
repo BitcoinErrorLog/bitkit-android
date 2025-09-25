@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -22,6 +19,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
@@ -117,26 +115,14 @@ private fun Content(
         }
     }
 
-    // Wipe confirmation dialog
     if (uiState.showWipeConfirmation) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = onWipeCancelled,
-            title = {
-                Text(text = stringResource(R.string.security__reset_dialog_title))
-            },
-            text = {
-                Text(text = stringResource(R.string.security__reset_dialog_desc))
-            },
-            confirmButton = {
-                TextButton(onClick = onWipeConfirmed) {
-                    Text(text = stringResource(R.string.security__reset_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onWipeCancelled) {
-                    Text(text = stringResource(android.R.string.cancel))
-                }
-            }
+            title = stringResource(R.string.security__reset_dialog_title),
+            text = stringResource(R.string.security__reset_dialog_desc),
+            confirmText = stringResource(R.string.security__reset_confirm),
+            onConfirm = onWipeConfirmed,
+            onDismiss = onWipeCancelled,
         )
     }
 }
