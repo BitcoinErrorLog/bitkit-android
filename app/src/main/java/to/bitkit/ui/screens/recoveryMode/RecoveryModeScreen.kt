@@ -40,6 +40,7 @@ fun RecoveryModeScreen(
 ) {
     val uiState by recoveryViewModel.uiState.collectAsState()
     val isPinEnabled by recoveryViewModel.pinEnabled.collectAsState()
+    val walletExists by recoveryViewModel.walletExists.collectAsState()
 
     // Handle wipe confirmation result
     LaunchedEffect(uiState.wipeConfirmed) {
@@ -52,7 +53,7 @@ fun RecoveryModeScreen(
 
         Content(
             uiState = uiState,
-            walletExists = true,
+            walletExists = walletExists,
             onExportLogs = recoveryViewModel::onExportLogs,
             onShowSeed = {
                 if (isPinEnabled) {

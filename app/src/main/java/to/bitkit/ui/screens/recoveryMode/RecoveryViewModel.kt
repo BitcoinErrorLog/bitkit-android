@@ -41,6 +41,9 @@ class RecoveryViewModel @Inject constructor(
     val pinEnabled = settingsStore.data.map { it.isPinEnabled }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val walletExists = walletRepo.walletState.map { it.walletExists }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     fun onExportLogs() {
         viewModelScope.launch {
             _uiState.update { it.copy(isExportingLogs = true) }
