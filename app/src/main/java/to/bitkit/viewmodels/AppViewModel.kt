@@ -1538,7 +1538,6 @@ class AppViewModel @Inject constructor(
     }
 
     private fun processDeeplink(uri: Uri) = viewModelScope.launch {
-
         if (uri.toString().contains("recovery-mode")) {
             lightningRepo.setRecoveryMode()
             delay(SCREEN_TRANSITION_DELAY_MS)
