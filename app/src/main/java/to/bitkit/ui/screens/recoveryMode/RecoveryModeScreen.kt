@@ -68,8 +68,8 @@ fun RecoveryModeScreen(
                     recoveryViewModel.showWipeConfirmation()
                 }
             },
-            onWipeConfirmed = recoveryViewModel::onWipeConfirmed,
-            onWipeCancelled = recoveryViewModel::hideWipeConfirmation,
+            onWipeConfirm = recoveryViewModel::onWipeConfirmed,
+            onWipeCancel = recoveryViewModel::hideWipeConfirmation,
         )
 
         AnimatedVisibility(
@@ -102,8 +102,8 @@ private fun Content(
     onShowSeed: () -> Unit,
     onContactSupport: () -> Unit,
     onWipeApp: () -> Unit,
-    onWipeConfirmed: () -> Unit,
-    onWipeCancelled: () -> Unit,
+    onWipeConfirm: () -> Unit,
+    onWipeCancel: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -155,12 +155,12 @@ private fun Content(
 
     if (uiState.showWipeConfirmation) {
         AppAlertDialog(
-            onDismissRequest = onWipeCancelled,
+            onDismissRequest = onWipeCancel,
             title = stringResource(R.string.security__reset_dialog_title),
             text = stringResource(R.string.security__reset_dialog_desc),
             confirmText = stringResource(R.string.security__reset_confirm),
-            onConfirm = onWipeConfirmed,
-            onDismiss = onWipeCancelled,
+            onConfirm = onWipeConfirm,
+            onDismiss = onWipeCancel,
         )
     }
 }
@@ -176,8 +176,8 @@ private fun Preview() {
             onShowSeed = {},
             onContactSupport = {},
             onWipeApp = {},
-            onWipeConfirmed = {},
-            onWipeCancelled = {},
+            onWipeConfirm = {},
+            onWipeCancel = {},
         )
     }
 }
@@ -193,8 +193,8 @@ private fun LockedPreview() {
             onShowSeed = {},
             onContactSupport = {},
             onWipeApp = {},
-            onWipeConfirmed = {},
-            onWipeCancelled = {},
+            onWipeConfirm = {},
+            onWipeCancel = {},
         )
     }
 }
