@@ -17,6 +17,7 @@ import to.bitkit.env.Env
 import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LogsRepo
+import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class RecoveryViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val logsRepo: LogsRepo,
     private val lightningRepo: LightningRepo,
+    private val walletRepo: WalletRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecoveryUiState())
@@ -94,8 +96,12 @@ class RecoveryViewModel @Inject constructor(
         _uiState.update { it.copy(showWipeConfirmation = false, wipeConfirmed = true) }
     }
 
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+    fun wipeWallet() {
+        viewModelScope.launch {
+            walletRepo.wipeWallet().onFailure { error ->
+                ToastEventBus.send(error)
+            }
+        }
     }
 
     private fun shareLogsFile(uri: Uri) {

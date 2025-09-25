@@ -36,7 +36,7 @@ fun RecoveryModeScreen(
     // Handle wipe confirmation result
     LaunchedEffect(uiState.wipeConfirmed) {
         if (uiState.wipeConfirmed) {
-            walletViewModel.wipeWallet()
+            recoveryViewModel.wipeWallet()
         }
     }
 
