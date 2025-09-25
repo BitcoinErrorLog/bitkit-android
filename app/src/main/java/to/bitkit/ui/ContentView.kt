@@ -411,7 +411,7 @@ private fun RootNavHost(
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
         update()
-        recoveryMode()
+        recoveryMode(navController)
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
