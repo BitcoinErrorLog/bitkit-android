@@ -2,44 +2,79 @@ package to.bitkit.ui.screens.recoveryMode
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.Sheet
+import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
-import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
 fun RecoveryModeScreen(
     walletViewModel: WalletViewModel,
-    appViewModel: AppViewModel
+    recoveryViewModel: RecoveryViewModel = hiltViewModel(),
+    onNavigateToSeed: () -> Unit = {},
+    onShowPinCheck: (onPinVerified: () -> Unit) -> Unit = {},
 ) {
-    Content(
-        onClickWipeWallet = walletViewModel::wipeWallet,
-        onClickShowSeed = {
-            appViewModel.showSheet(Sheet.Backup(BackupRoute.ShowMnemonic))
+    val uiState by recoveryViewModel.uiState.collectAsState()
+
+    // Handle wipe confirmation result
+    LaunchedEffect(uiState.wipeConfirmed) {
+        if (uiState.wipeConfirmed) {
+            walletViewModel.wipeWallet()
         }
+    }
+
+    Content(
+        uiState = uiState,
+        walletExists = walletViewModel.walletExists,
+        onExportLogs = recoveryViewModel::onExportLogs,
+        onShowSeed = {
+            onShowPinCheck { onNavigateToSeed() }
+        },
+        onContactSupport = recoveryViewModel::onContactSupport,
+        onWipeApp = {
+            onShowPinCheck { recoveryViewModel.showWipeConfirmation() }
+        },
+        onWipeConfirmed = recoveryViewModel::onWipeConfirmed,
+        onWipeCancelled = recoveryViewModel::hideWipeConfirmation,
+        onErrorDismissed = recoveryViewModel::clearError,
     )
 }
 
 @Composable
 private fun Content(
-    onClickWipeWallet: () -> Unit,
-    onClickShowSeed: () -> Unit,
+    uiState: RecoveryUiState,
+    walletExists: Boolean,
+    onExportLogs: () -> Unit,
+    onShowSeed: () -> Unit,
+    onContactSupport: () -> Unit,
+    onWipeApp: () -> Unit,
+    onWipeConfirmed: () -> Unit,
+    onWipeCancelled: () -> Unit,
+    onErrorDismissed: () -> Unit,
 ) {
     Column(
         modifier = Modifier
+            .fillMaxSize()
             .screen()
             .padding(horizontal = 16.dp)
     ) {
@@ -50,31 +85,62 @@ private fun Content(
 
         VerticalSpacer(16.dp)
 
-        BodyM(text = stringResource(R.string.security__recovery_text))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            BodyM(text = stringResource(R.string.security__recovery_text))
 
-        VerticalSpacer(32.dp)
+            VerticalSpacer(32.dp)
 
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            PrimaryButton(
-                text = stringResource(R.string.lightning__export_logs),
-                onClick = {},
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                SecondaryButton(
+                    text = stringResource(R.string.lightning__export_logs),
+                    onClick = onExportLogs,
+                    isLoading = uiState.isExportingLogs,
+                )
 
-            PrimaryButton(
-                text = stringResource(R.string.security__display_seed),
-                onClick = onClickShowSeed,
-            )
+                SecondaryButton(
+                    text = stringResource(R.string.security__display_seed),
+                    onClick = onShowSeed,
+                    enabled = walletExists,
+                )
 
-            PrimaryButton(
-                text = stringResource(R.string.security__contact_support),
-                onClick = {},
-            )
+                SecondaryButton(
+                    text = stringResource(R.string.security__contact_support),
+                    onClick = onContactSupport,
+                )
 
-            PrimaryButton(
-                text = stringResource(R.string.security__wipe_app),
-                onClick = onClickWipeWallet,
-            )
+                SecondaryButton(
+                    text = stringResource(R.string.security__wipe_app),
+                    onClick = onWipeApp,
+                )
+            }
         }
+    }
+
+    // Wipe confirmation dialog
+    if (uiState.showWipeConfirmation) {
+        AlertDialog(
+            onDismissRequest = onWipeCancelled,
+            title = {
+                Text(text = stringResource(R.string.security__reset_dialog_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.security__reset_dialog_desc))
+            },
+            confirmButton = {
+                TextButton(onClick = onWipeConfirmed) {
+                    Text(text = stringResource(R.string.security__reset_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onWipeCancelled) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -83,8 +149,33 @@ private fun Content(
 private fun Preview() {
     AppThemeSurface {
         Content(
-            onClickWipeWallet = {},
-            onClickShowSeed = {},
+            uiState = RecoveryUiState(),
+            walletExists = true,
+            onExportLogs = {},
+            onShowSeed = {},
+            onContactSupport = {},
+            onWipeApp = {},
+            onWipeConfirmed = {},
+            onWipeCancelled = {},
+            onErrorDismissed = {},
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun LockedPreview() {
+    AppThemeSurface {
+        Content(
+            uiState = RecoveryUiState(),
+            walletExists = true,
+            onExportLogs = {},
+            onShowSeed = {},
+            onContactSupport = {},
+            onWipeApp = {},
+            onWipeConfirmed = {},
+            onWipeCancelled = {},
+            onErrorDismissed = {},
         )
     }
 }
