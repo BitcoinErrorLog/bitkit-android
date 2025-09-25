@@ -9,10 +9,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import to.bitkit.data.SettingsStore
 import to.bitkit.env.Env
 import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningRepo
@@ -28,10 +32,14 @@ class RecoveryViewModel @Inject constructor(
     private val logsRepo: LogsRepo,
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
+    private val settingsStore: SettingsStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecoveryUiState())
     val uiState: StateFlow<RecoveryUiState> = _uiState.asStateFlow()
+
+    val pinEnabled = settingsStore.data.map { it.isPinEnabled }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun onExportLogs() {
         viewModelScope.launch {
@@ -104,6 +112,10 @@ class RecoveryViewModel @Inject constructor(
         }
     }
 
+    fun setAuthAction(authAction: PendingAuthAction) {
+        _uiState.update { it.copy(authAction = authAction) }
+    }
+
     private fun shareLogsFile(uri: Uri) {
         val shareIntent = Intent().apply {
             action = Intent.ACTION_SEND
@@ -160,4 +172,11 @@ data class RecoveryUiState(
     val showWipeConfirmation: Boolean = false,
     val wipeConfirmed: Boolean = false,
     val errorMessage: String? = null,
+    val authAction: PendingAuthAction = PendingAuthAction.None,
 )
+
+sealed interface PendingAuthAction {
+    object None : PendingAuthAction
+    object ShowSeed : PendingAuthAction
+    object WipeApp : PendingAuthAction
+}

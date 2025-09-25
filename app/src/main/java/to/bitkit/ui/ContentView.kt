@@ -411,7 +411,7 @@ private fun RootNavHost(
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
         update()
-        recoveryMode(navController)
+        recoveryMode(navController, appViewModel)
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
@@ -1026,12 +1026,14 @@ private fun NavGraphBuilder.update() {
 
 private fun NavGraphBuilder.recoveryMode(
     navController: NavHostController,
+    appViewModel: AppViewModel
 ) {
     composableWithDefaultTransitions<Routes.RecoveryMode> {
         RecoveryModeScreen(
             onNavigateToSeed = {
                 navController.navigate(Routes.RecoveryMnemonic)
-            }
+            },
+            appViewModel = appViewModel
         )
     }
     composableWithDefaultTransitions<Routes.RecoveryMnemonic> {

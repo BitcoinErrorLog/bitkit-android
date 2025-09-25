@@ -1,6 +1,10 @@
 package to.bitkit.ui.screens.recoveryMode
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
+import to.bitkit.ui.components.AuthCheckView
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
@@ -23,35 +28,71 @@ import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.viewmodels.AppViewModel
+import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
 fun RecoveryModeScreen(
+    appViewModel: AppViewModel,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     recoveryViewModel: RecoveryViewModel = hiltViewModel(),
     onNavigateToSeed: () -> Unit = {},
 ) {
     val uiState by recoveryViewModel.uiState.collectAsState()
+    val isPinEnabled by recoveryViewModel.pinEnabled.collectAsState()
 
     // Handle wipe confirmation result
     LaunchedEffect(uiState.wipeConfirmed) {
-        if (uiState.wipeConfirmed) {
+        if (uiState.wipeConfirmed) { // todo test for multiple calls
             recoveryViewModel.wipeWallet()
         }
     }
 
-    Content(
-        uiState = uiState,
-        walletExists = true,
-        onExportLogs = recoveryViewModel::onExportLogs,
-        onShowSeed = {
-            onNavigateToSeed()
-        },
-        onContactSupport = recoveryViewModel::onContactSupport,
-        onWipeApp = {
-            recoveryViewModel.showWipeConfirmation()
-        },
-        onWipeConfirmed = recoveryViewModel::onWipeConfirmed,
-        onWipeCancelled = recoveryViewModel::hideWipeConfirmation,
-    )
+    Box {
+
+        Content(
+            uiState = uiState,
+            walletExists = true,
+            onExportLogs = recoveryViewModel::onExportLogs,
+            onShowSeed = {
+                if (isPinEnabled) {
+                    recoveryViewModel.setAuthAction(PendingAuthAction.ShowSeed)
+                } else {
+                    onNavigateToSeed()
+                }
+            },
+            onContactSupport = recoveryViewModel::onContactSupport,
+            onWipeApp = {
+                if (isPinEnabled) {
+                    recoveryViewModel.setAuthAction(PendingAuthAction.WipeApp)
+                } else {
+                    recoveryViewModel.showWipeConfirmation()
+                }
+            },
+            onWipeConfirmed = recoveryViewModel::onWipeConfirmed,
+            onWipeCancelled = recoveryViewModel::hideWipeConfirmation,
+        )
+
+        AnimatedVisibility(
+            visible = uiState.authAction != PendingAuthAction.None,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            AuthCheckView(
+                showLogoOnPin = true,
+                appViewModel = appViewModel,
+                settingsViewModel = settingsViewModel,
+                onSuccess = {
+                    when (uiState.authAction) {
+                        PendingAuthAction.None -> Unit
+                        PendingAuthAction.ShowSeed -> onNavigateToSeed()
+                        PendingAuthAction.WipeApp -> recoveryViewModel.showWipeConfirmation()
+                    }
+                    recoveryViewModel.setAuthAction(PendingAuthAction.None)
+                },
+            )
+        }
+    }
 }
 
 @Composable
