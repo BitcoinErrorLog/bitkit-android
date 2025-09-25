@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -38,11 +39,21 @@ class RecoveryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RecoveryUiState())
     val uiState: StateFlow<RecoveryUiState> = _uiState.asStateFlow()
 
-    val pinEnabled = settingsStore.data.map { it.isPinEnabled }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
-    val walletExists = walletRepo.walletState.map { it.walletExists }
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    init {
+        viewModelScope.launch {
+            combine(
+                settingsStore.data,
+                walletRepo.walletState
+            ) { settingsData, walletState ->
+                _uiState.value.copy(
+                    isPinEnabled = settingsData.isPinEnabled,
+                    walletExists = walletState.walletExists,
+                )
+            }.collect { newState ->
+                _uiState.update { newState }
+            }
+        }
+    }
 
     fun onExportLogs() {
         viewModelScope.launch {
@@ -176,6 +187,8 @@ data class RecoveryUiState(
     val wipeConfirmed: Boolean = false,
     val errorMessage: String? = null,
     val authAction: PendingAuthAction = PendingAuthAction.None,
+    val isPinEnabled: Boolean = false,
+    val walletExists: Boolean = true,
 )
 
 sealed interface PendingAuthAction {
