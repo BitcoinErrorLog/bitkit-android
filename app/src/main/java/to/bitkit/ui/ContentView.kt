@@ -40,9 +40,10 @@ import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
 import to.bitkit.ui.screens.CriticalUpdateScreen
-import to.bitkit.ui.screens.RecoveryModeScreen
+import to.bitkit.ui.screens.recoveryMode.RecoveryModeScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
+import to.bitkit.ui.screens.recoveryMode.RecoveryMnemonicScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.scanner.SCAN_REQUEST_KEY
 import to.bitkit.ui.screens.settings.DevSettingsScreen
@@ -1023,9 +1024,22 @@ private fun NavGraphBuilder.update() {
     }
 }
 
-private fun NavGraphBuilder.recoveryMode() {
+private fun NavGraphBuilder.recoveryMode(
+    navController: NavHostController,
+) {
     composableWithDefaultTransitions<Routes.RecoveryMode> {
-        RecoveryModeScreen()
+        RecoveryModeScreen(
+            onNavigateToSeed = {
+                navController.navigate(Routes.RecoveryMnemonic)
+            }
+        )
+    }
+    composableWithDefaultTransitions<Routes.RecoveryMnemonic> {
+        RecoveryMnemonicScreen(
+            onNavigateBack = {
+                navController.popBackStack()
+            }
+        )
     }
 }
 
@@ -1695,4 +1709,7 @@ sealed interface Routes {
 
     @Serializable
     data object RecoveryMode : Routes
+
+    @Serializable
+    data object RecoveryMnemonic : Routes
 }

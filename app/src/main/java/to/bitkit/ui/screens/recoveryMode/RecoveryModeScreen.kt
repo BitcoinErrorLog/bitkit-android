@@ -23,11 +23,9 @@ import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
 fun RecoveryModeScreen(
-    walletViewModel: WalletViewModel,
     recoveryViewModel: RecoveryViewModel = hiltViewModel(),
     onNavigateToSeed: () -> Unit = {},
 ) {
@@ -42,7 +40,7 @@ fun RecoveryModeScreen(
 
     Content(
         uiState = uiState,
-        walletExists = walletViewModel.walletExists,
+        walletExists = true,
         onExportLogs = recoveryViewModel::onExportLogs,
         onShowSeed = {
             onNavigateToSeed()
