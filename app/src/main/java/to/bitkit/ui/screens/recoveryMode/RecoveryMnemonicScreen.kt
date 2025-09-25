@@ -51,7 +51,6 @@ private fun Content(
         modifier = Modifier
             .fillMaxSize()
             .screen()
-            .padding(horizontal = 16.dp)
     ) {
         AppTopBar(
             titleText = stringResource(R.string.security__mnemonic_phrase),
@@ -78,6 +77,7 @@ private fun Content(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 BodyM(
