@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens
+package to.bitkit.ui.screens.recoveryMode
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,24 +11,32 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
+import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
 fun RecoveryModeScreen(
-    walletViewModel: WalletViewModel
+    walletViewModel: WalletViewModel,
+    appViewModel: AppViewModel
 ) {
     Content(
-        onClickWipeWallet = walletViewModel::wipeWallet
+        onClickWipeWallet = walletViewModel::wipeWallet,
+        onClickShowSeed = {
+            appViewModel.showSheet(Sheet.Backup(BackupRoute.ShowMnemonic))
+        }
     )
 }
 
 @Composable
 private fun Content(
     onClickWipeWallet: () -> Unit,
+    onClickShowSeed: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -54,7 +62,7 @@ private fun Content(
 
             PrimaryButton(
                 text = stringResource(R.string.security__display_seed),
-                onClick = {},
+                onClick = onClickShowSeed,
             )
 
             PrimaryButton(
@@ -75,7 +83,8 @@ private fun Content(
 private fun Preview() {
     AppThemeSurface {
         Content(
-            onClickWipeWallet = {}
+            onClickWipeWallet = {},
+            onClickShowSeed = {},
         )
     }
 }
