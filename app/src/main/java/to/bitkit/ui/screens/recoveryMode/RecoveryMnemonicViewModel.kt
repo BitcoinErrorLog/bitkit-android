@@ -28,10 +28,9 @@ class RecoveryMnemonicViewModel @Inject constructor(
 
     private fun loadMnemonic() {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name).orEmpty()
                 val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name).orEmpty()
-
 
                 if (mnemonic.isEmpty()) {
                     _uiState.update {
@@ -56,7 +55,7 @@ class RecoveryMnemonicViewModel @Inject constructor(
                         passphrase = passphrase,
                     )
                 }
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Logger.error("Failed to load mnemonic", e, context = TAG)
                 _uiState.update {
                     it.copy(

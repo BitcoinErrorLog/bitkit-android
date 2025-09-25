@@ -9,12 +9,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
@@ -83,17 +80,17 @@ class RecoveryViewModel @Inject constructor(
 
     fun onContactSupport() {
         val supportIntent = createSupportIntent()
-        try {
+        runCatching {
             context.startActivity(supportIntent)
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Logger.warn("Failed to open email client, trying web fallback", e, context = TAG)
             // Fallback to web contact page
             val fallbackIntent = Intent(Intent.ACTION_VIEW, Env.SYNONYM_CONTACT.toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            try {
+            runCatching {
                 context.startActivity(fallbackIntent)
-            } catch (fallbackError: Exception) {
+            }.onFailure { fallbackError ->
                 Logger.error("Failed to open support links", fallbackError, context = TAG)
                 viewModelScope.launch {
                     ToastEventBus.send(
@@ -170,7 +167,6 @@ class RecoveryViewModel @Inject constructor(
 
             val nodeId = lightningRepo.lightningState.value.nodeId
             appendLine("LDK node ID: $nodeId")
-
             appendLine()
         }
     }
