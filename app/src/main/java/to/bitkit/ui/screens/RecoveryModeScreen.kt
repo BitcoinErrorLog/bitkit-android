@@ -15,9 +15,21 @@ import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.viewmodels.WalletViewModel
 
 @Composable
-fun RecoveryModeScreen() {
+fun RecoveryModeScreen(
+    walletViewModel: WalletViewModel
+) {
+    Content(
+        onClickWipeWallet = walletViewModel::wipeWallet
+    )
+}
+
+@Composable
+private fun Content(
+    onClickWipeWallet: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .screen()
@@ -52,7 +64,7 @@ fun RecoveryModeScreen() {
 
             PrimaryButton(
                 text = stringResource(R.string.security__wipe_app),
-                onClick = {},
+                onClick = onClickWipeWallet,
             )
         }
     }
@@ -62,6 +74,8 @@ fun RecoveryModeScreen() {
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        RecoveryModeScreen()
+        Content(
+            onClickWipeWallet = {}
+        )
     }
 }
