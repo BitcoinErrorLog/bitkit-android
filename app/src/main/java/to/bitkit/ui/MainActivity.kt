@@ -77,10 +77,10 @@ class MainActivity : FragmentActivity() {
             desc = "Channel for LightningNodeService",
             importance = NotificationManager.IMPORTANCE_LOW
         )
+        appViewModel.handleDeeplinkIntent(intent)
         startForegroundService(Intent(this, LightningNodeService::class.java))
         installSplashScreen()
         enableAppEdgeToEdge()
-        appViewModel.handleDeeplinkIntent(intent)
         setContent {
             AppThemeSurface(
                 modifier = Modifier.semantics {

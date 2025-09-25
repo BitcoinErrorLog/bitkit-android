@@ -82,6 +82,7 @@ class LightningRepo @Inject constructor(
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
     private var cachedEventHandler: NodeEventHandler? = null
+    private var isRecoveryMode: Boolean = false
 
     /**
      * Executes the provided operation only if the node is running.
@@ -168,6 +169,11 @@ class LightningRepo @Inject constructor(
         customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
+
+        if (isRecoveryMode) return@withContext Result.failure(
+            Exception("App in recovery mode, skipping node start")
+        )
+
         val initialLifecycleState = _lightningState.value.nodeLifecycleState
         if (initialLifecycleState.isRunningOrStarting()) {
             Logger.info("LDK node start skipped, lifecycle state: $initialLifecycleState", context = TAG)
@@ -243,6 +249,10 @@ class LightningRepo @Inject constructor(
                 Result.failure(e)
             }
         }
+    }
+
+    fun setRecoveryMode() {
+        isRecoveryMode = true
     }
 
     suspend fun updateGeoBlockState() {
