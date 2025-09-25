@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.env.Env
+import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LogsRepo
+import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
@@ -44,8 +46,12 @@ class RecoveryViewModel @Inject constructor(
                         it.copy(
                             isExportingLogs = false,
                         )
-                        // TODO TOAST ERROR
                     }
+                    ToastEventBus.send(
+                        type = Toast.ToastType.ERROR,
+                        title = "Error",
+                        description = "Failed to create log zip file",
+                    )
                 }
             )
         }
@@ -65,7 +71,13 @@ class RecoveryViewModel @Inject constructor(
                 context.startActivity(fallbackIntent)
             } catch (fallbackError: Exception) {
                 Logger.error("Failed to open support links", fallbackError, context = TAG)
-                // TODO TOAST ERROR
+                viewModelScope.launch {
+                    ToastEventBus.send(
+                        type = Toast.ToastType.ERROR,
+                        title = "Error",
+                        description = "Failed to open support links",
+                    )
+                }
             }
         }
     }

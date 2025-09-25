@@ -32,7 +32,6 @@ fun RecoveryModeScreen(
     walletViewModel: WalletViewModel,
     recoveryViewModel: RecoveryViewModel = hiltViewModel(),
     onNavigateToSeed: () -> Unit = {},
-    onShowPinCheck: (onPinVerified: () -> Unit) -> Unit = {},
 ) {
     val uiState by recoveryViewModel.uiState.collectAsState()
 
@@ -48,15 +47,14 @@ fun RecoveryModeScreen(
         walletExists = walletViewModel.walletExists,
         onExportLogs = recoveryViewModel::onExportLogs,
         onShowSeed = {
-            onShowPinCheck { onNavigateToSeed() }
+            onNavigateToSeed()
         },
         onContactSupport = recoveryViewModel::onContactSupport,
         onWipeApp = {
-            onShowPinCheck { recoveryViewModel.showWipeConfirmation() }
+            recoveryViewModel.showWipeConfirmation()
         },
         onWipeConfirmed = recoveryViewModel::onWipeConfirmed,
         onWipeCancelled = recoveryViewModel::hideWipeConfirmation,
-        onErrorDismissed = recoveryViewModel::clearError,
     )
 }
 
@@ -70,7 +68,6 @@ private fun Content(
     onWipeApp: () -> Unit,
     onWipeConfirmed: () -> Unit,
     onWipeCancelled: () -> Unit,
-    onErrorDismissed: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -157,7 +154,6 @@ private fun Preview() {
             onWipeApp = {},
             onWipeConfirmed = {},
             onWipeCancelled = {},
-            onErrorDismissed = {},
         )
     }
 }
@@ -175,7 +171,6 @@ private fun LockedPreview() {
             onWipeApp = {},
             onWipeConfirmed = {},
             onWipeCancelled = {},
-            onErrorDismissed = {},
         )
     }
 }
