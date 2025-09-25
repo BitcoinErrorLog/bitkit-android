@@ -344,20 +344,22 @@ private fun Content(
                             title = stringResource(R.string.wallet__savings__title),
                             sats = balances.totalOnchainSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_btc_circle),
+                            showTransferIcon = balances.balanceInTransferToSavings > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Savings) }
                                 .padding(vertical = 4.dp)
                                 .testTag("ActivitySavings")
                         )
                         VerticalDivider()
+                        HorizontalSpacer(16.dp)
                         WalletBalanceView(
                             title = stringResource(R.string.wallet__spending__title),
                             sats = balances.totalLightningSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_ln_circle),
+                            showTransferIcon = balances.balanceInTransferToSpending > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Spending) }
                                 .padding(vertical = 4.dp)
-                                .padding(start = 16.dp)
                                 .testTag("ActivitySpending")
                         )
                     }
@@ -690,7 +692,6 @@ private fun Preview() {
                 balances = BalanceState(
                     totalOnchainSats = 165_000u,
                     totalLightningSats = 45_000u,
-                    totalSats = 200_000u,
                 ),
             )
             TabBar()
@@ -712,7 +713,7 @@ private fun PreviewEmpty() {
                 walletNavController = rememberNavController(),
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Closed),
                 latestActivities = previewActivityItems.take(3),
-                balances = BalanceState(totalSats = 0u)
+                balances = BalanceState()
             )
             TabBar()
         }

@@ -23,7 +23,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
@@ -39,6 +38,7 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
+import to.bitkit.models.BalanceDetails
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState

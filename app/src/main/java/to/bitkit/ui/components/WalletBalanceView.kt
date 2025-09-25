@@ -3,6 +3,7 @@ package to.bitkit.ui.components
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -17,8 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import to.bitkit.R
 import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.ConvertedAmount
@@ -29,6 +35,7 @@ import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.shared.UiConstants
 import to.bitkit.ui.shared.animations.BalanceAnimations
+import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
 @Composable
@@ -36,7 +43,8 @@ fun RowScope.WalletBalanceView(
     title: String,
     sats: Long,
     icon: Painter,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
+    showTransferIcon: Boolean = false,
 ) {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
@@ -55,6 +63,7 @@ fun RowScope.WalletBalanceView(
             primaryDisplay = PrimaryDisplay.BITCOIN,
             displayUnit = BitcoinDisplayUnit.MODERN,
             hideBalance = false,
+            showTransferIcon = showTransferIcon,
         )
     }
 
@@ -73,6 +82,7 @@ fun RowScope.WalletBalanceView(
         primaryDisplay = primaryDisplay,
         displayUnit = displayUnit,
         hideBalance = hideBalance,
+        showTransferIcon = showTransferIcon,
     )
 }
 
@@ -85,6 +95,7 @@ private fun RowScope.Content(
     primaryDisplay: PrimaryDisplay,
     displayUnit: BitcoinDisplayUnit,
     hideBalance: Boolean,
+    showTransferIcon: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -118,7 +129,20 @@ private fun RowScope.Content(
                         transitionSpec = { BalanceAnimations.walletBalanceTransition },
                         label = "bitcoinBalanceAnimation"
                     ) { isHidden ->
-                        BodyMSB(text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else btcComponents.value)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            BodyMSB(text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else btcComponents.value)
+                            if (showTransferIcon) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_transfer),
+                                    contentDescription = null,
+                                    tint = Colors.White64,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 } else {
                     AnimatedContent(
@@ -132,10 +156,122 @@ private fun RowScope.Content(
                         ) {
                             BodyMSB(text = converted.symbol)
                             BodyMSB(text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else converted.formatted)
+                            if (showTransferIcon) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_transfer),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Colors.White64
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview() {
+    AppThemeSurface {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .height(IntrinsicSize.Min),
+        ) {
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__savings__title),
+                sats = 1_250_000,
+                icon = painterResource(R.drawable.ic_btc_circle),
+            )
+            VerticalDivider()
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__spending__title),
+                sats = 250_000,
+                icon = painterResource(R.drawable.ic_ln_circle),
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewTransferToSpending() {
+    AppThemeSurface {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .height(IntrinsicSize.Min),
+        ) {
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__savings__title),
+                sats = 1_150_000,
+                icon = painterResource(R.drawable.ic_btc_circle),
+            )
+            VerticalDivider()
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__spending__title),
+                sats = 250_000,
+                icon = painterResource(R.drawable.ic_ln_circle),
+                showTransferIcon = true,
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewTransferToSavings() {
+    AppThemeSurface {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .height(IntrinsicSize.Min),
+        ) {
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__savings__title),
+                sats = 1_250_000,
+                icon = painterResource(R.drawable.ic_btc_circle),
+                showTransferIcon = true,
+            )
+            VerticalDivider()
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__spending__title),
+                sats = 150_000,
+                icon = painterResource(R.drawable.ic_ln_circle),
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewTransfers() {
+    AppThemeSurface {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .height(IntrinsicSize.Min),
+        ) {
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__savings__title),
+                sats = 1_150_000,
+                icon = painterResource(R.drawable.ic_btc_circle),
+                showTransferIcon = true,
+            )
+            VerticalDivider()
+            WalletBalanceView(
+                title = stringResource(R.string.wallet__spending__title),
+                sats = 150_000,
+                icon = painterResource(R.drawable.ic_ln_circle),
+                showTransferIcon = true,
+            )
         }
     }
 }

@@ -31,18 +31,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.datetime.Clock
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BalanceSource
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelDetails
-import org.lightningdevkit.ldknode.LightningBalance
 import org.lightningdevkit.ldknode.NodeStatus
 import to.bitkit.R
-import to.bitkit.ext.amountLong
-import to.bitkit.ext.balanceTypeString
-import to.bitkit.ext.channelIdString
+import to.bitkit.ext.amountSats
+import to.bitkit.ext.balanceUiText
+import to.bitkit.ext.channelId
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.formatted
+import to.bitkit.models.BalanceDetails
+import to.bitkit.models.LightningBalance
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
@@ -260,19 +260,19 @@ private fun LightningBalancesSection(balances: List<LightningBalance>) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     BodyM(
-                        text = balance.balanceTypeString(),
+                        text = balance.balanceUiText(),
                         maxLines = 1,
                         overflow = TextOverflow.MiddleEllipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     HorizontalSpacer(4.dp)
-                    rememberMoneyText(balance.amountLong())?.let { text ->
+                    rememberMoneyText(balance.amountSats().toLong())?.let { text ->
                         BodyM(text = text.withAccent(accentColor = Colors.White64), color = Colors.White64)
                     }
                 }
                 VerticalSpacer(4.dp)
                 Caption(
-                    balance.channelIdString(),
+                    balance.channelId(),
                     color = Colors.White64,
                     maxLines = 1,
                     overflow = TextOverflow.MiddleEllipsis,

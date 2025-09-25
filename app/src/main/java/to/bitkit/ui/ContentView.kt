@@ -137,6 +137,7 @@ import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.settings.transactionSpeed.CustomFeeSettingsScreen
 import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen
 import to.bitkit.ui.sheets.BackupSheet
+import to.bitkit.ui.sheets.ForceTransferSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
@@ -351,6 +352,7 @@ fun ContentView(
                         is Sheet.Backup -> BackupSheet(sheet, appViewModel)
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                         Sheet.Update -> UpdateSheet(onCancel = { appViewModel.hideSheet() })
+                        Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
                     }
                 }
             ) {
@@ -460,6 +462,9 @@ private fun RootNavHost(
             }
             composableWithDefaultTransitions<Routes.SavingsProgress> {
                 SavingsProgressScreen(
+                    app = appViewModel,
+                    wallet = walletViewModel,
+                    transfer = transferViewModel,
                     onContinueClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                     onCloseClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                 )

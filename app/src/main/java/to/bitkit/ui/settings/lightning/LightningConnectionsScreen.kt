@@ -80,6 +80,7 @@ fun LightningConnectionsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
+        viewModel.refreshObservedState()
         viewModel.clearSelectedChannel()
         viewModel.clearTransactionDetails()
     }

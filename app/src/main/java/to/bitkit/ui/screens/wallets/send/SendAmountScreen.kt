@@ -412,7 +412,7 @@ private fun PreviewWithdraw() {
                 ),
                 amountInputViewModel = previewAmountInputViewModel(),
                 modifier = Modifier.sheetHeight(),
-                balances = BalanceState(totalSats = 150u, totalOnchainSats = 50u, totalLightningSats = 100u),
+                balances = BalanceState(totalOnchainSats = 50u, totalLightningSats = 100u),
             )
         }
     }

@@ -1,8 +1,10 @@
 package to.bitkit.ext
 
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
+import to.bitkit.data.dto.TransferType
 
 fun Activity.rawId(): String = when (this) {
     is Activity.Lightning -> v1.id
@@ -58,6 +60,11 @@ fun Activity.isTransfer() = this is Activity.Onchain && this.v1.isTransfer
 fun Activity.Onchain.boostType() = when (this.v1.txType) {
     PaymentType.SENT -> BoostType.RBF
     PaymentType.RECEIVED -> BoostType.CPFP
+}
+
+fun OnchainActivity.transferType() = when (this.txType) {
+    PaymentType.SENT -> TransferType.TO_SPENDING
+    else -> TransferType.TO_SAVINGS
 }
 
 enum class BoostType { RBF, CPFP }

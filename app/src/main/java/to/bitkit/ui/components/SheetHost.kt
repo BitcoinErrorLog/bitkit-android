@@ -39,6 +39,7 @@ sealed interface Sheet {
     data object ActivityTagSelector : Sheet
     data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet
     data object Update : Sheet
+    data object ForceTransfer : Sheet
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

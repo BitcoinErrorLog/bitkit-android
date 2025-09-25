@@ -13,7 +13,6 @@ import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.AnchorChannelsConfig
 import org.lightningdevkit.ldknode.BackgroundSyncConfig
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Bolt11Invoice
 import org.lightningdevkit.ldknode.Bolt11InvoiceDescription
 import org.lightningdevkit.ldknode.BuildException
@@ -44,8 +43,10 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
+import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
 import to.bitkit.models.LnPeer.Companion.toLnPeer
+import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -749,7 +750,7 @@ class LightningService @Inject constructor(
 
     // region state
     val nodeId: String? get() = node?.nodeId()
-    val balances: BalanceDetails? get() = node?.listBalances()
+    val balances: BalanceDetails? get() = node?.listBalances()?.toDomainModel()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
     val peers: List<LnPeer>? get() = node?.listPeers()?.map { it.toLnPeer() }

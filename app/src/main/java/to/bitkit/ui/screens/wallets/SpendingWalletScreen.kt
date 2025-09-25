@@ -2,8 +2,10 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +34,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
+import to.bitkit.ui.components.IncomingTransfer
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
@@ -88,13 +91,27 @@ fun SpendingWalletScreen(
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                BalanceHeaderView(
-                    sats = balances.totalLightningSats.toLong(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("TotalBalance"),
-                    testTag = "TotalBalance"
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BalanceHeaderView(
+                        sats = balances.totalLightningSats.toLong(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("TotalBalance"),
+                        testTag = "TotalBalance"
+                    )
+                }
+
+                if (balances.balanceInTransferToSpending > 0uL) {
+                    IncomingTransfer(
+                        amount = balances.balanceInTransferToSpending,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+
                 if (!showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -150,6 +167,31 @@ private fun Preview() {
                 onTransferToSavingsClick = {},
                 onBackClick = {},
                 balances = BalanceState(totalLightningSats = 50_000u),
+            )
+            TabBar()
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewTransfer() {
+    AppThemeSurface {
+        Box {
+            SpendingWalletScreen(
+                uiState = MainUiState(
+                    channels = listOf(createChannelDetails())
+                ),
+                lightningActivities = previewLightningActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSavingsClick = {},
+                onBackClick = {},
+                balances = BalanceState(
+                    totalLightningSats = 50_000u,
+                    balanceInTransferToSpending = 25_000u,
+                ),
             )
             TabBar()
         }

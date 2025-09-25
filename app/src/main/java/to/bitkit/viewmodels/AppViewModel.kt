@@ -47,7 +47,10 @@ import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.BuildConfig
 import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.InProgressTransfer
+import to.bitkit.data.dto.TransferType
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
@@ -103,6 +106,7 @@ class AppViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
     private val ldkNodeEventBus: LdkNodeEventBus,
+    private val cacheStore: CacheStore,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
@@ -239,7 +243,15 @@ class AppViewModel @Inject constructor(
                             }
                         }
 
-                        is Event.ChannelClosed -> Unit
+                        is Event.ChannelClosed -> {
+                            cacheStore.addInProgressTransfer(
+                                InProgressTransfer(
+                                    activityId = event.channelId,
+                                    type = TransferType.TO_SAVINGS,
+                                )
+                            )
+                            walletRepo.syncBalances()
+                        }
 
                         is Event.PaymentSuccessful -> {
                             val paymentHash = event.paymentHash

@@ -19,12 +19,12 @@ import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
-import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
+import to.bitkit.ext.transferType
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
@@ -315,11 +315,8 @@ class ActivityRepo @Inject constructor(
                                     cacheStore.addInProgressTransfer(
                                         InProgressTransfer(
                                             activityId = updatedActivity.v1.id,
-                                            type = if (onChainActivity.txType == PaymentType.SENT) {
-                                                TransferType.TO_SPENDING
-                                            } else {
-                                                TransferType.TO_SAVINGS
-                                            }
+                                            type = onChainActivity.transferType(),
+                                            sats = onChainActivity.value,
                                         )
                                     )
                                 }

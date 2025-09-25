@@ -15,21 +15,26 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
+import to.bitkit.di.json
 import to.bitkit.env.Env
+import to.bitkit.ext.amountSats
+import to.bitkit.ext.channelId
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
+import to.bitkit.models.BalanceDetails
 import to.bitkit.models.BalanceState
+import to.bitkit.models.LightningBalance
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
@@ -163,16 +168,36 @@ class WalletRepo @Inject constructor(
         lightningRepo.getBalancesAsync().onSuccess { balance ->
             _walletState.update { it.copy(balanceDetails = balance) }
 
-            val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
+            val pendingTransfers = cacheStore.data.first().inProgressTransfers
+            val closedChannelIds = pendingTransfers
+                .filter { it.type == TransferType.TO_SAVINGS }
+                .map { it.activityId }
+                .toSet()
+            val balanceInTransferToSavings = balance.lightningBalances.sumOf { lnBalance ->
+                when (lnBalance) {
+                    is LightningBalance.ClaimableOnChannelClose -> lnBalance.amountSats()
+                        .takeIf { closedChannelIds.contains(lnBalance.channelId()) }
+                        ?: 0uL
+
+                    else -> lnBalance.amountSats()
+                }
+            }
+            val inTransferToSpending = pendingTransfers.filter { it.type == TransferType.TO_SPENDING }.sumOf { it.sats }
+
+            val adjustedLightningSats = balance.totalLightningBalanceSats - balanceInTransferToSavings
 
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
-                totalLightningSats = balance.totalLightningBalanceSats,
-                maxSendLightningSats = lightningRepo.getChannels()?.totalNextOutboundHtlcLimitSats() ?: 0u,
+                totalLightningSats = adjustedLightningSats,
+                maxSendLightningSats = lightningRepo.getChannels().totalNextOutboundHtlcLimitSats(),
                 maxSendOnchainSats = getMaxSendAmount(),
-                totalSats = totalSats,
+                balanceInTransferToSavings = balanceInTransferToSavings,
+                balanceInTransferToSpending = inTransferToSpending,
             )
-            _balanceState.update { newBalance }
+
+            Logger.verbose("Balances in ldk-node:\n${json.encodeToString(balance)}\n", context = TAG)
+            Logger.verbose("Balances in state:\n${json.encodeToString(newBalance)}\n", context = TAG)
+
             saveBalanceState(newBalance)
         }.onFailure {
             Logger.warn("Could not sync balances", context = TAG)
