@@ -111,10 +111,6 @@ class RecoveryViewModel @Inject constructor(
         _uiState.update { it.copy(showWipeConfirmation = false) }
     }
 
-    fun onWipeConfirmed() {
-        _uiState.update { it.copy(showWipeConfirmation = false, wipeConfirmed = true) }
-    }
-
     fun wipeWallet() {
         viewModelScope.launch {
             walletRepo.wipeWallet().onFailure { error ->
@@ -180,7 +176,6 @@ class RecoveryViewModel @Inject constructor(
 data class RecoveryUiState(
     val isExportingLogs: Boolean = false,
     val showWipeConfirmation: Boolean = false,
-    val wipeConfirmed: Boolean = false,
     val errorMessage: String? = null,
     val authAction: PendingAuthAction = PendingAuthAction.None,
     val isPinEnabled: Boolean = false,

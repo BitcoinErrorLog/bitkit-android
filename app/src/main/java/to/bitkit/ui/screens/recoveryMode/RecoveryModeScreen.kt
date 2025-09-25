@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -40,13 +39,6 @@ fun RecoveryModeScreen(
 ) {
     val uiState by recoveryViewModel.uiState.collectAsState()
 
-    // Handle wipe confirmation result
-    LaunchedEffect(uiState.wipeConfirmed) {
-        if (uiState.wipeConfirmed) {
-            recoveryViewModel.wipeWallet()
-        }
-    }
-
     Box {
         Content(
             uiState = uiState,
@@ -67,7 +59,10 @@ fun RecoveryModeScreen(
                     recoveryViewModel.showWipeConfirmation()
                 }
             },
-            onWipeConfirm = recoveryViewModel::onWipeConfirmed,
+            onWipeConfirm = {
+                recoveryViewModel.hideWipeConfirmation()
+                recoveryViewModel.wipeWallet()
+            },
             onWipeCancel = recoveryViewModel::hideWipeConfirmation,
         )
 
