@@ -11,14 +11,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.data.keychain.Keychain
+import to.bitkit.models.Toast
 import to.bitkit.repositories.WalletRepo
+import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 @HiltViewModel
 class RecoveryMnemonicViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val walletRepo: WalletRepo,
     private val keychain: Keychain,
 ) : ViewModel() {
 
@@ -42,8 +42,11 @@ class RecoveryMnemonicViewModel @Inject constructor(
                             isLoading = false,
                         )
                     }
-                    // TODO ERROR TOAST
-
+                    ToastEventBus.send(
+                        type = Toast.ToastType.ERROR,
+                        title = "Failed to load mnemonic",
+                        description = "Failed to load mnemonic",
+                    )
                     return@launch
                 }
 
@@ -63,8 +66,7 @@ class RecoveryMnemonicViewModel @Inject constructor(
                         isLoading = false,
                     )
                 }
-
-                // TODO ERROR TOAST
+                ToastEventBus.send(e)
             }
         }
     }
