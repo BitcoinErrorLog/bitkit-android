@@ -109,7 +109,6 @@ class AppViewModel @Inject constructor(
     private val blocktankRepo: BlocktankRepo,
     private val connectivityRepo: ConnectivityRepo,
     private val healthRepo: HealthRepo,
-    private val appUpdaterService: AppUpdaterService,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -197,7 +196,6 @@ class AppViewModel @Inject constructor(
 
         observeLdkNodeEvents()
         observeSendEvents()
-        fetchNewReleases()
     }
 
     private fun observeLdkNodeEvents() {
@@ -1463,32 +1461,6 @@ class AppViewModel @Inject constructor(
     fun onClipboardAutoRead(data: String) {
         viewModelScope.launch {
             mainScreenEffect(MainScreenEffect.ProcessClipboardAutoRead(data))
-        }
-    }
-
-    private fun fetchNewReleases() {
-        viewModelScope.launch(bgDispatcher) {
-            runCatching {
-                val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
-                val currentBuildNumber = BuildConfig.VERSION_CODE
-
-                if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@launch
-
-                if (androidReleaseInfo.isCritical) {
-                    mainScreenEffect(
-                        MainScreenEffect.Navigate(
-                            route = Routes.CriticalUpdate,
-                            navOptions = navOptions {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        )
-                    )
-                } else {
-                    showSheet(sheetType = Sheet.Update)
-                }
-            }.onFailure { e ->
-                Logger.warn("Failure fetching new releases", e = e)
-            }
         }
     }
 

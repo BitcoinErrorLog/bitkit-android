@@ -2,7 +2,9 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.navOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +14,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import to.bitkit.BuildConfig
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.dto.TransferType
+import to.bitkit.di.BgDispatcher
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
@@ -25,7 +30,12 @@ import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
+import to.bitkit.services.AppUpdaterService
+import to.bitkit.ui.Routes
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.screens.widgets.blocks.toWeatherModel
+import to.bitkit.utils.Logger
+import to.bitkit.viewmodels.MainScreenEffect
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -37,6 +47,8 @@ class HomeViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
+    private val appUpdaterService: AppUpdaterService,
+    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -140,7 +152,7 @@ class HomeViewModel @Inject constructor(
 
             TimedSheets.entries.forEach { sheet ->
                 val displaySheet = when (sheet) {
-                    TimedSheets.APP_UPDATE -> TODO()
+                    TimedSheets.APP_UPDATE -> displayAppUpdate()
                     TimedSheets.BACKUP -> TODO()
                     TimedSheets.NOTIFICATIONS -> TODO()
                     TimedSheets.QUICK_PAY -> TODO()
@@ -151,6 +163,32 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
             }
+        }
+    }
+
+    private suspend fun displayAppUpdate(): Boolean = withContext(bgDispatcher) {
+        try {
+            val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
+            val currentBuildNumber = BuildConfig.VERSION_CODE
+
+            if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext false
+
+            if (androidReleaseInfo.isCritical) {
+                // mainScreenEffect(
+                //     MainScreenEffect.Navigate(
+                //         route = Routes.CriticalUpdate,
+                //         navOptions = navOptions {
+                //             popUpTo(0) { inclusive = true }
+                //         }
+                //     )
+                // ) TODO NAVIGATE
+                return@withContext false
+            }
+
+            return@withContext true
+        } catch (e: Exception) {
+            Logger.warn("Failure fetching new releases", e = e)
+            return@withContext false
         }
     }
 
