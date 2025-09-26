@@ -1539,7 +1539,7 @@ class AppViewModel @Inject constructor(
 
     private fun processDeeplink(uri: Uri) = viewModelScope.launch {
         if (uri.toString().contains("recovery-mode")) {
-            lightningRepo.setRecoveryMode()
+            lightningRepo.setRecoveryMode(enabled = true)
             delay(SCREEN_TRANSITION_DELAY_MS)
             mainScreenEffect(
                 MainScreenEffect.Navigate(

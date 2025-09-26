@@ -252,8 +252,8 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun setRecoveryMode() {
-        isRecoveryMode = true
+    fun setRecoveryMode(enabled: Boolean) {
+        isRecoveryMode = enabled
     }
 
     suspend fun updateGeoBlockState() {
