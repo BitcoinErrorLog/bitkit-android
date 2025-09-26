@@ -28,6 +28,8 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.settings.backups.MnemonicWordsGrid
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun RecoveryMnemonicScreen(
@@ -100,15 +102,15 @@ private fun Content(
                     VerticalSpacer(32.dp)
 
                     Column {
-                        BodyM(text = stringResource(R.string.security__pass_text))
+                        BodyM(text = stringResource(R.string.security__pass_text), color = Colors.White64)
 
                         VerticalSpacer(16.dp)
 
-                        Text(
-                            text = stringResource(R.string.security__pass_recovery, uiState.passphrase),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.SemiBold,
+                        BodyM(
+                            text = stringResource(R.string.security__pass_recovery, uiState.passphrase)
+                                .replace("{passphrase}", uiState.passphrase)
+                                .withAccent(accentColor = Colors.White64),
+                            color = Colors.White
                         )
                     }
                 }
@@ -141,7 +143,25 @@ private fun LoadingPreview() {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun ContentPreview() {
+private fun ContentPreview12Words() {
+    AppThemeSurface {
+        Content(
+            uiState = RecoveryMnemonicUiState(
+                isLoading = false,
+                mnemonicWords = listOf(
+                    "abandon", "ability", "able", "about", "above", "absent",
+                    "absorb", "abstract", "absurd", "abuse", "access", "accident",
+                ),
+                passphrase = "my_secret_passphrase"
+            ),
+            onNavigateBack = {},
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun ContentPreview24Words() {
     AppThemeSurface {
         Content(
             uiState = RecoveryMnemonicUiState(
@@ -155,19 +175,6 @@ private fun ContentPreview() {
                 passphrase = "my_secret_passphrase"
             ),
             onNavigateBack = {},
-        )
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun ErrorPreview() {
-    AppThemeSurface {
-        Content(
-            uiState = RecoveryMnemonicUiState(
-                isLoading = false,
-            ),
-            onNavigateBack = {}
         )
     }
 }
