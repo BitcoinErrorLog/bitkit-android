@@ -1,9 +1,12 @@
 package to.bitkit.ui.screens.recoveryMode
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +18,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -91,11 +96,20 @@ private fun Content(
 
                 VerticalSpacer(16.dp)
 
-                MnemonicWordsGrid(
-                    actualWords = uiState.mnemonicWords,
-                    showMnemonic = true,
-                    blurRadius = 0f,
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(color = Colors.White10)
+                        .padding(32.dp)
+                        .testTag("backup_mnemonic_words_box")
+                ) {
+                    MnemonicWordsGrid(
+                        actualWords = uiState.mnemonicWords,
+                        showMnemonic = true,
+                        blurRadius = 0f,
+                    )
+                }
 
                 // Passphrase section (if available)
                 if (uiState.passphrase.isNotEmpty()) {
