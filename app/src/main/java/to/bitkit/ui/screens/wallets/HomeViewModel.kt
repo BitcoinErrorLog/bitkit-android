@@ -80,20 +80,6 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { newState }
             }
         }
-
-        viewModelScope.launch {
-            combine(
-                settingsStore.data,
-                walletRepo.balanceState
-            ) { settings, balanceState ->
-                _uiState.value.copy(
-                    showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
-                )
-            }.collect { newState ->
-                checkHighBalance()
-                _uiState.update { newState }
-            }
-        }
     }
 
     private fun setupArticleRotation() {
@@ -146,40 +132,57 @@ class HomeViewModel @Inject constructor(
         _currentFact.value = null
     }
 
-    private fun checkHighBalance() {
-        if (_uiState.value.highBalanceSheetVisible) return
-
+    fun checkTimedSheets() {
         viewModelScope.launch {
+            if (_uiState.value.timedSheet != null) return@launch
+
             delay(CHECK_DELAY_MILLISECONDS)
 
-            val settings = settingsStore.data.first()
-            val currentTime = Clock.System.now().toEpochMilliseconds()
-
-            val totalOnChainSats = walletRepo.balanceState.value.totalSats
-            val balanceUsd = satsToUsd(totalOnChainSats) ?: return@launch
-            val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
-
-            val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis == 0L ||
-                (currentTime - settings.lastTimeAskedBalanceWarningMillis > ASK_INTERVAL_MILLIS)
-
-            val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
-
-            if (thresholdReached && isTimeOutOver && belowMaxWarnings) {
-                settingsStore.update {
-                    it.copy(
-                        balanceWarningTimes = it.balanceWarningTimes + 1,
-                        lastTimeAskedBalanceWarningMillis = currentTime
-                    )
+            TimedSheets.entries.forEach { sheet ->
+                val displaySheet = when (sheet) {
+                    TimedSheets.APP_UPDATE -> TODO()
+                    TimedSheets.BACKUP -> TODO()
+                    TimedSheets.NOTIFICATIONS -> TODO()
+                    TimedSheets.QUICK_PAY -> TODO()
+                    TimedSheets.HIGH_BALANCE -> displayHighBalance()
                 }
-                _uiState.update { it.copy(highBalanceSheetVisible = true) }
-            }
-
-            if (!thresholdReached) {
-                settingsStore.update {
-                    it.copy(balanceWarningTimes = 0)
+                if (displaySheet) {
+                    _uiState.update { it.copy(timedSheet = sheet) }
+                    return@launch
                 }
             }
         }
+    }
+
+    private suspend fun displayHighBalance(): Boolean {
+        val settings = settingsStore.data.first()
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+
+        val totalOnChainSats = walletRepo.balanceState.value.totalSats
+        val balanceUsd = satsToUsd(totalOnChainSats) ?: return false
+        val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
+
+        val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis == 0L ||
+            (currentTime - settings.lastTimeAskedBalanceWarningMillis > ASK_INTERVAL_MILLIS)
+
+        val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
+
+        if (!thresholdReached) {
+            settingsStore.update {
+                it.copy(balanceWarningTimes = 0)
+            }
+        }
+
+        if (thresholdReached && isTimeOutOver && belowMaxWarnings) {
+            settingsStore.update {
+                it.copy(
+                    balanceWarningTimes = it.balanceWarningTimes + 1,
+                    lastTimeAskedBalanceWarningMillis = currentTime
+                )
+            }
+            return true
+        }
+        return false
     }
 
     private fun satsToUsd(sats: ULong): BigDecimal? {
@@ -191,10 +194,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             settingsStore.update { it.copy(showEmptyBalanceView = false) }
         }
-    }
-
-    fun dismissHighBalanceSheet() {
-        _uiState.update { it.copy(highBalanceSheetVisible = false) }
     }
 
     fun removeSuggestion(suggestion: Suggestion) {
