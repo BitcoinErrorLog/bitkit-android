@@ -41,7 +41,7 @@ See also:
 
 - For LNURL dev testing see [bitkit-docker](https://github.com/ovitrif/bitkit-docker)
 
-### Linting
+### Lint
 
 This project uses detekt with default ktlint and compose-rules for android code linting.
 
@@ -55,6 +55,17 @@ Recommended Android Studio plugins:
 ./gradlew detekt --auto-correct # auto-fix formatting issues
 ```
 Reports are generated in: `app/build/reports/detekt/`.
+
+## Test
+
+**Commands**
+```sh
+./gradlew testDevDebugUnitTest # run unit tests
+
+# run android tests:
+./gradlew installDevDebug # install
+./gradlew connectedDevDebugAndroidTest # run
+```
 
 ## Localization
 See repo: https://github.com/synonymdev/bitkit-transifex-sync
