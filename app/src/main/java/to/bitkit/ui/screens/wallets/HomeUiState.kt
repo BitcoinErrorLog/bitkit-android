@@ -35,4 +35,13 @@ data class HomeUiState(
     val deleteWidgetAlert: WidgetType? = null,
     val highBalanceSheetVisible: Boolean = false,
     val showEmptyState: Boolean = false,
+    val timedSheet: TimedSheets? = null,
 )
+
+enum class TimedSheets {
+    APP_UPDATE,
+    BACKUP,
+    NOTIFICATIONS,
+    QUICK_PAY,
+    HIGH_BALANCE
+}
