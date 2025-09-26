@@ -91,7 +91,8 @@ private fun Content(
                     text = stringResource(R.string.security__mnemonic_write).replace(
                         "{length}",
                         uiState.mnemonicWords.count().toString()
-                    )
+                    ),
+                    color = Colors.White64
                 )
 
                 VerticalSpacer(16.dp)
