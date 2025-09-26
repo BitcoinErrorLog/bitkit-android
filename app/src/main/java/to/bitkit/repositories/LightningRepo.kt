@@ -170,7 +170,9 @@ class LightningRepo @Inject constructor(
         customRgsServerUrl: String? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
         if (isRecoveryMode) {
-            return@withContext Result.failure(Exception("App in recovery mode, skipping node start"))
+            return@withContext Result.failure(
+                RecoveryModeException("App in recovery mode, skipping node start")
+            )
         }
 
         val initialLifecycleState = _lightningState.value.nodeLifecycleState
@@ -865,6 +867,8 @@ class LightningRepo @Inject constructor(
         const val TAG = "LightningRepo"
     }
 }
+
+class RecoveryModeException(override val message: String?) : Exception()
 
 data class LightningState(
     val nodeId: String = "",
