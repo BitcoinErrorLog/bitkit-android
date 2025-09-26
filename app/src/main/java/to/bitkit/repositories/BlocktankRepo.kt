@@ -281,6 +281,11 @@ class BlocktankRepo @Inject constructor(
 
             _blocktankState.update { state -> state.copy(orders = updatedOrders) }
 
+            // TODO check if it's better to remove here than in ActivityRepo.kt:421
+            // order.channel?.let { channel ->
+            //     cacheStore.removeInProgressTransfer { it.id == channel.fundingTx.id}
+            // }
+
             Result.success(order)
         } catch (e: Throwable) {
             Logger.error("Failed to open channel for order: $orderId", e, context = TAG)

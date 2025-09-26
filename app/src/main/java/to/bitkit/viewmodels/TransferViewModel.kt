@@ -29,6 +29,8 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.InProgressTransfer
+import to.bitkit.data.dto.TransferType
 import to.bitkit.env.Env
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
@@ -208,6 +210,13 @@ class TransferViewModel @Inject constructor(
                 .onSuccess { txId ->
                     walletRepo.syncBalances()
                     cacheStore.addPaidOrder(orderId = order.id, txId = txId)
+                    cacheStore.addInProgressTransfer(
+                        InProgressTransfer(
+                            id = txId,
+                            type = TransferType.TO_SPENDING,
+                            sats = order.clientBalanceSat,
+                        )
+                    )
                     watchOrder(order.id)
                 }
                 .onFailure { error ->

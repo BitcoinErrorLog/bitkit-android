@@ -140,9 +140,8 @@ class CacheStore @Inject constructor(
         }
     }
 
-    suspend fun removeInProgressTransfer(item: InProgressTransfer) {
-        if (item !in store.data.first().inProgressTransfers) return
-
+    suspend fun removeInProgressTransfer(predicate: (InProgressTransfer) -> Boolean) {
+        val item = store.data.first().inProgressTransfers.find(predicate) ?: return
         store.updateData {
             it.copy(inProgressTransfers = it.inProgressTransfers - item)
         }
@@ -171,5 +170,5 @@ data class AppCacheData(
     val activitiesPendingDelete: List<String> = listOf(),
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
     val transactionsMetadata: List<TransactionMetadata> = listOf(),
-    val inProgressTransfers: List<InProgressTransfer> = listOf(),
+    val inProgressTransfers: Set<InProgressTransfer> = setOf(),
 )

@@ -28,7 +28,7 @@ fun List<ChannelDetails>.filterPending(): List<ChannelDetails> {
 /** Returns a limit in sats as close as possible to the HTLC limit we can currently send. */
 fun List<ChannelDetails>?.totalNextOutboundHtlcLimitSats(): ULong {
     return this?.filter { it.isUsable }
-        ?.sumOf { it.nextOutboundHtlcLimitMsat / 1000uL }
+        ?.sumOf { it.nextOutboundHtlcLimitMsat / 1000u }
         ?: 0u
 }
 

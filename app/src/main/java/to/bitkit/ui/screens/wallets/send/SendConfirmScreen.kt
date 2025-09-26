@@ -251,6 +251,7 @@ fun ContentRunning(
     onClickAddTag: () -> Unit,
     onClickTag: (String) -> Unit,
     onSwipeToConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier

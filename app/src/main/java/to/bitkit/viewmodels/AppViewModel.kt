@@ -246,7 +246,7 @@ class AppViewModel @Inject constructor(
                         is Event.ChannelClosed -> {
                             cacheStore.addInProgressTransfer(
                                 InProgressTransfer(
-                                    activityId = event.channelId,
+                                    id = event.channelId,
                                     type = TransferType.TO_SAVINGS,
                                 )
                             )

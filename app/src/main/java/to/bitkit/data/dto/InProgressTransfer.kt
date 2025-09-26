@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class InProgressTransfer(
-    val activityId: String,
+    val id: String,
     val type: TransferType,
     val sats: ULong = 0u,
 )

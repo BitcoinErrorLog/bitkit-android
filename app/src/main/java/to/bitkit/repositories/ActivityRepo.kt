@@ -1,7 +1,6 @@
 package to.bitkit.repositories
 
 import com.synonym.bitkitcore.Activity
-import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
@@ -17,14 +16,13 @@ import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
-import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
+import to.bitkit.ext.channelId
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
-import to.bitkit.ext.transferType
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
@@ -303,23 +301,12 @@ class ActivityRepo @Inject constructor(
                                 channelId = activityMetaData.channelId,
                                 transferTxId = activityMetaData.transferTxId
                             )
-                            val updatedActivity = Onchain(
-                                v1 = onChainActivity
-                            )
+                            val updatedActivity = Activity.Onchain(v1 = onChainActivity)
 
                             updateActivity(
                                 id = updatedActivity.v1.id,
                                 activity = updatedActivity
                             ).onSuccess {
-                                if (onChainActivity.isTransfer && onChainActivity.doesExist) {
-                                    cacheStore.addInProgressTransfer(
-                                        InProgressTransfer(
-                                            activityId = updatedActivity.v1.id,
-                                            type = onChainActivity.transferType(),
-                                            sats = onChainActivity.value,
-                                        )
-                                    )
-                                }
                                 cacheStore.removeTransactionMetadata(activityMetaData)
                             }
                         }
@@ -356,7 +343,7 @@ class ActivityRepo @Inject constructor(
                             }
                         }
 
-                        is Onchain -> {
+                        is Activity.Onchain -> {
                             when (activity.v1.txType) {
                                 PaymentType.RECEIVED -> {
                                     // TODO Temporary solution while whe ldk-node doesn't return the address directly
@@ -415,12 +402,21 @@ class ActivityRepo @Inject constructor(
 
     private suspend fun updateInProgressTransfers() {
         cacheStore.data.first().inProgressTransfers.forEach { transfer ->
-            getActivity(transfer.activityId).onSuccess { activity ->
-                (activity as? Onchain)?.let { onChain ->
+
+            // TO_SPENDING relevant while tx is unconfirmed
+            getActivity(transfer.id).onSuccess { activity ->
+                (activity as? Activity.Onchain)?.let { onChain ->
                     if (onChain.v1.confirmed) {
-                        cacheStore.removeInProgressTransfer(transfer)
+                        cacheStore.removeInProgressTransfer { it.id == transfer.id }
+                        Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
                     }
                 }
+            }
+            // TO_SAVINGS relevant while correlated in LN balances
+            val lnBalances = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
+            if (lnBalances.none { it.channelId() == transfer.id }) {
+                cacheStore.removeInProgressTransfer { it.id == transfer.id }
+                Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
             }
         }
     }
@@ -510,11 +506,8 @@ class ActivityRepo @Inject constructor(
      */
     suspend fun addTagsToActivity(activityId: String, tags: List<String>): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            // Business logic: validate activity exists before adding tags
-            val activity = coreService.activity.getActivity(activityId)
-                ?: throw IllegalArgumentException("Activity with ID $activityId not found")
+            checkNotNull(coreService.activity.getActivity(activityId)) { "Activity with ID $activityId not found" }
 
-            // Business logic: filter out empty or duplicate tags
             val existingTags = coreService.activity.tags(activityId)
             val newTags = tags.filter { it.isNotBlank() && it !in existingTags }
 
@@ -556,9 +549,7 @@ class ActivityRepo @Inject constructor(
     suspend fun removeTagsFromActivity(activityId: String, tags: List<String>): Result<Unit> =
         withContext(bgDispatcher) {
             return@withContext runCatching {
-                // Business logic: validate activity exists before removing tags
-                val activity = coreService.activity.getActivity(activityId)
-                    ?: throw IllegalArgumentException("Activity with ID $activityId not found")
+                checkNotNull(coreService.activity.getActivity(activityId)) { "Activity with ID $activityId not found" }
 
                 coreService.activity.dropTags(activityId, tags)
                 Logger.info("Removed ${tags.size} tags from activity $activityId", context = TAG)
