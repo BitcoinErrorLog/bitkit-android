@@ -2,10 +2,8 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,24 +89,18 @@ fun SpendingWalletScreen(
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BalanceHeaderView(
-                        sats = balances.totalLightningSats.toLong(),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("TotalBalance"),
-                        testTag = "TotalBalance"
-                    )
-                }
+                BalanceHeaderView(
+                    sats = balances.totalLightningSats.toLong(),
+                    testTag = "TotalBalance",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("TotalBalance")
+                )
 
-                if (balances.balanceInTransferToSpending > 0uL) {
+                if (balances.balanceInTransferToSpending > 0u) {
                     IncomingTransfer(
                         amount = balances.balanceInTransferToSpending,
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
 

@@ -208,7 +208,6 @@ class TransferViewModel @Inject constructor(
                     channelId = order.channel?.shortChannelId,
                 )
                 .onSuccess { txId ->
-                    walletRepo.syncBalances()
                     cacheStore.addPaidOrder(orderId = order.id, txId = txId)
                     cacheStore.addInProgressTransfer(
                         InProgressTransfer(
@@ -217,6 +216,7 @@ class TransferViewModel @Inject constructor(
                             sats = order.clientBalanceSat,
                         )
                     )
+                    launch { walletRepo.syncBalances() }
                     watchOrder(order.id)
                 }
                 .onFailure { error ->

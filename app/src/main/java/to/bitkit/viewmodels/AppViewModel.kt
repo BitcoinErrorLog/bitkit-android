@@ -250,7 +250,7 @@ class AppViewModel @Inject constructor(
                                     type = TransferType.TO_SAVINGS,
                                 )
                             )
-                            walletRepo.syncBalances()
+                            launch { walletRepo.syncBalances() }
                         }
 
                         is Event.PaymentSuccessful -> {

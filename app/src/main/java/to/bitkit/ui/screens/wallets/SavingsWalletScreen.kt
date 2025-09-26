@@ -94,10 +94,10 @@ fun SavingsWalletScreen(
                         .testTag("TotalBalance")
                 )
 
-                if (balances.balanceInTransferToSavings > 0uL) {
+                if (balances.balanceInTransferToSavings > 0u) {
                     IncomingTransfer(
                         amount = balances.balanceInTransferToSavings,
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
 
