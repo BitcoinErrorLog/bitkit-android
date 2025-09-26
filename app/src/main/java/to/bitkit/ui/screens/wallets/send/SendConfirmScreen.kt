@@ -253,7 +253,7 @@ fun ContentRunning(
     onSwipeToConfirm: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 16.dp)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())

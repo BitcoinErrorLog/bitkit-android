@@ -37,11 +37,12 @@ import to.bitkit.ui.utils.withAccent
 @Composable
 fun UpdateSheet(
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .sheetHeight(SheetSize.LARGE)
             .gradientBackground()
             .navigationBarsPadding()

@@ -27,11 +27,13 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
 @Composable
-fun CriticalUpdateScreen() {
+fun CriticalUpdateScreen(
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .screen()
             .padding(horizontal = 32.dp)
     ) {
