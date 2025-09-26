@@ -328,10 +328,10 @@ private fun Content(
                 BalanceHeaderView(
                     sats = balances.totalSats.toLong(),
                     showEyeIcon = true,
+                    testTag = "TotalBalance",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("TotalBalance"),
-                    testTag = "TotalBalance"
+                        .testTag("TotalBalance")
                 )
                 if (!homeUiState.showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))

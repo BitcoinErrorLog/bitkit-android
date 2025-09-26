@@ -262,10 +262,10 @@ fun ContentRunning(
             sats = uiState.amount.toLong(),
             useSwipeToHide = false,
             onClick = { onEvent(SendEvent.BackToAmount) },
+            testTag = "ReviewAmount",
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("ReviewAmount"),
-            testTag = "ReviewAmount"
+                .testTag("ReviewAmount")
         )
 
         Spacer(modifier = Modifier.height(16.dp))

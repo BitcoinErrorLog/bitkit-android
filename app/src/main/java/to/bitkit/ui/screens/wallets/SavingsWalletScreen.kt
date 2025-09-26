@@ -88,10 +88,10 @@ fun SavingsWalletScreen(
             ) {
                 BalanceHeaderView(
                     sats = balances.totalOnchainSats.toLong(),
+                    testTag = "TotalBalance",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("TotalBalance"),
-                    testTag = "TotalBalance"
+                        .testTag("TotalBalance")
                 )
 
                 if (balances.balanceInTransferToSavings > 0uL) {
