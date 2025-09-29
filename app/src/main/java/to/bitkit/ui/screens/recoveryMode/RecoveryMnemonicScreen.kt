@@ -53,7 +53,6 @@ private fun Content(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
             .screen()
     ) {
         AppTopBar(
