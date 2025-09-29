@@ -1,11 +1,14 @@
 package to.bitkit.ui.settings.backgroundPayments
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.settings.SettingsSwitchRow
@@ -47,19 +50,26 @@ private fun Content(
     Column(
         modifier = Modifier.screen()
     ) {
+
         AppTopBar(
             titleText = "Background Payments",
             onBackClick = onBack,
             actions = { CloseNavIcon(onClick = onClose) },
         )
 
-        SettingsSwitchRow(
-            title = "Get paid when Bitkit is closed",
-            isChecked = hasPermission,
-            onClick = onSystemSettingsClick
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            SettingsSwitchRow(
+                title = "Get paid when Bitkit is closed",
+                isChecked = hasPermission,
+                onClick = onSystemSettingsClick
+            )
 
-        BodyM(text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).")
+            BodyM(text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).")
+        }
     }
 }
 
