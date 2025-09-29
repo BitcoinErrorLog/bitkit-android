@@ -22,6 +22,12 @@ class SettingsViewModel @Inject constructor(
     val hasSeenSpendingIntro = settingsStore.data.map { it.hasSeenSpendingIntro }
         .asStateFlow(initialValue = false)
 
+    fun setNotificationPreference(granted: Boolean) {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(notificationsGranted = granted) }
+        }
+    }
+
     fun setHasSeenSpendingIntro(value: Boolean) {
         viewModelScope.launch {
             settingsStore.update { it.copy(hasSeenSpendingIntro = value) }

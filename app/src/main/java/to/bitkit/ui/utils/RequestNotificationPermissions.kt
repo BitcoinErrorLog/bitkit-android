@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import to.bitkit.ext.requiresPermission
 
 @Composable
-fun RequestNotificationPermissions() {
+fun RequestNotificationPermissions(onPermissionChanged: (Boolean) -> Unit) {
     val context = LocalContext.current
 
     // Only check permission if running on Android 13+ (SDK 33+)
@@ -27,6 +27,7 @@ fun RequestNotificationPermissions() {
     }
 
     LaunchedEffect(isGranted) {
+        onPermissionChanged(isGranted)
         if (!isGranted && requiresPermission) {
             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }

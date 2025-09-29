@@ -99,7 +99,7 @@ data class SettingsData(
     val enableAutoReadClipboard: Boolean = false,
     val enableSendAmountWarning: Boolean = false,
     val backupVerified: Boolean = false,
-    val notificationsVerified: Boolean = false,
+    val notificationsGranted: Boolean = false,
     val dismissedSuggestions: List<String> = emptyList(),
     val balanceWarningIgnoredMillis: Long = 0,
     val backupWarningIgnoredMillis: Long = 0,

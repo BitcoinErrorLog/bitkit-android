@@ -190,7 +190,7 @@ class HomeViewModel @Inject constructor(
     suspend fun displayNotificationSheet(): Boolean {
         val settings = settingsStore.data.first()
 
-        if (settings.notificationsVerified) return false
+        if (settings.notificationsGranted) return false
 
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val isTimeOutOver = settings.notificationsIgnoredMillis == 0L ||
