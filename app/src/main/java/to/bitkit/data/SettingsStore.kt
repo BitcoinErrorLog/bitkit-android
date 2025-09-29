@@ -101,6 +101,7 @@ data class SettingsData(
     val backupVerified: Boolean = false,
     val dismissedSuggestions: List<String> = emptyList(),
     val lastTimeAskedBalanceWarningMillis: Long = 0,
+    val lastTimeAskedBackupWarningMillis: Long = 0,
     val balanceWarningTimes: Int = 0,
     val coinSelectAuto: Boolean = true,
     val coinSelectPreference: CoinSelectionPreference = CoinSelectionPreference.BranchAndBound,

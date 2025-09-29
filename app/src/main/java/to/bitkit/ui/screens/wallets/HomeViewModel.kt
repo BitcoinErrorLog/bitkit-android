@@ -2,7 +2,6 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.navOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
@@ -31,11 +30,8 @@ import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
 import to.bitkit.services.AppUpdaterService
-import to.bitkit.ui.Routes
-import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.screens.widgets.blocks.toWeatherModel
 import to.bitkit.utils.Logger
-import to.bitkit.viewmodels.MainScreenEffect
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -148,12 +144,12 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (_uiState.value.timedSheet != null) return@launch
 
-            delay(CHECK_DELAY_MILLISECONDS)
+            delay(CHECK_DELAY_MILLIS)
 
-            TimedSheets.entries.forEach { sheet ->
+            TimedSheets.entries.sortedByDescending { it.priority }.forEach { sheet ->
                 val displaySheet = when (sheet) {
                     TimedSheets.APP_UPDATE -> displayAppUpdate()
-                    TimedSheets.BACKUP -> TODO()
+                    TimedSheets.BACKUP -> displayBackupSheet()
                     TimedSheets.NOTIFICATIONS -> TODO()
                     TimedSheets.QUICK_PAY -> TODO()
                     TimedSheets.HIGH_BALANCE -> displayHighBalance()
@@ -166,6 +162,26 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    suspend fun displayBackupSheet() : Boolean {
+        val settings = settingsStore.data.first()
+
+        if (settings.backupVerified) return false
+
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val isTimeOutOver = settings.lastTimeAskedBackupWarningMillis == 0L ||
+            (currentTime - settings.lastTimeAskedBackupWarningMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+
+        val hasBalance = walletRepo.balanceState.value.totalSats > 0U
+
+        val shouldShow = isTimeOutOver && hasBalance
+
+        if (shouldShow) {
+            settingsStore.update { it.copy(lastTimeAskedBackupWarningMillis = currentTime) }
+        }
+
+        return shouldShow
+    }
+
     private suspend fun displayAppUpdate(): Boolean = withContext(bgDispatcher) {
         try {
             val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
@@ -174,14 +190,7 @@ class HomeViewModel @Inject constructor(
             if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext false
 
             if (androidReleaseInfo.isCritical) {
-                // mainScreenEffect(
-                //     MainScreenEffect.Navigate(
-                //         route = Routes.CriticalUpdate,
-                //         navOptions = navOptions {
-                //             popUpTo(0) { inclusive = true }
-                //         }
-                //     )
-                // ) TODO NAVIGATE
+                handleCriticalUpdate()
                 return@withContext false
             }
 
@@ -190,6 +199,17 @@ class HomeViewModel @Inject constructor(
             Logger.warn("Failure fetching new releases", e = e)
             return@withContext false
         }
+    }
+
+    private suspend fun handleCriticalUpdate() {
+        // mainScreenEffect( // TODO
+        //     MainScreenEffect.Navigate(
+        //         route = Routes.CriticalUpdate,
+        //         navOptions = navOptions {
+        //             popUpTo(0) { inclusive = true }
+        //         }
+        //     )
+        // )
     }
 
     private suspend fun displayHighBalance(): Boolean {
@@ -201,7 +221,7 @@ class HomeViewModel @Inject constructor(
         val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
 
         val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis == 0L ||
-            (currentTime - settings.lastTimeAskedBalanceWarningMillis > ASK_INTERVAL_MILLIS)
+            (currentTime - settings.lastTimeAskedBalanceWarningMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
 
         val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
@@ -369,9 +389,9 @@ class HomeViewModel @Inject constructor(
         private const val MAX_WARNINGS = 3
 
         /** 1 day - how long this prompt will be hidden if user taps Later*/
-        private const val ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24
+        private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24
 
-        /**How long user needs to stay on the home screen before he will see this prompt*/
-        private const val CHECK_DELAY_MILLISECONDS = 2500L
+        /**How long user needs to stay on the home screen before he see this prompt*/
+        private const val CHECK_DELAY_MILLIS = 2500L
     }
 }

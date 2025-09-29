@@ -37,10 +37,11 @@ data class HomeUiState(
     val timedSheet: TimedSheets? = null,
 )
 
-enum class TimedSheets {
-    APP_UPDATE,
-    BACKUP,
-    NOTIFICATIONS,
-    QUICK_PAY,
-    HIGH_BALANCE
+/**@param priority Priority levels for timed sheets (higher number = higher priority)*/
+enum class TimedSheets(val priority: Int) {
+    APP_UPDATE(2),
+    BACKUP(3),
+    NOTIFICATIONS(2),
+    QUICK_PAY(1),
+    HIGH_BALANCE(2)
 }
