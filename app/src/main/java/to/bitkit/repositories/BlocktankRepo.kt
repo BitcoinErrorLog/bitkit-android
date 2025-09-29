@@ -31,6 +31,7 @@ import to.bitkit.data.CacheStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.nowTimestamp
+import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.services.CoreService
 import to.bitkit.services.LightningService
 import to.bitkit.utils.Logger
@@ -384,7 +385,6 @@ class BlocktankRepo @Inject constructor(
         private const val TAG = "BlocktankRepo"
         private const val DEFAULT_CHANNEL_EXPIRY_WEEKS = 6u
         private const val DEFAULT_SOURCE = "bitkit-android"
-        private const val EUR_CURRENCY = "EUR"
     }
 }
 

@@ -33,6 +33,7 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.TransferType
 import to.bitkit.env.Env
+import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.BlocktankRepo
