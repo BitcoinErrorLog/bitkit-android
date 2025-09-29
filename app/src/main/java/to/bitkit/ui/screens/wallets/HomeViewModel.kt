@@ -150,7 +150,7 @@ class HomeViewModel @Inject constructor(
                 val displaySheet = when (sheet) {
                     TimedSheets.APP_UPDATE -> displayAppUpdate()
                     TimedSheets.BACKUP -> displayBackupSheet()
-                    TimedSheets.NOTIFICATIONS -> TODO()
+                    TimedSheets.NOTIFICATIONS -> displayNotificationSheet()
                     TimedSheets.QUICK_PAY -> TODO()
                     TimedSheets.HIGH_BALANCE -> displayHighBalance()
                 }
@@ -162,21 +162,39 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    suspend fun displayNotificationSheet() : Boolean {
+        val settings = settingsStore.data.first()
+
+        if (settings.notificationsVerified) return false
+
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val isTimeOutOver = settings.notificationsIgnoredMillis == 0L ||
+            (currentTime - settings.notificationsIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+
+        val shouldShow = isTimeOutOver
+
+        if (shouldShow) {
+            settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
+        }
+
+        return shouldShow
+    }
+
     suspend fun displayBackupSheet() : Boolean {
         val settings = settingsStore.data.first()
 
         if (settings.backupVerified) return false
 
         val currentTime = Clock.System.now().toEpochMilliseconds()
-        val isTimeOutOver = settings.lastTimeAskedBackupWarningMillis == 0L ||
-            (currentTime - settings.lastTimeAskedBackupWarningMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+        val isTimeOutOver = settings.backupWarningIgnoredMillis == 0L ||
+            (currentTime - settings.backupWarningIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
 
         val hasBalance = walletRepo.balanceState.value.totalSats > 0U
 
         val shouldShow = isTimeOutOver && hasBalance
 
         if (shouldShow) {
-            settingsStore.update { it.copy(lastTimeAskedBackupWarningMillis = currentTime) }
+            settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
         }
 
         return shouldShow
@@ -220,8 +238,8 @@ class HomeViewModel @Inject constructor(
         val balanceUsd = satsToUsd(totalOnChainSats) ?: return false
         val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
 
-        val isTimeOutOver = settings.lastTimeAskedBalanceWarningMillis == 0L ||
-            (currentTime - settings.lastTimeAskedBalanceWarningMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+        val isTimeOutOver = settings.balanceWarningIgnoredMillis == 0L ||
+            (currentTime - settings.balanceWarningIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
 
         val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
@@ -235,7 +253,7 @@ class HomeViewModel @Inject constructor(
             settingsStore.update {
                 it.copy(
                     balanceWarningTimes = it.balanceWarningTimes + 1,
-                    lastTimeAskedBalanceWarningMillis = currentTime
+                    balanceWarningIgnoredMillis = currentTime
                 )
             }
             return true
@@ -388,8 +406,11 @@ class HomeViewModel @Inject constructor(
         private const val BALANCE_THRESHOLD_USD = 500L
         private const val MAX_WARNINGS = 3
 
-        /** 1 day - how long this prompt will be hidden if user taps Later*/
+        /** how long this prompt will be hidden if user taps Later*/
         private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24
+
+        /** how long this prompt will be hidden if user taps Later*/
+        private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7
 
         /**How long user needs to stay on the home screen before he see this prompt*/
         private const val CHECK_DELAY_MILLIS = 2500L
