@@ -53,6 +53,7 @@ import to.bitkit.services.LnurlService
 import to.bitkit.services.LnurlWithdrawResponse
 import to.bitkit.services.LspNotificationsService
 import to.bitkit.services.NodeEventHandler
+import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
 import javax.inject.Inject
@@ -868,7 +869,7 @@ class LightningRepo @Inject constructor(
     }
 }
 
-class RecoveryModeException(override val message: String?) : Exception()
+class RecoveryModeException(override val message: String?) : AppError(message = message)
 
 data class LightningState(
     val nodeId: String = "",
