@@ -106,6 +106,7 @@ import to.bitkit.ui.screens.widgets.price.PriceCard
 import to.bitkit.ui.screens.widgets.weather.WeatherCard
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
+import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
@@ -599,7 +600,13 @@ private fun Content(
                 }
 
                 TimedSheets.NOTIFICATIONS -> {
-                    // TODO
+                    BackgroundPaymentsIntroSheet(
+                        onContinue = {
+                            //TODO
+                            dismissTimedSheet()
+                        },
+                        onDismiss = dismissTimedSheet
+                    )
                 }
 
                 TimedSheets.QUICK_PAY -> {
