@@ -104,11 +104,13 @@ import to.bitkit.ui.screens.widgets.facts.FactsCard
 import to.bitkit.ui.screens.widgets.headlines.HeadlineCard
 import to.bitkit.ui.screens.widgets.price.PriceCard
 import to.bitkit.ui.screens.widgets.weather.WeatherCard
+import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
+import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -583,7 +585,15 @@ private fun Content(
                 TimedSheets.APP_UPDATE -> TODO()
                 TimedSheets.BACKUP -> TODO()
                 TimedSheets.NOTIFICATIONS -> TODO()
-                TimedSheets.QUICK_PAY -> TODO()
+                TimedSheets.QUICK_PAY -> {
+                    QuickPayIntroSheet(
+                        onContinue = {
+                            //     todo implement
+                        },
+                        onDismiss = dismissTimedSheet,
+                    )
+                }
+
                 TimedSheets.HIGH_BALANCE -> {
                     val context = LocalContext.current
                     HighBalanceWarningSheet(

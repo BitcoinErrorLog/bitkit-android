@@ -37,31 +37,36 @@ fun QuickPayIntroScreen(
             actions = { CloseNavIcon(onClick = onClose) },
         )
 
-        Column(
-            modifier = Modifier.padding(horizontal = 32.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.fast_forward),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
+        QuickPayIntroContent(onContinue = onContinue)
+    }
+}
 
-            Display(
-                text = stringResource(R.string.settings__quickpay__intro__title).withAccent(accentColor = Colors.Green),
-                color = Colors.White
-            )
-            Spacer(Modifier.height(8.dp))
-            BodyM(text = stringResource(R.string.settings__quickpay__intro__description), color = Colors.White64)
-            Spacer(Modifier.height(32.dp))
-            PrimaryButton(
-                text = stringResource(R.string.common__continue),
-                onClick = onContinue,
-                modifier = Modifier.testTag("QuickpayIntro-button")
-            )
-            Spacer(Modifier.height(16.dp))
-        }
+@Composable
+fun QuickPayIntroContent(onContinue: () -> Unit) {
+    Column(
+        modifier = Modifier.padding(horizontal = 32.dp)
+    ) {
+        Image(
+            painter = painterResource(R.drawable.fast_forward),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        )
+
+        Display(
+            text = stringResource(R.string.settings__quickpay__intro__title).withAccent(accentColor = Colors.Green),
+            color = Colors.White
+        )
+        Spacer(Modifier.height(8.dp))
+        BodyM(text = stringResource(R.string.settings__quickpay__intro__description), color = Colors.White64)
+        Spacer(Modifier.height(32.dp))
+        PrimaryButton(
+            text = stringResource(R.string.common__continue),
+            onClick = onContinue,
+            modifier = Modifier.testTag("QuickpayIntro-button")
+        )
+        Spacer(Modifier.height(16.dp))
     }
 }
 
