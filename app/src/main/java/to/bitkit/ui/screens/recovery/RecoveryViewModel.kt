@@ -52,6 +52,10 @@ class RecoveryViewModel @Inject constructor(
         }
     }
 
+    fun disableRecoveryMode() {
+        lightningRepo.setRecoveryMode(false)
+    }
+
     fun onExportLogs() {
         viewModelScope.launch {
             _uiState.update { it.copy(isExportingLogs = true) }
