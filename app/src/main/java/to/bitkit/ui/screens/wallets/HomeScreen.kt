@@ -112,6 +112,7 @@ import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.sheets.QuickPayIntroSheet
+import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -585,13 +586,19 @@ private fun Content(
             }
 
             when (homeUiState.timedSheet) {
-                TimedSheets.APP_UPDATE -> TODO()
+                TimedSheets.APP_UPDATE -> {
+                    UpdateSheet(onCancel = dismissTimedSheet)
+                }
+
                 TimedSheets.BACKUP -> {
                     showBackUpSheet()
                     dismissTimedSheet()
                 }
 
-                TimedSheets.NOTIFICATIONS -> TODO()
+                TimedSheets.NOTIFICATIONS -> {
+                    // TODO
+                }
+
                 TimedSheets.QUICK_PAY -> {
                     QuickPayIntroSheet(
                         onContinue = {

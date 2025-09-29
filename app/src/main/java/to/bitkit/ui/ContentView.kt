@@ -138,7 +138,6 @@ import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.SendSheet
-import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
 import to.bitkit.ui.utils.Transitions
@@ -348,7 +347,6 @@ fun ContentView(
                         is Sheet.Pin -> PinSheet(sheet, appViewModel)
                         is Sheet.Backup -> BackupSheet(sheet, appViewModel)
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                        Sheet.Update -> UpdateSheet(onCancel = { appViewModel.hideSheet() })
                     }
                 }
             ) {
