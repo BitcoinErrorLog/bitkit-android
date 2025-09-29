@@ -174,7 +174,7 @@ class HomeViewModel @Inject constructor(
 
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val isTimeOutOver = settings.notificationsIgnoredMillis == 0L ||
-            (currentTime - settings.notificationsIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+            (currentTime - settings.notificationsIgnoredMillis > ONE_WEEK_ASK_INTERVAL_MILLIS)
 
         val shouldShow = isTimeOutOver
 
