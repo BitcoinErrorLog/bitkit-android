@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.recoveryMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
@@ -66,10 +66,10 @@ private fun Content(
         if (uiState.isLoading) {
             // Loading state
             Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
+                    .weight(1f)
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.padding(16.dp),
@@ -127,7 +127,7 @@ private fun Content(
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                FillHeight()
 
                 VerticalSpacer(32.dp)
 
