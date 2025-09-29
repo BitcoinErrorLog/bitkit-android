@@ -230,7 +230,7 @@ class LightningRepo @Inject constructor(
 
             Result.success(Unit)
         } catch (e: Throwable) {
-            if (shouldRetry && !isRecoveryMode) {
+            if (shouldRetry) {
                 Logger.warn("Start error, retrying after two seconds...", e = e, context = TAG)
                 _lightningState.update { it.copy(nodeLifecycleState = initialLifecycleState) }
 
