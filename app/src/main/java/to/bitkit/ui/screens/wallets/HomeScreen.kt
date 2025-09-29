@@ -104,11 +104,9 @@ import to.bitkit.ui.screens.widgets.facts.FactsCard
 import to.bitkit.ui.screens.widgets.headlines.HeadlineCard
 import to.bitkit.ui.screens.widgets.price.PriceCard
 import to.bitkit.ui.screens.widgets.weather.WeatherCard
-import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackupRoute
-import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.sheets.QuickPayIntroSheet
@@ -267,7 +265,11 @@ fun HomeScreen(
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         dismissTimedSheet = homeViewModel::dismissTimedSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
-        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup()) }
+        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup()) },
+        onContinueQuickPay = {
+            walletNavController.navigate(Routes.QuickPaySettings)
+            homeViewModel.checkQuickPayAsSeen()
+        }
     )
 }
 
@@ -294,6 +296,7 @@ private fun Content(
     dismissTimedSheet: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
     showBackUpSheet: () -> Unit = {},
+    onContinueQuickPay: () -> Unit = {},
     balances: BalanceState = LocalBalances.current,
 ) {
     val scope = rememberCoroutineScope()
@@ -602,7 +605,8 @@ private fun Content(
                 TimedSheets.QUICK_PAY -> {
                     QuickPayIntroSheet(
                         onContinue = {
-                            //     todo implement
+                            onContinueQuickPay()
+                            dismissTimedSheet()
                         },
                         onDismiss = dismissTimedSheet,
                     )

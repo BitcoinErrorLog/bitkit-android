@@ -183,6 +183,10 @@ class HomeViewModel @Inject constructor(
         return walletRepo.balanceState.value.totalLightningSats > 0U
     }
 
+    fun checkQuickPayAsSeen() {
+        viewModelScope.launch { settingsStore.update { it.copy(quickPayIntroSeen = true) } }
+    }
+
     suspend fun displayNotificationSheet(): Boolean {
         val settings = settingsStore.data.first()
 
