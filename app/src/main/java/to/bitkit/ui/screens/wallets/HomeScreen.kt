@@ -39,6 +39,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -138,6 +139,10 @@ fun HomeScreen(
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        homeViewModel.checkTimedSheets()
+    }
 
     homeUiState.deleteWidgetAlert?.let { type ->
         DeleteWidgetAlert(type, homeViewModel)
@@ -256,7 +261,7 @@ fun HomeScreen(
             homeViewModel.moveWidget(fromIndex, toIndex)
         },
         onDismissEmptyState = homeViewModel::dismissEmptyState,
-        onDismissHighBalanceSheet = homeViewModel::dismissHighBalanceSheet,
+        dismissTimedSheet = homeViewModel::dismissTimedSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
     )
 }
@@ -281,7 +286,7 @@ private fun Content(
     onClickDeleteWidget: (WidgetType) -> Unit = {},
     onMoveWidget: (Int, Int) -> Unit = { _, _ -> },
     onDismissEmptyState: () -> Unit = {},
-    onDismissHighBalanceSheet: () -> Unit = {},
+    dismissTimedSheet: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
     balances: BalanceState = LocalBalances.current,
 ) {
@@ -574,17 +579,25 @@ private fun Content(
                 )
             }
 
-            if (homeUiState.highBalanceSheetVisible) {
-                val context = LocalContext.current
-                HighBalanceWarningSheet(
-                    onDismiss = onDismissHighBalanceSheet,
-                    understoodClick = onDismissHighBalanceSheet,
-                    learnMoreClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
-                        context.startActivity(intent)
-                        onDismissHighBalanceSheet()
-                    }
-                )
+            when (homeUiState.timedSheet) {
+                TimedSheets.APP_UPDATE -> TODO()
+                TimedSheets.BACKUP -> TODO()
+                TimedSheets.NOTIFICATIONS -> TODO()
+                TimedSheets.QUICK_PAY -> TODO()
+                TimedSheets.HIGH_BALANCE -> {
+                    val context = LocalContext.current
+                    HighBalanceWarningSheet(
+                        onDismiss = dismissTimedSheet,
+                        understoodClick = dismissTimedSheet,
+                        learnMoreClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
+                            context.startActivity(intent)
+                            dismissTimedSheet()
+                        }
+                    )
+                }
+
+                null -> Unit
             }
         }
     }

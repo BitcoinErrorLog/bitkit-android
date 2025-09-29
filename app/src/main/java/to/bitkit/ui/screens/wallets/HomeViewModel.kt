@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +49,8 @@ class HomeViewModel @Inject constructor(
     private val appUpdaterService: AppUpdaterService,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
+
+    private var timedSheetsScope: CoroutineScope? = CoroutineScope(bgDispatcher + SupervisorJob())
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -141,7 +146,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
-        viewModelScope.launch {
+        timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
+        timedSheetsScope?.launch {
             if (_uiState.value.timedSheet != null) return@launch
 
             delay(CHECK_DELAY_MILLIS)
@@ -162,12 +168,22 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    suspend fun displayQuickPaySheet() : Boolean {
+    fun onLeftHome() {
+        timedSheetsScope?.cancel()
+        timedSheetsScope = null
+    }
+
+    fun dismissTimedSheet() {
+        _uiState.update { it.copy(timedSheet = null) }
+    }
+
+    suspend fun displayQuickPaySheet(): Boolean {
         val settings = settingsStore.data.first()
         if (settings.quickPayIntroSeen) return false
         return walletRepo.balanceState.value.totalLightningSats > 0U
     }
-    suspend fun displayNotificationSheet() : Boolean {
+
+    suspend fun displayNotificationSheet(): Boolean {
         val settings = settingsStore.data.first()
 
         if (settings.notificationsVerified) return false
@@ -185,7 +201,7 @@ class HomeViewModel @Inject constructor(
         return shouldShow
     }
 
-    suspend fun displayBackupSheet() : Boolean {
+    suspend fun displayBackupSheet(): Boolean {
         val settings = settingsStore.data.first()
 
         if (settings.backupVerified) return false
