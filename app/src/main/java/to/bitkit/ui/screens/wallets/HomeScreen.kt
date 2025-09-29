@@ -108,6 +108,7 @@ import to.bitkit.ui.settings.quickPay.QuickPayIntroScreen
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackupRoute
+import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.sheets.QuickPayIntroSheet
@@ -265,6 +266,7 @@ fun HomeScreen(
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         dismissTimedSheet = homeViewModel::dismissTimedSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
+        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup()) }
     )
 }
 
@@ -290,6 +292,7 @@ private fun Content(
     onDismissEmptyState: () -> Unit = {},
     dismissTimedSheet: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
+    showBackUpSheet: () -> Unit = {},
     balances: BalanceState = LocalBalances.current,
 ) {
     val scope = rememberCoroutineScope()
@@ -583,7 +586,11 @@ private fun Content(
 
             when (homeUiState.timedSheet) {
                 TimedSheets.APP_UPDATE -> TODO()
-                TimedSheets.BACKUP -> TODO()
+                TimedSheets.BACKUP -> {
+                    showBackUpSheet()
+                    dismissTimedSheet()
+                }
+
                 TimedSheets.NOTIFICATIONS -> TODO()
                 TimedSheets.QUICK_PAY -> {
                     QuickPayIntroSheet(
