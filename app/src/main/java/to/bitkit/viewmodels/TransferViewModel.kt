@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
@@ -53,6 +54,7 @@ const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
 private const val EUR_CURRENCY = "EUR"
 
+@Suppress("LongParameterList")
 @HiltViewModel
 class TransferViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -62,6 +64,7 @@ class TransferViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val clock: Clock,
 ) : ViewModel() {
     private val _spendingUiState = MutableStateFlow(TransferToSpendingUiState())
     val spendingUiState = _spendingUiState.asStateFlow()
@@ -516,9 +519,9 @@ class TransferViewModel @Inject constructor(
     /** Retry to coop close the channel(s) for 30 min */
     fun startCoopCloseRetries(
         channels: List<ChannelDetails>,
-        startTimeMs: Long,
         onGiveUp: () -> Unit,
     ) {
+        val startTimeMs = clock.now().toEpochMilliseconds()
         channelsToClose = channels
         coopCloseRetryJob?.cancel()
 

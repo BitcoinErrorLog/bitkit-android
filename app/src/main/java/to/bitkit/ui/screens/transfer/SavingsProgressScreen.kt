@@ -67,7 +67,7 @@ fun SavingsProgressScreen(
             delay(5000)
             progressState = SavingsProgressState.SUCCESS
         } else {
-            transfer.startCoopCloseRetries(channelsFailedToCoopClose, System.currentTimeMillis()) {
+            transfer.startCoopCloseRetries(channelsFailedToCoopClose) {
                 app.showSheet(Sheet.ForceTransfer)
             }
             delay(2500)
