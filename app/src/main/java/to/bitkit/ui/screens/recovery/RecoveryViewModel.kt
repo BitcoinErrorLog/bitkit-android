@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.recoveryMode
+package to.bitkit.ui.screens.recovery
 
 import android.content.Context
 import android.content.Intent

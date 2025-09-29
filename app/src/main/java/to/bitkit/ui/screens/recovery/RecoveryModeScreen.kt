@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.recoveryMode
+package to.bitkit.ui.screens.recovery
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn

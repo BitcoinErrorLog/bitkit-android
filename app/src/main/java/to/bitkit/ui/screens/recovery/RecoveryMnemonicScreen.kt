@@ -1,4 +1,4 @@
-package to.bitkit.ui.screens.recoveryMode
+package to.bitkit.ui.screens.recovery
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
