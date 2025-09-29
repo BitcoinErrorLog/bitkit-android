@@ -151,7 +151,7 @@ class HomeViewModel @Inject constructor(
                     TimedSheets.APP_UPDATE -> displayAppUpdate()
                     TimedSheets.BACKUP -> displayBackupSheet()
                     TimedSheets.NOTIFICATIONS -> displayNotificationSheet()
-                    TimedSheets.QUICK_PAY -> TODO()
+                    TimedSheets.QUICK_PAY -> displayQuickPaySheet()
                     TimedSheets.HIGH_BALANCE -> displayHighBalance()
                 }
                 if (displaySheet) {
@@ -162,6 +162,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    suspend fun displayQuickPaySheet() : Boolean {
+        val settings = settingsStore.data.first()
+        if (settings.quickPayIntroSeen) return false
+        return walletRepo.balanceState.value.totalLightningSats > 0U
+    }
     suspend fun displayNotificationSheet() : Boolean {
         val settings = settingsStore.data.first()
 
