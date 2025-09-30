@@ -52,7 +52,6 @@ private fun Content(
     Column(
         modifier = Modifier.screen()
     ) {
-
         AppTopBar(
             titleText = "Background Payments",
             onBackClick = onBack,
@@ -77,6 +76,7 @@ private fun Content(
                 color = Colors.White64,
                 modifier = Modifier.padding(vertical = 16.dp)
             )
+
 
         }
     }

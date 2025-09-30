@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import to.bitkit.R
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
@@ -27,20 +30,29 @@ fun NotificationPreview(
     modifier: Modifier = Modifier,
 ) {
     Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
-            .padding(9.dp)
             .clip(Shapes.medium)
-            .background(Colors.White)
+            .background(Colors.White80)
+            .padding(9.dp)
     ) {
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_fg_regtest),
+            contentDescription = null,
+            modifier = Modifier
+                .size(38.dp)
+        )
+
         Column(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            BodyMSB(text = title)
-            Caption(description)
+            BodySSB(text = title, color = Colors.Black)
+            val textDescription = if (showDetails) description else "Open Bitkit to see details" // TODO Transifex
+            Footnote(text = textDescription, color = Colors.Gray3)
         }
 
-        Caption("3m ago")
-
+        Caption("3m ago", color = Colors.Gray2)
     }
 }
 
@@ -50,8 +62,10 @@ fun NotificationPreview(
 private fun Preview() {
     AppThemeSurface {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             NotificationPreview(
                 enabled = true,
@@ -60,6 +74,7 @@ private fun Preview() {
                 showDetails = true,
                 modifier = Modifier.fillMaxWidth()
             )
+            VerticalSpacer(16.dp)
             NotificationPreview(
                 enabled = false,
                 title = "Payment Received",
