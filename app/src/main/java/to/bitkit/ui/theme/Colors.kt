@@ -25,6 +25,7 @@ object Colors {
 
     // Alpha
     val Black50 = Color.Black.copy(alpha = 0.5f)
+    val Black70 = Color.Black.copy(alpha = 0.7f)
     val Black92 = Color.Black.copy(alpha = 0.92f)
     val Black25 = Color.Black.copy(alpha = 0.25f)
     val White06 = Color.White.copy(alpha = 0.06f)

@@ -3,6 +3,7 @@ package to.bitkit.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,33 +31,43 @@ fun NotificationPreview(
     showDetails: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier
-            .clip(Shapes.medium)
-            .background(Colors.White80)
-            .padding(9.dp)
-    ) {
-        Image(
-            painter = painterResource(R.drawable.ic_launcher_fg_regtest),
-            contentDescription = null,
+    Box(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
-                .size(38.dp)
-        )
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.SpaceBetween
+                .clip(Shapes.medium)
+                .background(Colors.White80)
+                .padding(9.dp)
         ) {
-            BodySSB(text = title, color = Colors.Black)
-            val textDescription = if (showDetails) description else "Open Bitkit to see details" // TODO Transifex
-            Footnote(text = textDescription, color = Colors.Gray3)
+            Image(
+                painter = painterResource(R.drawable.ic_launcher_fg_regtest),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(38.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodySSB(text = title, color = Colors.Black)
+                val textDescription = if (showDetails) description else "Open Bitkit to see details" // TODO Transifex
+                Footnote(text = textDescription, color = Colors.Gray3)
+            }
+
+            Caption("3m ago", color = Colors.Gray2)
         }
 
-        Caption("3m ago", color = Colors.Gray2)
+        if (!enabled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(Shapes.medium)
+                    .background(Colors.Black70)
+            )
+        }
     }
 }
-
 
 @Preview(showSystemUi = true)
 @Composable
