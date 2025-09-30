@@ -11,11 +11,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
@@ -62,13 +64,20 @@ private fun Content(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
+            VerticalSpacer(16.dp)
+
             SettingsSwitchRow(
                 title = "Get paid when Bitkit is closed",
                 isChecked = hasPermission,
                 onClick = onSystemSettingsClick
             )
 
-            BodyM(text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).")
+            BodyM(
+                text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
+                color = Colors.White64,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
         }
     }
 }
