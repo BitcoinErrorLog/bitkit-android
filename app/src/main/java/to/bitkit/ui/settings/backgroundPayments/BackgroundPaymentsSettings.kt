@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +35,8 @@ fun BackgroundPaymentsSettings(
 ) {
     val context = LocalContext.current
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
-    var showDetails by remember { mutableStateOf(false) }
+    val showNotificationDetails by settingsViewModel.showNotificationDetails.collectAsStateWithLifecycle()
+
     Content(
         onBack = onBack,
         onClose = onClose,
@@ -49,7 +47,8 @@ fun BackgroundPaymentsSettings(
             // context.startActivity(intent)
         },
         hasPermission = notificationsGranted,
-        showDetails = showDetails
+        showDetails = showNotificationDetails,
+        toggleNotificationDetails = settingsViewModel::toggleNotificationDetails,
     )
 }
 
@@ -58,6 +57,7 @@ private fun Content(
     onBack: () -> Unit,
     onClose: () -> Unit,
     onSystemSettingsClick: () -> Unit,
+    toggleNotificationDetails: () -> Unit,
     hasPermission: Boolean,
     showDetails: Boolean,
 ) {
@@ -121,7 +121,7 @@ private fun Content(
             SettingsButtonRow(
                 "Include amount in notifications",
                 value = SettingsButtonValue.BooleanValue(showDetails),
-                onClick = {},
+                onClick = toggleNotificationDetails,
             )
 
             VerticalSpacer(32.dp)
@@ -149,6 +149,7 @@ private fun Preview1() {
             onBack = {},
             onClose = {},
             onSystemSettingsClick = {},
+            toggleNotificationDetails = {},
             hasPermission = true,
             showDetails = true,
         )
@@ -163,6 +164,7 @@ private fun Preview2() {
             onBack = {},
             onClose = {},
             onSystemSettingsClick = {},
+            toggleNotificationDetails = {},
             hasPermission = false,
             showDetails = false,
         )

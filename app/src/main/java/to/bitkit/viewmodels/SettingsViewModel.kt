@@ -30,6 +30,14 @@ class SettingsViewModel @Inject constructor(
             settingsStore.update { it.copy(notificationsGranted = granted) }
         }
     }
+    val showNotificationDetails = settingsStore.data.map { it.showNotificationDetails }
+        .asStateFlow(initialValue = false)
+
+    fun toggleNotificationDetails() {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(showNotificationDetails = !it.showNotificationDetails) }
+        }
+    }
 
     fun setHasSeenSpendingIntro(value: Boolean) {
         viewModelScope.launch {
