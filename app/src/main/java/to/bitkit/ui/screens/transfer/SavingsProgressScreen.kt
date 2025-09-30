@@ -57,6 +57,7 @@ fun SavingsProgressScreen(
     var progressState by remember { mutableStateOf(SavingsProgressState.PROGRESS) }
 
     // Effect to close channels & update UI
+    // TODO move this logic to viewmodel so it can outlive the screen lifecycle
     LaunchedEffect(Unit) {
         val channelsFailedToCoopClose = transfer.closeSelectedChannels()
 

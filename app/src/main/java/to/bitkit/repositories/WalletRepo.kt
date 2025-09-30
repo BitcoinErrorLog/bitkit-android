@@ -150,10 +150,13 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
-        Logger.verbose("Refreshing node and wallet state…")
+        val startHeight = lightningRepo.lightningState.value.nodeStatus?.currentBestBlock?.height
+        Logger.verbose("syncNodeAndWallet started at block height=${startHeight}", context = TAG)
         syncBalances()
         lightningRepo.sync().onSuccess {
             syncBalances()
+            val endHeight = lightningRepo.lightningState.value.nodeStatus?.currentBestBlock?.height
+            Logger.verbose("syncNodeAndWallet completed at block height=$endHeight", context = TAG)
             return@withContext Result.success(Unit)
         }.onFailure { e ->
             if (e is TimeoutCancellationException) {
@@ -185,6 +188,7 @@ class WalletRepo @Inject constructor(
                 balanceInTransferToSpending = toSpending,
             )
 
+            Logger.verbose("Pending transfers in cache:\n${json.encodeToString(pendingTransfers)}", context = TAG)
             Logger.verbose("Balances in ldk-node:\n${json.encodeToString(balance)}", context = TAG)
             Logger.verbose("Balances in state:\n${json.encodeToString(newBalance)}", context = TAG)
 
