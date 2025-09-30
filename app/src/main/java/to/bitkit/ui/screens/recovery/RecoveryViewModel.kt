@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import to.bitkit.R
 import to.bitkit.data.SettingsStore
 import to.bitkit.env.Env
 import to.bitkit.models.Toast
@@ -119,6 +120,12 @@ class RecoveryViewModel @Inject constructor(
         viewModelScope.launch {
             walletRepo.wipeWallet().onFailure { error ->
                 ToastEventBus.send(error)
+            }.onSuccess {
+                ToastEventBus.send(
+                    type = Toast.ToastType.SUCCESS,
+                    title = context.getString(R.string.security__wiped_title),
+                    description = context.getString(R.string.security__wiped_message),
+                )
             }
         }
     }
