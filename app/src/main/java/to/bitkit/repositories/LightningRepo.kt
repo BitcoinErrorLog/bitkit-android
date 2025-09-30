@@ -315,6 +315,7 @@ class LightningRepo @Inject constructor(
                         nodeLifecycleState = it.nodeLifecycleState,
                     )
                 }
+                setRecoveryMode(false)
                 Result.success(Unit)
             } catch (e: Throwable) {
                 Logger.error("Wipe storage error", e, context = TAG)
