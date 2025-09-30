@@ -1538,6 +1538,20 @@ class AppViewModel @Inject constructor(
     }
 
     private fun processDeeplink(uri: Uri) = viewModelScope.launch {
+        if (uri.toString().contains("recovery-mode")) {
+            lightningRepo.setRecoveryMode(enabled = true)
+            delay(SCREEN_TRANSITION_DELAY_MS)
+            mainScreenEffect(
+                MainScreenEffect.Navigate(
+                    route = Routes.RecoveryMode,
+                    navOptions = navOptions {
+                        popUpTo(0) { inclusive = true }
+                    }
+                )
+            )
+            return@launch
+        }
+
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()

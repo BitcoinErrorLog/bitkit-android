@@ -106,6 +106,10 @@
                 <data android:scheme="lnurlc" />
                 <data android:scheme="lnurlp" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <service

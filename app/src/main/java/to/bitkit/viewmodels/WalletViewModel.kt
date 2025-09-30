@@ -28,6 +28,7 @@ import to.bitkit.models.Toast
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.RecoveryModeException
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.onboarding.LOADING_MS
 import to.bitkit.ui.shared.toast.ToastEventBus
@@ -53,6 +54,8 @@ class WalletViewModel @Inject constructor(
     // Local UI state
     var walletExists by mutableStateOf(walletRepo.walletExists())
         private set
+
+    val isRecoveryMode = lightningRepo.isRecoveryMode
 
     var restoreState by mutableStateOf<RestoreState>(RestoreState.NotRestoring)
         private set
@@ -151,7 +154,9 @@ class WalletViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     Logger.error("Node startup error", error)
-                    ToastEventBus.send(error)
+                    if (error !is RecoveryModeException) {
+                        ToastEventBus.send(error)
+                    }
                 }
         }
     }

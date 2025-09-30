@@ -77,10 +77,10 @@ class MainActivity : FragmentActivity() {
             desc = "Channel for LightningNodeService",
             importance = NotificationManager.IMPORTANCE_LOW
         )
+        appViewModel.handleDeeplinkIntent(intent)
         startForegroundService(Intent(this, LightningNodeService::class.java))
         installSplashScreen()
         enableAppEdgeToEdge()
-        appViewModel.handleDeeplinkIntent(intent)
         setContent {
             AppThemeSurface(
                 modifier = Modifier.semantics {
@@ -88,7 +88,8 @@ class MainActivity : FragmentActivity() {
                 }
             ) {
                 val scope = rememberCoroutineScope()
-                if (!walletViewModel.walletExists) {
+                val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
+                if (!walletViewModel.walletExists && !isRecoveryMode) {
                     OnboardingNav(
                         startupNavController = rememberNavController(),
                         scope = scope,

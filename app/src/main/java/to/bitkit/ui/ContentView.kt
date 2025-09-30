@@ -40,8 +40,10 @@ import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
 import to.bitkit.ui.screens.CriticalUpdateScreen
+import to.bitkit.ui.screens.recovery.RecoveryModeScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
+import to.bitkit.ui.screens.recovery.RecoveryMnemonicScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.scanner.SCAN_REQUEST_KEY
 import to.bitkit.ui.screens.settings.DevSettingsScreen
@@ -409,6 +411,7 @@ private fun RootNavHost(
         support(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
         update()
+        recoveryMode(navController, appViewModel)
 
         // TODO extract transferNavigation
         navigationWithDefaultTransitions<Routes.TransferRoot>(
@@ -1018,6 +1021,27 @@ private fun NavGraphBuilder.suggestions(
 private fun NavGraphBuilder.update() {
     composableWithDefaultTransitions<Routes.CriticalUpdate> {
         CriticalUpdateScreen()
+    }
+}
+
+private fun NavGraphBuilder.recoveryMode(
+    navController: NavHostController,
+    appViewModel: AppViewModel
+) {
+    composableWithDefaultTransitions<Routes.RecoveryMode> {
+        RecoveryModeScreen(
+            onNavigateToSeed = {
+                navController.navigate(Routes.RecoveryMnemonic)
+            },
+            appViewModel = appViewModel
+        )
+    }
+    composableWithDefaultTransitions<Routes.RecoveryMnemonic> {
+        RecoveryMnemonicScreen(
+            onNavigateBack = {
+                navController.popBackStack()
+            }
+        )
     }
 }
 
@@ -1684,4 +1708,10 @@ sealed interface Routes {
 
     @Serializable
     data object CriticalUpdate : Routes
+
+    @Serializable
+    data object RecoveryMode : Routes
+
+    @Serializable
+    data object RecoveryMnemonic : Routes
 }
