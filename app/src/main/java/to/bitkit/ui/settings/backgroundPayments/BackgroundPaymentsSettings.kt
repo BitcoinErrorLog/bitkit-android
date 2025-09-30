@@ -1,16 +1,20 @@
 package to.bitkit.ui.settings.backgroundPayments
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyMB
 import to.bitkit.ui.components.NotificationPreview
@@ -135,6 +139,9 @@ private fun Content(
 
             SecondaryButton(
                 "Customize in Android Bitkit Settings",
+                icon = {
+                    Image(painter = painterResource(R.drawable.ic_bell), contentDescription = null)
+                },
                 onClick = onSystemSettingsClick
             )
         }
