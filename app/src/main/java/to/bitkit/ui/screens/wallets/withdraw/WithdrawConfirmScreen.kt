@@ -49,10 +49,10 @@ fun WithdrawConfirmScreen(
             VerticalSpacer(16.dp)
             BalanceHeaderView(
                 sats = uiState.amount.toLong(),
+                testTag = "WithdrawAmount",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("WithdrawAmount"),
-                testTag = "WithdrawAmount"
+                    .testTag("WithdrawAmount")
             )
             VerticalSpacer(46.dp)
 
