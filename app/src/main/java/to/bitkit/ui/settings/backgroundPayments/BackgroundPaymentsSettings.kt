@@ -17,7 +17,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyMB
 import to.bitkit.ui.components.NotificationPreview
+import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SettingsButtonRow
+import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
@@ -105,6 +109,33 @@ private fun Content(
                 description = "₿ 21 000",
                 showDetails = showDetails,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            VerticalSpacer(32.dp)
+
+            Text13Up(
+                text = "Privacy",
+                color = Colors.White64
+            )
+
+            SettingsButtonRow(
+                "Include amount in notifications",
+                value = SettingsButtonValue.BooleanValue(showDetails),
+                onClick = {},
+            )
+
+            VerticalSpacer(32.dp)
+
+            Text13Up(
+                text = "Privacy",
+                color = Colors.White64
+            )
+
+            VerticalSpacer(16.dp)
+
+            SecondaryButton(
+                "Customize in Android Bitkit Settings",
+                onClick = onSystemSettingsClick
             )
         }
     }
