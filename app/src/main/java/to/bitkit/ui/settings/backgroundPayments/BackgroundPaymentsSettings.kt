@@ -1,16 +1,22 @@
 package to.bitkit.ui.settings.backgroundPayments
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BodyMB
+import to.bitkit.ui.components.NotificationPreview
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
@@ -28,7 +34,7 @@ fun BackgroundPaymentsSettings(
 ) {
     val context = LocalContext.current
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
-
+    var showDetails by remember { mutableStateOf(false) }
     Content(
         onBack = onBack,
         onClose = onClose,
@@ -38,7 +44,8 @@ fun BackgroundPaymentsSettings(
             // }
             // context.startActivity(intent)
         },
-        hasPermission = notificationsGranted
+        hasPermission = notificationsGranted,
+        showDetails = showDetails
     )
 }
 
@@ -48,6 +55,7 @@ private fun Content(
     onClose: () -> Unit,
     onSystemSettingsClick: () -> Unit,
     hasPermission: Boolean,
+    showDetails: Boolean,
 ) {
     Column(
         modifier = Modifier.screen()
@@ -71,13 +79,33 @@ private fun Content(
                 onClick = onSystemSettingsClick
             )
 
-            BodyM(
-                text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
-                color = Colors.White64,
+            AnimatedVisibility(
+                visible = hasPermission,
+                modifier = Modifier.padding(vertical = 16.dp),
+            ) {
+                BodyM(
+                    text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
+                    color = Colors.White64,
+                )
+            }
+
+            AnimatedVisibility(
+                visible = !hasPermission,
                 modifier = Modifier.padding(vertical = 16.dp)
+            ) {
+                BodyMB(
+                    text = "Background payments are disabled, because you have denied notifications.",
+                    color = Colors.Red,
+                )
+            }
+
+            NotificationPreview(
+                enabled = hasPermission,
+                title = "Payment Received",
+                description = "₿ 21 000",
+                showDetails = showDetails,
+                modifier = Modifier.fillMaxWidth()
             )
-
-
         }
     }
 }
@@ -90,7 +118,8 @@ private fun Preview1() {
             onBack = {},
             onClose = {},
             onSystemSettingsClick = {},
-            hasPermission = true
+            hasPermission = true,
+            showDetails = true,
         )
     }
 }
@@ -103,7 +132,8 @@ private fun Preview2() {
             onBack = {},
             onClose = {},
             onSystemSettingsClick = {},
-            hasPermission = false
+            hasPermission = false,
+            showDetails = false,
         )
     }
 }
