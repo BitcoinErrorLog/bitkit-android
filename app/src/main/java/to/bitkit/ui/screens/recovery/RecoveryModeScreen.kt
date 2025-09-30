@@ -146,6 +146,7 @@ private fun Content(
 
                 SecondaryButton(
                     text = stringResource(R.string.security__wipe_app),
+                    enabled = walletExists,
                     onClick = onWipeApp,
                 )
             }

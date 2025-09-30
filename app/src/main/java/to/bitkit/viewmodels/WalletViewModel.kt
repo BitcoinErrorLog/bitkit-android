@@ -55,6 +55,8 @@ class WalletViewModel @Inject constructor(
     var walletExists by mutableStateOf(walletRepo.walletExists())
         private set
 
+    val isRecoveryMode = lightningRepo.isRecoveryMode
+
     var restoreState by mutableStateOf<RestoreState>(RestoreState.NotRestoring)
         private set
 

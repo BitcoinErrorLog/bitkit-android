@@ -83,7 +83,8 @@ class LightningRepo @Inject constructor(
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
     private var cachedEventHandler: NodeEventHandler? = null
-    private var isRecoveryMode: Boolean = false
+    private val _isRecoveryMode = MutableStateFlow(false)
+    val isRecoveryMode = _isRecoveryMode.asStateFlow()
 
     /**
      * Executes the provided operation only if the node is running.
@@ -170,7 +171,7 @@ class LightningRepo @Inject constructor(
         customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
-        if (isRecoveryMode) {
+        if (_isRecoveryMode.value) {
             return@withContext Result.failure(
                 RecoveryModeException("App in recovery mode, skipping node start")
             )
@@ -254,7 +255,7 @@ class LightningRepo @Inject constructor(
     }
 
     fun setRecoveryMode(enabled: Boolean) {
-        isRecoveryMode = enabled
+        _isRecoveryMode.value = enabled
     }
 
     suspend fun updateGeoBlockState() {

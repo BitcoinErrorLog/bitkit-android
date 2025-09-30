@@ -88,7 +88,8 @@ class MainActivity : FragmentActivity() {
                 }
             ) {
                 val scope = rememberCoroutineScope()
-                if (!walletViewModel.walletExists) {
+                val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
+                if (!walletViewModel.walletExists && !isRecoveryMode) {
                     OnboardingNav(
                         startupNavController = rememberNavController(),
                         scope = scope,
