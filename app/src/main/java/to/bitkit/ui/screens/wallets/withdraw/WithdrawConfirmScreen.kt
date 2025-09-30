@@ -47,7 +47,13 @@ fun WithdrawConfirmScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             VerticalSpacer(16.dp)
-            BalanceHeaderView(sats = uiState.amount.toLong(), modifier = Modifier.fillMaxWidth())
+            BalanceHeaderView(
+                sats = uiState.amount.toLong(),
+                testTag = "WithdrawAmount",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("WithdrawAmount")
+            )
             VerticalSpacer(46.dp)
 
             BodyM(
