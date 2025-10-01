@@ -134,7 +134,7 @@ private fun Content(
             VerticalSpacer(32.dp)
 
             Text13Up(
-                text = "Privacy",
+                text = "Notifications",
                 color = Colors.White64
             )
 
