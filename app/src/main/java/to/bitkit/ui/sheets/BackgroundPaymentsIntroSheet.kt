@@ -13,6 +13,7 @@ import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsIntroContent
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +33,7 @@ private fun BackgroundPaymentsIntroSheetContent(onContinue: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .sheetHeight(isModal = true)
+            .gradientBackground()
             .navigationBarsPadding()
             .testTag("background_payments_intro_sheet")
     ) {
