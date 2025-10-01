@@ -603,7 +603,7 @@ private fun Content(
 
             when (homeUiState.timedSheet) {
                 TimedSheets.APP_UPDATE -> {
-                    UpdateSheet(onCancel = dismissTimedSheet)
+                    UpdateSheet(onDismiss = dismissTimedSheet)
                 }
 
                 TimedSheets.BACKUP -> {
