@@ -273,7 +273,7 @@ fun HomeScreen(
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         dismissTimedSheet = homeViewModel::dismissTimedSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
-        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup()) },
+        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup(route = BackupRoute.Intro)) },
         onContinueQuickPay = {
             walletNavController.navigate(Routes.QuickPaySettings)
             homeViewModel.checkQuickPayAsSeen()
