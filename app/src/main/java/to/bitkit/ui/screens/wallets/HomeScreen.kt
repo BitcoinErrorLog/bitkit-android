@@ -275,7 +275,7 @@ fun HomeScreen(
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
         showBackUpSheet = { appViewModel.showSheet(Sheet.Backup(route = BackupRoute.Intro)) },
         onContinueQuickPay = {
-            walletNavController.navigate(Routes.QuickPaySettings)
+            rootNavController.navigate(Routes.QuickPaySettings)
             homeViewModel.checkQuickPayAsSeen()
         },
         onContinueBgPayments = {
@@ -624,8 +624,8 @@ private fun Content(
                 TimedSheets.QUICK_PAY -> {
                     QuickPayIntroSheet(
                         onContinue = {
-                            onContinueQuickPay()
                             dismissTimedSheet()
+                            onContinueQuickPay()
                         },
                         onDismiss = dismissTimedSheet,
                     )
