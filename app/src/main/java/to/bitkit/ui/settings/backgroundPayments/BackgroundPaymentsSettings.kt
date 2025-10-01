@@ -1,7 +1,5 @@
 package to.bitkit.ui.settings.backgroundPayments
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -31,6 +29,7 @@ import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
@@ -47,10 +46,7 @@ fun BackgroundPaymentsSettings(
         onBack = onBack,
         onClose = onClose,
         onSystemSettingsClick = {
-            val intent = Intent(Intent.ACTION_APPLICATION_PREFERENCES).apply {
-                data = Uri.fromParts("package", context.packageName, null)
-            }
-            context.startActivity(intent)
+            NotificationUtils.openNotificationSettings(context)
         },
         hasPermission = notificationsGranted,
         showDetails = showNotificationDetails,
