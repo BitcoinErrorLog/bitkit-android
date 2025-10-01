@@ -52,7 +52,7 @@ class HomeViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-    private var timedSheetsScope: CoroutineScope? = CoroutineScope(bgDispatcher + SupervisorJob())
+    private var timedSheetsScope: CoroutineScope? = null
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
