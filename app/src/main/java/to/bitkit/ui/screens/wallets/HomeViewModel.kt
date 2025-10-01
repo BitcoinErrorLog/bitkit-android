@@ -37,7 +37,6 @@ import to.bitkit.repositories.WidgetsRepo
 import to.bitkit.services.AppUpdaterService
 import to.bitkit.ui.screens.widgets.blocks.toWeatherModel
 import to.bitkit.utils.Logger
-import to.bitkit.viewmodels.SendEffect
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -159,21 +158,23 @@ class HomeViewModel @Inject constructor(
 
             delay(CHECK_DELAY_MILLIS)
 
-            TimedSheets.entries.sortedByDescending { it.priority }.forEach { sheet ->
-                val displaySheet = when (sheet) {
-                    TimedSheets.APP_UPDATE -> displayAppUpdate()
-                    TimedSheets.BACKUP -> displayBackupSheet()
-                    TimedSheets.NOTIFICATIONS -> displayNotificationSheet()
-                    TimedSheets.QUICK_PAY -> displayQuickPaySheet()
-                    TimedSheets.HIGH_BALANCE -> displayHighBalance()
-                }
-                if (displaySheet) {
-                    Logger.debug("Displaying timedSheet $sheet")
-                    _uiState.update { it.copy(timedSheet = sheet) }
-                    return@launch
-                }
+            val sheetToDisplay = TimedSheets.entries
+                .sortedByDescending { it.priority }
+                .firstOrNull { shouldDisplaySheet(it) }
+
+            sheetToDisplay?.let { sheet ->
+                Logger.debug("Displaying timedSheet $sheet")
+                _uiState.update { it.copy(timedSheet = sheet) }
             }
         }
+    }
+
+    private suspend fun shouldDisplaySheet(sheet: TimedSheets): Boolean = when (sheet) {
+        TimedSheets.APP_UPDATE -> checkAppUpdate()
+        TimedSheets.BACKUP -> checkBackupSheet()
+        TimedSheets.NOTIFICATIONS -> checkNotificationSheet()
+        TimedSheets.QUICK_PAY -> checkQuickPaySheet()
+        TimedSheets.HIGH_BALANCE -> checkHighBalance()
     }
 
     fun onLeftHome() {
@@ -185,7 +186,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(timedSheet = null) }
     }
 
-    suspend fun displayQuickPaySheet(): Boolean {
+    private suspend fun checkQuickPaySheet(): Boolean {
         val settings = settingsStore.data.first()
         if (settings.quickPayIntroSeen) return false
         return walletRepo.balanceState.value.totalLightningSats > 0U
@@ -195,45 +196,34 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { settingsStore.update { it.copy(quickPayIntroSeen = true) } }
     }
 
-    suspend fun displayNotificationSheet(): Boolean {
+    private suspend fun checkNotificationSheet(): Boolean {
         val settings = settingsStore.data.first()
-
         if (settings.notificationsGranted) return false
 
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        val isTimeOutOver = settings.notificationsIgnoredMillis == 0L ||
-            (currentTime - settings.notificationsIgnoredMillis > ONE_WEEK_ASK_INTERVAL_MILLIS)
-
-        val shouldShow = isTimeOutOver
-
-        if (shouldShow) {
+        return checkTimeoutAndUpdate(
+            lastIgnoredMillis = settings.notificationsIgnoredMillis,
+            intervalMillis = ONE_WEEK_ASK_INTERVAL_MILLIS
+        ) { currentTime ->
             settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
         }
-
-        return shouldShow
     }
 
-    suspend fun displayBackupSheet(): Boolean {
+    private suspend fun checkBackupSheet(): Boolean {
         val settings = settingsStore.data.first()
-
         if (settings.backupVerified) return false
 
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        val isTimeOutOver = settings.backupWarningIgnoredMillis == 0L ||
-            (currentTime - settings.backupWarningIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
-
         val hasBalance = walletRepo.balanceState.value.totalSats > 0U
+        if (!hasBalance) return false
 
-        val shouldShow = isTimeOutOver && hasBalance
-
-        if (shouldShow) {
+        return checkTimeoutAndUpdate(
+            lastIgnoredMillis = settings.backupWarningIgnoredMillis,
+            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS
+        ) { currentTime ->
             settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
         }
-
-        return shouldShow
     }
 
-    private suspend fun displayAppUpdate(): Boolean = withContext(bgDispatcher) {
+    private suspend fun checkAppUpdate(): Boolean = withContext(bgDispatcher) {
         try {
             val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
             val currentBuildNumber = BuildConfig.VERSION_CODE
@@ -252,35 +242,51 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun displayHighBalance(): Boolean {
+    private suspend fun checkHighBalance(): Boolean {
         val settings = settingsStore.data.first()
-        val currentTime = Clock.System.now().toEpochMilliseconds()
 
         val totalOnChainSats = walletRepo.balanceState.value.totalSats
         val balanceUsd = satsToUsd(totalOnChainSats) ?: return false
         val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
 
-        val isTimeOutOver = settings.balanceWarningIgnoredMillis == 0L ||
-            (currentTime - settings.balanceWarningIgnoredMillis > ONE_DAY_ASK_INTERVAL_MILLIS)
+        if (!thresholdReached) {
+            settingsStore.update { it.copy(balanceWarningTimes = 0) }
+            return false
+        }
 
         val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
-        if (!thresholdReached) {
-            settingsStore.update {
-                it.copy(balanceWarningTimes = 0)
-            }
-        }
-
-        if (thresholdReached && isTimeOutOver && belowMaxWarnings) {
+        return checkTimeoutAndUpdate(
+            lastIgnoredMillis = settings.balanceWarningIgnoredMillis,
+            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS,
+            additionalCondition = belowMaxWarnings
+        ) { currentTime ->
             settingsStore.update {
                 it.copy(
                     balanceWarningTimes = it.balanceWarningTimes + 1,
                     balanceWarningIgnoredMillis = currentTime
                 )
             }
-            return true
         }
-        return false
+    }
+
+    private suspend inline fun checkTimeoutAndUpdate(
+        lastIgnoredMillis: Long,
+        intervalMillis: Long,
+        additionalCondition: Boolean = true,
+        crossinline updateSettings: suspend (Long) -> Unit,
+    ): Boolean {
+        if (!additionalCondition) return false
+
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val isTimeOutOver = lastIgnoredMillis == 0L ||
+            (currentTime - lastIgnoredMillis > intervalMillis)
+
+        if (isTimeOutOver) {
+            updateSettings(currentTime)
+        }
+
+        return isTimeOutOver
     }
 
     private fun satsToUsd(sats: ULong): BigDecimal? {
@@ -312,7 +318,6 @@ class HomeViewModel @Inject constructor(
             val item = currentWidgets.removeAt(fromIndex)
             currentWidgets.add(toIndex, item)
 
-            // Update positions
             val updatedWidgets = currentWidgets.mapIndexed { index, widget ->
                 widget.copy(position = index)
             }
@@ -366,10 +371,9 @@ class HomeViewModel @Inject constructor(
         activityRepo.inProgressTransfers
     ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
-            balanceState.totalLightningSats > 0uL -> { // With Lightning
+            balanceState.totalLightningSats > 0uL -> {
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    // The previous list has LIGHTNING_SETTING_UP and the current don't
                     Suggestion.LIGHTNING_READY.takeIf {
                         Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
                             transfers.all { it.type != TransferType.TO_SPENDING }
@@ -387,7 +391,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
+            balanceState.totalOnchainSats > 0uL -> {
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.LIGHTNING.takeIf {
@@ -404,7 +408,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            else -> { // Empty wallet
+            else -> {
                 listOfNotNull(
                     Suggestion.BUY,
                     Suggestion.LIGHTNING.takeIf {
@@ -418,7 +422,6 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
-        // TODO REMOVE PROFILE CARD IF THE USER ALREADY HAS one
         val dismissedList = settings.dismissedSuggestions.mapNotNull { it.toSuggestionOrNull() }
         baseSuggestions.filterNot { it in dismissedList }
     }
@@ -429,10 +432,10 @@ class HomeViewModel @Inject constructor(
         private const val MAX_WARNINGS = 3
 
         /** how long this prompt will be hidden if user taps Later*/
-        private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24
+        private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24L
 
         /** how long this prompt will be hidden if user taps Later*/
-        private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7
+        private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7L
 
         /**How long user needs to stay on the home screen before he see this prompt*/
         private const val CHECK_DELAY_MILLIS = 2000L
