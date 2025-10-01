@@ -30,6 +30,7 @@ import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.NotificationUtils
+import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
@@ -41,6 +42,10 @@ fun BackgroundPaymentsSettings(
     val context = LocalContext.current
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
     val showNotificationDetails by settingsViewModel.showNotificationDetails.collectAsStateWithLifecycle()
+
+    RequestNotificationPermissions { granted ->
+        settingsViewModel.setNotificationPreference(granted)
+    }
 
     Content(
         onBack = onBack,
