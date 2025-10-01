@@ -270,6 +270,10 @@ fun HomeScreen(
         onContinueQuickPay = {
             walletNavController.navigate(Routes.QuickPaySettings)
             homeViewModel.checkQuickPayAsSeen()
+        },
+        onContinueBgPayments = {
+            rootNavController.navigate(Routes.BackgroundPaymentsSettings)
+            settingsViewModel.setBgPaymentsIntroSeen(true)
         }
     )
 }
@@ -295,6 +299,7 @@ private fun Content(
     onMoveWidget: (Int, Int) -> Unit = { _, _ -> },
     onDismissEmptyState: () -> Unit = {},
     dismissTimedSheet: () -> Unit = {},
+    onContinueBgPayments: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
     showBackUpSheet: () -> Unit = {},
     onContinueQuickPay: () -> Unit = {},
@@ -602,7 +607,7 @@ private fun Content(
                 TimedSheets.NOTIFICATIONS -> {
                     BackgroundPaymentsIntroSheet(
                         onContinue = {
-                            //TODO
+                            onContinueBgPayments()
                             dismissTimedSheet()
                         },
                         onDismiss = dismissTimedSheet
