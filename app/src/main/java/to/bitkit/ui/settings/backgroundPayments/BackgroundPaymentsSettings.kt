@@ -43,7 +43,7 @@ fun BackgroundPaymentsSettings(
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
     val showNotificationDetails by settingsViewModel.showNotificationDetails.collectAsStateWithLifecycle()
 
-    RequestNotificationPermissions { granted ->
+    RequestNotificationPermissions(showPermissionDialog = false) { granted ->
         settingsViewModel.setNotificationPreference(granted)
     }
 

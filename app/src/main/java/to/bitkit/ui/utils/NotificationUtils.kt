@@ -1,11 +1,13 @@
 package to.bitkit.ui.utils
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import androidx.core.content.ContextCompat.startActivity
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import to.bitkit.utils.Logger
 
 object NotificationUtils {
@@ -15,7 +17,8 @@ object NotificationUtils {
      * On older versions, opens the general app settings.
      */
     fun openNotificationSettings(context: Context) {
-        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        val intent =
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
             }
 
@@ -25,6 +28,22 @@ object NotificationUtils {
             context.startActivity(intent)
         }.onFailure { e ->
             Logger.error("Failed to open notification settings", e = e, context = "NotificationUtils")
+        }
+    }
+
+    /**
+     * Checks if notification permissions are granted.
+     * For Android 13+ (API 33+), checks the POST_NOTIFICATIONS permission.
+     * For older versions, checks if notifications are enabled via NotificationManagerCompat.
+     */
+    fun areNotificationsEnabled(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            NotificationManagerCompat.from(context).areNotificationsEnabled()
         }
     }
 }
