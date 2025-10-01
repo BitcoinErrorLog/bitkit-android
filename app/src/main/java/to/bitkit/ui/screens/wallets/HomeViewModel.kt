@@ -188,7 +188,7 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun checkQuickPaySheet(): Boolean {
         val settings = settingsStore.data.first()
-        if (settings.quickPayIntroSeen) return false
+        if (settings.quickPayIntroSeen || settings.isQuickPayEnabled) return false
         return walletRepo.balanceState.value.totalLightningSats > 0U
     }
 
