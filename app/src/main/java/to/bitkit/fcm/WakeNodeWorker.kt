@@ -8,14 +8,17 @@ import androidx.work.workDataOf
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import org.lightningdevkit.ldknode.Event
+import to.bitkit.data.SettingsStore
 import to.bitkit.di.json
 import to.bitkit.ext.amountOnClose
+import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.BlocktankNotificationType
 import to.bitkit.models.BlocktankNotificationType.cjitPaymentArrived
 import to.bitkit.models.BlocktankNotificationType.incomingHtlc
@@ -38,6 +41,7 @@ class WakeNodeWorker @AssistedInject constructor(
     @Assisted private val workerParams: WorkerParameters,
     private val coreService: CoreService,
     private val lightningRepo: LightningRepo,
+    private val settingsStore: SettingsStore,
 ) : CoroutineWorker(appContext, workerParams) {
     private val self = this
 
@@ -109,6 +113,8 @@ class WakeNodeWorker @AssistedInject constructor(
      * @param event The LDK event to check.
      */
     private suspend fun handleLdkEvent(event: Event) {
+        val showDetails = settingsStore.data.first().showNotificationDetails
+        val openBitkitMessage = "Open Bitkit to see details"
         when (event) {
             is Event.PaymentReceived -> {
                 bestAttemptContent?.title = "Payment Received"
@@ -123,7 +129,8 @@ class WakeNodeWorker @AssistedInject constructor(
                         sats = sats.toLong(),
                     )
                 )
-                bestAttemptContent?.body = "⚡ $sats"
+                val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
+                bestAttemptContent?.body = content
                 if (self.notificationType == incomingHtlc) {
                     self.deliver()
                 }
@@ -142,7 +149,8 @@ class WakeNodeWorker @AssistedInject constructor(
 
                     lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
                         val sats = channel.amountOnClose
-                        self.bestAttemptContent?.title = "Received ⚡ $sats sats"
+                        val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
+                        self.bestAttemptContent?.title = content
                         // Save for UI to pick up
                         NewTransactionSheetDetails.save(
                             appContext,
