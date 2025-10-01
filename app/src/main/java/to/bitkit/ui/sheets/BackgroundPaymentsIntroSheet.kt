@@ -38,9 +38,8 @@ private fun BackgroundPaymentsIntroSheetContent(onContinue: () -> Unit) {
         SheetTopBar(
             titleText = "Background Payments", // Todo Transifex
         )
-        BackgroundPaymentsIntroContent (onContinue)
+        BackgroundPaymentsIntroContent(onContinue)
     }
-
 }
 
 @Preview(showSystemUi = true)

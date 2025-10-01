@@ -42,7 +42,6 @@ private fun QuickPayIntroSheetContent(onContinue: () -> Unit) {
         SheetTopBar(stringResource(R.string.settings__quickpay__nav_title))
         QuickPayIntroContent(onContinue)
     }
-
 }
 
 @Preview(showSystemUi = true)
