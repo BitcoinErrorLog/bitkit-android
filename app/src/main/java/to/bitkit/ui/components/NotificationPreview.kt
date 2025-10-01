@@ -1,5 +1,6 @@
 package to.bitkit.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +51,9 @@ fun NotificationPreview(
             ) {
                 BodySSB(text = title, color = Colors.Black)
                 val textDescription = if (showDetails) description else "Open Bitkit to see details" // TODO Transifex
-                Footnote(text = textDescription, color = Colors.Gray3)
+                AnimatedContent(targetState = textDescription) { text ->
+                    Footnote(text = text, color = Colors.Gray3)
+                }
             }
 
             Caption("3m ago", color = Colors.Gray2)
