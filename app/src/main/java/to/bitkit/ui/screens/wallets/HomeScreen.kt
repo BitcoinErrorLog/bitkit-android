@@ -39,6 +39,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -145,6 +146,12 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         homeViewModel.checkTimedSheets()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            homeViewModel.onLeftHome()
+        }
     }
 
     homeUiState.deleteWidgetAlert?.let { type ->
@@ -607,8 +614,8 @@ private fun Content(
                 TimedSheets.NOTIFICATIONS -> {
                     BackgroundPaymentsIntroSheet(
                         onContinue = {
-                            onContinueBgPayments()
                             dismissTimedSheet()
+                            onContinueBgPayments()
                         },
                         onDismiss = dismissTimedSheet
                     )
