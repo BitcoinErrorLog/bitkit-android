@@ -187,6 +187,7 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun createWallet(bip39Passphrase: String?): Result<Unit> = withContext(bgDispatcher) {
+        lightningRepo.setRecoveryMode(enabled = false)
         try {
             val mnemonic = generateEntropyMnemonic()
             keychain.saveString(Keychain.Key.BIP39_MNEMONIC.name, mnemonic)
@@ -202,6 +203,7 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun restoreWallet(mnemonic: String, bip39Passphrase: String?): Result<Unit> = withContext(bgDispatcher) {
+        lightningRepo.setRecoveryMode(enabled = false)
         try {
             keychain.saveString(Keychain.Key.BIP39_MNEMONIC.name, mnemonic)
             if (bip39Passphrase != null) {

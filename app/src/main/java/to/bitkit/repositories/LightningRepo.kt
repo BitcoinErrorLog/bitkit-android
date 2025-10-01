@@ -53,6 +53,7 @@ import to.bitkit.services.LnurlService
 import to.bitkit.services.LnurlWithdrawResponse
 import to.bitkit.services.LspNotificationsService
 import to.bitkit.services.NodeEventHandler
+import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
 import javax.inject.Inject
@@ -82,6 +83,8 @@ class LightningRepo @Inject constructor(
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
     private var cachedEventHandler: NodeEventHandler? = null
+    private val _isRecoveryMode = MutableStateFlow(false)
+    val isRecoveryMode = _isRecoveryMode.asStateFlow()
 
     /**
      * Executes the provided operation only if the node is running.
@@ -168,6 +171,12 @@ class LightningRepo @Inject constructor(
         customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
+        if (_isRecoveryMode.value) {
+            return@withContext Result.failure(
+                RecoveryModeException("App in recovery mode, skipping node start")
+            )
+        }
+
         val initialLifecycleState = _lightningState.value.nodeLifecycleState
         if (initialLifecycleState.isRunningOrStarting()) {
             Logger.info("LDK node start skipped, lifecycle state: $initialLifecycleState", context = TAG)
@@ -245,6 +254,10 @@ class LightningRepo @Inject constructor(
         }
     }
 
+    fun setRecoveryMode(enabled: Boolean) {
+        _isRecoveryMode.value = enabled
+    }
+
     suspend fun updateGeoBlockState() {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
@@ -302,6 +315,7 @@ class LightningRepo @Inject constructor(
                         nodeLifecycleState = it.nodeLifecycleState,
                     )
                 }
+                setRecoveryMode(false)
                 Result.success(Unit)
             } catch (e: Throwable) {
                 Logger.error("Wipe storage error", e, context = TAG)
@@ -856,6 +870,8 @@ class LightningRepo @Inject constructor(
         const val TAG = "LightningRepo"
     }
 }
+
+class RecoveryModeException(override val message: String?) : AppError(message = message)
 
 data class LightningState(
     val nodeId: String = "",

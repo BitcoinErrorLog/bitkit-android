@@ -217,7 +217,7 @@ private fun ShowMnemonicContent(
 }
 
 @Composable
-private fun MnemonicWordsGrid(
+fun MnemonicWordsGrid(
     actualWords: List<String>,
     showMnemonic: Boolean,
     blurRadius: Float,
