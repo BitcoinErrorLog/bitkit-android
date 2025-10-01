@@ -101,11 +101,13 @@ sealed class LightningBalance {
 @Serializable
 sealed class PendingSweepBalance {
 
+    @Serializable
     data class PendingBroadcast(
         val channelId: ChannelId?,
         val amountSatoshis: ULong,
     ) : PendingSweepBalance()
 
+    @Serializable
     data class BroadcastAwaitingConfirmation(
         val channelId: ChannelId?,
         val latestBroadcastHeight: UInt,
@@ -113,6 +115,7 @@ sealed class PendingSweepBalance {
         val amountSatoshis: ULong,
     ) : PendingSweepBalance()
 
+    @Serializable
     data class AwaitingThresholdConfirmations(
         val channelId: ChannelId?,
         val latestSpendingTxid: Txid,
