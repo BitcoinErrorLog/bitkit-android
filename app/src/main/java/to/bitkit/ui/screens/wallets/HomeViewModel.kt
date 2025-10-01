@@ -161,6 +161,7 @@ class HomeViewModel @Inject constructor(
                     TimedSheets.HIGH_BALANCE -> displayHighBalance()
                 }
                 if (displaySheet) {
+                    Logger.debug("Displaying timedSheet $sheet")
                     _uiState.update { it.copy(timedSheet = sheet) }
                     return@launch
                 }
