@@ -8,8 +8,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -35,6 +37,7 @@ import to.bitkit.repositories.WidgetsRepo
 import to.bitkit.services.AppUpdaterService
 import to.bitkit.ui.screens.widgets.blocks.toWeatherModel
 import to.bitkit.utils.Logger
+import to.bitkit.viewmodels.SendEffect
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -57,6 +60,10 @@ class HomeViewModel @Inject constructor(
 
     private val _currentArticle = MutableStateFlow<ArticleModel?>(null)
     private val _currentFact = MutableStateFlow<String?>(null)
+
+    private val _homeEffect = MutableSharedFlow<HomeEffects>(extraBufferCapacity = 1)
+    val homeEffect = _homeEffect.asSharedFlow()
+    private fun setHomeEffect(effect: HomeEffects) = viewModelScope.launch { _homeEffect.emit(effect) }
 
     init {
         setupStateObservation()
@@ -234,7 +241,7 @@ class HomeViewModel @Inject constructor(
             if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext false
 
             if (androidReleaseInfo.isCritical) {
-                handleCriticalUpdate()
+                setHomeEffect(HomeEffects.NavigateCriticalUpdate)
                 return@withContext false
             }
 
@@ -243,17 +250,6 @@ class HomeViewModel @Inject constructor(
             Logger.warn("Failure fetching new releases", e = e)
             return@withContext false
         }
-    }
-
-    private suspend fun handleCriticalUpdate() {
-        // mainScreenEffect( // TODO
-        //     MainScreenEffect.Navigate(
-        //         route = Routes.CriticalUpdate,
-        //         navOptions = navOptions {
-        //             popUpTo(0) { inclusive = true }
-        //         }
-        //     )
-        // )
     }
 
     private suspend fun displayHighBalance(): Boolean {
@@ -441,4 +437,8 @@ class HomeViewModel @Inject constructor(
         /**How long user needs to stay on the home screen before he see this prompt*/
         private const val CHECK_DELAY_MILLIS = 2500L
     }
+}
+
+sealed interface HomeEffects {
+    data object NavigateCriticalUpdate : HomeEffects
 }

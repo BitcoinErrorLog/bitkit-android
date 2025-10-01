@@ -61,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
 import com.synonym.bitkitcore.Activity
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -146,6 +147,21 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         homeViewModel.checkTimedSheets()
+    }
+
+    LaunchedEffect(Unit) {
+        homeViewModel.homeEffect.collect { effect ->
+            when (effect) {
+                HomeEffects.NavigateCriticalUpdate -> {
+                    rootNavController.navigate(
+                        route = Routes.CriticalUpdate,
+                        navOptions = navOptions {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    )
+                }
+            }
+        }
     }
 
     DisposableEffect(Unit) {
