@@ -45,7 +45,6 @@ import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
 import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
-import to.bitkit.models.LnPeer.Companion.toLnPeer
 import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
@@ -446,7 +445,7 @@ class LightningService @Inject constructor(
         sats: ULong,
         satsPerVByte: UInt,
         utxosToSpend: List<SpendableUtxo>? = null,
-        isMaxAmount: Boolean = false
+        isMaxAmount: Boolean = false,
     ): Txid {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
@@ -753,7 +752,7 @@ class LightningService @Inject constructor(
     val balances: BalanceDetails? get() = node?.listBalances()?.toDomainModel()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
-    val peers: List<LnPeer>? get() = node?.listPeers()?.map { it.toLnPeer() }
+    val peers: List<LnPeer>? get() = node?.listPeers()?.map(::LnPeer)
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
 
