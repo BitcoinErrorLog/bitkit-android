@@ -435,7 +435,7 @@ class HomeViewModel @Inject constructor(
         private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7
 
         /**How long user needs to stay on the home screen before he see this prompt*/
-        private const val CHECK_DELAY_MILLIS = 2500L
+        private const val CHECK_DELAY_MILLIS = 2000L
     }
 }
 
