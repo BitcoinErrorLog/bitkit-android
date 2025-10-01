@@ -1,11 +1,12 @@
 package to.bitkit.ui.settings.backgroundPayments
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
@@ -35,7 +37,7 @@ import to.bitkit.viewmodels.SettingsViewModel
 fun BackgroundPaymentsSettings(
     onBack: () -> Unit,
     onClose: () -> Unit,
-    settingsViewModel: SettingsViewModel,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
@@ -45,10 +47,10 @@ fun BackgroundPaymentsSettings(
         onBack = onBack,
         onClose = onClose,
         onSystemSettingsClick = {
-            // val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            //     data = Uri.fromParts("package", context.packageName, null)
-            // }
-            // context.startActivity(intent)
+            val intent = Intent(Intent.ACTION_APPLICATION_PREFERENCES).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+            }
+            context.startActivity(intent)
         },
         hasPermission = notificationsGranted,
         showDetails = showNotificationDetails,

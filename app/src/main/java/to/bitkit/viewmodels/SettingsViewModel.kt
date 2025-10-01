@@ -99,6 +99,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    val bgPaymentsIntroSeen = settingsStore.data.map { it.bgPaymentsIntroSeen }
+        .asStateFlow(initialValue = false)
+
+    fun setBgPaymentsIntroSeen(value: Boolean) {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(bgPaymentsIntroSeen = value) }
+        }
+    }
+
     val isPinOnIdleEnabled = settingsStore.data.map { it.isPinOnIdleEnabled }
         .asStateFlow(initialValue = false)
 

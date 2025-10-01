@@ -21,6 +21,7 @@ import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.transactionSpeedUiText
 import to.bitkit.ui.LocalCurrencies
+import to.bitkit.ui.Routes
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.navigateToDefaultUnitSettings
@@ -48,6 +49,7 @@ fun GeneralSettingsScreen(
     val defaultTransactionSpeed by settings.defaultTransactionSpeed.collectAsStateWithLifecycle()
     val lastUsedTags by settings.lastUsedTags.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
+    val bgPaymentsIntroSeen by settings.bgPaymentsIntroSeen.collectAsStateWithLifecycle()
     val languageUiState by languageViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { languageViewModel.fetchLanguageInfo() }
@@ -66,6 +68,13 @@ fun GeneralSettingsScreen(
         onQuickPayClick = { navController.navigateToQuickPaySettings(quickPayIntroSeen) },
         onTagsClick = { navController.navigateToTagsSettings() },
         onLanguageSettingsClick = { navController.navigateToLanguageSettings() },
+        onBgPaymentsClick = {
+            if (bgPaymentsIntroSeen) {
+                navController.navigate(Routes.BackgroundPaymentsSettings)
+            } else {
+                navController.navigate(Routes.BackgroundPaymentsInto)
+            }
+        },
         selectedLanguage = languageUiState.selectedLanguage.displayName
     )
 }
@@ -86,6 +95,7 @@ private fun GeneralSettingsContent(
     onQuickPayClick: () -> Unit = {},
     onLanguageSettingsClick: () -> Unit = {},
     onTagsClick: () -> Unit = {},
+    onBgPaymentsClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(
@@ -127,6 +137,13 @@ private fun GeneralSettingsContent(
                 onClick = onTransactionSpeedClick,
                 modifier = Modifier.testTag("TransactionSpeedSettings")
             )
+            if (showTagsButton) {
+                SettingsButtonRow(
+                    title = stringResource(R.string.settings__general__tags),
+                    onClick = onTagsClick,
+                    modifier = Modifier.testTag("TagsSettings")
+                )
+            }
             SettingsButtonRow(
                 title = stringResource(R.string.settings__widgets__nav_title),
                 onClick = onWidgetsClick,
@@ -137,13 +154,11 @@ private fun GeneralSettingsContent(
                 onClick = onQuickPayClick,
                 modifier = Modifier.testTag("QuickpaySettings")
             )
-            if (showTagsButton) {
-                SettingsButtonRow(
-                    title = stringResource(R.string.settings__general__tags),
-                    onClick = onTagsClick,
-                    modifier = Modifier.testTag("TagsSettings")
-                )
-            }
+            SettingsButtonRow(
+                title = "Background Payments", // TODO Transifex
+                onClick = onBgPaymentsClick,
+                modifier = Modifier.testTag("BackgroundPaymentSettings")
+            )
         }
     }
 }

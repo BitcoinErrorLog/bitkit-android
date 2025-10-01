@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
@@ -23,11 +24,14 @@ import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
 fun BackgroundPaymentsIntroScreen(
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onClose: () -> Unit,
+    onContinue: () -> Unit,
 ) {
     Column(
         modifier = Modifier.screen()
@@ -37,7 +41,12 @@ fun BackgroundPaymentsIntroScreen(
             onBackClick = onBack,
             actions = { CloseNavIcon(onClick = onClose) },
         )
-        BackgroundPaymentsIntroContent(onContinue = onBack)
+        BackgroundPaymentsIntroContent(
+            onContinue = {
+                settingsViewModel.setBgPaymentsIntroSeen(true)
+                onContinue()
+            }
+        )
     }
 }
 

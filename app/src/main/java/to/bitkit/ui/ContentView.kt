@@ -112,6 +112,8 @@ import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen
 import to.bitkit.ui.settings.advanced.ElectrumConfigScreen
 import to.bitkit.ui.settings.advanced.RgsServerScreen
 import to.bitkit.ui.settings.appStatus.AppStatusScreen
+import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsIntroScreen
+import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsSettings
 import to.bitkit.ui.settings.backups.ResetAndRestoreScreen
 import to.bitkit.ui.settings.general.DefaultUnitSettingsScreen
 import to.bitkit.ui.settings.general.GeneralSettingsScreen
@@ -752,6 +754,22 @@ private fun NavGraphBuilder.generalSettings(navController: NavHostController) {
 
     composableWithDefaultTransitions<Routes.TagsSettings> {
         TagsSettingsScreen(navController)
+    }
+    composableWithDefaultTransitions<Routes.BackgroundPaymentsSettings> {
+        BackgroundPaymentsSettings(
+            onBack = { navController.popBackStack() },
+            onClose = { navController.navigateToHome() },
+        )
+    }
+
+    composableWithDefaultTransitions<Routes.BackgroundPaymentsInto> {
+        BackgroundPaymentsIntroScreen(
+            onBack = { navController.popBackStack() },
+            onClose = { navController.navigateToHome() },
+            onContinue = {
+                navController.navigate(Routes.BackgroundPaymentsSettings)
+            }
+        )
     }
 }
 
@@ -1682,4 +1700,10 @@ sealed interface Routes {
 
     @Serializable
     data object CriticalUpdate : Routes
+
+    @Serializable
+    data object BackgroundPaymentsInto : Routes
+
+    @Serializable
+    data object BackgroundPaymentsSettings : Routes
 }
