@@ -199,7 +199,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun checkNotificationSheet(): Boolean {
         val settings = settingsStore.data.first()
         if (settings.notificationsGranted) return false
-        if (walletRepo.balanceState.value.totalLightningSats < 0U) return false
+        if (walletRepo.balanceState.value.totalLightningSats == 0UL) return false
 
         return checkTimeoutAndUpdate(
             lastIgnoredMillis = settings.notificationsIgnoredMillis,
