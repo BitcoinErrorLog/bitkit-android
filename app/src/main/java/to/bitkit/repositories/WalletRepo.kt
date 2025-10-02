@@ -23,7 +23,6 @@ import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
-import to.bitkit.di.json
 import to.bitkit.env.Env
 import to.bitkit.ext.amountSats
 import to.bitkit.ext.channelId
@@ -41,6 +40,7 @@ import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.days
@@ -150,12 +150,12 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
-        val startHeight = lightningRepo.lightningState.value.nodeStatus?.currentBestBlock?.height
+        val startHeight = lightningRepo.lightningState.value.block()?.height
         Logger.verbose("syncNodeAndWallet started at block height=${startHeight}", context = TAG)
         syncBalances()
         lightningRepo.sync().onSuccess {
             syncBalances()
-            val endHeight = lightningRepo.lightningState.value.nodeStatus?.currentBestBlock?.height
+            val endHeight = lightningRepo.lightningState.value.block()?.height
             Logger.verbose("syncNodeAndWallet completed at block height=$endHeight", context = TAG)
             return@withContext Result.success(Unit)
         }.onFailure { e ->
@@ -188,9 +188,10 @@ class WalletRepo @Inject constructor(
                 balanceInTransferToSpending = toSpending,
             )
 
-            Logger.verbose("Pending transfers in cache:\n${json.encodeToString(pendingTransfers)}", context = TAG)
-            Logger.verbose("Balances in ldk-node:\n${json.encodeToString(balance)}", context = TAG)
-            Logger.verbose("Balances in state:\n${json.encodeToString(newBalance)}", context = TAG)
+            val height = lightningRepo.lightningState.value.block()?.height
+            Logger.verbose("Pending transfers in cache:\n${jsonLogOf(pendingTransfers)}", context = TAG)
+            Logger.verbose("Balances in ldk-node at block height=$height:\n${jsonLogOf(balance)}", context = TAG)
+            Logger.verbose("Balances in state at block height=$height:\n${jsonLogOf(newBalance)}", context = TAG)
 
             saveBalanceState(newBalance)
         }.onFailure {

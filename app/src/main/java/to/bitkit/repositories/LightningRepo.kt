@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
+import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
@@ -879,4 +880,6 @@ data class LightningState(
     val isSyncingWallet: Boolean = false,
     val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
-)
+) {
+    fun block(): BestBlock? = nodeStatus?.currentBestBlock
+}

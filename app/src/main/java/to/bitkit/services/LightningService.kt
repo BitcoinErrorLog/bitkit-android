@@ -638,7 +638,7 @@ class LightningService @Inject constructor(
     ): ULong {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
-        Logger.info(
+        Logger.debug(
             "Calculating fee for $amountSats sats to $address, UTXOs=${utxosToSpend?.size}, satsPerVByte=$satsPerVByte"
         )
 
@@ -650,7 +650,7 @@ class LightningService @Inject constructor(
                     feeRate = convertVByteToKwu(satsPerVByte),
                     utxosToSpend = utxosToSpend,
                 )
-                Logger.debug("Calculated fee=$fee for $amountSats sats to $address, satsPerVByte=$satsPerVByte")
+                Logger.info("Calculated fee=$fee for $amountSats sats to $address, satsPerVByte=$satsPerVByte")
                 fee
             } catch (e: NodeException) {
                 throw LdkError(e)

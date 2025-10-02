@@ -53,7 +53,6 @@ import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
-private const val EUR_CURRENCY = "EUR"
 
 @Suppress("LongParameterList")
 @HiltViewModel
