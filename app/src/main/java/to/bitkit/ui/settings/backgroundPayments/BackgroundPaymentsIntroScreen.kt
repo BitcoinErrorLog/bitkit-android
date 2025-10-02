@@ -76,7 +76,7 @@ fun BackgroundPaymentsIntroContent(onContinue: () -> Unit) {
             onClick = onContinue,
             modifier = Modifier.testTag("BackgroundPaymentsIntro-button")
         )
-        Spacer(Modifier.height(16.dp))
+        VerticalSpacer(16.dp)
     }
 }
 
