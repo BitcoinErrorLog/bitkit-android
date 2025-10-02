@@ -18,6 +18,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.shared.util.screen
@@ -67,9 +68,9 @@ fun BackgroundPaymentsIntroContent(onContinue: () -> Unit) {
             text = "GET PAID\n<accent>PASSIVELY</accent>".withAccent(accentColor = Colors.Blue),
             color = Colors.White
         )
-        Spacer(Modifier.height(8.dp))
+        VerticalSpacer(8.dp)
         BodyM(text = "Turn on notifications to get paid, even when your Bitkit app is closed.", color = Colors.White64)
-        Spacer(Modifier.height(32.dp))
+        VerticalSpacer(32.dp)
         PrimaryButton(
             text = stringResource(R.string.common__continue),
             onClick = onContinue,
