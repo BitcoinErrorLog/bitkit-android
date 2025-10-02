@@ -76,7 +76,6 @@ import to.bitkit.models.Suggestion
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toActivityFilter
-import to.bitkit.models.toCoreNetworkType
 import to.bitkit.models.toTxType
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
@@ -221,7 +220,9 @@ class AppViewModel @Inject constructor(
                             )
                         }
 
-                        is Event.ChannelPending -> Unit // Only relevant for channels to external nodes
+                        is Event.ChannelPending -> {
+                            // TODO: match fundingTxo.txid to onchain activity
+                        }
 
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
@@ -248,6 +249,7 @@ class AppViewModel @Inject constructor(
                                 InProgressTransfer(
                                     id = event.channelId,
                                     type = TransferType.TO_SAVINGS,
+                                    sats = 0u, // using amount matching LightningBalance instead
                                 )
                             )
                             launch { walletRepo.syncBalances() }
@@ -775,10 +777,10 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanNodeId(data: Scanner.NodeId) {
-        val (url, network) = data
-        val appNetwork = Env.network.toCoreNetworkType()
         // TODO uncomment when bitkit-core is no longer hardcoding MAINNET as network.
         //  see: https://github.com/synonymdev/bitkit-core/blob/fc432888016a1bf61aa9bfbee908513e9a33f9b9/src/modules/scanner/implementation.rs#L77
+        // val network = data.network
+        // val appNetwork = Env.network.toCoreNetworkType()
         // if (network != appNetwork) {
         //     toast(
         //         type = Toast.ToastType.WARNING,
@@ -790,7 +792,7 @@ class AppViewModel @Inject constructor(
         //     return
         // }
         hideSheet() // hide scan sheet if opened
-        val nextRoute = Routes.ExternalConnection(url)
+        val nextRoute = Routes.ExternalConnection(data.url)
         mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
     }
 

@@ -15,7 +15,10 @@ import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.dto.InProgressTransfer
+import to.bitkit.data.dto.TransferType
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.LnPeer
@@ -38,6 +41,7 @@ class ExternalNodeViewModel @Inject constructor(
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
+    private val cacheStore: CacheStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
@@ -158,56 +162,51 @@ class ExternalNodeViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             // TODO: pass customFeeRate to ldk-node when supported
-            val result = lightningRepo.openChannel(
+            lightningRepo.openChannel(
                 peer = requireNotNull(_uiState.value.peer),
                 channelAmountSats = _uiState.value.amount.sats.toULong(),
-            )
-
-            if (result.isSuccess) {
-                val userChannelId = requireNotNull(result.getOrNull())
-
-                // Wait until matching channel event is received
-                val initResult = awaitChannelInitResult(userChannelId)
-
-                if (initResult.isSuccess) {
-                    setEffect(SideEffect.ConfirmSuccess)
-                } else {
-                    failConfirm(initResult.exceptionOrNull()?.message.orEmpty())
-                }
-            } else {
-                failConfirm(result.exceptionOrNull()?.message.orEmpty())
+            ).mapCatching { result ->
+                awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
+                    launch {
+                        cacheStore.addInProgressTransfer(
+                            InProgressTransfer(
+                                id = event.fundingTxo.txid,
+                                type = TransferType.MANUAL_SETUP,
+                                sats = result.channelAmountSats,
+                            )
+                        )
+                    }
+                }.getOrThrow()
+            }.onSuccess {
+                setEffect(SideEffect.ConfirmSuccess)
+            }.onFailure { e ->
+                val error = e.message.orEmpty()
+                Logger.warn("Error opening channel to '${_uiState.value.peer}': '$error'")
+                ToastEventBus.send(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.lightning__error_channel_purchase),
+                    description = context.getString(R.string.lightning__error_channel_setup_msg)
+                        .replace("{raw}", error),
+                )
             }
+
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
-    private suspend fun failConfirm(error: String) {
-        Logger.warn("Error opening channel to '${_uiState.value.peer}': '$error'")
-        _uiState.update { it.copy(isLoading = false) }
-
-        ToastEventBus.send(
-            type = Toast.ToastType.ERROR,
-            title = context.getString(R.string.lightning__error_channel_purchase),
-            description = context.getString(R.string.lightning__error_channel_setup_msg).replace("{raw}", error),
-        )
-    }
-
-    private suspend fun awaitChannelInitResult(userChannelId: UserChannelId): Result<Unit> {
+    private suspend fun awaitChannelPendingEvent(userChannelId: UserChannelId): Result<Event.ChannelPending> {
         return ldkNodeEventBus.events.watchUntil { event ->
             when (event) {
-                is Event.ChannelClosed -> {
-                    if (event.userChannelId == userChannelId) {
-                        WatchResult.Complete(Result.failure(Exception("${event.reason}")))
-                    } else {
-                        WatchResult.Continue()
-                    }
+                is Event.ChannelClosed -> if (event.userChannelId == userChannelId) {
+                    WatchResult.Complete(Result.failure(Exception("${event.reason}")))
+                } else {
+                    WatchResult.Continue()
                 }
 
-                is Event.ChannelPending -> {
-                    if (event.userChannelId == userChannelId) {
-                        WatchResult.Complete(Result.success(Unit))
-                    } else {
-                        WatchResult.Continue()
-                    }
+                is Event.ChannelPending -> if (event.userChannelId == userChannelId) {
+                    WatchResult.Complete(Result.success(event))
+                } else {
+                    WatchResult.Continue()
                 }
 
                 else -> WatchResult.Continue()

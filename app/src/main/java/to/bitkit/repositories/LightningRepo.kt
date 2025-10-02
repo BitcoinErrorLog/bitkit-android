@@ -43,6 +43,7 @@ import to.bitkit.models.BalanceDetails
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
+import to.bitkit.models.OpenChannelResult
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toCoinSelectAlgorithm
 import to.bitkit.models.toCoreNetwork
@@ -667,7 +668,7 @@ class LightningRepo @Inject constructor(
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
-    ): Result<UserChannelId> = executeWhenNodeRunning("Open channel") {
+    ): Result<OpenChannelResult> = executeWhenNodeRunning("Open channel") {
         val result = lightningService.openChannel(peer, channelAmountSats, pushToCounterpartySats, channelConfig)
         syncState()
         result

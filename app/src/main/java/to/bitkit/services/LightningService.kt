@@ -31,7 +31,6 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
-import org.lightningdevkit.ldknode.UserChannelId
 import org.lightningdevkit.ldknode.defaultConfig
 import to.bitkit.async.BaseCoroutineScope
 import to.bitkit.async.ServiceQueue
@@ -45,6 +44,7 @@ import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
 import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
+import to.bitkit.models.OpenChannelResult
 import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
@@ -335,7 +335,7 @@ class LightningService @Inject constructor(
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
-    ): Result<UserChannelId> {
+    ): Result<OpenChannelResult> {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         return ServiceQueue.LDK.background {
@@ -350,9 +350,17 @@ class LightningService @Inject constructor(
                     channelConfig = channelConfig,
                 )
 
-                Logger.info("Channel open initiated, userChannelId: $userChannelId")
+                val result = OpenChannelResult(
+                    userChannelId,
+                    peer,
+                    channelAmountSats,
+                    pushToCounterpartySats,
+                    channelConfig,
+                )
 
-                Result.success(userChannelId)
+                Logger.info("Channel open initiated, result: $result")
+
+                Result.success(result)
             } catch (e: NodeException) {
                 val error = LdkError(e)
                 Logger.error("Error initiating channel open", error)

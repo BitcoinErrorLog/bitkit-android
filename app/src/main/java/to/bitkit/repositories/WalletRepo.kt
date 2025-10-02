@@ -19,7 +19,6 @@ import org.lightningdevkit.ldknode.Event
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
@@ -172,11 +171,11 @@ class WalletRepo @Inject constructor(
 
             val pendingTransfers = cacheStore.data.first().inProgressTransfers
 
-            val closedChannelIds = pendingTransfers.filter { it.type.isToSavings() }.map { it.id }
+            val toSpending = pendingTransfers.filter { it.isToSpending() }.sumOf { it.sats }
+
+            val closedChannelIds = pendingTransfers.filter { it.isToSavings() }.map { it.id }
             val toSavings = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
                 .sumOf { b -> b.amountSats().takeIf { closedChannelIds.contains(b.channelId()) } ?: 0u }
-
-            val toSpending = pendingTransfers.filter { it.type == TransferType.TO_SPENDING }.sumOf { it.sats }
             val adjustedLightningSats = balance.totalLightningBalanceSats - toSavings
 
             val newBalance = BalanceState(
@@ -189,9 +188,9 @@ class WalletRepo @Inject constructor(
             )
 
             val height = lightningRepo.lightningState.value.block()?.height
-            Logger.verbose("Pending transfers in cache:\n${jsonLogOf(pendingTransfers)}", context = TAG)
-            Logger.verbose("Balances in ldk-node at block height=$height:\n${jsonLogOf(balance)}", context = TAG)
-            Logger.verbose("Balances in state at block height=$height:\n${jsonLogOf(newBalance)}", context = TAG)
+            Logger.verbose("Pending transfers in cache: ${jsonLogOf(pendingTransfers)}", context = TAG)
+            Logger.verbose("Balances in ldk-node at block height=$height: ${jsonLogOf(balance)}", context = TAG)
+            Logger.verbose("Balances in state at block height=$height: ${jsonLogOf(newBalance)}", context = TAG)
 
             saveBalanceState(newBalance)
         }.onFailure {

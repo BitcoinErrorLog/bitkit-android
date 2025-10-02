@@ -402,21 +402,26 @@ class ActivityRepo @Inject constructor(
 
     private suspend fun updateInProgressTransfers() {
         cacheStore.data.first().inProgressTransfers.forEach { transfer ->
-
-            // TO_SPENDING relevant while tx is unconfirmed
-            getActivity(transfer.id).onSuccess { activity ->
-                (activity as? Activity.Onchain)?.let { onChain ->
-                    if (onChain.v1.confirmed) {
+            when {
+                transfer.isToSpending() -> {
+                    // remove if tx is confirmed
+                    getActivity(transfer.id).onSuccess { activity ->
+                        (activity as? Activity.Onchain)?.let { onChain ->
+                            if (onChain.v1.confirmed) {
+                                cacheStore.removeInProgressTransfer { it.id == transfer.id }
+                                Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
+                            }
+                        }
+                    }
+                }
+                transfer.isToSpending() -> {
+                    // remove if related lightningBalance is gone
+                    val lnBalances = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
+                    if (lnBalances.none { it.channelId() == transfer.id }) {
                         cacheStore.removeInProgressTransfer { it.id == transfer.id }
                         Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
                     }
                 }
-            }
-            // TO_SAVINGS relevant while correlated in LN balances
-            val lnBalances = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
-            if (lnBalances.none { it.channelId() == transfer.id }) {
-                cacheStore.removeInProgressTransfer { it.id == transfer.id }
-                Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
             }
         }
     }

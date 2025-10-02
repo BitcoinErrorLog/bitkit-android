@@ -493,20 +493,14 @@ class TransferViewModel @Inject constructor(
     }
 
     /** Closes the channels selected earlier, pending closure */
-    suspend fun closeSelectedChannels(): List<ChannelDetails> {
-        return closeChannels(channelsToClose)
-    }
+    suspend fun closeSelectedChannels() = closeChannels(channelsToClose)
 
     private suspend fun closeChannels(channels: List<ChannelDetails>): List<ChannelDetails> {
         val channelsFailedToClose = coroutineScope {
             channels.map { channel ->
                 async {
                     lightningRepo.closeChannel(channel)
-                        .onFailure { e -> Logger.error("Error closing channel: ${channel.channelId}", e) }
-                        .fold(
-                            onSuccess = { null },
-                            onFailure = { channel },
-                        )
+                        .fold(onSuccess = { null }, onFailure = { channel })
                 }
             }.awaitAll()
         }.filterNotNull()
@@ -527,7 +521,7 @@ class TransferViewModel @Inject constructor(
 
         coopCloseRetryJob = viewModelScope.launch {
             val giveUpTime = startTimeMs + GIVE_UP_MS
-            // TODO cache TransferType: COOP_CLOSE, FORCE_CLOSE and TO_SAVINGS
+            // TODO cache TransferType: COOP_CLOSE or FORCE_CLOSE
             while (isActive && System.currentTimeMillis() < giveUpTime) {
                 Logger.info("Trying coop close...")
                 val channelsFailedToCoopClose = closeChannels(channelsToClose)
