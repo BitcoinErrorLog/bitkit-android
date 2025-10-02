@@ -99,6 +99,19 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { newState }
             }
         }
+
+        viewModelScope.launch {
+            combine(
+                settingsStore.data,
+                walletRepo.balanceState
+            ) { settings, balanceState ->
+                _uiState.value.copy(
+                    showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
+                )
+            }.collect { newState ->
+                _uiState.update { newState }
+            }
+        }
     }
 
     private fun setupArticleRotation() {
