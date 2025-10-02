@@ -9,5 +9,6 @@ data class TransactionMetadata(
     val address: String,
     val isTransfer: Boolean,
     val channelId: String?,
-    val transferTxId: String?,
-)
+) {
+    fun transferTxId() : String? = txId.takeIf { isTransfer }
+}

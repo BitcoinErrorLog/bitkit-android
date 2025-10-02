@@ -280,10 +280,10 @@ class ActivityRepo @Inject constructor(
     }
 
     private suspend fun updateActivitiesMetadata() = withContext(bgDispatcher) {
-        cacheStore.data.first().transactionsMetadata.map { activityMetaData ->
+        cacheStore.data.first().transactionsMetadata.map { metadata ->
             async {
                 findActivityByPaymentId(
-                    paymentHashOrTxId = activityMetaData.txId,
+                    paymentHashOrTxId = metadata.txId,
                     type = ActivityFilter.ALL,
                     txType = PaymentType.SENT
                 ).onSuccess { activityToUpdate ->
@@ -292,26 +292,23 @@ class ActivityRepo @Inject constructor(
                         context = TAG
                     )
 
-                    when (activityToUpdate) {
-                        is Activity.Onchain -> {
-                            val onChainActivity = activityToUpdate.v1.copy(
-                                feeRate = activityMetaData.feeRate.toULong(),
-                                address = activityMetaData.address,
-                                isTransfer = activityMetaData.isTransfer,
-                                channelId = activityMetaData.channelId,
-                                transferTxId = activityMetaData.transferTxId
-                            )
-                            val updatedActivity = Activity.Onchain(v1 = onChainActivity)
+                    if (activityToUpdate is Activity.Onchain) {
+                        val onChainActivity = activityToUpdate.v1.copy(
+                            feeRate = metadata.feeRate.toULong(),
+                            address = metadata.address.ifEmpty { activityToUpdate.v1.address },
+                            isTransfer = metadata.isTransfer,
+                            channelId = metadata.channelId,
+                            transferTxId = metadata.transferTxId(),
+                            updatedAt = nowTimestamp().toEpochMilli().toULong(), // TODO shouldn't we?
+                        )
+                        val updatedActivity = Activity.Onchain(v1 = onChainActivity)
 
-                            updateActivity(
-                                id = updatedActivity.v1.id,
-                                activity = updatedActivity
-                            ).onSuccess {
-                                cacheStore.removeTransactionMetadata(activityMetaData)
-                            }
+                        updateActivity(
+                            id = updatedActivity.v1.id,
+                            activity = updatedActivity
+                        ).onSuccess {
+                            cacheStore.removeTransactionMetadata(metadata)
                         }
-
-                        is Activity.Lightning -> Unit
                     }
                 }
             }
@@ -414,7 +411,8 @@ class ActivityRepo @Inject constructor(
                         }
                     }
                 }
-                transfer.isToSpending() -> {
+
+                transfer.isToSavings() -> {
                     // remove if related lightningBalance is gone
                     val lnBalances = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
                     if (lnBalances.none { it.channelId() == transfer.id }) {

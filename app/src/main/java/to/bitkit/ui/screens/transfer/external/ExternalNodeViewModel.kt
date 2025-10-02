@@ -18,6 +18,7 @@ import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.dto.InProgressTransfer
+import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.dto.TransferType
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil
@@ -31,6 +32,7 @@ import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.UiState
 import to.bitkit.ui.shared.toast.ToastEventBus
+import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
@@ -42,6 +44,7 @@ class ExternalNodeViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val addressChecker: AddressChecker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
@@ -167,15 +170,23 @@ class ExternalNodeViewModel @Inject constructor(
                 channelAmountSats = _uiState.value.amount.sats.toULong(),
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
-                    launch {
-                        cacheStore.addInProgressTransfer(
-                            InProgressTransfer(
-                                id = event.fundingTxo.txid,
-                                type = TransferType.MANUAL_SETUP,
-                                sats = result.channelAmountSats,
-                            )
+                    val address = addressChecker.getOutputAddress(event.fundingTxo).getOrDefault("")
+                    cacheStore.addTransactionMetadata(
+                        TransactionMetadata(
+                            txId = event.fundingTxo.txid,
+                            feeRate = _uiState.value.customFeeRate ?: 0u,
+                            isTransfer = true,
+                            channelId = event.channelId,
+                            address = address,
                         )
-                    }
+                    )
+                    cacheStore.addInProgressTransfer(
+                        InProgressTransfer(
+                            id = event.fundingTxo.txid,
+                            type = TransferType.MANUAL_SETUP,
+                            sats = result.channelAmountSats,
+                        )
+                    )
                 }.getOrThrow()
             }.onSuccess {
                 setEffect(SideEffect.ConfirmSuccess)

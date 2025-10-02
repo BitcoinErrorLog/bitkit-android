@@ -62,9 +62,4 @@ fun Activity.Onchain.boostType() = when (this.v1.txType) {
     PaymentType.RECEIVED -> BoostType.CPFP
 }
 
-fun OnchainActivity.transferType() = when (this.txType) {
-    PaymentType.SENT -> TransferType.TO_SPENDING
-    else -> TransferType.TO_SAVINGS
-}
-
 enum class BoostType { RBF, CPFP }

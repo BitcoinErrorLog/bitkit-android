@@ -565,7 +565,6 @@ class LightningRepo @Inject constructor(
                     address = address,
                     isTransfer = isTransfer,
                     channelId = channelId,
-                    transferTxId = txId.takeIf { isTransfer }
                 )
             )
             syncState()
