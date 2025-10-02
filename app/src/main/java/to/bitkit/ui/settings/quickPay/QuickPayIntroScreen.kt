@@ -17,6 +17,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -58,15 +59,15 @@ fun QuickPayIntroContent(onContinue: () -> Unit) {
             text = stringResource(R.string.settings__quickpay__intro__title).withAccent(accentColor = Colors.Green),
             color = Colors.White
         )
-        Spacer(Modifier.height(8.dp))
+        VerticalSpacer(8.dp)
         BodyM(text = stringResource(R.string.settings__quickpay__intro__description), color = Colors.White64)
-        Spacer(Modifier.height(32.dp))
+        VerticalSpacer(32.dp)
         PrimaryButton(
             text = stringResource(R.string.common__continue),
             onClick = onContinue,
             modifier = Modifier.testTag("QuickpayIntro-button")
         )
-        Spacer(Modifier.height(16.dp))
+        VerticalSpacer(16.dp)
     }
 }
 
