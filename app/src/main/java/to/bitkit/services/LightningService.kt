@@ -362,21 +362,27 @@ class LightningService @Inject constructor(
     }
 
     suspend fun closeChannel(
-        userChannelId: String,
-        counterpartyNodeId: String,
+        channel: ChannelDetails,
         force: Boolean = false,
         forceCloseReason: String? = null,
     ) {
         val node = this.node ?: throw ServiceError.NodeNotStarted
+        val channelId = channel.channelId
+        val userChannelId = channel.userChannelId
+        val counterpartyNodeId = channel.counterpartyNodeId
         try {
             ServiceQueue.LDK.background {
+                Logger.debug("Initiating channel close (force=$force): '$channelId'", context = TAG)
                 if (force) {
                     node.forceCloseChannel(userChannelId, counterpartyNodeId, forceCloseReason.orEmpty())
                 } else {
                     node.closeChannel(userChannelId, counterpartyNodeId)
                 }
             }
+            Logger.info("Channel close initiated (force=$force): '$channelId'", context = TAG)
         } catch (e: NodeException) {
+            val error = LdkError(e)
+            Logger.error("Error initiating channel close (force=$force): '$channelId'", error, context = TAG)
             throw LdkError(e)
         }
     }
@@ -763,6 +769,10 @@ class LightningService @Inject constructor(
         }
     }.flowOn(bgDispatcher)
     // endregion
+
+    companion object {
+        private const val TAG = "LightningService"
+    }
 }
 
 // region helpers
