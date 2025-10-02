@@ -371,9 +371,10 @@ class HomeViewModel @Inject constructor(
         activityRepo.inProgressTransfers
     ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
-            balanceState.totalLightningSats > 0uL -> {
+            balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
+                    // The previous list has LIGHTNING_SETTING_UP and the current don't
                     Suggestion.LIGHTNING_READY.takeIf {
                         Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
                             transfers.all { it.type != TransferType.TO_SPENDING }
@@ -391,7 +392,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            balanceState.totalOnchainSats > 0uL -> {
+            balanceState.totalOnchainSats > 0uL -> { // Only on chain balance
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.LIGHTNING.takeIf {
@@ -408,7 +409,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            else -> {
+            else -> { // Empty wallet
                 listOfNotNull(
                     Suggestion.BUY,
                     Suggestion.LIGHTNING.takeIf {
@@ -422,6 +423,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
+        // TODO REMOVE PROFILE CARD IF THE USER ALREADY HAS one
         val dismissedList = settings.dismissedSuggestions.mapNotNull { it.toSuggestionOrNull() }
         baseSuggestions.filterNot { it in dismissedList }
     }
