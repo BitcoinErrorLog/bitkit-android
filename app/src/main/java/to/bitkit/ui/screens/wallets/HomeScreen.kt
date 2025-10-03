@@ -293,7 +293,6 @@ fun HomeScreen(
         onContinueQuickPay = {
             homeViewModel.dismissTimedSheet()
             rootNavController.navigate(Routes.QuickPaySettings)
-            homeViewModel.checkQuickPayAsSeen()
         },
         onContinueBgPayments = {
             rootNavController.navigate(Routes.BackgroundPaymentsSettings)
