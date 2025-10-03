@@ -3,7 +3,6 @@ package to.bitkit.repositories
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.LightningActivity
-import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.flow.flowOf
@@ -52,19 +51,6 @@ class ActivityRepoTest : BaseUnitTest() {
         on { v1 } doReturn testActivityV1
     }
 
-    private val testOnChainActivityV1 = mock<OnchainActivity> {
-        on { id } doReturn "onchain1"
-        on { txId } doReturn "onchain1" // Add txId for matchesPaymentId extension function
-        on { updatedAt } doReturn 1000u
-        on { isBoosted } doReturn false
-        on { feeRate } doReturn 10u
-        on { fee } doReturn 1000u
-    }
-
-    private val testOnChainActivity = mock<Activity.Onchain> {
-        on { v1 } doReturn testOnChainActivityV1
-    }
-
     @Before
     fun setUp() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
@@ -85,13 +71,13 @@ class ActivityRepoTest : BaseUnitTest() {
         val payments = listOf(testPaymentDetails)
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(payments))
         wheneverBlocking { coreService.activity.getActivity(any()) }.thenReturn(null)
-        wheneverBlocking { coreService.activity.syncLdkNodePayments(any(), forceUpdate = eq(false)) }.thenReturn(Unit)
+        wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(any(), eq(false)) }.thenReturn(Unit)
 
         val result = sut.syncActivities()
 
         assertTrue(result.isSuccess)
         verify(lightningRepo).getPayments()
-        verify(coreService.activity).syncLdkNodePayments(payments, forceUpdate = false)
+        verify(coreService.activity).syncLdkNodePaymentsToActivities(payments, forceUpdate = false)
         assertFalse(sut.isSyncingLdkNodePayments.value)
     }
 

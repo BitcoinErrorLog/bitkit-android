@@ -89,17 +89,12 @@ class ActivityRepo @Inject constructor(
     }
 
     /**
-     * Business logic: Syncs LDK node payments with proper error handling and counting
-     * @return a list with added payments
+     * Syncs `ldk-node` [PaymentDetails] list to `bitkit-core` [Activity] items.
      */
-    private suspend fun syncLdkNodePayments(
-        payments: List<PaymentDetails>,
-    ): Result<Unit> {
-        return runCatching {
-            coreService.activity.syncLdkNodePayments(payments)
-        }.onFailure { e ->
-            Logger.error("Error syncing LDK payment:", e, context = TAG)
-        }
+    private suspend fun syncLdkNodePayments(payments: List<PaymentDetails>): Result<Unit> = runCatching {
+        coreService.activity.syncLdkNodePaymentsToActivities(payments)
+    }.onFailure { e ->
+        Logger.error("Error syncing LDK payments:", e, context = TAG)
     }
 
     /**
