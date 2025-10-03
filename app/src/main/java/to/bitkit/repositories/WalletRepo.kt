@@ -44,6 +44,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.days
 
+@Suppress("LongParameterList")
 @Singleton
 class WalletRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -54,6 +55,7 @@ class WalletRepo @Inject constructor(
     private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
+    private val transferRepo: TransferRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -150,7 +152,7 @@ class WalletRepo @Inject constructor(
 
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
         val startHeight = lightningRepo.lightningState.value.block()?.height
-        Logger.verbose("syncNodeAndWallet started at block height=${startHeight}", context = TAG)
+        Logger.verbose("syncNodeAndWallet started at block height=$startHeight", context = TAG)
         syncBalances()
         lightningRepo.sync().onSuccess {
             syncBalances()
@@ -169,26 +171,48 @@ class WalletRepo @Inject constructor(
         lightningRepo.getBalancesAsync().onSuccess { balance ->
             _walletState.update { it.copy(balanceDetails = balance) }
 
-            val pendingTransfers = cacheStore.data.first().inProgressTransfers
+            val channels = lightningRepo.getChannels() ?: emptyList()
+            val activeTransfers = transferRepo.activeTransfers.first()
 
-            val toSpending = pendingTransfers.filter { it.isToSpending() }.sumOf { it.sats }
+            var toSpendingAmount = 0uL
+            val toSpending = activeTransfers.filter { it.type.isToSpending() }
 
-            val closedChannelIds = pendingTransfers.filter { it.isToSavings() }.map { it.id }
-            val toSavings = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
-                .sumOf { b -> b.amountSats().takeIf { closedChannelIds.contains(b.channelId()) } ?: 0u }
-            val adjustedLightningSats = balance.totalLightningBalanceSats - toSavings
+            for (transfer in toSpending) {
+                val channelId = transferRepo.resolveChannelIdForTransfer(transfer, channels)
+                val channel = channelId?.let { channels.find { c -> c.channelId == it } }
+                if (channel != null && !channel.isChannelReady) {
+                    // Channel exists but not ready yet - find its balance
+                    val channelBalance = balance.lightningBalances.find { it.channelId() == channel.channelId }
+                    toSpendingAmount += channelBalance?.amountSats() ?: 0u
+                }
+            }
+
+            var toSavingsAmount = 0uL
+            val toSavings = activeTransfers.filter { it.type.isToSavings() }
+
+            for (transfer in toSavings) {
+                val channelId = transferRepo.resolveChannelIdForTransfer(transfer, channels)
+
+                // Find balance in lightning_balances by channel ID
+                val channelBalance = balance.lightningBalances.find {
+                    it.channelId() == channelId
+                }
+                toSavingsAmount += channelBalance?.amountSats() ?: 0u
+            }
+
+            val adjustedLightningSats = balance.totalLightningBalanceSats - toSpendingAmount - toSavingsAmount
 
             val newBalance = BalanceState(
                 totalOnchainSats = balance.totalOnchainBalanceSats,
                 totalLightningSats = adjustedLightningSats,
                 maxSendLightningSats = lightningRepo.getChannels().totalNextOutboundHtlcLimitSats(),
                 maxSendOnchainSats = getMaxSendAmount(),
-                balanceInTransferToSavings = toSavings,
-                balanceInTransferToSpending = toSpending,
+                balanceInTransferToSavings = toSavingsAmount,
+                balanceInTransferToSpending = toSpendingAmount,
             )
 
             val height = lightningRepo.lightningState.value.block()?.height
-            Logger.verbose("Pending transfers in cache: ${jsonLogOf(pendingTransfers)}", context = TAG)
+            Logger.verbose("Active transfers at block height=$height: ${jsonLogOf(activeTransfers)}", context = TAG)
             Logger.verbose("Balances in ldk-node at block height=$height: ${jsonLogOf(balance)}", context = TAG)
             Logger.verbose("Balances in state at block height=$height: ${jsonLogOf(newBalance)}", context = TAG)
 

@@ -6,4 +6,7 @@ enum class TransferType {
     MANUAL_SETUP,
     FORCE_CLOSE,
     COOP_CLOSE;
+
+    fun isToSavings() = this in listOf(TO_SAVINGS, COOP_CLOSE, FORCE_CLOSE)
+    fun isToSpending() = this in listOf(TO_SPENDING, MANUAL_SETUP)
 }

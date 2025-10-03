@@ -424,7 +424,6 @@ class LightningRepoTest : BaseUnitTest() {
         assertEquals("test_address", capturedActivity.address)
         assertEquals(true, capturedActivity.isTransfer)
         assertEquals("test_channel_id", capturedActivity.channelId)
-        assertEquals("testPaymentId", capturedActivity.transferTxId)
         assertEquals(10u, capturedActivity.feeRate)
     }
 

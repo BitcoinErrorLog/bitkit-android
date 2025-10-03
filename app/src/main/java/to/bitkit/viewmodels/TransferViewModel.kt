@@ -30,15 +30,16 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.TransferType
 import to.bitkit.env.Env
+import to.bitkit.ext.amountOnClose
 import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
@@ -64,6 +65,7 @@ class TransferViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val transferRepo: TransferRepo,
     private val clock: Clock,
 ) : ViewModel() {
     private val _spendingUiState = MutableStateFlow(TransferToSpendingUiState())
@@ -212,12 +214,10 @@ class TransferViewModel @Inject constructor(
                 )
                 .onSuccess { txId ->
                     cacheStore.addPaidOrder(orderId = order.id, txId = txId)
-                    cacheStore.addInProgressTransfer(
-                        InProgressTransfer(
-                            id = txId,
-                            type = TransferType.TO_SPENDING,
-                            sats = order.clientBalanceSat,
-                        )
+                    transferRepo.createTransfer(
+                        type = TransferType.TO_SPENDING,
+                        amountSats = order.clientBalanceSat.toLong(),
+                        lspOrderId = order.id,
                     )
                     launch { walletRepo.syncBalances() }
                     watchOrder(order.id)
@@ -322,28 +322,23 @@ class TransferViewModel @Inject constructor(
     }
 
     private suspend fun updateOrder(order: IBtOrder): Int {
-        var currentStep = 0
         if (order.channel != null) {
-            return 3
+            transferRepo.syncTransferStates()
+            return LN_SETUP_STEP_3
         }
 
         when (order.state2) {
-            BtOrderState2.CREATED -> {
-                currentStep = 0
-            }
+            BtOrderState2.CREATED -> return 0
 
             BtOrderState2.PAID -> {
-                currentStep = 1
                 blocktankRepo.openChannel(order.id)
+                return 1
             }
 
-            BtOrderState2.EXECUTED -> {
-                currentStep = 2
-            }
+            BtOrderState2.EXECUTED -> return 2
 
-            else -> Unit
+            else -> return 0
         }
-        return currentStep
     }
 
     fun onUseDefaultLspBalanceClick() {
@@ -499,8 +494,20 @@ class TransferViewModel @Inject constructor(
         val channelsFailedToClose = coroutineScope {
             channels.map { channel ->
                 async {
-                    lightningRepo.closeChannel(channel)
-                        .fold(onSuccess = { null }, onFailure = { channel })
+                    lightningRepo.closeChannel(channel).fold(
+                        onSuccess = {
+                            // Create transfer for cooperative close
+                            transferRepo.createTransfer(
+                                type = TransferType.COOP_CLOSE,
+                                amountSats = channel.amountOnClose.toLong(),
+                                channelId = channel.channelId,
+                                fundingTxId = channel.fundingTxo?.txid,
+                                lspOrderId = null,
+                            )
+                            null
+                        },
+                        onFailure = { channel }
+                    )
                 }
             }.awaitAll()
         }.filterNotNull()
@@ -581,7 +588,16 @@ class TransferViewModel @Inject constructor(
                     lightningRepo.closeChannel(channel, force = true)
                         .onFailure { e -> Logger.error("Error force closing channel: ${channel.channelId}", e) }
                         .fold(
-                            onSuccess = { null },
+                            onSuccess = {
+                                transferRepo.createTransfer(
+                                    type = TransferType.FORCE_CLOSE,
+                                    amountSats = channel.amountOnClose.toLong(),
+                                    channelId = channel.channelId,
+                                    fundingTxId = channel.fundingTxo?.txid,
+                                    lspOrderId = null,
+                                )
+                                null
+                            },
                             onFailure = { channel },
                         )
                 }
@@ -595,6 +611,7 @@ class TransferViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TransferViewModel"
+        const val LN_SETUP_STEP_3 = 3
     }
 }
 

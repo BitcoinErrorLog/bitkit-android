@@ -17,7 +17,6 @@ import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.dto.TransferType
 import to.bitkit.ext.WatchResult
@@ -36,6 +35,7 @@ import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
+@Suppress("LongParameterList")
 @HiltViewModel
 class ExternalNodeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -44,6 +44,7 @@ class ExternalNodeViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val transferRepo: to.bitkit.repositories.TransferRepo,
     private val addressChecker: AddressChecker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
@@ -171,6 +172,8 @@ class ExternalNodeViewModel @Inject constructor(
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
                     val address = addressChecker.getOutputAddress(event.fundingTxo).getOrDefault("")
+
+                    // Keep transaction metadata for Activity correlation
                     cacheStore.addTransactionMetadata(
                         TransactionMetadata(
                             txId = event.fundingTxo.txid,
@@ -180,12 +183,14 @@ class ExternalNodeViewModel @Inject constructor(
                             address = address,
                         )
                     )
-                    cacheStore.addInProgressTransfer(
-                        InProgressTransfer(
-                            id = event.fundingTxo.txid,
-                            type = TransferType.MANUAL_SETUP,
-                            sats = result.channelAmountSats,
-                        )
+
+                    // Create persisted transfer
+                    transferRepo.createTransfer(
+                        type = TransferType.MANUAL_SETUP,
+                        amountSats = result.channelAmountSats.toLong(),
+                        channelId = event.channelId,
+                        fundingTxId = event.fundingTxo.txid,
+                        lspOrderId = null,
                     )
                 }.getOrThrow()
             }.onSuccess {

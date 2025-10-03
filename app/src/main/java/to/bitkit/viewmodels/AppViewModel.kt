@@ -47,10 +47,7 @@ import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.BuildConfig
 import to.bitkit.R
-import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.InProgressTransfer
-import to.bitkit.data.dto.TransferType
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
@@ -105,14 +102,13 @@ class AppViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
     private val ldkNodeEventBus: LdkNodeEventBus,
-    private val cacheStore: CacheStore,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
     private val blocktankRepo: BlocktankRepo,
-    private val connectivityRepo: ConnectivityRepo,
-    private val healthRepo: HealthRepo,
     private val appUpdaterService: AppUpdaterService,
+    connectivityRepo: ConnectivityRepo,
+    healthRepo: HealthRepo,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -220,10 +216,6 @@ class AppViewModel @Inject constructor(
                             )
                         }
 
-                        is Event.ChannelPending -> {
-                            // TODO: match fundingTxo.txid to onchain activity
-                        }
-
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
                             if (channel != null && blocktankRepo.isCjitOrder(channel)) {
@@ -244,16 +236,8 @@ class AppViewModel @Inject constructor(
                             }
                         }
 
-                        is Event.ChannelClosed -> {
-                            cacheStore.addInProgressTransfer(
-                                InProgressTransfer(
-                                    id = event.channelId,
-                                    type = TransferType.TO_SAVINGS,
-                                    sats = 0u, // using amount matching LightningBalance instead
-                                )
-                            )
-                            launch { walletRepo.syncBalances() }
-                        }
+                        is Event.ChannelPending -> walletRepo.syncBalances()
+                        is Event.ChannelClosed -> walletRepo.syncBalances()
 
                         is Event.PaymentSuccessful -> {
                             val paymentHash = event.paymentHash

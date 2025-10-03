@@ -10,7 +10,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -19,7 +18,6 @@ import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
-import to.bitkit.ext.channelId
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
@@ -31,6 +29,7 @@ import javax.inject.Singleton
 
 private const val SYNC_TIMEOUT_MS = 40_000L
 
+@Suppress("LongParameterList")
 @Singleton
 class ActivityRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -39,10 +38,9 @@ class ActivityRepo @Inject constructor(
     private val cacheStore: CacheStore,
     private val db: AppDb,
     private val addressChecker: AddressChecker,
+    private val transferRepo: TransferRepo,
 ) {
     val isSyncingLdkNodePayments = MutableStateFlow(false)
-
-    val inProgressTransfers = cacheStore.data.map { it.inProgressTransfers }
 
     suspend fun syncActivities(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("syncActivities called", context = TAG)
@@ -65,7 +63,7 @@ class ActivityRepo @Inject constructor(
                     updateActivitiesMetadata()
                     syncTagsMetadata()
                     boostPendingActivities()
-                    updateInProgressTransfers()
+                    syncTransfers()
                     isSyncingLdkNodePayments.value = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -392,31 +390,8 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    private suspend fun updateInProgressTransfers() {
-        cacheStore.data.first().inProgressTransfers.forEach { transfer ->
-            when {
-                transfer.isToSpending() -> {
-                    // remove if tx is confirmed
-                    getActivity(transfer.id).onSuccess { activity ->
-                        (activity as? Activity.Onchain)?.let { onChain ->
-                            if (onChain.v1.confirmed) {
-                                cacheStore.removeInProgressTransfer { it.id == transfer.id }
-                                Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
-                            }
-                        }
-                    }
-                }
-
-                transfer.isToSavings() -> {
-                    // remove if related lightningBalance is gone
-                    val lnBalances = lightningRepo.getBalancesAsync().getOrNull()?.lightningBalances.orEmpty()
-                    if (lnBalances.none { it.channelId() == transfer.id }) {
-                        cacheStore.removeInProgressTransfer { it.id == transfer.id }
-                        Logger.debug("Removed inProgressTranfer: $transfer", context = TAG)
-                    }
-                }
-            }
-        }
+    private suspend fun syncTransfers() {
+        transferRepo.syncTransferStates()
     }
 
     private suspend fun boostPendingActivities() = withContext(bgDispatcher) {

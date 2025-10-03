@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import to.bitkit.data.dto.InProgressTransfer
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.serializers.AppCacheSerializer
@@ -132,21 +131,6 @@ class CacheStore @Inject constructor(
         }
     }
 
-    suspend fun addInProgressTransfer(item: InProgressTransfer) {
-        if (item in store.data.first().inProgressTransfers) return
-
-        store.updateData {
-            it.copy(inProgressTransfers = it.inProgressTransfers + item)
-        }
-    }
-
-    suspend fun removeInProgressTransfer(predicate: (InProgressTransfer) -> Boolean) {
-        val item = store.data.first().inProgressTransfers.find(predicate) ?: return
-        store.updateData {
-            it.copy(inProgressTransfers = it.inProgressTransfers - item)
-        }
-    }
-
     suspend fun reset() {
         store.updateData { AppCacheData() }
         Logger.info("Deleted all app cached data.")
@@ -170,5 +154,4 @@ data class AppCacheData(
     val activitiesPendingDelete: List<String> = listOf(),
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
     val transactionsMetadata: List<TransactionMetadata> = listOf(),
-    val inProgressTransfers: Set<InProgressTransfer> = setOf(),
 )

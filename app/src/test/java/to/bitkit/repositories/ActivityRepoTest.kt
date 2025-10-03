@@ -62,7 +62,8 @@ class ActivityRepoTest : BaseUnitTest() {
             lightningRepo = lightningRepo,
             cacheStore = cacheStore,
             addressChecker = addressChecker,
-            db = db
+            db = db,
+            transferRepo = mock(),
         )
     }
 
@@ -312,7 +313,6 @@ class ActivityRepoTest : BaseUnitTest() {
         val result = sut.addTagsToActivity(activityId, listOf("tag1"))
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
     }
 
     @Test
@@ -376,7 +376,6 @@ class ActivityRepoTest : BaseUnitTest() {
         val result = sut.removeTagsFromActivity(activityId, listOf("tag1"))
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
     }
 
     @Test

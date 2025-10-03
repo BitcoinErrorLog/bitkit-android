@@ -1,10 +1,8 @@
 package to.bitkit.ext
 
 import com.synonym.bitkitcore.Activity
-import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
-import to.bitkit.data.dto.TransferType
 
 fun Activity.rawId(): String = when (this) {
     is Activity.Lightning -> v1.id

@@ -44,6 +44,7 @@ class WalletRepoTest : BaseUnitTest() {
     private val addressChecker: AddressChecker = mock()
     private val lightningRepo: LightningRepo = mock()
     private val cacheStore: CacheStore = mock()
+    private val transferRepo: TransferRepo = mock()
 
     @Before
     fun setUp() {
@@ -72,6 +73,7 @@ class WalletRepoTest : BaseUnitTest() {
         addressChecker = addressChecker,
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
+        transferRepo = transferRepo,
     )
 
     @Test
@@ -221,6 +223,7 @@ class WalletRepoTest : BaseUnitTest() {
             },
         )
         whenever(lightningRepo.getChannels()).thenReturn(channels)
+        whenever(transferRepo.activeTransfers).thenReturn(flowOf(emptyList()))
 
         sut.syncBalances()
 
@@ -239,6 +242,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `syncBalances should update wallet state with balance details`() = test {
+        whenever(transferRepo.activeTransfers).thenReturn(flowOf(emptyList()))
         val balanceDetails = setupBalanceMock()
 
         sut.syncBalances()
