@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -24,6 +26,8 @@ import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Devices.PIXEL_TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.serialization.Serializable
 import to.bitkit.R
 import to.bitkit.models.PrimaryDisplay
@@ -36,13 +40,17 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.SettingsViewModel
 
 // TODO pass these to nav?
 @Serializable
@@ -57,14 +65,19 @@ data class CjitEntryDetails(
 
 @Composable
 fun ReceiveConfirmScreen(
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     entry: CjitEntryDetails,
     isAdditional: Boolean = false,
     onLearnMore: () -> Unit,
     onContinue: (String) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     val currency = currencyViewModel ?: return
     val currencies = LocalCurrencies.current
+
+    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
 
     val networkFeeFormatted = remember(entry.networkFeeSat) {
         currency.convert(entry.networkFeeSat)
@@ -100,6 +113,10 @@ fun ReceiveConfirmScreen(
         receiveAmountFormatted = receiveAmountFormatted,
         onLearnMoreClick = onLearnMore,
         isAdditional = isAdditional,
+        onSystemSettingsClick = {
+            NotificationUtils.openNotificationSettings(context)
+        },
+        hasNotificationPermission = notificationsGranted,
         onContinueClick = { onContinue(entry.invoice) },
         onBackClick = onBack,
     )
@@ -112,6 +129,8 @@ private fun Content(
     networkFeeFormatted: String,
     serviceFeeFormatted: String,
     receiveAmountFormatted: String,
+    onSystemSettingsClick: () -> Unit,
+    hasNotificationPermission: Boolean,
     onLearnMoreClick: () -> Unit,
     onContinueClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -156,7 +175,17 @@ private fun Content(
                     Spacer(Modifier.height(4.dp))
                     Title(text = receiveAmountFormatted)
                 }
+
                 Spacer(modifier = Modifier.weight(1f))
+
+                SettingsSwitchRow(
+                    title = "Setup in background",
+                    isChecked = hasNotificationPermission,
+                    colors = AppSwitchDefaults.colorsPurple,
+                    onClick = onSystemSettingsClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     SecondaryButton(
                         text = stringResource(R.string.common__learn_more),
@@ -189,6 +218,8 @@ private fun Preview() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -209,6 +240,8 @@ private fun PreviewAdditional() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -229,6 +262,8 @@ private fun PreviewSmall() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = false,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -249,6 +284,8 @@ private fun PreviewTablet() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
