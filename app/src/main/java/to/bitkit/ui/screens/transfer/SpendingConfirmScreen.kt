@@ -21,11 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.BtBolt11InvoiceState
 import com.synonym.bitkitcore.BtOrderState
@@ -50,12 +52,16 @@ import to.bitkit.ui.components.LightningChannel
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SwipeToConfirm
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.TransferViewModel
 
 @Composable
@@ -66,10 +72,15 @@ fun SpendingConfirmScreen(
     onLearnMoreClick: () -> Unit = {},
     onAdvancedClick: () -> Unit = {},
     onConfirm: () -> Unit = {},
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
+
     val state by viewModel.spendingUiState.collectAsStateWithLifecycle()
     val order = state.order ?: return
     val isAdvanced = state.isAdvanced
+
+    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
 
     Content(
         onBackClick = onBackClick,
@@ -80,6 +91,10 @@ fun SpendingConfirmScreen(
         onUseDefaultLspBalanceClick = { viewModel.onUseDefaultLspBalanceClick() },
         onTransferToSpendingConfirm = { order -> viewModel.onTransferToSpendingConfirm(order) },
         order = order,
+        hasNotificationPermission = notificationsGranted,
+        onSwitchClick = {
+            NotificationUtils.openNotificationSettings(context)
+        },
         isAdvanced = isAdvanced
     )
 }
@@ -92,6 +107,8 @@ private fun Content(
     onAdvancedClick: () -> Unit,
     onConfirm: () -> Unit,
     onUseDefaultLspBalanceClick: () -> Unit,
+    onSwitchClick: () -> Unit,
+    hasNotificationPermission: Boolean,
     onTransferToSpendingConfirm: (IBtOrder) -> Unit,
     order: IBtOrder,
     isAdvanced: Boolean,
@@ -177,6 +194,17 @@ private fun Content(
                 }
 
                 VerticalSpacer(16.dp)
+
+                SettingsSwitchRow(
+                    title = "Setup in background",
+                    isChecked = hasNotificationPermission,
+                    colors = AppSwitchDefaults.colorsPurple,
+                    onClick = onSwitchClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                VerticalSpacer(31.dp)
+
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     PrimaryButton(
                         text = stringResource(R.string.common__learn_more),
@@ -298,6 +326,8 @@ private fun Preview() {
                 updatedAt = "2025-07-28T08:29:03Z",
                 createdAt = "2025-07-28T08:29:03Z"
             ),
+            onSwitchClick = {},
+            hasNotificationPermission = true,
             isAdvanced = false
         )
     }
@@ -374,6 +404,8 @@ private fun Preview2() {
                 updatedAt = "2025-07-28T08:29:03Z",
                 createdAt = "2025-07-28T08:29:03Z"
             ),
+            onSwitchClick = {},
+            hasNotificationPermission = true,
             isAdvanced = true
         )
     }
@@ -450,6 +482,8 @@ private fun Preview3() {
                 updatedAt = "2025-07-28T08:29:03Z",
                 createdAt = "2025-07-28T08:29:03Z"
             ),
+            onSwitchClick = {},
+            hasNotificationPermission = false,
             isAdvanced = false
         )
     }
@@ -526,6 +560,8 @@ private fun Preview4() {
                 updatedAt = "2025-07-28T08:29:03Z",
                 createdAt = "2025-07-28T08:29:03Z"
             ),
+            onSwitchClick = {},
+            hasNotificationPermission = true,
             isAdvanced = true
         )
     }
