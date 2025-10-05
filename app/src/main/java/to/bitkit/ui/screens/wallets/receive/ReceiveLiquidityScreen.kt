@@ -18,11 +18,15 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyMB
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ChannelStatusUi
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.LightningChannel
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.round
@@ -32,6 +36,8 @@ fun ReceiveLiquidityScreen(
     entry: CjitEntryDetails,
     onContinue: () -> Unit,
     onBack: () -> Unit,
+    onSwitchClick: () -> Unit,
+    hasNotificationPermission: Boolean,
     modifier: Modifier = Modifier,
     isAdditional: Boolean = false,
 ) {
@@ -66,7 +72,7 @@ fun ReceiveLiquidityScreen(
                 color = Colors.White64
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            VerticalSpacer(32.dp)
 
             BodyMB(
                 text = stringResource(
@@ -84,6 +90,26 @@ fun ReceiveLiquidityScreen(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            FillHeight()
+
+            BodyM(
+                text = "Enable background setup to safely exit Bitkit while your balance is being configured.",
+                color = Colors.White64
+            )
+
+            VerticalSpacer(15.dp)
+
+            SettingsSwitchRow(
+                title = "Setup in background",
+                isChecked = hasNotificationPermission,
+                colors = AppSwitchDefaults.colorsPurple,
+                onClick = onSwitchClick,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            VerticalSpacer(22.dp)
+
             PrimaryButton(
                 text = stringResource(R.string.common__understood),
                 onClick = onContinue,
@@ -111,6 +137,8 @@ private fun Preview() {
                 isAdditional = false,
                 onContinue = {},
                 onBack = {},
+                onSwitchClick = {},
+                hasNotificationPermission = true,
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -134,6 +162,8 @@ private fun Preview2() {
                 isAdditional = true,
                 onContinue = {},
                 onBack = {},
+                onSwitchClick = {},
+                hasNotificationPermission = false,
                 modifier = Modifier.sheetHeight(),
             )
         }
