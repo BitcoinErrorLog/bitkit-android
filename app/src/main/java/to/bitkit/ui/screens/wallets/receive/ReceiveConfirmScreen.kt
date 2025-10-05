@@ -129,16 +129,6 @@ private fun Content(
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            Image(
-                painter = painterResource(R.drawable.lightning),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .padding(bottom = 150.dp)
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-            )
-
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
