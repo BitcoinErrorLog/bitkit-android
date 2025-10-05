@@ -31,6 +31,7 @@ import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
@@ -138,7 +139,7 @@ private fun Content(
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin), onBack = onBackClick)
-        Spacer(Modifier.height(24.dp))
+        VerticalSpacer(24.dp)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -148,7 +149,7 @@ private fun Content(
                 sats = receiveSats,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            VerticalSpacer(24.dp)
             val text = when (isAdditional) {
                 true -> stringResource(R.string.wallet__receive_connect_additional)
                 else -> stringResource(R.string.wallet__receive_connect_initial)
@@ -162,14 +163,14 @@ private fun Content(
                         accentStyle = SpanStyle(color = Colors.White, fontWeight = FontWeight.Bold)
                     )
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            VerticalSpacer(32.dp)
             Column {
                 Caption13Up(text = stringResource(R.string.wallet__receive_will), color = Colors.White64)
-                Spacer(Modifier.height(4.dp))
+                VerticalSpacer(4.dp)
                 Title(text = receiveAmountFormatted)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            FillHeight()
 
             SettingsSwitchRow(
                 title = "Setup in background",
