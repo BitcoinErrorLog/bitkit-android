@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -13,13 +14,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
+import to.bitkit.models.PrimaryDisplay
+import to.bitkit.repositories.CurrencyState
+import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun IncomingTransfer(
     amount: ULong,
     modifier: Modifier = Modifier,
+    currencies: CurrencyState = LocalCurrencies.current,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -37,7 +43,11 @@ fun IncomingTransfer(
             color = Colors.White64,
         )
         CaptionB(
-            text = rememberMoneyText(sats = amount.toLong()).orEmpty(),
+            text = rememberMoneyText(
+                sats = amount.toLong(),
+                currencies = currencies,
+                showSymbol = false,
+            ).orEmpty().withAccent(accentColor = Colors.White64),
             color = Colors.White64,
         )
     }
@@ -50,6 +60,14 @@ private fun Preview() {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            CompositionLocalProvider(
+                LocalCurrencies provides CurrencyState(
+                    primaryDisplay = PrimaryDisplay.FIAT,
+                ),
+            ) {
+                IncomingTransfer(amount = 85_967u)
+                IncomingTransfer(amount = 15_231_648u)
+            }
             IncomingTransfer(amount = 85_967u)
             IncomingTransfer(amount = 15_231_648u)
         }
