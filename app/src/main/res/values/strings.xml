@@ -32,6 +32,8 @@
     <string name="cards__buyBitcoin__description">Buy some bitcoin</string>
     <string name="cards__btFailed__title">Failed</string>
     <string name="cards__btFailed__description">Please try again</string>
+    <string name="cards__notifications__title">Get paid</string>
+    <string name="cards__notifications__description">When Bitkit is closed</string>
     <string name="cards__suggestions">Suggestions</string>
     <string name="common__advanced">Advanced</string>
     <string name="common__continue">Continue</string>

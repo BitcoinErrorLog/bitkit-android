@@ -403,6 +403,7 @@ class HomeViewModel @Inject constructor(
                     Suggestion.SUPPORT,
                     Suggestion.INVITE,
                     Suggestion.QUICK_PAY,
+                    Suggestion.NOTIFICATIONS,
                     Suggestion.SHOP,
                     Suggestion.PROFILE,
                 )

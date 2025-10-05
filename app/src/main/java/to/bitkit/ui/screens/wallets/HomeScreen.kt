@@ -111,7 +111,7 @@ import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
-import to.bitkit.ui.sheets.PinRoute
+import to.bitkit.ui.sheets.PinRoute.Prompt
 import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.AppThemeSurface
@@ -140,6 +140,7 @@ fun HomeScreen(
     val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hasSeenProfileIntro by settingsViewModel.hasSeenProfileIntro.collectAsStateWithLifecycle()
     val hasSeenWidgetsIntro: Boolean by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
+    val bgPaymentsIntroSeen: Boolean by settingsViewModel.bgPaymentsIntroSeen.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settingsViewModel.quickPayIntroSeen.collectAsStateWithLifecycle()
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
 
@@ -216,7 +217,7 @@ fun HomeScreen(
                 }
 
                 Suggestion.SECURE -> {
-                    appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
+                    appViewModel.showSheet(Sheet.Pin(Prompt(showLaterButton = true)))
                 }
 
                 Suggestion.SUPPORT -> {
@@ -260,6 +261,13 @@ fun HomeScreen(
                 Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
                 Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
                 Suggestion.LIGHTNING_READY -> Unit
+                Suggestion.NOTIFICATIONS -> {
+                    if (bgPaymentsIntroSeen) {
+                        rootNavController.navigate(Routes.BackgroundPaymentsSettings)
+                    } else {
+                        rootNavController.navigate(Routes.BackgroundPaymentsInto)
+                    }
+                }
             }
         },
         onClickAddWidget = {
