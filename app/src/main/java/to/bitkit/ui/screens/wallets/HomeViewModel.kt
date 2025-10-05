@@ -405,7 +405,7 @@ class HomeViewModel @Inject constructor(
                     Suggestion.QUICK_PAY,
                     Suggestion.NOTIFICATIONS,
                     Suggestion.SHOP,
-                    Suggestion.PROFILE,
+                    Suggestion.PROFILE.takeIf { !settings.notificationsGranted },
                 )
             }
 
