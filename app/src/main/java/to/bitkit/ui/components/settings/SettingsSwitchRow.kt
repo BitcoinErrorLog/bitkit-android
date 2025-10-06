@@ -24,9 +24,9 @@ import to.bitkit.ui.theme.Colors
 fun SettingsSwitchRow(
     title: String,
     isChecked: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: SwitchColors = AppSwitchDefaults.colors,
-    onClick: () -> Unit,
 ) {
     Column(
         modifier = modifier.height(52.dp)
