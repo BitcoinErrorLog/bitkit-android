@@ -111,7 +111,7 @@ import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
-import to.bitkit.ui.sheets.PinRoute.Prompt
+import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.AppThemeSurface
@@ -217,7 +217,7 @@ fun HomeScreen(
                 }
 
                 Suggestion.SECURE -> {
-                    appViewModel.showSheet(Sheet.Pin(Prompt(showLaterButton = true)))
+                    appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
                 }
 
                 Suggestion.SUPPORT -> {
