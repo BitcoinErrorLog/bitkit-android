@@ -6,6 +6,7 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.amountSats
 import to.bitkit.ext.channelId
+import to.bitkit.ext.minusOrZero
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.BalanceDetails
 import to.bitkit.models.BalanceState
@@ -121,7 +122,7 @@ class SyncBalancesUseCase @Inject constructor(
             Logger.debug("Could not calculate max send amount, using fallback of 10% = $fallback", context = TAG)
         }.getOrDefault(fallback)
 
-        val maxSendable = (spendableOnchainSats - fee).coerceAtLeast(0u)
+        val maxSendable = spendableOnchainSats.minusOrZero(fee)
         return maxSendable
     }
 

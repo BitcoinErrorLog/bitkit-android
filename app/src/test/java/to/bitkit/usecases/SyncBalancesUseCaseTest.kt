@@ -8,6 +8,7 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
@@ -122,6 +123,7 @@ class SyncBalancesUseCaseTest : BaseUnitTest() {
 
     @Test
     fun `should not count manual channel as pending when ready`() = test {
+        setupBalanceMock()
         val channelId = "ready-channel-id"
         val channel = mock<ChannelDetails> {
             on { this.channelId } doReturn channelId
@@ -189,6 +191,109 @@ class SyncBalancesUseCaseTest : BaseUnitTest() {
         val balanceState = result.getOrThrow()
         assertEquals(40000uL, balanceState.balanceInTransferToSavings)
         assertEquals(balance.totalLightningBalanceSats - 40000uL, balanceState.totalLightningSats)
+    }
+
+    @Test
+    fun `should return zero max send onchain when spendable balance is zero`() = test {
+        val balance = BalanceDetails(
+            totalOnchainBalanceSats = 50_000u,
+            spendableOnchainBalanceSats = 0u,
+            totalAnchorChannelsReserveSats = 50_000u,
+            totalLightningBalanceSats = 0u,
+            lightningBalances = emptyList(),
+            pendingBalancesFromChannelClosures = emptyList(),
+        )
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
+        whenever(lightningRepo.getChannels()).thenReturn(emptyList())
+
+        val result = sut()
+
+        assertTrue(result.isSuccess)
+        val balanceState = result.getOrThrow()
+        assertEquals(0u, balanceState.maxSendOnchainSats)
+    }
+
+    @Test
+    fun `should calculate max send onchain with successful fee calculation`() = test {
+        val spendableAmount = 100_000uL
+        val feeAmount = 2_000uL
+        val expectedMaxSend = spendableAmount - feeAmount // 98_000
+
+        val balance = BalanceDetails(
+            totalOnchainBalanceSats = 100_000u,
+            spendableOnchainBalanceSats = spendableAmount,
+            totalAnchorChannelsReserveSats = 0u,
+            totalLightningBalanceSats = 0u,
+            lightningBalances = emptyList(),
+            pendingBalancesFromChannelClosures = emptyList(),
+        )
+
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
+        whenever(lightningRepo.getChannels()).thenReturn(emptyList())
+        wheneverBlocking {
+            lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
+        }.thenReturn(Result.success(feeAmount))
+
+        val result = sut()
+
+        assertTrue(result.isSuccess)
+        val balanceState = result.getOrThrow()
+        assertEquals(expectedMaxSend, balanceState.maxSendOnchainSats)
+    }
+
+    @Test
+    fun `should use 10 percent fallback when fee calculation fails`() = test {
+        val spendableAmount = 100_000uL
+        val expectedFallback = (spendableAmount.toDouble() * 0.1).toULong() // 10_000
+        val expectedMaxSend = spendableAmount - expectedFallback // 90_000
+
+        val balance = BalanceDetails(
+            totalOnchainBalanceSats = 100_000u,
+            spendableOnchainBalanceSats = spendableAmount,
+            totalAnchorChannelsReserveSats = 0u,
+            totalLightningBalanceSats = 0u,
+            lightningBalances = emptyList(),
+            pendingBalancesFromChannelClosures = emptyList(),
+        )
+
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
+        whenever(lightningRepo.getChannels()).thenReturn(emptyList())
+        wheneverBlocking {
+            lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
+        }.thenReturn(Result.failure(Exception("Fee calculation failed")))
+
+        val result = sut()
+
+        assertTrue(result.isSuccess)
+        val balanceState = result.getOrThrow()
+        assertEquals(expectedMaxSend, balanceState.maxSendOnchainSats)
+    }
+
+    @Test
+    fun `should return zero max send when fee exceeds spendable balance`() = test {
+        val spendableAmount = 100_000uL
+        val excessiveFee = 150_000uL // Fee exceeds balance
+
+        val balance = BalanceDetails(
+            totalOnchainBalanceSats = 100_000u,
+            spendableOnchainBalanceSats = spendableAmount,
+            totalAnchorChannelsReserveSats = 0u,
+            totalLightningBalanceSats = 0u,
+            lightningBalances = emptyList(),
+            pendingBalancesFromChannelClosures = emptyList(),
+        )
+
+        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
+        whenever(lightningRepo.getChannels()).thenReturn(emptyList())
+        wheneverBlocking {
+            lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
+        }.thenReturn(Result.success(excessiveFee))
+
+        val result = sut()
+
+        assertTrue(result.isSuccess)
+        val balanceState = result.getOrThrow()
+        assertEquals(0u, balanceState.maxSendOnchainSats)
     }
 
     @Test
