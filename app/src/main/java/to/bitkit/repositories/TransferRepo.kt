@@ -23,7 +23,6 @@ class TransferRepo @Inject constructor(
     private val blocktankRepo: BlocktankRepo,
     private val transferDao: TransferDao,
 ) {
-
     val activeTransfers: Flow<List<TransferEntity>> = transferDao.getActiveTransfers()
 
     suspend fun createTransfer(
