@@ -265,7 +265,7 @@ fun HomeScreen(
                     if (bgPaymentsIntroSeen) {
                         rootNavController.navigate(Routes.BackgroundPaymentsSettings)
                     } else {
-                        rootNavController.navigate(Routes.BackgroundPaymentsInto)
+                        rootNavController.navigate(Routes.BackgroundPaymentsIntro)
                     }
                 }
             }
