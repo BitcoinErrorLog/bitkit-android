@@ -17,7 +17,7 @@ import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransactionMetadata
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransferType
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil

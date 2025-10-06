@@ -26,7 +26,7 @@ import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransactionMetadata
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceState

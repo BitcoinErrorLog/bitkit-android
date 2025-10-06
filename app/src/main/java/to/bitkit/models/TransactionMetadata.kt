@@ -1,4 +1,4 @@
-package to.bitkit.data.dto
+package to.bitkit.models
 
 import kotlinx.serialization.Serializable
 
