@@ -72,7 +72,7 @@ fun GeneralSettingsScreen(
             if (bgPaymentsIntroSeen) {
                 navController.navigate(Routes.BackgroundPaymentsSettings)
             } else {
-                navController.navigate(Routes.BackgroundPaymentsInto)
+                navController.navigate(Routes.BackgroundPaymentsIntro)
             }
         },
         selectedLanguage = languageUiState.selectedLanguage.displayName

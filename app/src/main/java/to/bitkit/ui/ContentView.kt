@@ -765,7 +765,7 @@ private fun NavGraphBuilder.generalSettings(navController: NavHostController) {
         )
     }
 
-    composableWithDefaultTransitions<Routes.BackgroundPaymentsInto> {
+    composableWithDefaultTransitions<Routes.BackgroundPaymentsIntro> {
         BackgroundPaymentsIntroScreen(
             onBack = { navController.popBackStack() },
             onClose = { navController.navigateToHome() },
@@ -1732,7 +1732,7 @@ sealed interface Routes {
     data object RecoveryMnemonic : Routes
 
     @Serializable
-    data object BackgroundPaymentsInto : Routes
+    data object BackgroundPaymentsIntro : Routes
 
     @Serializable
     data object BackgroundPaymentsSettings : Routes
