@@ -18,18 +18,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncBalancesUseCase @Inject constructor(
+class DeriveBalanceStateUseCase @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val transferRepo: TransferRepo,
     private val settingsStore: SettingsStore,
 ) {
-    /**
-     * Syncs balances from lightning node and calculates pending transfer amounts.
-     * Returns the new balance state.
-     */
     suspend operator fun invoke(): Result<BalanceState> = runCatching {
         val balanceDetails = lightningRepo.getBalancesAsync().getOrThrow()
-        val channels = lightningRepo.getChannels() ?: emptyList()
+        val channels = lightningRepo.getChannels().orEmpty()
         val activeTransfers = transferRepo.activeTransfers.first()
 
         val toSpendingAmount = calculateTransferToSpendingAmount(activeTransfers, channels, balanceDetails)
@@ -127,7 +123,7 @@ class SyncBalancesUseCase @Inject constructor(
     }
 
     private companion object {
-        const val TAG = "SyncBalancesUseCase"
+        const val TAG = "DeriveBalanceStateUseCase"
         const val FALLBACK_FEE_PERCENT = 0.1
     }
 }

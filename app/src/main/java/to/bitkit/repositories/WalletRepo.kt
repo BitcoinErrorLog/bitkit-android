@@ -31,7 +31,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
-import to.bitkit.usecases.SyncBalancesUseCase
+import to.bitkit.usecases.DeriveBalanceStateUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
@@ -51,7 +51,7 @@ class WalletRepo @Inject constructor(
     private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
-    private val syncBalancesUseCase: SyncBalancesUseCase,
+    private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -164,7 +164,7 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncBalances() {
-        syncBalancesUseCase().onSuccess { balanceState ->
+        deriveBalanceStateUseCase().onSuccess { balanceState ->
             runCatching { cacheStore.cacheBalance(balanceState) }
             _balanceState.update { balanceState }
         }.onFailure {

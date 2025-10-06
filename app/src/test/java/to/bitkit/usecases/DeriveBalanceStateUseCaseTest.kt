@@ -25,13 +25,13 @@ import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class SyncBalancesUseCaseTest : BaseUnitTest() {
+class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
     private val lightningRepo: LightningRepo = mock()
     private val transferRepo: TransferRepo = mock()
     private val settingsStore: SettingsStore = mock()
 
-    private lateinit var sut: SyncBalancesUseCase
+    private lateinit var sut: DeriveBalanceStateUseCase
 
     @Before
     fun setUp() {
@@ -42,7 +42,7 @@ class SyncBalancesUseCaseTest : BaseUnitTest() {
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))
 
-        sut = SyncBalancesUseCase(
+        sut = DeriveBalanceStateUseCase(
             lightningRepo = lightningRepo,
             transferRepo = transferRepo,
             settingsStore = settingsStore,

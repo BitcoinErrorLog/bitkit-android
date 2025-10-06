@@ -25,7 +25,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.services.CoreService
 import to.bitkit.services.OnchainService
 import to.bitkit.test.BaseUnitTest
-import to.bitkit.usecases.SyncBalancesUseCase
+import to.bitkit.usecases.DeriveBalanceStateUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.AddressInfo
 import to.bitkit.utils.AddressStats
@@ -45,7 +45,7 @@ class WalletRepoTest : BaseUnitTest() {
     private val addressChecker: AddressChecker = mock()
     private val lightningRepo: LightningRepo = mock()
     private val cacheStore: CacheStore = mock()
-    private val syncBalancesUseCase: SyncBalancesUseCase = mock()
+    private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase = mock()
 
     @Before
     fun setUp() {
@@ -57,7 +57,7 @@ class WalletRepoTest : BaseUnitTest() {
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
-        wheneverBlocking { syncBalancesUseCase.invoke() }.thenReturn(Result.success(BalanceState()))
+        wheneverBlocking { deriveBalanceStateUseCase.invoke() }.thenReturn(Result.success(BalanceState()))
 
         whenever(keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)).thenReturn("test mnemonic")
         whenever(keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)).thenReturn(null)
@@ -75,7 +75,7 @@ class WalletRepoTest : BaseUnitTest() {
         addressChecker = addressChecker,
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
-        syncBalancesUseCase = syncBalancesUseCase,
+        deriveBalanceStateUseCase = deriveBalanceStateUseCase,
     )
 
     @Test
@@ -224,7 +224,7 @@ class WalletRepoTest : BaseUnitTest() {
             balanceInTransferToSavings = 0u,
             balanceInTransferToSpending = 0u,
         )
-        whenever(syncBalancesUseCase.invoke()).thenReturn(Result.success(expectedState))
+        whenever(deriveBalanceStateUseCase.invoke()).thenReturn(Result.success(expectedState))
 
         sut.syncBalances()
 
