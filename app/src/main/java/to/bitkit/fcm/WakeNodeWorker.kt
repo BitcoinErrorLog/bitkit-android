@@ -25,6 +25,8 @@ import to.bitkit.models.BlocktankNotificationType.wakeToTimeout
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
+import to.bitkit.repositories.ActivityRepo
+import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.services.CoreService
 import to.bitkit.ui.pushNotification
@@ -38,6 +40,8 @@ class WakeNodeWorker @AssistedInject constructor(
     @Assisted private val workerParams: WorkerParameters,
     private val coreService: CoreService,
     private val lightningRepo: LightningRepo,
+    private val blocktankRepo: BlocktankRepo,
+    private val activityRepo: ActivityRepo,
 ) : CoroutineWorker(appContext, workerParams) {
     private val self = this
 
@@ -143,15 +147,22 @@ class WakeNodeWorker @AssistedInject constructor(
                     lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
                         val sats = channel.amountOnClose
                         self.bestAttemptContent?.title = "Received ⚡ $sats sats"
-                        // Save for UI to pick up
-                        NewTransactionSheetDetails.save(
-                            appContext,
-                            NewTransactionSheetDetails(
-                                type = NewTransactionSheetType.LIGHTNING,
-                                direction = NewTransactionSheetDirection.RECEIVED,
-                                sats = channel.amountOnClose.toLong(),
+
+                        val cjitOrder = channel.let { blocktankRepo.getCjitOrder(it) }
+                        if (cjitOrder != null) {
+                            val amount = channel.amountOnClose.toLong()
+
+                            // Save for UI to pick up
+                            NewTransactionSheetDetails.save(
+                                appContext,
+                                NewTransactionSheetDetails(
+                                    type = NewTransactionSheetType.LIGHTNING,
+                                    direction = NewTransactionSheetDirection.RECEIVED,
+                                    sats = amount,
+                                )
                             )
-                        )
+                            activityRepo.insertActivityFromChannel(cjitOrder = cjitOrder, channel = channel)
+                        }
                     }
                 } else if (self.notificationType == orderPaymentConfirmed) {
                     self.bestAttemptContent?.title = "Channel opened"

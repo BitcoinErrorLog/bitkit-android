@@ -236,24 +236,7 @@ class AppViewModel @Inject constructor(
                                     ),
                                     event = event
                                 )
-                                val now = nowTimestamp().toEpochMilli().toULong()
-                                activityRepo.insertActivity(
-                                    Activity.Lightning(
-                                        LightningActivity(
-                                            id = channel.fundingTxo?.txid.orEmpty(),
-                                            txType = PaymentType.RECEIVED,
-                                            status = PaymentState.SUCCEEDED,
-                                            value = amount.toULong(),
-                                            fee = 0U,
-                                            invoice = cjitOrder.invoice.request,
-                                            message = "",
-                                            timestamp = now,
-                                            preimage = null,
-                                            createdAt = now,
-                                            updatedAt = null,
-                                        )
-                                    )
-                                )
+                                activityRepo.insertActivityFromChannel(cjitOrder = cjitOrder, channel = channel)
                             } else {
                                 toast(
                                     type = Toast.ToastType.LIGHTNING,
