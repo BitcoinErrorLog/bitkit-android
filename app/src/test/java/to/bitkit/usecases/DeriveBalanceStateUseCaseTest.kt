@@ -4,11 +4,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
 import org.junit.Test
+import org.lightningdevkit.ldknode.BalanceSource
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
@@ -51,11 +51,12 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
     @Test
     fun `should calculate LSP order transfer to spending using transfer amount`() = test {
-        val balance = setupBalanceMock()
+        val balance = newBalanceDetails()
+        val amountSats = 50_000uL
         val transfers = listOf(
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.TO_SPENDING,
-                amountSats = 50000L,
+                amountSats = amountSats.toLong(),
                 lspOrderId = "lsp-order-id",
                 channelId = null
             )
@@ -68,32 +69,26 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         val balanceState = result.getOrThrow()
-        assertEquals(50000uL, balanceState.balanceInTransferToSpending)
-        assertEquals(balance.totalLightningBalanceSats - 50000uL, balanceState.totalLightningSats)
+        assertEquals(amountSats, balanceState.balanceInTransferToSpending)
+        assertEquals(
+            balance.totalOnchainBalanceSats,
+            balanceState.totalOnchainSats,
+            "Onchain balance unchanged - LDK already reflects sent payment to LSP"
+        )
+        assertEquals(
+            balance.totalLightningBalanceSats,
+            balanceState.totalLightningSats,
+            "Lightning balance unchanged - channel not open yet"
+        )
     }
 
     @Test
     fun `should calculate manual channel transfer to spending using channel balance`() = test {
         val channelId = "manual-channel-id"
-        val channelBalance = LightningBalance.ClaimableOnChannelClose(
-            channelId = channelId,
-            counterpartyNodeId = "node-id",
-            amountSatoshis = 30000u,
-            transactionFeeSatoshis = 0u,
-            outboundPaymentHtlcRoundedMsat = 0u,
-            outboundForwardedHtlcRoundedMsat = 0u,
-            inboundClaimingHtlcRoundedMsat = 0u,
-            inboundHtlcRoundedMsat = 0u,
-        )
+        val amountSats = 30_000uL
+        val channelBalance = newChannelBalance(channelId, amountSats)
 
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = 0u,
-            totalAnchorChannelsReserveSats = 10_000u,
-            totalLightningBalanceSats = 80_000u,
-            lightningBalances = listOf(channelBalance),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+        val balance = newBalanceDetails().copy(lightningBalances = listOf(channelBalance))
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
 
         val channel = mock<ChannelDetails> {
@@ -102,9 +97,9 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         }
 
         val transfers = listOf(
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.MANUAL_SETUP,
-                amountSats = 30000L,
+                amountSats = amountSats.toLong(),
                 channelId = channelId,
                 lspOrderId = null
             )
@@ -117,13 +112,22 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         val balanceState = result.getOrThrow()
-        assertEquals(30000uL, balanceState.balanceInTransferToSpending)
-        assertEquals(balance.totalLightningBalanceSats - 30000uL, balanceState.totalLightningSats)
+        assertEquals(amountSats, balanceState.balanceInTransferToSpending)
+        assertEquals(
+            balance.totalOnchainBalanceSats,
+            balanceState.totalOnchainSats,
+            "Onchain balance unchanged - funding tx already spent UTXO"
+        )
+        assertEquals(
+            balance.totalLightningBalanceSats - amountSats,
+            balanceState.totalLightningSats,
+            "Lightning balance reduced - pending channel not ready"
+        )
     }
 
     @Test
     fun `should not count manual channel as pending when ready`() = test {
-        setupBalanceMock()
+        newBalanceDetails()
         val channelId = "ready-channel-id"
         val channel = mock<ChannelDetails> {
             on { this.channelId } doReturn channelId
@@ -131,9 +135,9 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         }
 
         val transfers = listOf(
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.MANUAL_SETUP,
-                amountSats = 30000L,
+                amountSats = 30_000L,
                 channelId = channelId,
                 lspOrderId = null
             )
@@ -152,31 +156,16 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
     @Test
     fun `should count closing channel balance for transfer to savings`() = test {
         val channelId = "closing-channel-id"
-        val channelBalance = LightningBalance.ClaimableOnChannelClose(
-            channelId = channelId,
-            counterpartyNodeId = "node-id",
-            amountSatoshis = 40000u,
-            transactionFeeSatoshis = 0u,
-            outboundPaymentHtlcRoundedMsat = 0u,
-            outboundForwardedHtlcRoundedMsat = 0u,
-            inboundClaimingHtlcRoundedMsat = 0u,
-            inboundHtlcRoundedMsat = 0u,
-        )
+        val amountSats = 40_000uL
+        val closingChannelBalance = newClosingChannelBalance(channelId, amountSats)
 
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = 0u,
-            totalAnchorChannelsReserveSats = 10_000u,
-            totalLightningBalanceSats = 90_000u,
-            lightningBalances = listOf(channelBalance),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+        val balance = newBalanceDetails().copy(lightningBalances = listOf(closingChannelBalance))
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
 
         val transfers = listOf(
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.COOP_CLOSE,
-                amountSats = 40000L,
+                amountSats = amountSats.toLong(),
                 channelId = channelId,
                 lspOrderId = null
             )
@@ -189,20 +178,22 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         val balanceState = result.getOrThrow()
-        assertEquals(40000uL, balanceState.balanceInTransferToSavings)
-        assertEquals(balance.totalLightningBalanceSats - 40000uL, balanceState.totalLightningSats)
+        assertEquals(amountSats, balanceState.balanceInTransferToSavings)
+        assertEquals(
+            balance.totalOnchainBalanceSats - amountSats,
+            balanceState.totalOnchainSats,
+            "Onchain balance reduced - pending sweep not yet settled"
+        )
+        assertEquals(
+            balance.totalLightningBalanceSats - amountSats,
+            balanceState.totalLightningSats,
+            "Lightning balance reduced - channel closing balance"
+        )
     }
 
     @Test
-    fun `should return zero max send onchain when spendable balance is zero`() = test {
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 50_000u,
-            spendableOnchainBalanceSats = 0u,
-            totalAnchorChannelsReserveSats = 50_000u,
-            totalLightningBalanceSats = 0u,
-            lightningBalances = emptyList(),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+    fun `should calculate zero max send onchain when spendable balance is zero`() = test {
+        val balance = newBalanceDetails().copy(totalOnchainBalanceSats = 50_000u)
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
 
@@ -214,19 +205,12 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
     }
 
     @Test
-    fun `should calculate max send onchain with successful fee calculation`() = test {
+    fun `should calculate max send onchain with successful fee estimation`() = test {
         val spendableAmount = 100_000uL
         val feeAmount = 2_000uL
         val expectedMaxSend = spendableAmount - feeAmount // 98_000
 
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = spendableAmount,
-            totalAnchorChannelsReserveSats = 0u,
-            totalLightningBalanceSats = 0u,
-            lightningBalances = emptyList(),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+        val balance = newBalanceDetails().copy(spendableOnchainBalanceSats = spendableAmount)
 
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
@@ -242,25 +226,17 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
     }
 
     @Test
-    fun `should use 10 percent fallback when fee calculation fails`() = test {
+    fun `should calculate fallback max send onchain when fee estimation fails`() = test {
         val spendableAmount = 100_000uL
-        val expectedFallback = (spendableAmount.toDouble() * 0.1).toULong() // 10_000
-        val expectedMaxSend = spendableAmount - expectedFallback // 90_000
+        val expectedFallback = (spendableAmount.toDouble() * DeriveBalanceStateUseCase.FALLBACK_FEE_PERCENT).toULong()
+        val expectedMaxSend = spendableAmount - expectedFallback
 
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = spendableAmount,
-            totalAnchorChannelsReserveSats = 0u,
-            totalLightningBalanceSats = 0u,
-            lightningBalances = emptyList(),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+        val balance = newBalanceDetails().copy(spendableOnchainBalanceSats = spendableAmount)
 
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(balance))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
-        wheneverBlocking {
-            lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
-        }.thenReturn(Result.failure(Exception("Fee calculation failed")))
+        whenever(lightningRepo.calculateTotalFee(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.failure(Exception("Fee estimation failed")))
 
         val result = sut()
 
@@ -274,14 +250,7 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         val spendableAmount = 100_000uL
         val excessiveFee = 150_000uL // Fee exceeds balance
 
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = spendableAmount,
-            totalAnchorChannelsReserveSats = 0u,
-            totalLightningBalanceSats = 0u,
-            lightningBalances = emptyList(),
-            pendingBalancesFromChannelClosures = emptyList(),
-        )
+        val balance = newBalanceDetails().copy(spendableOnchainBalanceSats = spendableAmount)
 
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
@@ -298,61 +267,36 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
     @Test
     fun `should count both spending and savings transfers correctly`() = test {
+        val toSpending = 30_000uL
+        val toSavings = 20_000uL
         val spendingChannelId = "spending-channel-id"
         val savingsChannelId = "savings-channel-id"
-
-        val spendingBalance = LightningBalance.ClaimableOnChannelClose(
-            channelId = spendingChannelId,
-            counterpartyNodeId = "node-id",
-            amountSatoshis = 30000u,
-            transactionFeeSatoshis = 0u,
-            outboundPaymentHtlcRoundedMsat = 0u,
-            outboundForwardedHtlcRoundedMsat = 0u,
-            inboundClaimingHtlcRoundedMsat = 0u,
-            inboundHtlcRoundedMsat = 0u,
-        )
-
-        val savingsBalance = LightningBalance.ClaimableOnChannelClose(
-            channelId = savingsChannelId,
-            counterpartyNodeId = "node-id",
-            amountSatoshis = 20000u,
-            transactionFeeSatoshis = 0u,
-            outboundPaymentHtlcRoundedMsat = 0u,
-            outboundForwardedHtlcRoundedMsat = 0u,
-            inboundClaimingHtlcRoundedMsat = 0u,
-            inboundHtlcRoundedMsat = 0u,
-        )
-
-        val balance = BalanceDetails(
-            totalOnchainBalanceSats = 100_000u,
-            spendableOnchainBalanceSats = 0u,
-            totalAnchorChannelsReserveSats = 10_000u,
-            totalLightningBalanceSats = 100_000u,
-            lightningBalances = listOf(spendingBalance, savingsBalance),
-            pendingBalancesFromChannelClosures = emptyList(),
+        val balance = newBalanceDetails().copy(
+            totalLightningBalanceSats = 50_000u,
+            lightningBalances = listOf(
+                newChannelBalance(spendingChannelId, toSpending),
+                newClosingChannelBalance(savingsChannelId, toSavings)
+            ),
         )
         wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balance))
-
         val spendingChannel = mock<ChannelDetails> {
             on { channelId } doReturn spendingChannelId
             on { isChannelReady } doReturn false
         }
-
         val transfers = listOf(
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.MANUAL_SETUP,
-                amountSats = 30000L,
+                amountSats = toSpending.toLong(),
                 channelId = spendingChannelId,
                 lspOrderId = null
             ),
-            createTransferEntity(
+            newTransferEntity(
                 type = TransferType.COOP_CLOSE,
-                amountSats = 20000L,
+                amountSats = toSavings.toLong(),
                 channelId = savingsChannelId,
                 lspOrderId = null
             )
         )
-
         whenever(lightningRepo.getChannels()).thenReturn(listOf(spendingChannel))
         whenever(transferRepo.activeTransfers).thenReturn(flowOf(transfers))
 
@@ -360,33 +304,63 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         val balanceState = result.getOrThrow()
-        assertEquals(30000uL, balanceState.balanceInTransferToSpending)
-        assertEquals(20000uL, balanceState.balanceInTransferToSavings)
-        assertEquals(balance.totalLightningBalanceSats - 30000uL - 20000uL, balanceState.totalLightningSats)
+        assertEquals(toSpending, balanceState.balanceInTransferToSpending)
+        assertEquals(toSavings, balanceState.balanceInTransferToSavings)
+        assertEquals(
+            balance.totalOnchainBalanceSats - toSavings,
+            balanceState.totalOnchainSats,
+            "Onchain reduced by transfer to savings (20k) only - manual channel already reflected"
+        )
+        assertEquals(
+            balance.totalLightningBalanceSats - toSpending - toSavings,
+            balanceState.totalLightningSats,
+            "Lightning reduced by manual channel (30k) + transfer to savings (20k)"
+        )
     }
 
-    private fun setupBalanceMock(): BalanceDetails = BalanceDetails(
+    private suspend fun newBalanceDetails() = BalanceDetails(
         totalOnchainBalanceSats = 100_000u,
         spendableOnchainBalanceSats = 0u,
         totalAnchorChannelsReserveSats = 10_000u,
         totalLightningBalanceSats = 50_000u,
         lightningBalances = emptyList(),
         pendingBalancesFromChannelClosures = emptyList(),
-    ).also { wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(it)) }
-}
+    ).also {
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(it))
+    }
 
-private fun createTransferEntity(
-    type: TransferType,
-    amountSats: Long,
-    channelId: String? = null,
-    lspOrderId: String? = null,
-) = TransferEntity(
-    id = "test-transfer-${System.currentTimeMillis()}",
-    type = type,
-    amountSats = amountSats,
-    channelId = channelId,
-    fundingTxId = null,
-    lspOrderId = lspOrderId,
-    isSettled = false,
-    createdAt = System.currentTimeMillis(),
-)
+    private fun newChannelBalance(id: String, sats: ULong = 30000u) = LightningBalance.ClaimableOnChannelClose(
+        channelId = id,
+        counterpartyNodeId = "node-id",
+        amountSatoshis = sats,
+        transactionFeeSatoshis = 0u,
+        outboundPaymentHtlcRoundedMsat = 0u,
+        outboundForwardedHtlcRoundedMsat = 0u,
+        inboundClaimingHtlcRoundedMsat = 0u,
+        inboundHtlcRoundedMsat = 0u,
+    )
+
+    private fun newClosingChannelBalance(id: String, sats: ULong) = LightningBalance.ClaimableAwaitingConfirmations(
+        channelId = id,
+        counterpartyNodeId = "node-id",
+        amountSatoshis = sats,
+        confirmationHeight = 344u,
+        source = BalanceSource.COOP_CLOSE,
+    )
+
+    private fun newTransferEntity(
+        type: TransferType,
+        amountSats: Long,
+        channelId: String? = null,
+        lspOrderId: String? = null,
+    ) = TransferEntity(
+        id = "test-transfer-${System.currentTimeMillis()}",
+        type = type,
+        amountSats = amountSats,
+        channelId = channelId,
+        fundingTxId = null,
+        lspOrderId = lspOrderId,
+        isSettled = false,
+        createdAt = System.currentTimeMillis(),
+    )
+}

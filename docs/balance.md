@@ -1,11 +1,47 @@
 # Balance Management in Bitkit
 
+## Domain Language
+
+- **Spending** = Lighting balance
+- **Savings** = Onchain balance
+
+## Core UX Requirement
+
+**Pending transfers must NOT appear in balance calculations:**
+
+- Funds being transferred TO spending: NOT shown in spending balance until transfer settled
+- Funds being transferred TO savings: NOT shown in savings balance until transfer settled
+- User sees funds in "Incoming Transfer" UI, not in available balance
+- This applies consistently regardless of transfer type (LSP order, manual channel, channel close)
+
+**Why:** Users should only see spendable/usable funds in their balances. Pending transfers are in-flight and not yet available for use.
+
+## Why Manual Balance Adjustments Are Needed
+
+LDK-node returns raw blockchain state, which doesn't match our UX requirements:
+
+**LDK-node reports balances as-is from blockchain/channel state:**
+- `totalOnchainBalanceSats`: All UTXOs in wallet (confirmed + unconfirmed)
+- `totalLightningBalanceSats`: All claimable lightning balances
+- No concept of "pending transfers" - just reports what exists
+
+**Our UX requirements differ:**
+- Hide pending channel funds until ready
+- Hide pending sweep outputs until settled
+- Show consistent behavior across all transfer types
+
+**Solution:** Derive adjusted balances by subtracting active transfers from LDK's raw balances.
+
+See: `DeriveBalanceStateUseCase.kt`
+
 ## LDK-Node Balance Mechanics
 
 ### BalanceDetails Structure
 LDK-node provides balance information through `BalanceDetails`:
 - `total_onchain_balance_sats`: Total onchain wallet balance (all UTXOs including unconfirmed)
-- `spendable_onchain_balance_sats`: Spendable balance (minus anchor reserves)
+- `spendable_onchain_balance_sats`: Spendable balance
+  - Excludes: unconfirmed amounts + anchor reserves
+  - **DOES NOT exclude channel funding UTXOs** - they remain in the balance
 - `total_lightning_balance_sats`: Sum of all claimable lightning balances
 - `lightning_balances`: Detailed list of balance types per channel
 - `pending_balances_from_channel_closures`: Delayed outputs being swept (CSV timelock cases)
@@ -61,7 +97,7 @@ total_lightning_balance_sats STILL includes channel value
 total_onchain_balance_sats STILL includes funding UTXO
 ```
 
-**Key Insight:** LDK does NOT remove funding UTXO from onchain balance. It's filtered via `is_funding_transaction()` when building spend transactions, but remains in `balance.total()`.
+**Key Insight:** LDK does NOT remove funding UTXO from onchain balance.
 
 **Double Counting Issue:** During channel open, the same sats appear in:
 1. `total_onchain_balance_sats` (as funding UTXO)
@@ -149,19 +185,28 @@ See: `ChannelDetails.valueToSelfSats` extension in `ChannelDetails.kt`
 
 ### Balance Adjustments
 
-**toSpending transfers (TO_SPENDING, MANUAL_SETUP):**
-- Filter active transfers by type
-- For each: resolve channelId, find matching channel
-- If channel exists but not ready: subtract its balance from lightning total
-- **Result:** User doesn't see pending channel funds as "spendable"
+**toSpending transfers - Channel Orders (TO_SPENDING with lspOrderId):**
+- Payment has been SENT to LSP (UTXO spent from wallet)
+- LDK's `totalOnchainBalanceSats` already reflects the sent payment
+- No adjustment needed - balance already correct
+- **Result:** User sees correct balance reflecting sent payment
+
+**toSpending transfers - Manual Channels (MANUAL_SETUP with channelId):**
+- Funding tx has been SENT (UTXO spent from wallet)
+- LDK's `totalOnchainBalanceSats` already reflects the spent UTXO
+- LDK's `totalLightningBalanceSats` includes ClaimableOnChannelClose (pending channel)
+- Subtract channel balance from spending only (hide pending channel)
+- No onchain adjustment needed - funding tx already reflected
+- **Result:** User sees correct onchain balance, spending shows 0 during pending
 
 **toSavings transfers (TO_SAVINGS, COOP_CLOSE, FORCE_CLOSE):**
-- Filter active transfers by type
-- For each: resolve channelId, find matching lightning balance
-- Subtract from lightning total
-- **Result:** User doesn't see funds being swept as "available"
+- Channel closed, funds being swept to onchain wallet
+- LDK's `totalLightningBalanceSats` includes pending sweep balance
+- LDK's `totalOnchainBalanceSats` includes unconfirmed sweep output
+- Subtract sweep balance from BOTH spending and savings
+- **Result:** User doesn't see pending sweep in either balance (shown in "Incoming Transfer" UI instead)
 
-See: `WalletRepo.syncBalances()`
+See: `DeriveBalanceStateUseCase.kt`
 
 ### Channel State for Incoming Transfers
 

@@ -1,7 +1,37 @@
 # Transfer System
 
+## Domain Language
+
+**Transfer Directions:**
+- **Transfers to Spending** = Moving from savings (onchain) → spending (lightning)
+  - Channel orders: Pay for channel to LSP
+  - Manual channels: Fund channel to non-LSP node
+- **Transfers to Savings** = Moving from spending (lightning) → savings (onchain)
+  - Channel closes: Funds swept from spending to savings
+
 ## Overview
-Transfers are first-class domain objects that track funds moving between onchain and lightning balances. They enable proper balance calculations and UI display of pending transfers.
+Transfers are first-class domain objects that track funds moving between spending and savings. They enable proper balance calculations and UI display of pending transfers.
+
+## Core UX Requirement
+
+**Pending transfers must NOT appear in balance calculations:**
+
+When a transfer is active (not settled):
+- User sees transfer in "Incoming Transfer" UI
+- Funds are NOT included in destination balance
+- Funds are NOT included in source balance (if still visible in LDK)
+
+When a transfer is settled:
+- Transfer disappears from "Incoming Transfer" UI
+- Funds appear in destination balance
+- User can now spend/use the funds
+
+**This applies consistently to all transfer types:**
+- Channel orders (LSP)
+- Manual channels
+- Channel closes (coop/force)
+
+**Why:** Users expect to see only spendable funds in their balances. Pending transfers are in-flight and not yet usable.
 
 ## Transfer Types
 
@@ -17,8 +47,8 @@ See: `TransferType.kt`
 ### Type Categories
 
 Transfers are grouped into two categories:
-- **toSpending**: `TO_SPENDING`, `MANUAL_SETUP` (funds moving from onchain → lightning)
-- **toSavings**: `TO_SAVINGS`, `COOP_CLOSE`, `FORCE_CLOSE` (funds moving from lightning → onchain)
+- **toSpending**: `TO_SPENDING`, `MANUAL_SETUP` (funds moving from savings → spending)
+- **toSavings**: `TO_SAVINGS`, `COOP_CLOSE`, `FORCE_CLOSE` (funds moving from spending → savings)
 
 See: `TransferType.kt` for category extension functions
 
@@ -217,21 +247,29 @@ See: `ActivityRepo.kt` for metadata application logic
 
 Transfer states are used to adjust displayed balances to match UX requirements.
 
-**toSpending transfers:**
-- **LSP orders** (`lspOrderId` exists): Use `transfer.amountSats` directly
-  - Shows immediately after payment is sent, before channel appears in LDK
-  - Amount is already known from order.clientBalanceSat
-- **Manual channels** (`channelId` exists): Use channel balance from `lightningBalances`
-  - Only count channels that exist in LDK but aren't ready yet
-- Prevents showing funds as "spendable" before channel is usable
+**toSpending transfers (savings → spending):**
+- **Channel orders** (`lspOrderId` exists):
+  - Payment SENT to LSP from onchain wallet
+  - LDK's `totalOnchainBalanceSats` already reflects sent payment
+  - No adjustment needed - balance already correct
+- **Manual channels** (`channelId` exists):
+  - Funding tx SENT (UTXO spent from wallet)
+  - LDK's `totalOnchainBalanceSats` already reflects spent UTXO
+  - LDK includes channel balance in `totalLightningBalanceSats` (pending channel)
+  - Subtract channel balance from spending only (hide pending channel)
+  - No savings adjustment needed - funding tx already reflected
+  - Only subtract channels that exist in LDK but aren't ready yet
 
-**toSavings transfers:**
-- Subtract closing channel balance from lightning total
+**toSavings transfers (spending → savings):**
+- Channel closed, funds being swept to onchain wallet
+- LDK includes sweep balance in `totalLightningBalanceSats` (until swept)
+- LDK includes unconfirmed sweep output in `totalOnchainBalanceSats`
+- Subtract sweep balance from BOTH spending and savings during pending
+- **Result:** User sees funds in "Incoming Transfer" UI, not in either balance
 - **LSP orders**: Resolve channelId via order, then find in `lightningBalances`
 - **Direct channels**: Use channelId directly, then find in `lightningBalances`
-- Prevents showing funds that are being swept to onchain
 
-See: `WalletRepo.syncBalances()`
+See: `DeriveBalanceStateUseCase.kt`
 
 ## Edge Cases & Failure Handling
 

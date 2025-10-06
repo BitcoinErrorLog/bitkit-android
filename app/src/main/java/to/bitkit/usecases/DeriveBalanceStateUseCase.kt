@@ -28,13 +28,21 @@ class DeriveBalanceStateUseCase @Inject constructor(
         val channels = lightningRepo.getChannels().orEmpty()
         val activeTransfers = transferRepo.activeTransfers.first()
 
-        val toSpendingAmount = calculateTransferToSpendingAmount(activeTransfers, channels, balanceDetails)
-        val toSavingsAmount = calculateTransferToSavingsAmount(activeTransfers, channels, balanceDetails)
-        val adjustedLightningSats = balanceDetails.totalLightningBalanceSats - toSpendingAmount - toSavingsAmount
+        val paidOrdersSats = getOrderPaymentsSats(activeTransfers)
+        val pendingChannelsSats = getPendingChannelsSats(activeTransfers, channels, balanceDetails)
+
+        val toSavingsAmount = getTransferToSavingsSats(activeTransfers, channels, balanceDetails)
+        val toSpendingAmount = paidOrdersSats + pendingChannelsSats
+
+        val totalOnchainSats = balanceDetails.totalOnchainBalanceSats
+            .minusOrZero(toSavingsAmount)
+        val totalLightningSats = balanceDetails.totalLightningBalanceSats
+            .minusOrZero(pendingChannelsSats)
+            .minusOrZero(toSavingsAmount)
 
         val balanceState = BalanceState(
-            totalOnchainSats = balanceDetails.totalOnchainBalanceSats,
-            totalLightningSats = adjustedLightningSats,
+            totalOnchainSats = totalOnchainSats,
+            totalLightningSats = totalLightningSats,
             maxSendLightningSats = lightningRepo.getChannels().totalNextOutboundHtlcLimitSats(),
             maxSendOnchainSats = getMaxSendAmount(balanceDetails),
             balanceInTransferToSavings = toSavingsAmount,
@@ -49,35 +57,32 @@ class DeriveBalanceStateUseCase @Inject constructor(
         return@runCatching balanceState
     }
 
-    private fun calculateTransferToSpendingAmount(
+    private fun getOrderPaymentsSats(transfers: List<TransferEntity>): ULong {
+        return transfers
+            .filter { it.type.isToSpending() && it.lspOrderId != null }
+            .sumOf { it.amountSats.toULong() }
+    }
+
+    private fun getPendingChannelsSats(
         transfers: List<TransferEntity>,
         channels: List<ChannelDetails>,
         balances: BalanceDetails,
     ): ULong {
-        var toSpendingAmount = 0uL
-        val toSpending = transfers.filter { it.type.isToSpending() }
+        var amount = 0uL
+        val pendingTransfers = transfers.filter { it.type.isToSpending() && it.channelId != null }
 
-        for (transfer in toSpending) {
-            when {
-                // LSP orders: use transfer amount directly (channel doesn't exist yet during PAID phase)
-                transfer.lspOrderId != null -> {
-                    toSpendingAmount += transfer.amountSats.toULong()
-                }
-                // Manual channels: find channel in LDK and get balance from lightningBalances
-                transfer.channelId != null -> {
-                    val channel = channels.find { it.channelId == transfer.channelId }
-                    if (channel != null && !channel.isChannelReady) {
-                        val channelBalance = balances.lightningBalances.find { it.channelId() == channel.channelId }
-                        toSpendingAmount += channelBalance?.amountSats() ?: 0u
-                    }
-                }
+        for (transfer in pendingTransfers) {
+            val channel = channels.find { it.channelId == transfer.channelId }
+            if (channel != null && !channel.isChannelReady) {
+                val channelBalance = balances.lightningBalances.find { it.channelId() == channel.channelId }
+                amount += channelBalance?.amountSats() ?: 0u
             }
         }
 
-        return toSpendingAmount
+        return amount
     }
 
-    private suspend fun calculateTransferToSavingsAmount(
+    private suspend fun getTransferToSavingsSats(
         transfers: List<TransferEntity>,
         channels: List<ChannelDetails>,
         balanceDetails: BalanceDetails,
@@ -115,14 +120,14 @@ class DeriveBalanceStateUseCase @Inject constructor(
             speed = speed,
             utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
         ).onFailure {
-            Logger.debug("Could not calculate max send amount, using fallback of 10% = $fallback", context = TAG)
+            Logger.debug("Could not calculate max send amount, using fallback of: $fallback", context = TAG)
         }.getOrDefault(fallback)
 
         val maxSendable = spendableOnchainSats.minusOrZero(fee)
         return maxSendable
     }
 
-    private companion object {
+    companion object {
         const val TAG = "DeriveBalanceStateUseCase"
         const val FALLBACK_FEE_PERCENT = 0.1
     }
