@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
-import to.bitkit.data.AppDb
+import to.bitkit.data.dao.TransferDao
 import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.di.BgDispatcher
@@ -21,9 +21,8 @@ class TransferRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningRepo: LightningRepo,
     private val blocktankRepo: BlocktankRepo,
-    db: AppDb,
+    private val transferDao: TransferDao,
 ) {
-    private val transferDao = db.transferDao()
 
     val activeTransfers: Flow<List<TransferEntity>> = transferDao.getActiveTransfers()
 

@@ -40,10 +40,10 @@ import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
 import to.bitkit.ui.screens.CriticalUpdateScreen
-import to.bitkit.ui.screens.recovery.RecoveryModeScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
 import to.bitkit.ui.screens.recovery.RecoveryMnemonicScreen
+import to.bitkit.ui.screens.recovery.RecoveryModeScreen
 import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.scanner.SCAN_REQUEST_KEY
 import to.bitkit.ui.screens.settings.DevSettingsScreen
