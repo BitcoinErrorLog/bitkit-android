@@ -30,7 +30,7 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
+import to.bitkit.models.TransferType
 import to.bitkit.env.Env
 import to.bitkit.ext.amountOnClose
 import to.bitkit.models.EUR_CURRENCY

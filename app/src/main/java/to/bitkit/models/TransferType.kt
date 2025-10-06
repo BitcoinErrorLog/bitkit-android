@@ -1,4 +1,4 @@
-package to.bitkit.data.dto
+package to.bitkit.models
 
 enum class TransferType {
     TO_SPENDING,

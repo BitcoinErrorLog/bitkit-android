@@ -18,7 +18,7 @@ import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.dto.TransactionMetadata
-import to.bitkit.data.dto.TransferType
+import to.bitkit.models.TransferType
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.LnPeer

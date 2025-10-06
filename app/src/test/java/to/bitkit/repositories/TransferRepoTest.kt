@@ -19,7 +19,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.dao.TransferDao
-import to.bitkit.data.dto.TransferType
+import to.bitkit.models.TransferType
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceDetails

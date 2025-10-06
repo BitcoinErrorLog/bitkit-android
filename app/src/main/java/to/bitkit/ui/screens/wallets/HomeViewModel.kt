@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
+import to.bitkit.models.TransferType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
