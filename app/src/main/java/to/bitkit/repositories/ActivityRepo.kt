@@ -292,7 +292,7 @@ class ActivityRepo @Inject constructor(
                             isTransfer = metadata.isTransfer,
                             channelId = metadata.channelId,
                             transferTxId = metadata.transferTxId(),
-                            updatedAt = nowTimestamp().toEpochMilli().toULong(), // TODO shouldn't we?
+                            updatedAt = nowTimestamp().toEpochMilli().toULong(),
                         )
                         val updatedActivity = Activity.Onchain(v1 = onChainActivity)
 

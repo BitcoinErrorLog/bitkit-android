@@ -23,23 +23,19 @@ import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
-import to.bitkit.ext.amountSats
-import to.bitkit.ext.channelId
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
-import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.BalanceState
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
+import to.bitkit.usecases.SyncBalancesUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
-import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.days
@@ -55,7 +51,7 @@ class WalletRepo @Inject constructor(
     private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
-    private val transferRepo: TransferRepo,
+    private val syncBalancesUseCase: SyncBalancesUseCase,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -168,67 +164,9 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncBalances() {
-        lightningRepo.getBalancesAsync().onSuccess { balance ->
-            _walletState.update { it.copy(balanceDetails = balance) }
-
-            val channels = lightningRepo.getChannels() ?: emptyList()
-            val activeTransfers = transferRepo.activeTransfers.first()
-
-            var toSpendingAmount = 0uL
-            val toSpending = activeTransfers.filter { it.type.isToSpending() }
-
-            for (transfer in toSpending) {
-                when {
-                    // LSP orders: use transfer amount directly (channel doesn't exist yet during PAID phase)
-                    transfer.lspOrderId != null -> {
-                        toSpendingAmount += transfer.amountSats.toULong()
-                    }
-                    // Manual channels: find channel in LDK and get balance from lightningBalances
-                    transfer.channelId != null -> {
-                        val channel = channels.find { c -> c.channelId == transfer.channelId }
-                        if (channel != null && !channel.isChannelReady) {
-                            val channelBalance = balance.lightningBalances.find { it.channelId() == channel.channelId }
-                            toSpendingAmount += channelBalance?.amountSats() ?: 0u
-                        }
-                    }
-                }
-            }
-
-            var toSavingsAmount = 0uL
-            val toSavings = activeTransfers.filter { it.type.isToSavings() }
-
-            for (transfer in toSavings) {
-                val channelId = when {
-                    // LSP orders: resolve via order
-                    transfer.lspOrderId != null -> transferRepo.resolveChannelIdForTransfer(transfer, channels)
-                    // Direct channelId for manual/coop/force close
-                    else -> transfer.channelId
-                }
-
-                // Find balance in lightning_balances by channel ID
-                val channelBalance = balance.lightningBalances.find {
-                    it.channelId() == channelId
-                }
-                toSavingsAmount += channelBalance?.amountSats() ?: 0u
-            }
-
-            val adjustedLightningSats = balance.totalLightningBalanceSats - toSpendingAmount - toSavingsAmount
-
-            val newBalance = BalanceState(
-                totalOnchainSats = balance.totalOnchainBalanceSats,
-                totalLightningSats = adjustedLightningSats,
-                maxSendLightningSats = lightningRepo.getChannels().totalNextOutboundHtlcLimitSats(),
-                maxSendOnchainSats = getMaxSendAmount(),
-                balanceInTransferToSavings = toSavingsAmount,
-                balanceInTransferToSpending = toSpendingAmount,
-            )
-
-            val height = lightningRepo.lightningState.value.block()?.height
-            Logger.verbose("Active transfers at block height=$height: ${jsonLogOf(activeTransfers)}", context = TAG)
-            Logger.verbose("Balances in ldk-node at block height=$height: ${jsonLogOf(balance)}", context = TAG)
-            Logger.verbose("Balances in state at block height=$height: ${jsonLogOf(newBalance)}", context = TAG)
-
-            saveBalanceState(newBalance)
+        syncBalancesUseCase().onSuccess { balanceState ->
+            runCatching { cacheStore.cacheBalance(balanceState) }
+            _balanceState.update { balanceState }
         }.onFailure {
             Logger.warn("Could not sync balances", context = TAG)
         }
@@ -373,12 +311,6 @@ class WalletRepo @Inject constructor(
         )
     }
 
-    // Balance management
-    suspend fun saveBalanceState(balanceState: BalanceState) {
-        runCatching { cacheStore.cacheBalance(balanceState) }
-        _balanceState.update { balanceState }
-    }
-
     // BIP21 state management
     fun updateBip21AmountSats(amount: ULong?) {
         _walletState.update { it.copy(bip21AmountSats = amount) }
@@ -521,26 +453,6 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val spendableOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
-        if (spendableOnchainSats == 0uL) {
-            return@withContext 0uL
-        }
-        val fallbackMaxFee = (spendableOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
-        val speed = settingsStore.data.first().defaultTransactionSpeed
-
-        val fee = lightningRepo.calculateTotalFee(
-            amountSats = spendableOnchainSats,
-            speed = speed,
-            utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
-        ).onFailure {
-            Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
-        }.getOrDefault(fallbackMaxFee)
-
-        val maxSendable = (spendableOnchainSats - fee).coerceAtLeast(0u)
-        maxSendable
-    }
-
     private suspend fun Scanner.OnChain.extractLightningHash(): String? {
         val lightningInvoice: String = this.invoice.params?.get("lightning") ?: return null
         val decoded = decode(lightningInvoice)
@@ -557,7 +469,6 @@ class WalletRepo @Inject constructor(
 
     private companion object {
         const val TAG = "WalletRepo"
-        const val FALLBACK_FEE_PERCENT = 0.1
     }
 }
 
@@ -570,5 +481,4 @@ data class WalletState(
     val selectedTags: List<String> = listOf(),
     val receiveOnSpendingBalance: Boolean = true,
     val walletExists: Boolean = false,
-    val balanceDetails: BalanceDetails? = null, // TODO KEEP ONLY BalanceState IF POSSIBLE
 )

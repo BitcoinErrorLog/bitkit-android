@@ -21,7 +21,6 @@ import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
@@ -86,7 +85,6 @@ class WalletViewModel @Inject constructor(
                         bip21Description = state.bip21Description,
                         selectedTags = state.selectedTags,
                         receiveOnSpendingBalance = state.receiveOnSpendingBalance,
-                        balanceDetails = state.balanceDetails
                     )
                 }
                 if (state.walletExists && restoreState == RestoreState.RestoringWallet) {
@@ -314,7 +312,6 @@ class WalletViewModel @Inject constructor(
 // TODO rename to walletUiState
 data class MainUiState(
     val nodeId: String = "",
-    val balanceDetails: BalanceDetails? = null,
     val onchainAddress: String = "",
     val bolt11: String = "",
     val bip21: String = "",

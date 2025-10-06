@@ -80,9 +80,12 @@ fun NodeInfoScreen(
     val uiState by wallet.uiState.collectAsStateWithLifecycle()
     val isDevModeEnabled by settings.isDevModeEnabled.collectAsStateWithLifecycle()
 
+    val balanceDetails = wallet.lightningState.value.balanceDetails
+
     Content(
         uiState = uiState,
         isDevModeEnabled = isDevModeEnabled,
+        balanceDetails = balanceDetails,
         onBack = { navController.popBackStack() },
         onClose = { navController.navigateToHome() },
         onRefresh = { wallet.onPullToRefresh() },
@@ -102,6 +105,7 @@ fun NodeInfoScreen(
 private fun Content(
     uiState: MainUiState,
     isDevModeEnabled: Boolean,
+    balanceDetails: BalanceDetails? = null,
     onBack: () -> Unit = {},
     onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -134,11 +138,11 @@ private fun Content(
                         nodeStatus = uiState.nodeStatus,
                     )
 
-                    uiState.balanceDetails?.let { balanceDetails ->
-                        WalletBalancesSection(balanceDetails = balanceDetails)
+                    balanceDetails?.let { details ->
+                        WalletBalancesSection(balanceDetails = details)
 
-                        if (balanceDetails.lightningBalances.isNotEmpty()) {
-                            LightningBalancesSection(balances = balanceDetails.lightningBalances)
+                        if (details.lightningBalances.isNotEmpty()) {
+                            LightningBalancesSection(balances = details.lightningBalances)
                         }
                     }
 
@@ -497,40 +501,40 @@ private fun PreviewDevMode() {
                         inboundHtlcMaximumMsat = 200000000UL,
                     ),
                 ),
-                balanceDetails = BalanceDetails(
-                    totalOnchainBalanceSats = 1000000UL,
-                    spendableOnchainBalanceSats = 900000UL,
-                    totalAnchorChannelsReserveSats = 50000UL,
-                    totalLightningBalanceSats = 500000UL,
-                    lightningBalances = listOf(
-                        LightningBalance.ClaimableOnChannelClose(
-                            channelId = "abc123def456789012345678901234567890123456789012345678901234567890",
-                            counterpartyNodeId = "0248a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-                            amountSatoshis = 250000UL,
-                            transactionFeeSatoshis = 1000UL,
-                            outboundPaymentHtlcRoundedMsat = 0UL,
-                            outboundForwardedHtlcRoundedMsat = 0UL,
-                            inboundClaimingHtlcRoundedMsat = 0UL,
-                            inboundHtlcRoundedMsat = 0UL,
-                        ),
-                        LightningBalance.ClaimableAwaitingConfirmations(
-                            channelId = "def456789012345678901234567890123456789012345678901234567890abc123",
-                            counterpartyNodeId = "0348a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-                            amountSatoshis = 150000UL,
-                            confirmationHeight = 850005U,
-                            source = BalanceSource.COUNTERPARTY_FORCE_CLOSED,
-                        ),
-                        LightningBalance.MaybeTimeoutClaimableHtlc(
-                            channelId = "789012345678901234567890123456789012345678901234567890abc123def456",
-                            counterpartyNodeId = "0448a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-                            amountSatoshis = 100000UL,
-                            claimableHeight = 850010U,
-                            paymentHash = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-                            outboundPayment = true,
-                        ),
+            ),
+            balanceDetails = BalanceDetails(
+                totalOnchainBalanceSats = 1000000UL,
+                spendableOnchainBalanceSats = 900000UL,
+                totalAnchorChannelsReserveSats = 50000UL,
+                totalLightningBalanceSats = 500000UL,
+                lightningBalances = listOf(
+                    LightningBalance.ClaimableOnChannelClose(
+                        channelId = "abc123def456789012345678901234567890123456789012345678901234567890",
+                        counterpartyNodeId = "0248a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
+                        amountSatoshis = 250000UL,
+                        transactionFeeSatoshis = 1000UL,
+                        outboundPaymentHtlcRoundedMsat = 0UL,
+                        outboundForwardedHtlcRoundedMsat = 0UL,
+                        inboundClaimingHtlcRoundedMsat = 0UL,
+                        inboundHtlcRoundedMsat = 0UL,
                     ),
-                    pendingBalancesFromChannelClosures = listOf(),
+                    LightningBalance.ClaimableAwaitingConfirmations(
+                        channelId = "def456789012345678901234567890123456789012345678901234567890abc123",
+                        counterpartyNodeId = "0348a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
+                        amountSatoshis = 150000UL,
+                        confirmationHeight = 850005U,
+                        source = BalanceSource.COUNTERPARTY_FORCE_CLOSED,
+                    ),
+                    LightningBalance.MaybeTimeoutClaimableHtlc(
+                        channelId = "789012345678901234567890123456789012345678901234567890abc123def456",
+                        counterpartyNodeId = "0448a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
+                        amountSatoshis = 100000UL,
+                        claimableHeight = 850010U,
+                        paymentHash = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                        outboundPayment = true,
+                    ),
                 ),
+                pendingBalancesFromChannelClosures = listOf(),
             ),
         )
     }

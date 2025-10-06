@@ -693,6 +693,7 @@ class LightningRepo @Inject constructor(
                 nodeStatus = getStatus(),
                 peers = getPeers().orEmpty(),
                 channels = getChannels().orEmpty(),
+                balanceDetails = runCatching { getBalances() }.getOrNull(),
             )
         }
     }
@@ -879,6 +880,7 @@ data class LightningState(
     val isSyncingWallet: Boolean = false,
     val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
+    val balanceDetails: BalanceDetails? = null,
 ) {
     fun block(): BestBlock? = nodeStatus?.currentBestBlock
 }

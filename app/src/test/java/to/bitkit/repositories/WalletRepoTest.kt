@@ -21,10 +21,11 @@ import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
-import to.bitkit.models.BalanceDetails
+import to.bitkit.models.BalanceState
 import to.bitkit.services.CoreService
 import to.bitkit.services.OnchainService
 import to.bitkit.test.BaseUnitTest
+import to.bitkit.usecases.SyncBalancesUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.AddressInfo
 import to.bitkit.utils.AddressStats
@@ -44,7 +45,7 @@ class WalletRepoTest : BaseUnitTest() {
     private val addressChecker: AddressChecker = mock()
     private val lightningRepo: LightningRepo = mock()
     private val cacheStore: CacheStore = mock()
-    private val transferRepo: TransferRepo = mock()
+    private val syncBalancesUseCase: SyncBalancesUseCase = mock()
 
     @Before
     fun setUp() {
@@ -56,6 +57,7 @@ class WalletRepoTest : BaseUnitTest() {
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+        wheneverBlocking { syncBalancesUseCase.invoke() }.thenReturn(Result.success(BalanceState()))
 
         whenever(keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)).thenReturn("test mnemonic")
         whenever(keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)).thenReturn(null)
@@ -73,7 +75,7 @@ class WalletRepoTest : BaseUnitTest() {
         addressChecker = addressChecker,
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
-        transferRepo = transferRepo,
+        syncBalancesUseCase = syncBalancesUseCase,
     )
 
     @Test
@@ -213,41 +215,26 @@ class WalletRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `syncBalances should update balance state`() = test {
-        val balance = setupBalanceMock()
-
-        val channels = listOf(
-            mock<ChannelDetails> {
-                on { isUsable } doReturn true
-                on { nextOutboundHtlcLimitMsat } doReturn 1000uL
-            },
+    fun `syncBalances should update balance cache and state`() = test {
+        val expectedState = BalanceState(
+            totalOnchainSats = 100_000u,
+            totalLightningSats = 50_000u,
+            maxSendLightningSats = 1000u,
+            maxSendOnchainSats = 0u,
+            balanceInTransferToSavings = 0u,
+            balanceInTransferToSpending = 0u,
         )
-        whenever(lightningRepo.getChannels()).thenReturn(channels)
-        whenever(transferRepo.activeTransfers).thenReturn(flowOf(emptyList()))
+        whenever(syncBalancesUseCase.invoke()).thenReturn(Result.success(expectedState))
 
         sut.syncBalances()
 
+        verify(cacheStore).cacheBalance(expectedState)
         sut.balanceState.test {
             val state = awaitItem()
-            assertEquals(balance.totalOnchainBalanceSats + balance.totalLightningBalanceSats, state.totalSats)
-            assertEquals(balance.totalLightningBalanceSats, state.totalLightningSats)
-            assertEquals(balance.totalOnchainBalanceSats, state.totalOnchainSats)
-            assertEquals(1u, state.maxSendLightningSats)
-            assertEquals(0u, state.maxSendOnchainSats)
-            assertEquals(0u, state.balanceInTransferToSavings)
-            assertEquals(0u, state.balanceInTransferToSpending)
+            assertEquals(expectedState, state)
+            assertEquals(expectedState.totalSats, state.totalSats)
             cancelAndIgnoreRemainingEvents()
         }
-    }
-
-    @Test
-    fun `syncBalances should update wallet state with balance details`() = test {
-        whenever(transferRepo.activeTransfers).thenReturn(flowOf(emptyList()))
-        val balanceDetails = setupBalanceMock()
-
-        sut.syncBalances()
-
-        assertEquals(balanceDetails, sut.walletState.value.balanceDetails)
     }
 
     @Test
@@ -472,15 +459,6 @@ class WalletRepoTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
     }
-
-    private fun setupBalanceMock(): BalanceDetails = BalanceDetails(
-        totalOnchainBalanceSats = 100_000u,
-        spendableOnchainBalanceSats = 0u,
-        totalAnchorChannelsReserveSats = 10_000u,
-        totalLightningBalanceSats = 50_000u,
-        lightningBalances = emptyList(),
-        pendingBalancesFromChannelClosures = emptyList(),
-    ).also { wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(it)) }
 }
 
 private fun mockAddressInfo() = AddressInfo(
