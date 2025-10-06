@@ -57,7 +57,6 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.amountOnClose
-import to.bitkit.ext.amountSats
 import to.bitkit.ext.getClipboardText
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.ext.maxSendableSat
@@ -226,7 +225,8 @@ class AppViewModel @Inject constructor(
 
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            if (channel != null && blocktankRepo.isCjitOrder(channel)) {
+                            val cjitOrder = channel?.let { blocktankRepo.getCjitOrder(it) }
+                            if (cjitOrder != null) {
                                 val amount = channel.amountOnClose.toLong()
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
@@ -245,7 +245,7 @@ class AppViewModel @Inject constructor(
                                             status = PaymentState.SUCCEEDED,
                                             value = amount.toULong(),
                                             fee = 0U,
-                                            invoice = "Loading...", // todo
+                                            invoice = cjitOrder.invoice.request,
                                             message = "",
                                             timestamp = now,
                                             preimage = null,
