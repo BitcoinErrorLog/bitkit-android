@@ -11,14 +11,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
+import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
+import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.LnurlAuthData
 import com.synonym.bitkitcore.LnurlChannelData
 import com.synonym.bitkitcore.LnurlPayData
 import com.synonym.bitkitcore.LnurlWithdrawData
 import com.synonym.bitkitcore.OnChainInvoice
+import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.decode
@@ -54,12 +57,14 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.amountOnClose
+import to.bitkit.ext.amountSats
 import to.bitkit.ext.getClipboardText
 import to.bitkit.ext.getSatsPerVByteFor
 import to.bitkit.ext.maxSendableSat
 import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ext.minSendableSat
 import to.bitkit.ext.minWithdrawableSat
+import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
@@ -222,13 +227,32 @@ class AppViewModel @Inject constructor(
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
                             if (channel != null && blocktankRepo.isCjitOrder(channel)) {
+                                val amount = channel.amountOnClose.toLong()
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = channel.amountOnClose.toLong(),
+                                        sats = amount,
                                     ),
                                     event = event
+                                )
+                                val now = nowTimestamp().toEpochMilli().toULong()
+                                activityRepo.insertActivity(
+                                    Activity.Lightning(
+                                        LightningActivity(
+                                            id = channel.fundingTxo?.txid.orEmpty(),
+                                            txType = PaymentType.RECEIVED,
+                                            status = PaymentState.SUCCEEDED,
+                                            value = amount.toULong(),
+                                            fee = 0U,
+                                            invoice = "Loading...", // todo
+                                            message = "",
+                                            timestamp = now,
+                                            preimage = null,
+                                            createdAt = now,
+                                            updatedAt = null,
+                                        )
+                                    )
                                 )
                             } else {
                                 toast(
