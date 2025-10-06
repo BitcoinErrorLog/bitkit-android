@@ -155,7 +155,7 @@ SETTLE TRANSFER:
 
 ### Channel ID Resolution
 
-**Just-in-time channelId resolution** for transfer state checks.
+**Just-in-time channelId resolution** for settlement checks (NOT for balance calculation).
 
 For LSP orders:
 1. Fetch order from blocktankRepo using `transfer.lspOrderId`
@@ -165,6 +165,10 @@ For LSP orders:
 
 For manual transfers:
 - Return `transfer.channelId` directly (already populated)
+
+**Usage:**
+- Used in `TransferRepo.syncTransferStates()` to check if transfer should be settled
+- NOT used for balance calculation during pending phase (see Balance Calculation section)
 
 **Benefits:**
 - Single source of truth: Blocktank order data
@@ -214,12 +218,17 @@ See: `ActivityRepo.kt` for metadata application logic
 Transfer states are used to adjust displayed balances to match UX requirements.
 
 **toSpending transfers:**
-- Subtract pending channel balance from lightning total
-- Only count channels that exist but aren't ready yet
+- **LSP orders** (`lspOrderId` exists): Use `transfer.amountSats` directly
+  - Shows immediately after payment is sent, before channel appears in LDK
+  - Amount is already known from order.clientBalanceSat
+- **Manual channels** (`channelId` exists): Use channel balance from `lightningBalances`
+  - Only count channels that exist in LDK but aren't ready yet
 - Prevents showing funds as "spendable" before channel is usable
 
 **toSavings transfers:**
 - Subtract closing channel balance from lightning total
+- **LSP orders**: Resolve channelId via order, then find in `lightningBalances`
+- **Direct channels**: Use channelId directly, then find in `lightningBalances`
 - Prevents showing funds that are being swept to onchain
 
 See: `WalletRepo.syncBalances()`
@@ -304,9 +313,10 @@ Transfers are serialized to JSON and included in backup. Restore deserializes an
 3. Restart app
 4. Verify transfer still active and tracks correctly
 
-### LSP Order Just-in-Time Resolution
+### LSP Order Balance and Settlement
 1. Create transfer with lspOrderId (channelId = null)
-2. Verify resolveChannelIdForTransfer() returns null initially
-3. Wait for order.channel to populate
-4. Verify resolveChannelIdForTransfer() resolves channelId via fundingTxId match
-5. Verify balance calculated correctly throughout
+2. Verify balance uses transfer.amountSats immediately (before channel exists in LDK)
+3. Wait for order.channel to populate (channel appears in LDK)
+4. Verify balance still uses transfer.amountSats (or channel balance if available)
+5. Wait for channel to become ready
+6. Verify transfer is settled via resolveChannelIdForTransfer() + isChannelReady check

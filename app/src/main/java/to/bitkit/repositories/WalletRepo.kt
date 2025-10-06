@@ -178,12 +178,19 @@ class WalletRepo @Inject constructor(
             val toSpending = activeTransfers.filter { it.type.isToSpending() }
 
             for (transfer in toSpending) {
-                val channelId = transferRepo.resolveChannelIdForTransfer(transfer, channels)
-                val channel = channelId?.let { channels.find { c -> c.channelId == it } }
-                if (channel != null && !channel.isChannelReady) {
-                    // Channel exists but not ready yet - find its balance
-                    val channelBalance = balance.lightningBalances.find { it.channelId() == channel.channelId }
-                    toSpendingAmount += channelBalance?.amountSats() ?: 0u
+                when {
+                    // LSP orders: use transfer amount directly (channel doesn't exist yet during PAID phase)
+                    transfer.lspOrderId != null -> {
+                        toSpendingAmount += transfer.amountSats.toULong()
+                    }
+                    // Manual channels: find channel in LDK and get balance from lightningBalances
+                    transfer.channelId != null -> {
+                        val channel = channels.find { c -> c.channelId == transfer.channelId }
+                        if (channel != null && !channel.isChannelReady) {
+                            val channelBalance = balance.lightningBalances.find { it.channelId() == channel.channelId }
+                            toSpendingAmount += channelBalance?.amountSats() ?: 0u
+                        }
+                    }
                 }
             }
 
@@ -191,7 +198,12 @@ class WalletRepo @Inject constructor(
             val toSavings = activeTransfers.filter { it.type.isToSavings() }
 
             for (transfer in toSavings) {
-                val channelId = transferRepo.resolveChannelIdForTransfer(transfer, channels)
+                val channelId = when {
+                    // LSP orders: resolve via order
+                    transfer.lspOrderId != null -> transferRepo.resolveChannelIdForTransfer(transfer, channels)
+                    // Direct channelId for manual/coop/force close
+                    else -> transfer.channelId
+                }
 
                 // Find balance in lightning_balances by channel ID
                 val channelBalance = balance.lightningBalances.find {

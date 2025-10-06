@@ -11,6 +11,7 @@ import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.OutPoint
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -431,7 +432,7 @@ class TransferRepoTest : BaseUnitTest() {
     // resolveChannelIdForTransfer tests
 
     @Test
-    fun `resolveChannelIdForTransfer returns null for LSP transfer when order not yet available - Phase 1`() = test {
+    fun `resolveChannelIdForTransfer returns null for LSP transfer when order not yet available`() = test {
         val transfer = TransferEntity(
             id = testTransferId,
             type = TransferType.TO_SPENDING,
@@ -470,11 +471,10 @@ class TransferRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `resolveChannelIdForTransfer finds channel via LSP order funding tx - Phase 2 JITtime resolution`() = test {
-        val fundingTx = FundingTx(id = testFundingTxo.txid, vout = testFundingTxo.vout.toULong())
-
-        val channelMock = mock<IBtChannel>()
-        whenever(channelMock.fundingTx).thenReturn(fundingTx)
+    fun `resolveChannelIdForTransfer finds channel via LSP order funding tx for settlement check`() = test {
+        val channelMock = mock<IBtChannel> {
+            on { fundingTx } doReturn FundingTx(id = testFundingTxo.txid, vout = testFundingTxo.vout.toULong())
+        }
 
         val order = mock<IBtOrder>()
         whenever(order.channel).thenReturn(channelMock)
