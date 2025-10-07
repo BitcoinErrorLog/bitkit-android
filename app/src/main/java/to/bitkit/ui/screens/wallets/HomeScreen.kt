@@ -110,6 +110,7 @@ import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
+import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.sheets.QuickPayIntroSheet
@@ -289,9 +290,7 @@ fun HomeScreen(
         onDismissEmptyState = homeViewModel::dismissEmptyState,
         dismissTimedSheet = homeViewModel::dismissTimedSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
-        showBackUpSheet = { appViewModel.showSheet(Sheet.Backup(route = BackupRoute.Intro)) },
         onContinueQuickPay = {
-            homeViewModel.dismissTimedSheet()
             rootNavController.navigate(Routes.QuickPaySettings)
         },
         onContinueBgPayments = {
@@ -324,7 +323,6 @@ private fun Content(
     dismissTimedSheet: () -> Unit = {},
     onContinueBgPayments: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
-    showBackUpSheet: () -> Unit = {},
     onContinueQuickPay: () -> Unit = {},
     balances: BalanceState = LocalBalances.current,
 ) {
@@ -623,8 +621,7 @@ private fun Content(
                 }
 
                 TimedSheets.BACKUP -> {
-                    showBackUpSheet()
-                    dismissTimedSheet()
+                    BackupSheet(sheet = Sheet.Backup(BackupRoute.Intro), onDismiss = dismissTimedSheet)
                 }
 
                 TimedSheets.NOTIFICATIONS -> {

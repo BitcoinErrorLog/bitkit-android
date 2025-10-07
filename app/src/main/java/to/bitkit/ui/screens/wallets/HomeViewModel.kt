@@ -165,16 +165,24 @@ class HomeViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
+        if (_uiState.value.timedSheet != null || _uiState.value.timedSheetQueue.isNotEmpty()) {
+            Logger.debug("Timed sheet already active, skipping check")
+            return
+        }
+
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
         timedSheetsScope?.launch {
-            if (_uiState.value.timedSheet != null) return@launch
-
             delay(CHECK_DELAY_MILLIS)
+
+            if (_uiState.value.timedSheet != null || _uiState.value.timedSheetQueue.isNotEmpty()) {
+                Logger.debug("Timed sheet became active during delay, skipping")
+                return@launch
+            }
 
             val eligibleSheets = TimedSheets.entries
                 .filter { shouldDisplaySheet(it) }
-                .sortedBy { it.priority } // The sheet triggered first stays behind
+                .sortedByDescending { it.priority }
 
             if (eligibleSheets.isNotEmpty()) {
                 Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
@@ -184,6 +192,8 @@ class HomeViewModel @Inject constructor(
                         timedSheetQueue = eligibleSheets
                     )
                 }
+            } else {
+                Logger.debug("No timed sheet eligible, skipping")
             }
         }
     }
