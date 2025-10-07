@@ -174,7 +174,7 @@ class HomeViewModel @Inject constructor(
 
             val eligibleSheets = TimedSheets.entries
                 .filter { shouldDisplaySheet(it) }
-                .sortedByDescending { it.priority }
+                .sortedBy { it.priority } // The sheet triggered first stays behind
 
             if (eligibleSheets.isNotEmpty()) {
                 Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
