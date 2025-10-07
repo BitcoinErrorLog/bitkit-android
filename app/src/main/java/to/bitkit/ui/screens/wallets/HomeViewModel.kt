@@ -105,7 +105,6 @@ class HomeViewModel @Inject constructor(
                 settingsStore.data,
                 walletRepo.balanceState
             ) { settings, balanceState ->
-                checkTimedSheets()
                 _uiState.value.copy(
                     showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
                 )
@@ -166,19 +165,25 @@ class HomeViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
+        timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
         timedSheetsScope?.launch {
             if (_uiState.value.timedSheet != null) return@launch
 
             delay(CHECK_DELAY_MILLIS)
 
-            val sheetToDisplay = TimedSheets.entries
+            val eligibleSheets = TimedSheets.entries
+                .filter { shouldDisplaySheet(it) }
                 .sortedByDescending { it.priority }
-                .firstOrNull { shouldDisplaySheet(it) }
 
-            sheetToDisplay?.let { sheet ->
-                Logger.debug("Displaying timedSheet $sheet")
-                _uiState.update { it.copy(timedSheet = sheet) }
+            if (eligibleSheets.isNotEmpty()) {
+                Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
+                _uiState.update {
+                    it.copy(
+                        timedSheet = eligibleSheets.first(),
+                        timedSheetQueue = eligibleSheets
+                    )
+                }
             }
         }
     }
@@ -197,7 +202,28 @@ class HomeViewModel @Inject constructor(
     }
 
     fun dismissTimedSheet() {
-        _uiState.update { it.copy(timedSheet = null) }
+        val currentQueue = _uiState.value.timedSheetQueue
+        val currentSheet = _uiState.value.timedSheet
+
+        if (currentQueue.isEmpty() || currentSheet == null) {
+            _uiState.update { it.copy(timedSheet = null, timedSheetQueue = emptyList()) }
+            return
+        }
+
+        val currentIndex = currentQueue.indexOf(currentSheet)
+        val nextIndex = currentIndex + 1
+
+        if (nextIndex < currentQueue.size) {
+            Logger.debug("Moving to next timed sheet in queue: ${currentQueue[nextIndex].name}")
+            _uiState.update {
+                it.copy(timedSheet = currentQueue[nextIndex])
+            }
+        } else {
+            Logger.debug("Timed sheet queue exhausted")
+            _uiState.update {
+                it.copy(timedSheet = null, timedSheetQueue = emptyList())
+            }
+        }
     }
 
     private suspend fun checkQuickPaySheet(): Boolean {
