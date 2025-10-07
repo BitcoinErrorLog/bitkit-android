@@ -11,17 +11,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
-import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
-import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.LnurlAuthData
 import com.synonym.bitkitcore.LnurlChannelData
 import com.synonym.bitkitcore.LnurlPayData
 import com.synonym.bitkitcore.LnurlWithdrawData
 import com.synonym.bitkitcore.OnChainInvoice
-import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.decode
@@ -63,7 +60,6 @@ import to.bitkit.ext.maxSendableSat
 import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ext.minSendableSat
 import to.bitkit.ext.minWithdrawableSat
-import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
