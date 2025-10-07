@@ -349,7 +349,7 @@ fun ContentView(
                         is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
                         is Sheet.ActivityTagSelector -> TagSelectorSheet()
                         is Sheet.Pin -> PinSheet(sheet, appViewModel)
-                        is Sheet.Backup -> BackupSheet(sheet, appViewModel)
+                        is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                     }
                 }

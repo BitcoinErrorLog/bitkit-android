@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,17 +29,15 @@ import to.bitkit.ui.settings.backups.SuccessScreen
 import to.bitkit.ui.settings.backups.WarningScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
-import to.bitkit.viewmodels.AppViewModel
 
 @Composable
 fun BackupSheet(
     sheet: Sheet.Backup,
-    app: AppViewModel,
+    onDismiss: () -> Unit,
     viewModel: BackupNavSheetViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val onDismiss by rememberUpdatedState { app.hideSheet() }
 
     LaunchedEffect(Unit) {
         viewModel.loadMnemonicData()
@@ -59,14 +56,17 @@ fun BackupSheet(
                 BackupContract.SideEffect.NavigateToConfirmMnemonic -> navController.navigate(
                     BackupRoute.ConfirmMnemonic
                 )
+
                 BackupContract.SideEffect.NavigateToConfirmPassphrase -> navController.navigate(
                     BackupRoute.ConfirmPassphrase
                 )
+
                 BackupContract.SideEffect.NavigateToWarning -> navController.navigate(BackupRoute.Warning)
                 BackupContract.SideEffect.NavigateToSuccess -> navController.navigate(BackupRoute.Success)
                 BackupContract.SideEffect.NavigateToMultipleDevices -> navController.navigate(
                     BackupRoute.MultipleDevices
                 )
+
                 BackupContract.SideEffect.NavigateToMetadata -> navController.navigate(BackupRoute.Metadata)
                 BackupContract.SideEffect.DismissSheet -> onDismiss()
             }
