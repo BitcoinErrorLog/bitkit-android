@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +39,7 @@ fun BackupSheet(
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val onDismissSheet by rememberUpdatedState { onDismiss }
 
     LaunchedEffect(Unit) {
         viewModel.loadMnemonicData()
@@ -68,7 +70,7 @@ fun BackupSheet(
                 )
 
                 BackupContract.SideEffect.NavigateToMetadata -> navController.navigate(BackupRoute.Metadata)
-                BackupContract.SideEffect.DismissSheet -> onDismiss()
+                BackupContract.SideEffect.DismissSheet -> onDismissSheet()
             }
         }
     }
@@ -86,7 +88,7 @@ fun BackupSheet(
             composableWithDefaultTransitions<BackupRoute.Intro> {
                 BackupIntroScreen(
                     hasFunds = LocalBalances.current.totalSats > 0u,
-                    onClose = onDismiss,
+                    onClose = onDismissSheet(),
                     onConfirm = { navController.navigate(BackupRoute.ShowMnemonic) },
                 )
             }
