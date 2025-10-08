@@ -26,7 +26,6 @@ import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.models.TransactionMetadata
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceState
@@ -34,6 +33,7 @@ import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.OpenChannelResult
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.services.BlocktankService
 import to.bitkit.services.CoreService
@@ -272,14 +272,6 @@ class LightningRepoTest : BaseUnitTest() {
         whenever(lightningService.canReceive()).thenReturn(true)
 
         assertTrue(sut.canReceive())
-    }
-
-    @Test
-    fun `getSyncFlow should return flow from service`() = test {
-        val testFlow = flowOf(Unit)
-        whenever(lightningService.syncFlow()).thenReturn(testFlow)
-
-        assertEquals(testFlow, sut.getSyncFlow())
     }
 
     @Test

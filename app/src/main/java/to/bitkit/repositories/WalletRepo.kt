@@ -138,7 +138,6 @@ class WalletRepo @Inject constructor(
 
     suspend fun observeLdkWallet() = withContext(bgDispatcher) {
         lightningRepo.getSyncFlow()
-            .filter { lightningRepo.lightningState.value.nodeLifecycleState == NodeLifecycleState.Running }
             .collect {
                 runCatching {
                     syncNodeAndWallet()

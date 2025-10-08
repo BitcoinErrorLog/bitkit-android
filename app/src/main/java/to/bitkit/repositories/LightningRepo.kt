@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -706,7 +707,9 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow()
+    fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow().filter {
+        lightningState.value.nodeLifecycleState.isRunning()
+    }
 
     fun getNodeId(): String? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.nodeId else null

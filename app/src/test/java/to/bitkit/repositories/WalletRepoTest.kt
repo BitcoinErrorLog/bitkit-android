@@ -51,7 +51,6 @@ class WalletRepoTest : BaseUnitTest() {
     fun setUp() {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
-        whenever(lightningRepo.getSyncFlow()).thenReturn(flowOf(Unit))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
         wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
