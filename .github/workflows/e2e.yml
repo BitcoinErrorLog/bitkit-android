@@ -46,6 +46,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHATWOOT_API: ${{ secrets.CHATWOOT_API }}
           E2E: true
+          GEO: false
         run: ./gradlew assembleDevDebug
 
       - name: Rename APK
