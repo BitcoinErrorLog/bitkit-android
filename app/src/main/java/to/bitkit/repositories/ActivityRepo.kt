@@ -3,6 +3,9 @@ package to.bitkit.repositories
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.Activity.Onchain
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.IcJitEntry
+import com.synonym.bitkitcore.LightningActivity
+import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
@@ -22,6 +26,7 @@ import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.data.dto.TransferType
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
+import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
@@ -499,6 +504,41 @@ class ActivityRepo @Inject constructor(
                 return@withContext Result.failure(Exception("Activity ${activity.rawId()} was deleted"))
             }
             coreService.activity.insert(activity)
+        }.onFailure { e ->
+            Logger.error("insertActivity error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Inserts a new activity
+     */
+    suspend fun insertActivityFromChannel(
+        cjitOrder: IcJitEntry?,
+        channel: ChannelDetails,
+    ): Result<Unit> = withContext(bgDispatcher) {
+        runCatching {
+            requireNotNull(cjitOrder)
+
+            val amount = channel.amountOnClose
+            val now = nowTimestamp().toEpochMilli().toULong()
+
+            return@withContext insertActivity(
+                Activity.Lightning(
+                    LightningActivity(
+                        id = channel.fundingTxo?.txid.orEmpty(),
+                        txType = PaymentType.RECEIVED,
+                        status = PaymentState.SUCCEEDED,
+                        value = amount,
+                        fee = 0U,
+                        invoice = cjitOrder.invoice.request,
+                        message = "",
+                        timestamp = now,
+                        preimage = null,
+                        createdAt = now,
+                        updatedAt = null,
+                    )
+                )
+            )
         }.onFailure { e ->
             Logger.error("insertActivity error", e, context = TAG)
         }
