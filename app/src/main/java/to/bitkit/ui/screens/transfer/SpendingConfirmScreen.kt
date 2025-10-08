@@ -60,6 +60,7 @@ import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.NotificationUtils
+import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.TransferViewModel
@@ -81,6 +82,10 @@ fun SpendingConfirmScreen(
     val isAdvanced = state.isAdvanced
 
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+
+    RequestNotificationPermissions(showPermissionDialog = false) { granted ->
+        settingsViewModel.setNotificationPreference(granted)
+    }
 
     Content(
         onBackClick = onBackClick,
