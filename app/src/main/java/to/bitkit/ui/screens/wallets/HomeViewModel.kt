@@ -450,9 +450,9 @@ class HomeViewModel @Inject constructor(
                     Suggestion.SUPPORT,
                     Suggestion.INVITE,
                     Suggestion.QUICK_PAY,
-                    Suggestion.NOTIFICATIONS,
+                    Suggestion.NOTIFICATIONS.takeIf { !settings.notificationsGranted },
                     Suggestion.SHOP,
-                    Suggestion.PROFILE.takeIf { !settings.notificationsGranted },
+                    Suggestion.PROFILE,
                 )
             }
 

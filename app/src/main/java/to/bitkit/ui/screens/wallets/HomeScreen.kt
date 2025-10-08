@@ -120,6 +120,7 @@ import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
@@ -150,6 +151,10 @@ fun HomeScreen(
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+    RequestNotificationPermissions { granted ->
+        settingsViewModel.setNotificationPreference(granted)
+    }
 
     LaunchedEffect(Unit) {
         homeViewModel.checkTimedSheets()
