@@ -111,7 +111,13 @@ class CoreService @Inject constructor(
         }
     }
 
+    @Suppress("KotlinConstantConditions")
     private suspend fun isGeoBlocked(): Boolean {
+        if (!Env.isGeoblockingEnabled) {
+            Logger.verbose("Geoblocking disabled via build config", context = "GeoCheck")
+            return false
+        }
+
         return ServiceQueue.CORE.background {
             runCatching {
                 Logger.verbose("Checking geo status…", context = "GeoCheck")
