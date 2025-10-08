@@ -98,13 +98,11 @@ class BlocktankRepo @Inject constructor(
         }
     }
 
-    suspend fun isCjitOrder(channel: ChannelDetails): Boolean = withContext(bgDispatcher) {
-        return@withContext runCatching {
-            _blocktankState.value.cjitEntries.any { order ->
-                order.channelSizeSat == channel.channelValueSats &&
-                    order.lspNode.pubkey == channel.counterpartyNodeId
-            }
-        }.getOrDefault(false)
+    suspend fun getCjitOrder(channel: ChannelDetails): IcJitEntry? = withContext(bgDispatcher) {
+        return@withContext _blocktankState.value.cjitEntries.firstOrNull { order ->
+            order.channelSizeSat == channel.channelValueSats &&
+                order.lspNode.pubkey == channel.counterpartyNodeId
+        }
     }
 
     suspend fun refreshInfo() = withContext(bgDispatcher) {
