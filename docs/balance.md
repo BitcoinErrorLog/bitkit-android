@@ -201,9 +201,10 @@ See: `ChannelDetails.valueToSelfSats` extension in `ChannelDetails.kt`
 
 **toSavings transfers (TO_SAVINGS, COOP_CLOSE, FORCE_CLOSE):**
 - Channel closed, funds being swept to onchain wallet
-- LDK's `totalLightningBalanceSats` includes pending sweep balance
-- LDK's `totalOnchainBalanceSats` includes unconfirmed sweep output
-- Subtract sweep balance from BOTH spending and savings
+- LDK's `totalLightningBalanceSats` includes pending sweep balance (in `lightningBalances` array)
+- LDK's `totalOnchainBalanceSats` does NOT yet include closing funds (until sweep tx confirms)
+- Subtract sweep balance from spending only (hide pending sweep)
+- No savings adjustment needed - closing funds not yet in onchain balance
 - **Result:** User doesn't see pending sweep in either balance (shown in "Incoming Transfer" UI instead)
 
 See: `DeriveBalanceStateUseCase.kt`

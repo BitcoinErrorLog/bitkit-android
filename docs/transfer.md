@@ -262,9 +262,10 @@ Transfer states are used to adjust displayed balances to match UX requirements.
 
 **toSavings transfers (spending → savings):**
 - Channel closed, funds being swept to onchain wallet
-- LDK includes sweep balance in `totalLightningBalanceSats` (until swept)
-- LDK includes unconfirmed sweep output in `totalOnchainBalanceSats`
-- Subtract sweep balance from BOTH spending and savings during pending
+- LDK includes sweep balance in `totalLightningBalanceSats` (in `lightningBalances` array)
+- LDK does NOT yet include closing funds in `totalOnchainBalanceSats` (until sweep confirms)
+- Subtract sweep balance from spending only (hide pending sweep)
+- No savings adjustment needed - closing funds not yet in onchain balance
 - **Result:** User sees funds in "Incoming Transfer" UI, not in either balance
 - **LSP orders**: Resolve channelId via order, then find in `lightningBalances`
 - **Direct channels**: Use channelId directly, then find in `lightningBalances`
