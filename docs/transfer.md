@@ -359,3 +359,100 @@ Transfers are serialized to JSON and included in backup. Restore deserializes an
 4. Verify balance still uses transfer.amountSats (or channel balance if available)
 5. Wait for channel to become ready
 6. Verify transfer is settled via resolveChannelIdForTransfer() + isChannelReady check
+
+## Functional Tests
+
+### 1. To Spending - LSP Channel Purchase
+
+- transfer to spending
+  - do not wait on the last animated screen, instead
+  - tap quickly on 'continue using the app' → back home
+- **expect:**
+  - savings balance: DECREASED by transfer amount
+  - spending balance: 0 + transfer icon
+  - activity: new UNCONFIRMED transfer entry
+- tap spending → **expect** incoming transfer balance → back home
+- mine in slack: `/regtest-mine 1`
+- **expect:**
+  - savings balance: UNCHANGED
+  - spending balance: INCREASED by channel balance + no transfer icon
+  - activity: entry CONFIRMED
+
+### 2. To Savings - LSP Channel Coop Close
+
+- transfer to savings → back home
+- **expect:**
+  - savings balance: UNCHANGED + transfer icon
+  - spending balance: 0
+  - activity: new UNCONFIRMED entry [^1]
+  - suggestions: new initiating card
+- tap savings → **expect** incoming transfer balance → back home
+- mine in slack: `/regtest-mine 6`
+- **expect:**
+  - savings balance: INCREASED by transfer amount + no transfer icon
+  - spending balance: 0
+  - activity: entry CONFIRMED
+
+### 3. Manual Setup - Fund Channel to External Node
+
+- uninstall app
+- open a channel manually: [bitkit-docker: External Node Channel][external-node-channel]
+  - **do not mine** the last `6` blocks yet!
+- **expect:**
+  - savings balance: DECREASED by transfer amount
+  - spending balance: 0 + new transfer icon
+  - activity: new unconfirmed transfer entry
+- tap spending → **expect** incoming transfer balance → back home
+- mine: `./bitcoin-cli mine 6`
+- **expect:**
+  - savings balance: UNCHANGED
+  - spending balance: INCREASED by transfer amount + no transfer icon
+  - activity: entry CONFIRMED
+
+### 4. Coop Close - Manual Channel Coop Close
+
+- (optional: if not ran right after test 2):
+  - uninstall app
+  - open a channel manually: [bitkit-docker: External Node Channel][external-node-channel]
+- transfer to savings → back home
+- **expect:**
+  - savings balance: UNCHANGED + new transfer icon
+  - spending balance: 0
+  - activity: new UNCONFIRMED entry [^1]
+  - suggestions: new initiating card
+- tap savings → **expect:** incoming transfer balance → back home
+- mine: `./bitcoin-cli mine 6`
+- **expect:**
+  - savings balance: INCREASED by transfer amount + no transfer icon
+  - spending balance: 0
+  - activity: entry CONFIRMED
+
+### 5. Force Close - Manual Channel Force Close
+
+- in `TransferViewModel.kt:55-56` use:
+    ```kt
+    const val RETRY_INTERVAL_MS = 15_000L  
+    const val GIVE_UP_MS = 15_000L
+    ```
+- uninstall app
+- open a channel manually: [bitkit-docker: External Node Channel][external-node-channel]
+- drawer → app status → lightning node → disconnect peer with port `9735`
+- transfer to savings → back home → wait ± 15 sec
+- **expect:** force transfer sheet → tap 'force transfer'
+- **expect:**
+  - sheet closed
+  - savings balance: UNCHANGED + new transfer icon
+  - spending balance: 0
+- tap savings → **expect:** incoming transfer balance → back home
+- mine: `./bitcoin-cli mine 144`
+- **expect:**
+  - savings balance: INCREASED by transfer amount + no transfer icon
+  - spending balance: 0
+  - activity: new UNCONFIRMED entry [^1]
+  - - suggestions: new initiating card (?)
+- mine: `./bitcoin-cli mine 1`
+- **expect:** activity: entry CONFIRMED
+
+[external-node-channel]: https://github.com/ovitrif/bitkit-docker#external-node-channel
+
+[^1]: Currently we can't display the channel closure transactions as 'transfer' yet in the activity list, due to an api missing in ldk-node. See comment in [ldk-node/wallet/mod.rs](https://github.com/lightningdevkit/ldk-node/blob/22a5d7742cf4e9265173ae51106db4bd9668ec8a/src/wallet/mod.rs#L728-L738)
