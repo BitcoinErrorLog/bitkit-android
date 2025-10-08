@@ -202,7 +202,10 @@ class AppViewModel @Inject constructor(
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
             ldkNodeEventBus.events.collect { event ->
-                try {
+                if (!walletRepo.walletExists()) return@collect
+
+                launch(bgDispatcher) { walletRepo.syncNodeAndWallet() }
+                runCatching {
                     when (event) { // TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
                             showNewTransactionSheet(
@@ -236,8 +239,8 @@ class AppViewModel @Inject constructor(
                             }
                         }
 
-                        is Event.ChannelPending -> walletRepo.syncBalances()
-                        is Event.ChannelClosed -> walletRepo.syncBalances()
+                        is Event.ChannelPending -> Unit
+                        is Event.ChannelClosed -> Unit
 
                         is Event.PaymentSuccessful -> {
                             val paymentHash = event.paymentHash
@@ -265,7 +268,7 @@ class AppViewModel @Inject constructor(
                         is Event.PaymentFailed -> Unit
                         is Event.PaymentForwarded -> Unit
                     }
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     Logger.error("LDK event handler error", e, context = TAG)
                 }
             }
