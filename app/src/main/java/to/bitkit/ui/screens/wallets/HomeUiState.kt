@@ -35,6 +35,7 @@ data class HomeUiState(
     val deleteWidgetAlert: WidgetType? = null,
     val showEmptyState: Boolean = false,
     val timedSheet: TimedSheets? = null,
+    val timedSheetQueue: List<TimedSheets> = emptyList(),
 )
 
 /**@param priority Priority levels for timed sheets (higher number = higher priority)*/

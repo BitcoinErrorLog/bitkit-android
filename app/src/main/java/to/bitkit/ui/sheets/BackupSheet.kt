@@ -30,17 +30,16 @@ import to.bitkit.ui.settings.backups.SuccessScreen
 import to.bitkit.ui.settings.backups.WarningScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.utils.composableWithDefaultTransitions
-import to.bitkit.viewmodels.AppViewModel
 
 @Composable
 fun BackupSheet(
     sheet: Sheet.Backup,
-    app: AppViewModel,
+    onDismiss: () -> Unit,
     viewModel: BackupNavSheetViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val onDismiss by rememberUpdatedState { app.hideSheet() }
+    val onDismissSheet by rememberUpdatedState { onDismiss }
 
     LaunchedEffect(Unit) {
         viewModel.loadMnemonicData()
@@ -59,16 +58,19 @@ fun BackupSheet(
                 BackupContract.SideEffect.NavigateToConfirmMnemonic -> navController.navigate(
                     BackupRoute.ConfirmMnemonic
                 )
+
                 BackupContract.SideEffect.NavigateToConfirmPassphrase -> navController.navigate(
                     BackupRoute.ConfirmPassphrase
                 )
+
                 BackupContract.SideEffect.NavigateToWarning -> navController.navigate(BackupRoute.Warning)
                 BackupContract.SideEffect.NavigateToSuccess -> navController.navigate(BackupRoute.Success)
                 BackupContract.SideEffect.NavigateToMultipleDevices -> navController.navigate(
                     BackupRoute.MultipleDevices
                 )
+
                 BackupContract.SideEffect.NavigateToMetadata -> navController.navigate(BackupRoute.Metadata)
-                BackupContract.SideEffect.DismissSheet -> onDismiss()
+                BackupContract.SideEffect.DismissSheet -> onDismissSheet()
             }
         }
     }
@@ -86,7 +88,7 @@ fun BackupSheet(
             composableWithDefaultTransitions<BackupRoute.Intro> {
                 BackupIntroScreen(
                     hasFunds = LocalBalances.current.totalSats > 0u,
-                    onClose = onDismiss,
+                    onClose = onDismissSheet(),
                     onConfirm = { navController.navigate(BackupRoute.ShowMnemonic) },
                 )
             }

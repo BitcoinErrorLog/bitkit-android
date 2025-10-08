@@ -165,19 +165,35 @@ class HomeViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
+        if (_uiState.value.timedSheet != null || _uiState.value.timedSheetQueue.isNotEmpty()) {
+            Logger.debug("Timed sheet already active, skipping check")
+            return
+        }
+
+        timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
         timedSheetsScope?.launch {
-            if (_uiState.value.timedSheet != null) return@launch
-
             delay(CHECK_DELAY_MILLIS)
 
-            val sheetToDisplay = TimedSheets.entries
-                .sortedByDescending { it.priority }
-                .firstOrNull { shouldDisplaySheet(it) }
+            if (_uiState.value.timedSheet != null || _uiState.value.timedSheetQueue.isNotEmpty()) {
+                Logger.debug("Timed sheet became active during delay, skipping")
+                return@launch
+            }
 
-            sheetToDisplay?.let { sheet ->
-                Logger.debug("Displaying timedSheet $sheet")
-                _uiState.update { it.copy(timedSheet = sheet) }
+            val eligibleSheets = TimedSheets.entries
+                .filter { shouldDisplaySheet(it) }
+                .sortedByDescending { it.priority }
+
+            if (eligibleSheets.isNotEmpty()) {
+                Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
+                _uiState.update {
+                    it.copy(
+                        timedSheet = eligibleSheets.first(),
+                        timedSheetQueue = eligibleSheets
+                    )
+                }
+            } else {
+                Logger.debug("No timed sheet eligible, skipping")
             }
         }
     }
@@ -196,7 +212,54 @@ class HomeViewModel @Inject constructor(
     }
 
     fun dismissTimedSheet() {
-        _uiState.update { it.copy(timedSheet = null) }
+        val currentQueue = _uiState.value.timedSheetQueue
+        val currentSheet = _uiState.value.timedSheet
+
+        if (currentQueue.isEmpty() || currentSheet == null) {
+            _uiState.update { it.copy(timedSheet = null, timedSheetQueue = emptyList()) }
+            return
+        }
+
+        viewModelScope.launch {
+            val currentTime = Clock.System.now().toEpochMilliseconds()
+
+            when (currentSheet) {
+                TimedSheets.BACKUP -> {
+                    settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
+                }
+                TimedSheets.HIGH_BALANCE -> {
+                    settingsStore.update {
+                        it.copy(
+                            balanceWarningTimes = it.balanceWarningTimes + 1,
+                            balanceWarningIgnoredMillis = currentTime
+                        )
+                    }
+                }
+
+                TimedSheets.APP_UPDATE -> Unit
+                TimedSheets.NOTIFICATIONS -> {
+                    settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
+                }
+                TimedSheets.QUICK_PAY -> {
+                    settingsStore.update { it.copy(quickPayIntroSeen = true) }
+                }
+            }
+        }
+
+        val currentIndex = currentQueue.indexOf(currentSheet)
+        val nextIndex = currentIndex + 1
+
+        if (nextIndex < currentQueue.size) {
+            Logger.debug("Moving to next timed sheet in queue: ${currentQueue[nextIndex].name}")
+            _uiState.update {
+                it.copy(timedSheet = currentQueue[nextIndex])
+            }
+        } else {
+            Logger.debug("Timed sheet queue exhausted")
+            _uiState.update {
+                it.copy(timedSheet = null, timedSheetQueue = emptyList())
+            }
+        }
     }
 
     private suspend fun checkQuickPaySheet(): Boolean {
@@ -216,12 +279,10 @@ class HomeViewModel @Inject constructor(
         if (settings.notificationsGranted) return false
         if (walletRepo.balanceState.value.totalLightningSats == 0UL) return false
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.notificationsIgnoredMillis,
             intervalMillis = ONE_WEEK_ASK_INTERVAL_MILLIS
-        ) { currentTime ->
-            settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
-        }
+        )
     }
 
     private suspend fun checkBackupSheet(): Boolean {
@@ -231,12 +292,10 @@ class HomeViewModel @Inject constructor(
         val hasBalance = walletRepo.balanceState.value.totalSats > 0U
         if (!hasBalance) return false
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.backupWarningIgnoredMillis,
             intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS
-        ) { currentTime ->
-            settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
-        }
+        )
     }
 
     private suspend fun checkAppUpdate(): Boolean = withContext(bgDispatcher) {
@@ -272,36 +331,23 @@ class HomeViewModel @Inject constructor(
 
         val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.balanceWarningIgnoredMillis,
             intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS,
             additionalCondition = belowMaxWarnings
-        ) { currentTime ->
-            settingsStore.update {
-                it.copy(
-                    balanceWarningTimes = it.balanceWarningTimes + 1,
-                    balanceWarningIgnoredMillis = currentTime
-                )
-            }
-        }
+        )
     }
 
-    private suspend inline fun checkTimeoutAndUpdate(
+    private suspend inline fun checkTimeout(
         lastIgnoredMillis: Long,
         intervalMillis: Long,
         additionalCondition: Boolean = true,
-        crossinline updateSettings: suspend (Long) -> Unit,
     ): Boolean {
         if (!additionalCondition) return false
 
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val isTimeOutOver = lastIgnoredMillis == 0L ||
             (currentTime - lastIgnoredMillis > intervalMillis)
-
-        if (isTimeOutOver) {
-            updateSettings(currentTime)
-        }
-
         return isTimeOutOver
     }
 
