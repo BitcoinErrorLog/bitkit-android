@@ -183,13 +183,13 @@ fun HomeScreen(
         sheets = {
             when (homeUiState.timedSheet) {
                 TimedSheets.APP_UPDATE -> {
-                    UpdateSheet(onDismiss = {homeViewModel.dismissTimedSheet()})
+                    UpdateSheet(onDismiss = { homeViewModel.dismissTimedSheet() })
                 }
 
                 TimedSheets.BACKUP -> {
                     BackupSheet(
                         sheet = Backup(BackupRoute.Intro),
-                        onDismiss = {homeViewModel.dismissTimedSheet()}
+                        onDismiss = { homeViewModel.dismissTimedSheet() }
                     )
                 }
 
@@ -200,7 +200,7 @@ fun HomeScreen(
                             rootNavController.navigate(Routes.BackgroundPaymentsSettings)
                             settingsViewModel.setBgPaymentsIntroSeen(true)
                         },
-                        onDismiss = {homeViewModel.dismissTimedSheet()}
+                        onDismiss = { homeViewModel.dismissTimedSheet() }
                     )
                 }
 
@@ -210,14 +210,14 @@ fun HomeScreen(
                             homeViewModel.dismissTimedSheet()
                             rootNavController.navigate(Routes.QuickPaySettings)
                         },
-                        onDismiss = {homeViewModel.dismissTimedSheet()}
+                        onDismiss = { homeViewModel.dismissTimedSheet() }
                     )
                 }
 
                 TimedSheets.HIGH_BALANCE -> {
                     HighBalanceWarningSheet(
-                        onDismiss = {homeViewModel.dismissTimedSheet()},
-                        understoodClick = {homeViewModel.dismissTimedSheet()},
+                        onDismiss = { homeViewModel.dismissTimedSheet() },
+                        understoodClick = { homeViewModel.dismissTimedSheet() },
                         learnMoreClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
                             context.startActivity(intent)
