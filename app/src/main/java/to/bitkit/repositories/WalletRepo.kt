@@ -1,8 +1,10 @@
 package to.bitkit.repositories
 
+import android.content.Context
 import com.synonym.bitkitcore.AddressType
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.decode
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +45,7 @@ import kotlin.time.Duration.Companion.days
 @Suppress("LongParameterList")
 @Singleton
 class WalletRepo @Inject constructor(
+    @ApplicationContext private val context: Context,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val db: AppDb,
     private val keychain: Keychain,
@@ -213,11 +216,11 @@ class WalletRepo @Inject constructor(
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
         try {
             keychain.wipe()
+            db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
             coreService.activity.removeAll()
-            deleteAllInvoices()
             _walletState.update { WalletState() }
             _balanceState.update { BalanceState() }
             setWalletExistsState()
