@@ -105,6 +105,7 @@ class HomeViewModel @Inject constructor(
                 settingsStore.data,
                 walletRepo.balanceState
             ) { settings, balanceState ->
+                checkTimedSheets()
                 _uiState.value.copy(
                     showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
                 )
