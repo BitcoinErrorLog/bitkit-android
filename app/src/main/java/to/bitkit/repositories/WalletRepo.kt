@@ -9,7 +9,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,7 +27,6 @@ import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
 import to.bitkit.models.AddressModel
 import to.bitkit.models.BalanceState
-import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.usecases.DeriveBalanceStateUseCase

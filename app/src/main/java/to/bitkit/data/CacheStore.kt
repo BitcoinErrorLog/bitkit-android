@@ -9,12 +9,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import to.bitkit.data.dto.PendingBoostActivity
-import to.bitkit.models.TransactionMetadata
 import to.bitkit.data.serializers.AppCacheSerializer
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.BalanceState
 import to.bitkit.models.FxRate
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton

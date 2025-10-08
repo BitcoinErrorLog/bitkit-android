@@ -17,13 +17,13 @@ import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.models.TransactionMetadata
-import to.bitkit.models.TransferType
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.LnPeer
 import to.bitkit.models.Toast
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
+import to.bitkit.models.TransferType
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo

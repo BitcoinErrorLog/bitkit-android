@@ -14,10 +14,10 @@ import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.models.TransferType
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LightningBalance
+import to.bitkit.models.TransferType
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LightningState
 import to.bitkit.repositories.TransferRepo

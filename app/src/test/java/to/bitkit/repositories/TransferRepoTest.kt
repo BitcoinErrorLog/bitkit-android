@@ -19,11 +19,11 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.dao.TransferDao
-import to.bitkit.models.TransferType
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LightningBalance
+import to.bitkit.models.TransferType
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
