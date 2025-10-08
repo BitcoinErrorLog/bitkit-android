@@ -79,6 +79,7 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
+import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.Sheet
@@ -126,6 +127,7 @@ import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     mainUiState: MainUiState,
@@ -187,10 +189,12 @@ fun HomeScreen(
                 }
 
                 TimedSheets.BACKUP -> {
-                    BackupSheet(
-                        sheet = Backup(BackupRoute.Intro),
-                        onDismiss = { homeViewModel.dismissTimedSheet() }
-                    )
+                    BottomSheet(onDismissRequest = { homeViewModel.dismissTimedSheet() }) {
+                        BackupSheet(
+                            sheet = Backup(BackupRoute.Intro),
+                            onDismiss = { homeViewModel.dismissTimedSheet() }
+                        )
+                    }
                 }
 
                 TimedSheets.NOTIFICATIONS -> {
