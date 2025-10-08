@@ -527,7 +527,6 @@ class TransferViewModel @Inject constructor(
 
         coopCloseRetryJob = viewModelScope.launch {
             val giveUpTime = startTimeMs + GIVE_UP_MS
-            // TODO cache TransferType: COOP_CLOSE or FORCE_CLOSE
             while (isActive && System.currentTimeMillis() < giveUpTime) {
                 Logger.info("Trying coop close...")
                 val channelsFailedToCoopClose = closeChannels(channelsToClose)
