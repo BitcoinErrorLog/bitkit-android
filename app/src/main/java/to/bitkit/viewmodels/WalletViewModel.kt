@@ -163,28 +163,20 @@ class WalletViewModel @Inject constructor(
         walletRepo.observeLdkWallet()
     }
 
-    fun refreshState() {
-        viewModelScope.launch {
-            walletRepo.syncNodeAndWallet()
-                .onFailure { error ->
-                    Logger.error("Failed to refresh state: ${error.message}", error)
-                    if (error !is TimeoutCancellationException) {
-                        ToastEventBus.send(error)
-                    }
+    fun refreshState() = viewModelScope.launch {
+        walletRepo.syncNodeAndWallet()
+            .onFailure { error ->
+                Logger.error("Failed to refresh state: ${error.message}", error)
+                if (error !is TimeoutCancellationException) {
+                    ToastEventBus.send(error)
                 }
-        }
+            }
     }
 
     fun onPullToRefresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            walletRepo.syncNodeAndWallet()
-                .onFailure { error ->
-                    Logger.error("Failed to refresh state: ${error.message}", error)
-                    if (error !is TimeoutCancellationException) {
-                        ToastEventBus.send(error)
-                    }
-                }
+            refreshState().join()
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
