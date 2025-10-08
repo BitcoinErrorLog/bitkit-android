@@ -220,6 +220,32 @@ class HomeViewModel @Inject constructor(
             return
         }
 
+        viewModelScope.launch {
+            val currentTime = Clock.System.now().toEpochMilliseconds()
+
+            when (currentSheet) {
+                TimedSheets.BACKUP -> {
+                    settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
+                }
+                TimedSheets.HIGH_BALANCE -> {
+                    settingsStore.update {
+                        it.copy(
+                            balanceWarningTimes = it.balanceWarningTimes + 1,
+                            balanceWarningIgnoredMillis = currentTime
+                        )
+                    }
+                }
+
+                TimedSheets.APP_UPDATE -> Unit
+                TimedSheets.NOTIFICATIONS -> {
+                    settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
+                }
+                TimedSheets.QUICK_PAY -> {
+                    settingsStore.update { it.copy(quickPayIntroSeen = true) }
+                }
+            }
+        }
+
         val currentIndex = currentQueue.indexOf(currentSheet)
         val nextIndex = currentIndex + 1
 
@@ -253,12 +279,10 @@ class HomeViewModel @Inject constructor(
         if (settings.notificationsGranted) return false
         if (walletRepo.balanceState.value.totalLightningSats == 0UL) return false
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.notificationsIgnoredMillis,
             intervalMillis = ONE_WEEK_ASK_INTERVAL_MILLIS
-        ) { currentTime ->
-            settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
-        }
+        )
     }
 
     private suspend fun checkBackupSheet(): Boolean {
@@ -268,12 +292,10 @@ class HomeViewModel @Inject constructor(
         val hasBalance = walletRepo.balanceState.value.totalSats > 0U
         if (!hasBalance) return false
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.backupWarningIgnoredMillis,
             intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS
-        ) { currentTime ->
-            settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
-        }
+        )
     }
 
     private suspend fun checkAppUpdate(): Boolean = withContext(bgDispatcher) {
@@ -309,36 +331,23 @@ class HomeViewModel @Inject constructor(
 
         val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
 
-        return checkTimeoutAndUpdate(
+        return checkTimeout(
             lastIgnoredMillis = settings.balanceWarningIgnoredMillis,
             intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS,
             additionalCondition = belowMaxWarnings
-        ) { currentTime ->
-            settingsStore.update {
-                it.copy(
-                    balanceWarningTimes = it.balanceWarningTimes + 1,
-                    balanceWarningIgnoredMillis = currentTime
-                )
-            }
-        }
+        )
     }
 
-    private suspend inline fun checkTimeoutAndUpdate(
+    private suspend inline fun checkTimeout(
         lastIgnoredMillis: Long,
         intervalMillis: Long,
         additionalCondition: Boolean = true,
-        crossinline updateSettings: suspend (Long) -> Unit,
     ): Boolean {
         if (!additionalCondition) return false
 
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val isTimeOutOver = lastIgnoredMillis == 0L ||
             (currentTime - lastIgnoredMillis > intervalMillis)
-
-        if (isTimeOutOver) {
-            updateSettings(currentTime)
-        }
-
         return isTimeOutOver
     }
 
