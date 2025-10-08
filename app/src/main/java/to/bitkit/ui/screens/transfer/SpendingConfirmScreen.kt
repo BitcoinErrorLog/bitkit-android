@@ -78,7 +78,11 @@ fun SpendingConfirmScreen(
     val context = LocalContext.current
 
     val state by viewModel.spendingUiState.collectAsStateWithLifecycle()
-    val order = state.order ?: return
+
+    val order = state.order ?: run {
+        onCloseClick()
+        return
+    }
     val isAdvanced = state.isAdvanced
 
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
