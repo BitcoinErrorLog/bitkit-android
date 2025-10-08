@@ -180,9 +180,9 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         val balanceState = result.getOrThrow()
         assertEquals(amountSats, balanceState.balanceInTransferToSavings)
         assertEquals(
-            balance.totalOnchainBalanceSats - amountSats,
+            balance.totalOnchainBalanceSats,
             balanceState.totalOnchainSats,
-            "Onchain balance reduced - pending sweep not yet settled"
+            "Onchain balance unchanged - closing balance not yet confirmed/swept"
         )
         assertEquals(
             balance.totalLightningBalanceSats - amountSats,
@@ -307,9 +307,9 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         assertEquals(toSpending, balanceState.balanceInTransferToSpending)
         assertEquals(toSavings, balanceState.balanceInTransferToSavings)
         assertEquals(
-            balance.totalOnchainBalanceSats - toSavings,
+            balance.totalOnchainBalanceSats,
             balanceState.totalOnchainSats,
-            "Onchain reduced by transfer to savings (20k) only - manual channel already reflected"
+            "Onchain unchanged - closing balance not yet confirmed/swept, manual channel already reflected"
         )
         assertEquals(
             balance.totalLightningBalanceSats - toSpending - toSavings,

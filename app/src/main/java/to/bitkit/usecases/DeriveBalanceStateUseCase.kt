@@ -35,7 +35,6 @@ class DeriveBalanceStateUseCase @Inject constructor(
         val toSpendingAmount = paidOrdersSats + pendingChannelsSats
 
         val totalOnchainSats = balanceDetails.totalOnchainBalanceSats
-            .minusOrZero(toSavingsAmount)
         val totalLightningSats = balanceDetails.totalLightningBalanceSats
             .minusOrZero(pendingChannelsSats)
             .minusOrZero(toSavingsAmount)
