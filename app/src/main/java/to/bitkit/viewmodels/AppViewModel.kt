@@ -764,7 +764,8 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanNodeId(data: Scanner.NodeId) {
-        // TODO uncomment when bitkit-core is no longer hardcoding MAINNET as network.
+        // TODO uncomment when bitkit-core is no longer hardcoding MAINNET as network
+        //  or remove this check altogether if it's not possible to implement it reliably in rust.
         //  see: https://github.com/synonymdev/bitkit-core/blob/fc432888016a1bf61aa9bfbee908513e9a33f9b9/src/modules/scanner/implementation.rs#L77
         // val network = data.network
         // val appNetwork = Env.network.toCoreNetworkType()

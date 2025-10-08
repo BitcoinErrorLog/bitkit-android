@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
@@ -694,7 +693,7 @@ class LightningRepo @Inject constructor(
                 nodeStatus = getStatus(),
                 peers = getPeers().orEmpty(),
                 channels = getChannels().orEmpty(),
-                balanceDetails = runCatching { getBalances() }.getOrNull(),
+                balances = getBalances(),
             )
         }
     }
@@ -707,9 +706,7 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow().filter {
-        lightningState.value.nodeLifecycleState.isRunning()
-    }
+    fun getSyncFlow() = lightningService.syncFlow().filter { lightningState.value.nodeLifecycleState.isRunning() }
 
     fun getNodeId(): String? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.nodeId else null
@@ -880,10 +877,10 @@ data class LightningState(
     val nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
     val peers: List<LnPeer> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
+    val balances: BalanceDetails? = null,
     val isSyncingWallet: Boolean = false,
     val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
-    val balanceDetails: BalanceDetails? = null,
 ) {
     fun block(): BestBlock? = nodeStatus?.currentBestBlock
 }

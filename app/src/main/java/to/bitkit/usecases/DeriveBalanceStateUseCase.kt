@@ -90,17 +90,8 @@ class DeriveBalanceStateUseCase @Inject constructor(
         val toSavings = transfers.filter { it.type.isToSavings() }
 
         for (transfer in toSavings) {
-            val channelId = when {
-                // LSP orders: resolve via order
-                transfer.lspOrderId != null -> transferRepo.resolveChannelIdForTransfer(transfer, channels)
-                // Direct channelId for manual/coop/force close
-                else -> transfer.channelId
-            }
-
-            // Find balance in lightning_balances by channel ID
-            val channelBalance = balanceDetails.lightningBalances.find {
-                it.channelId() == channelId
-            }
+            val channelId = transferRepo.resolveChannelIdForTransfer(transfer, channels)
+            val channelBalance = balanceDetails.lightningBalances.find { it.channelId() == channelId }
             toSavingsAmount += channelBalance?.amountSats() ?: 0u
         }
 
@@ -122,8 +113,7 @@ class DeriveBalanceStateUseCase @Inject constructor(
             Logger.debug("Could not calculate max send amount, using fallback of: $fallback", context = TAG)
         }.getOrDefault(fallback)
 
-        val maxSendable = spendableOnchainSats.minusOrZero(fee)
-        return maxSendable
+        return spendableOnchainSats.minusOrZero(fee)
     }
 
     companion object {

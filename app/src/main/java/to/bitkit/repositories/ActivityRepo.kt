@@ -63,7 +63,7 @@ class ActivityRepo @Inject constructor(
                     updateActivitiesMetadata()
                     syncTagsMetadata()
                     boostPendingActivities()
-                    syncTransfers()
+                    transferRepo.syncTransferStates()
                     isSyncingLdkNodePayments.value = false
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
@@ -296,10 +296,7 @@ class ActivityRepo @Inject constructor(
                         )
                         val updatedActivity = Activity.Onchain(v1 = onChainActivity)
 
-                        updateActivity(
-                            id = updatedActivity.v1.id,
-                            activity = updatedActivity
-                        ).onSuccess {
+                        updateActivity(id = updatedActivity.v1.id, activity = updatedActivity).onSuccess {
                             cacheStore.removeTransactionMetadata(metadata)
                         }
                     }
@@ -388,10 +385,6 @@ class ActivityRepo @Inject constructor(
                 }
             }.awaitAll()
         }
-    }
-
-    private suspend fun syncTransfers() {
-        transferRepo.syncTransferStates()
     }
 
     private suspend fun boostPendingActivities() = withContext(bgDispatcher) {

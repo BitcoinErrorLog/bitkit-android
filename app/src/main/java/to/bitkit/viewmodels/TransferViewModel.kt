@@ -494,20 +494,19 @@ class TransferViewModel @Inject constructor(
         val channelsFailedToClose = coroutineScope {
             channels.map { channel ->
                 async {
-                    lightningRepo.closeChannel(channel).fold(
-                        onSuccess = {
-                            // Create transfer for cooperative close
+                    lightningRepo.closeChannel(channel)
+                        .onSuccess {
                             transferRepo.createTransfer(
                                 type = TransferType.COOP_CLOSE,
                                 amountSats = channel.amountOnClose.toLong(),
                                 channelId = channel.channelId,
                                 fundingTxId = channel.fundingTxo?.txid,
-                                lspOrderId = null,
                             )
-                            null
-                        },
-                        onFailure = { channel }
-                    )
+                        }
+                        .fold(
+                            onSuccess = { null },
+                            onFailure = { channel }
+                        )
                 }
             }.awaitAll()
         }.filterNotNull()
@@ -586,18 +585,17 @@ class TransferViewModel @Inject constructor(
             channels.map { channel ->
                 async {
                     lightningRepo.closeChannel(channel, force = true)
+                        .onSuccess {
+                            transferRepo.createTransfer(
+                                type = TransferType.FORCE_CLOSE,
+                                amountSats = channel.amountOnClose.toLong(),
+                                channelId = channel.channelId,
+                                fundingTxId = channel.fundingTxo?.txid,
+                            )
+                        }
                         .onFailure { e -> Logger.error("Error force closing channel: ${channel.channelId}", e) }
                         .fold(
-                            onSuccess = {
-                                transferRepo.createTransfer(
-                                    type = TransferType.FORCE_CLOSE,
-                                    amountSats = channel.amountOnClose.toLong(),
-                                    channelId = channel.channelId,
-                                    fundingTxId = channel.fundingTxo?.txid,
-                                    lspOrderId = null,
-                                )
-                                null
-                            },
+                            onSuccess = { null },
                             onFailure = { channel },
                         )
                 }

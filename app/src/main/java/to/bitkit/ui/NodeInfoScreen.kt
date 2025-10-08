@@ -79,13 +79,12 @@ fun NodeInfoScreen(
 
     val uiState by wallet.uiState.collectAsStateWithLifecycle()
     val isDevModeEnabled by settings.isDevModeEnabled.collectAsStateWithLifecycle()
-
-    val balanceDetails = wallet.lightningState.value.balanceDetails
+    val lightningState by wallet.lightningState.collectAsStateWithLifecycle()
 
     Content(
         uiState = uiState,
         isDevModeEnabled = isDevModeEnabled,
-        balanceDetails = balanceDetails,
+        balanceDetails = lightningState.balances,
         onBack = { navController.popBackStack() },
         onClose = { navController.navigateToHome() },
         onRefresh = { wallet.onPullToRefresh() },

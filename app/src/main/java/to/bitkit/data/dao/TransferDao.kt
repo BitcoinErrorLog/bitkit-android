@@ -22,21 +22,9 @@ interface TransferDao {
     @Query("SELECT * FROM transfers WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): TransferEntity?
 
-    @Query("SELECT * FROM transfers WHERE channelId = :channelId AND isSettled = 0 LIMIT 1")
-    suspend fun getActiveByChannelId(channelId: String): TransferEntity?
-
-    @Query("SELECT * FROM transfers WHERE lspOrderId = :orderId LIMIT 1")
-    suspend fun getByLspOrderId(orderId: String): TransferEntity?
-
-    @Query("UPDATE transfers SET channelId = :channelId, fundingTxId = :fundingTxId WHERE id = :id")
-    suspend fun updateChannelInfo(id: String, channelId: String, fundingTxId: String?)
-
     @Query("UPDATE transfers SET isSettled = 1, settledAt = :settledAt WHERE id = :id")
     suspend fun markSettled(id: String, settledAt: Long)
 
     @Query("DELETE FROM transfers WHERE isSettled = 1 AND settledAt < :expirationTimestamp")
     suspend fun deleteOldSettled(expirationTimestamp: Long)
-
-    @Query("SELECT * FROM transfers ORDER BY createdAt DESC")
-    suspend fun getAll(): List<TransferEntity>
 }

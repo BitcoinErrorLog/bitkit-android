@@ -172,8 +172,6 @@ class ExternalNodeViewModel @Inject constructor(
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
                     val address = addressChecker.getOutputAddress(event.fundingTxo).getOrDefault("")
-
-                    // Keep transaction metadata for Activity correlation
                     cacheStore.addTransactionMetadata(
                         TransactionMetadata(
                             txId = event.fundingTxo.txid,
@@ -183,21 +181,18 @@ class ExternalNodeViewModel @Inject constructor(
                             address = address,
                         )
                     )
-
-                    // Create persisted transfer
                     transferRepo.createTransfer(
                         type = TransferType.MANUAL_SETUP,
                         amountSats = result.channelAmountSats.toLong(),
                         channelId = event.channelId,
                         fundingTxId = event.fundingTxo.txid,
-                        lspOrderId = null,
                     )
                 }.getOrThrow()
             }.onSuccess {
                 setEffect(SideEffect.ConfirmSuccess)
             }.onFailure { e ->
                 val error = e.message.orEmpty()
-                Logger.warn("Error opening channel to '${_uiState.value.peer}': '$error'")
+                Logger.warn("Error opening channel with peer: '${_uiState.value.peer}': '$error'")
                 ToastEventBus.send(
                     type = Toast.ToastType.ERROR,
                     title = context.getString(R.string.lightning__error_channel_purchase),
