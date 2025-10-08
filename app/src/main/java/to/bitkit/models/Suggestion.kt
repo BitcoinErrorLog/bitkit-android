@@ -104,7 +104,7 @@ enum class Suggestion(
     NOTIFICATIONS(
         title = R.string.cards__notifications__title,
         description = R.string.cards__notifications__description,
-        color = Colors.Blue24,
+        color = Colors.Purple24,
         icon = R.drawable.bell,
         dismissible = true,
     ),
