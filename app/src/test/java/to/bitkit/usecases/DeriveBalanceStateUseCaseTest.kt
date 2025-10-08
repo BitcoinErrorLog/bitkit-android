@@ -173,6 +173,7 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
 
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
         whenever(transferRepo.activeTransfers).thenReturn(flowOf(transfers))
+        wheneverBlocking { transferRepo.resolveChannelIdForTransfer(any(), any()) }.thenReturn(channelId)
 
         val result = sut()
 
@@ -299,6 +300,10 @@ class DeriveBalanceStateUseCaseTest : BaseUnitTest() {
         )
         whenever(lightningRepo.getChannels()).thenReturn(listOf(spendingChannel))
         whenever(transferRepo.activeTransfers).thenReturn(flowOf(transfers))
+        wheneverBlocking { transferRepo.resolveChannelIdForTransfer(any(), any()) }.thenAnswer { invocation ->
+            val transfer = invocation.getArgument<TransferEntity>(0)
+            transfer.channelId
+        }
 
         val result = sut()
 
