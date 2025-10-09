@@ -165,7 +165,7 @@ private fun Content(
                     .testTag("SpendingAdvancedNumberField")
             )
 
-            VerticalSpacer(height = 16.dp)
+            VerticalSpacer(16.dp)
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,

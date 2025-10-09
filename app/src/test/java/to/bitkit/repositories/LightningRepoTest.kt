@@ -26,13 +26,14 @@ import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.models.BalanceState
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
+import to.bitkit.models.OpenChannelResult
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.services.BlocktankService
 import to.bitkit.services.CoreService
@@ -207,15 +208,15 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `openChannel should succeed when node is running`() = test {
         startNodeForTesting()
-        val testPeer = LnPeer("nodeId", "host", "9735")
-        val testChannelId = "testChannelId"
-        val channelAmountSats = 100000uL
-        whenever(lightningService.openChannel(testPeer, channelAmountSats, null, null))
-            .thenReturn(Result.success(testChannelId))
+        val peer = LnPeer("nodeId", "host", "9735")
+        val userChannelId = "testChannelId"
+        val channelAmountSats = 100_000uL
+        whenever(lightningService.openChannel(peer, channelAmountSats, null, null))
+            .thenReturn(Result.success(OpenChannelResult(userChannelId, peer, channelAmountSats)))
 
-        val result = sut.openChannel(testPeer, channelAmountSats, null)
+        val result = sut.openChannel(peer, channelAmountSats, null)
         assertTrue(result.isSuccess)
-        assertEquals(testChannelId, result.getOrNull())
+        assertEquals(userChannelId, result.getOrNull()?.userChannelId)
     }
 
     @Test
@@ -227,7 +228,7 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `closeChannel should succeed when node is running`() = test {
         startNodeForTesting()
-        whenever(lightningService.closeChannel(any(), any(), any(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.closeChannel(any(), any(), anyOrNull())).thenReturn(Unit)
 
         val result = sut.closeChannel(createChannelDetails())
         assertTrue(result.isSuccess)
@@ -271,14 +272,6 @@ class LightningRepoTest : BaseUnitTest() {
         whenever(lightningService.canReceive()).thenReturn(true)
 
         assertTrue(sut.canReceive())
-    }
-
-    @Test
-    fun `getSyncFlow should return flow from service`() = test {
-        val testFlow = flowOf(Unit)
-        whenever(lightningService.syncFlow()).thenReturn(testFlow)
-
-        assertEquals(testFlow, sut.getSyncFlow())
     }
 
     @Test
@@ -423,7 +416,6 @@ class LightningRepoTest : BaseUnitTest() {
         assertEquals("test_address", capturedActivity.address)
         assertEquals(true, capturedActivity.isTransfer)
         assertEquals("test_channel_id", capturedActivity.channelId)
-        assertEquals("testPaymentId", capturedActivity.transferTxId)
         assertEquals(10u, capturedActivity.feeRate)
     }
 

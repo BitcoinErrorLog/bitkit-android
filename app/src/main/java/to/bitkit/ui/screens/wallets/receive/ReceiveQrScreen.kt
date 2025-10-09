@@ -275,11 +275,9 @@ private fun ReceiveQrSlide(
             content = uri,
             logoPainter = qrLogoPainter,
             tipMessage = stringResource(R.string.wallet__receive_copied),
-            modifier = Modifier.weight(1f, fill = false),
+            onBitmapGenerated = { bitmap -> qrBitmap = bitmap },
             testTag = "QRCode",
-            onBitmapGenerated = { bitmap ->
-                qrBitmap = bitmap
-            }
+            modifier = Modifier.weight(1f, fill = false)
         )
 
         Spacer(modifier = Modifier.height(16.dp))

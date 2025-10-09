@@ -73,7 +73,6 @@ import to.bitkit.models.Suggestion
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toActivityFilter
-import to.bitkit.models.toCoreNetworkType
 import to.bitkit.models.toTxType
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
@@ -107,9 +106,9 @@ class AppViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
     private val blocktankRepo: BlocktankRepo,
-    private val connectivityRepo: ConnectivityRepo,
-    private val healthRepo: HealthRepo,
     private val appUpdaterService: AppUpdaterService,
+    connectivityRepo: ConnectivityRepo,
+    healthRepo: HealthRepo,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -203,7 +202,10 @@ class AppViewModel @Inject constructor(
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
             ldkNodeEventBus.events.collect { event ->
-                try {
+                if (!walletRepo.walletExists()) return@collect
+
+                launch(bgDispatcher) { walletRepo.syncNodeAndWallet() }
+                runCatching {
                     when (event) { // TODO Create individual sheet for each type of event
                         is Event.PaymentReceived -> {
                             showNewTransactionSheet(
@@ -216,8 +218,6 @@ class AppViewModel @Inject constructor(
                                 event = event
                             )
                         }
-
-                        is Event.ChannelPending -> Unit // Only relevant for channels to external nodes
 
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
@@ -242,6 +242,7 @@ class AppViewModel @Inject constructor(
                             }
                         }
 
+                        is Event.ChannelPending -> Unit
                         is Event.ChannelClosed -> Unit
 
                         is Event.PaymentSuccessful -> {
@@ -270,7 +271,7 @@ class AppViewModel @Inject constructor(
                         is Event.PaymentFailed -> Unit
                         is Event.PaymentForwarded -> Unit
                     }
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     Logger.error("LDK event handler error", e, context = TAG)
                 }
             }
@@ -766,20 +767,23 @@ class AppViewModel @Inject constructor(
     }
 
     private fun onScanNodeId(data: Scanner.NodeId) {
-        val (url, network) = data
-        val appNetwork = Env.network.toCoreNetworkType()
-        if (network != appNetwork) {
-            toast(
-                type = Toast.ToastType.WARNING,
-                title = context.getString(R.string.other__qr_error_network_header),
-                description = context.getString(R.string.other__qr_error_network_text)
-                    .replace("{selectedNetwork}", appNetwork.name)
-                    .replace("{dataNetwork}", network.name),
-            )
-            return
-        }
+        // TODO uncomment when bitkit-core is no longer hardcoding MAINNET as network
+        //  or remove this check altogether if it's not possible to implement it reliably in rust.
+        //  see: https://github.com/synonymdev/bitkit-core/blob/fc432888016a1bf61aa9bfbee908513e9a33f9b9/src/modules/scanner/implementation.rs#L77
+        // val network = data.network
+        // val appNetwork = Env.network.toCoreNetworkType()
+        // if (network != appNetwork) {
+        //     toast(
+        //         type = Toast.ToastType.WARNING,
+        //         title = context.getString(R.string.other__qr_error_network_header),
+        //         description = context.getString(R.string.other__qr_error_network_text)
+        //             .replace("{selectedNetwork}", appNetwork.name)
+        //             .replace("{dataNetwork}", network.name),
+        //     )
+        //     return
+        // }
         hideSheet() // hide scan sheet if opened
-        val nextRoute = Routes.ExternalConnection(url)
+        val nextRoute = Routes.ExternalConnection(data.url)
         mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
     }
 

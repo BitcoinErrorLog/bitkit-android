@@ -14,15 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
 import to.bitkit.models.Suggestion
+import to.bitkit.models.TransferType
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
 import to.bitkit.models.widget.ArticleModel
 import to.bitkit.models.widget.toArticleModel
 import to.bitkit.models.widget.toBlockModel
-import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.CurrencyRepo
+import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
 import to.bitkit.ui.screens.widgets.blocks.toWeatherModel
@@ -36,7 +36,7 @@ class HomeViewModel @Inject constructor(
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
-    private val activityRepo: ActivityRepo,
+    private val transferRepo: TransferRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -266,7 +266,7 @@ class HomeViewModel @Inject constructor(
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,
-        activityRepo.inProgressTransfers
+        transferRepo.activeTransfers,
     ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
             balanceState.totalLightningSats > 0uL -> { // With Lightning

@@ -24,10 +24,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.FillHeight
+import to.bitkit.ui.components.MnemonicWordsGrid
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.settings.backups.MnemonicWordsGrid
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -104,7 +104,6 @@ private fun Content(
                     MnemonicWordsGrid(
                         actualWords = uiState.mnemonicWords,
                         showMnemonic = true,
-                        blurRadius = 0f,
                     )
                 }
 

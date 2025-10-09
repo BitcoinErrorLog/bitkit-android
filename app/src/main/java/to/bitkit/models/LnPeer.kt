@@ -1,11 +1,15 @@
 package to.bitkit.models
 
+import kotlinx.serialization.Serializable
 import org.lightningdevkit.ldknode.PeerDetails
 
+@Serializable
 data class LnPeer(
     val nodeId: String,
     val host: String,
     val port: String,
+    val isConnected: Boolean = false,
+    val isPersisted: Boolean = false,
 ) {
     constructor(
         nodeId: String,
@@ -16,16 +20,19 @@ data class LnPeer(
         address.substringAfter(":"),
     )
 
+    constructor(peerDetails: PeerDetails) : this(
+        nodeId = peerDetails.nodeId,
+        host = peerDetails.address.substringBefore(":"),
+        port = peerDetails.address.substringAfter(":"),
+        isConnected = peerDetails.isConnected,
+        isPersisted = peerDetails.isPersisted,
+    )
+
     val address get() = "$host:$port"
 
     override fun toString() = "$nodeId@$address"
 
     companion object {
-        fun PeerDetails.toLnPeer() = LnPeer(
-            nodeId = nodeId,
-            address = address,
-        )
-
         fun parseUri(uriString: String): Result<LnPeer> {
             val uriComponents = uriString.split("@")
             val nodeId = uriComponents[0]
