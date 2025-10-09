@@ -267,11 +267,6 @@ class HomeViewModel @Inject constructor(
         val settings = settingsStore.data.first()
         if (settings.quickPayIntroSeen || settings.isQuickPayEnabled) return false
         val shouldShow = walletRepo.balanceState.value.totalLightningSats > 0U
-
-        if (shouldShow) {
-            settingsStore.update { it.copy(quickPayIntroSeen = true) }
-        }
-
         return shouldShow
     }
 

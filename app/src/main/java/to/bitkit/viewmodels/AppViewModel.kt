@@ -217,15 +217,18 @@ class AppViewModel @Inject constructor(
 
                         is Event.ChannelReady -> {
                             val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            if (channel != null && blocktankRepo.isCjitOrder(channel)) {
+                            val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
+                            if (cjitEntry != null) {
+                                val amount = channel.amountOnClose.toLong()
                                 showNewTransactionSheet(
                                     NewTransactionSheetDetails(
                                         type = NewTransactionSheetType.LIGHTNING,
                                         direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = channel.amountOnClose.toLong(),
+                                        sats = amount,
                                     ),
                                     event = event
                                 )
+                                activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
                             } else {
                                 toast(
                                     type = Toast.ToastType.LIGHTNING,
