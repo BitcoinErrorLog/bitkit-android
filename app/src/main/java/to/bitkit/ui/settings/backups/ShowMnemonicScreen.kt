@@ -1,8 +1,6 @@
 package to.bitkit.ui.settings.backups
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.EaseOutQuart
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -10,30 +8,27 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -47,9 +42,9 @@ import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.MnemonicWordsGrid
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.scaffold.SheetTopBar
@@ -57,6 +52,7 @@ import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.utils.bip39Words
 
@@ -67,13 +63,8 @@ fun ShowMnemonicScreen(
     onContinueClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val mnemonicWords = remember(uiState.bip39Mnemonic) {
-        uiState.bip39Mnemonic.split(" ").filter { it.isNotBlank() }
-    }
-
     ShowMnemonicContent(
         mnemonic = uiState.bip39Mnemonic,
-        mnemonicWords = mnemonicWords,
         showMnemonic = uiState.showMnemonic,
         onRevealClick = onRevealClick,
         onCopyClick = {
@@ -86,19 +77,13 @@ fun ShowMnemonicScreen(
 @Composable
 private fun ShowMnemonicContent(
     mnemonic: String,
-    mnemonicWords: List<String>,
     showMnemonic: Boolean,
     onRevealClick: () -> Unit,
     onCopyClick: () -> Unit,
     onContinueClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val blurRadius by animateFloatAsState(
-        targetValue = if (showMnemonic) 0f else 10f,
-        animationSpec = tween(durationMillis = 800, easing = EaseOutQuart),
-        label = "blurRadius"
-    )
-
+    val mnemonicWords = remember(mnemonic) { mnemonic.split(" ").filter { it.isNotBlank() } }
     val buttonAlpha by animateFloatAsState(
         targetValue = if (showMnemonic) 0f else 1f,
         animationSpec = tween(durationMillis = 400),
@@ -113,7 +98,7 @@ private fun ShowMnemonicContent(
     // Scroll to bottom when mnemonic is revealed
     LaunchedEffect(showMnemonic) {
         if (showMnemonic) {
-            delay(300) // Wait for the animation to start
+            delay(TRANSITION_SCREEN_MS) // Wait for the animation to start
             scope.launch {
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
@@ -167,7 +152,6 @@ private fun ShowMnemonicContent(
                     MnemonicWordsGrid(
                         actualWords = mnemonicWords,
                         showMnemonic = showMnemonic,
-                        blurRadius = blurRadius,
                     )
                 }
 
@@ -216,82 +200,16 @@ private fun ShowMnemonicContent(
     }
 }
 
-@Composable
-fun MnemonicWordsGrid(
-    actualWords: List<String>,
-    showMnemonic: Boolean,
-    blurRadius: Float,
-) {
-    val placeholderWords = remember(actualWords) { List(actualWords.size) { "secret" } }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .blur(radius = blurRadius.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-            .alpha(1f - blurRadius * 0.075f)
-    ) {
-        Crossfade(
-            targetState = showMnemonic,
-            animationSpec = tween(durationMillis = 600),
-            label = "mnemonicCrossfade"
-        ) { isRevealed ->
-            val wordsToShow = if (isRevealed && actualWords.isNotEmpty()) actualWords else placeholderWords
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    wordsToShow.take(wordsToShow.size / 2).forEachIndexed { index, word ->
-                        WordItem(
-                            number = index + 1,
-                            word = word
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    wordsToShow.drop(wordsToShow.size / 2).forEachIndexed { index, word ->
-                        WordItem(
-                            number = wordsToShow.size / 2 + index + 1,
-                            word = word
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WordItem(
-    number: Int,
-    word: String,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BodyMSB(text = "$number.", color = Colors.White64)
-        Spacer(modifier = Modifier.width(8.dp))
-        BodyMSB(text = word, color = Colors.White)
-    }
-}
-
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
+            var showMnemonic by remember { mutableStateOf(false) }
             ShowMnemonicContent(
                 mnemonic = bip39Words.take(12).joinToString(" "),
-                mnemonicWords = bip39Words.take(12),
-                showMnemonic = false,
-                onRevealClick = {},
+                showMnemonic = showMnemonic,
+                onRevealClick = { showMnemonic = !showMnemonic },
                 onCopyClick = {},
                 onContinueClick = {},
                 modifier = Modifier.sheetHeight(SheetSize.MEDIUM, isModal = true)
@@ -307,7 +225,6 @@ private fun PreviewShown() {
         BottomSheetPreview {
             ShowMnemonicContent(
                 mnemonic = bip39Words.take(12).joinToString(" "),
-                mnemonicWords = bip39Words.take(12),
                 showMnemonic = true,
                 onRevealClick = {},
                 onCopyClick = {},
@@ -325,7 +242,6 @@ private fun Preview24Words() {
         BottomSheetPreview {
             ShowMnemonicContent(
                 mnemonic = bip39Words.take(24).joinToString(" "),
-                mnemonicWords = bip39Words.take(24),
                 showMnemonic = true,
                 onRevealClick = {},
                 onCopyClick = {},

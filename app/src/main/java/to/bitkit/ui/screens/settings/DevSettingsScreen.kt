@@ -106,10 +106,10 @@ fun DevSettingsScreen(
                 }
             )
             SettingsTextButtonRow(
-                title = "Reset Metadata State",
+                title = "Reset App Database",
                 onClick = {
-                    viewModel.resetMetadataState()
-                    app.toast(type = Toast.ToastType.SUCCESS, title = "Metadata state reset")
+                    viewModel.resetDatabase()
+                    app.toast(type = Toast.ToastType.SUCCESS, title = "Database state reset")
                 }
             )
             SettingsTextButtonRow(

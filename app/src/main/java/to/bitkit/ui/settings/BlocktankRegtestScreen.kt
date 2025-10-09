@@ -67,7 +67,7 @@ fun BlocktankRegtestScreen(
                 .imePadding()
         ) {
             var depositAddress by remember { mutableStateOf(uiState.onchainAddress) }
-            var depositAmount by remember { mutableStateOf("123000") }
+            var depositAmount by remember { mutableStateOf("100000") }
             var mineBlockCount by remember { mutableStateOf("1") }
             var paymentInvoice by remember { mutableStateOf("") }
             var paymentAmount by remember { mutableStateOf("") }

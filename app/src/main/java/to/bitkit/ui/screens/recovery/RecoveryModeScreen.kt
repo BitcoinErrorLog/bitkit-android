@@ -33,6 +33,7 @@ import to.bitkit.viewmodels.SettingsViewModel
 @Composable
 fun RecoveryModeScreen(
     appViewModel: AppViewModel,
+    modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     recoveryViewModel: RecoveryViewModel = hiltViewModel(),
     onNavigateToSeed: () -> Unit = {},
@@ -45,7 +46,9 @@ fun RecoveryModeScreen(
         }
     }
 
-    Box {
+    Box(
+        modifier = modifier,
+    ) {
         Content(
             uiState = uiState,
             walletExists = uiState.walletExists,
