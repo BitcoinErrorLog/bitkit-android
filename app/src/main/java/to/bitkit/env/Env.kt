@@ -15,6 +15,7 @@ import kotlin.io.path.Path
 internal object Env {
     val isDebug = BuildConfig.DEBUG
     const val isE2eTest = BuildConfig.E2E
+    const val isGeoblockingEnabled = BuildConfig.GEO
     val network = Network.valueOf(BuildConfig.NETWORK)
     val walletSyncIntervalSecs = 10_uL // TODO review
     val platform = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
