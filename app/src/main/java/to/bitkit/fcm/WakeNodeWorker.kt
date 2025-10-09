@@ -157,15 +157,13 @@ class WakeNodeWorker @AssistedInject constructor(
                         self.bestAttemptContent?.title = content
                         val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
                         if (cjitEntry != null) {
-                            val amount = channel.amountOnClose.toLong()
-
                             // Save for UI to pick up
                             NewTransactionSheetDetails.save(
                                 appContext,
                                 NewTransactionSheetDetails(
                                     type = NewTransactionSheetType.LIGHTNING,
                                     direction = NewTransactionSheetDirection.RECEIVED,
-                                    sats = sats,
+                                    sats = sats.toLong(),
                                 )
                             )
                             activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
