@@ -107,12 +107,13 @@ class TransferRepo @Inject constructor(
         transfer: TransferEntity,
         channels: List<ChannelDetails>,
     ): String? {
-        transfer.lspOrderId?.let { orderId ->
-            val order = blocktankRepo.getOrder(orderId, refresh = false).getOrNull()
-            val fundingTxId = order?.channel?.fundingTx?.id ?: return null
-            return channels.find { it.fundingTxo?.txid == fundingTxId }?.channelId
-        }
-        return transfer.channelId
+        return transfer.lspOrderId
+            ?.let { orderId ->
+                val order = blocktankRepo.getOrder(orderId, refresh = false).getOrNull()
+                val fundingTxId = order?.channel?.fundingTx?.id ?: return null
+                return@let channels.find { it.fundingTxo?.txid == fundingTxId }?.channelId
+            }
+            ?: transfer.channelId
     }
 
     companion object {
