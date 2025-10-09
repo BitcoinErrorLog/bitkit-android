@@ -74,7 +74,7 @@ jobs:
           - { name: settings, grep: "@settings" }
           - { name: send, grep: "@send" }
           - { name: lightning_security, grep: "@lightning|@security" }
-          - { name: lnurl, grep: "@lnurl" }
+          - { name: lnurl_transfer, grep: "@lnurl|@transfer" }
 
     name: e2e-tests - ${{ matrix.shard.name }}
 

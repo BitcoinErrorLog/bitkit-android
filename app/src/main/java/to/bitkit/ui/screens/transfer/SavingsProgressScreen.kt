@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -92,7 +93,9 @@ private fun SavingsProgressScreen(
     onCloseClick: () -> Unit = {},
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
-    ScreenColumn {
+    ScreenColumn(
+        modifier = Modifier.testTag(if (inProgress) "TransferSettingUp" else "TransferSuccess")
+    ) {
         AppTopBar(
             titleText = when (progressState) {
                 SavingsProgressState.PROGRESS -> stringResource(R.string.lightning__transfer__nav_title)
@@ -176,6 +179,7 @@ private fun SavingsProgressScreen(
                 PrimaryButton(
                     text = stringResource(R.string.common__ok),
                     onClick = onContinueClick,
+                    modifier = Modifier.testTag("TransferSuccess-button")
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
