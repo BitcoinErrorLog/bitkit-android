@@ -584,7 +584,7 @@ class BlocktankService(
         }
     }
 
-    suspend fun cjitOrders(
+    suspend fun cjitEntries(
         entryIds: List<String>? = null,
         filter: CJitStateEnum? = null,
         refresh: Boolean = true,
