@@ -82,11 +82,11 @@ class BlocktankTest {
     }
 
     @Test
-    fun testCreateCjitOrder() = runBlocking {
+    fun testCreateCjitEntry() = runBlocking {
         // Test creating a CJIT order
         val channelSizeSat = 100_000uL // 100k sats
         val invoiceSat = 10_000uL // 10k sats for the invoice
-        val invoiceDescription = "Test CJIT order"
+        val invoiceDescription = "Test CJIT"
         val nodeId = "03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad" // Example node ID
         val channelExpiryWeeks = 6u
         val options = CreateCjitOptions(source = "bitkit", discountCode = null)
@@ -122,7 +122,7 @@ class BlocktankTest {
         )
 
         // Test getting CJIT entries
-        val entries = service.blocktank.cjitOrders(
+        val entries = service.blocktank.cjitEntries(
             entryIds = listOf(cjitEntry.id),
             filter = null,
             refresh = true

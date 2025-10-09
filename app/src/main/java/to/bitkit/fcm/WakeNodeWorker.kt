@@ -28,6 +28,8 @@ import to.bitkit.models.BlocktankNotificationType.wakeToTimeout
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
+import to.bitkit.repositories.ActivityRepo
+import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.services.CoreService
 import to.bitkit.ui.pushNotification
@@ -41,6 +43,8 @@ class WakeNodeWorker @AssistedInject constructor(
     @Assisted private val workerParams: WorkerParameters,
     private val coreService: CoreService,
     private val lightningRepo: LightningRepo,
+    private val blocktankRepo: BlocktankRepo,
+    private val activityRepo: ActivityRepo,
     private val settingsStore: SettingsStore,
 ) : CoroutineWorker(appContext, workerParams) {
     private val self = this
@@ -151,15 +155,21 @@ class WakeNodeWorker @AssistedInject constructor(
                         val sats = channel.amountOnClose
                         val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
                         self.bestAttemptContent?.title = content
-                        // Save for UI to pick up
-                        NewTransactionSheetDetails.save(
-                            appContext,
-                            NewTransactionSheetDetails(
-                                type = NewTransactionSheetType.LIGHTNING,
-                                direction = NewTransactionSheetDirection.RECEIVED,
-                                sats = channel.amountOnClose.toLong(),
+                        val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
+                        if (cjitEntry != null) {
+                            val amount = channel.amountOnClose.toLong()
+
+                            // Save for UI to pick up
+                            NewTransactionSheetDetails.save(
+                                appContext,
+                                NewTransactionSheetDetails(
+                                    type = NewTransactionSheetType.LIGHTNING,
+                                    direction = NewTransactionSheetDirection.RECEIVED,
+                                    sats = sats,
+                                )
                             )
-                        )
+                            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
+                        }
                     }
                 } else if (self.notificationType == orderPaymentConfirmed) {
                     self.bestAttemptContent?.title = "Channel opened"
