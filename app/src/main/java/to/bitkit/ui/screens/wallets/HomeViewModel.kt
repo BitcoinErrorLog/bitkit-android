@@ -22,7 +22,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import to.bitkit.BuildConfig
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
 import to.bitkit.di.BgDispatcher
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransferType
@@ -229,6 +228,7 @@ class HomeViewModel @Inject constructor(
                 TimedSheets.BACKUP -> {
                     settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
                 }
+
                 TimedSheets.HIGH_BALANCE -> {
                     settingsStore.update {
                         it.copy(
@@ -242,6 +242,7 @@ class HomeViewModel @Inject constructor(
                 TimedSheets.NOTIFICATIONS -> {
                     settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
                 }
+
                 TimedSheets.QUICK_PAY -> {
                     settingsStore.update { it.copy(quickPayIntroSeen = true) }
                 }
