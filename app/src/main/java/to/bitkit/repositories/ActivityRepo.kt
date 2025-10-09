@@ -510,17 +510,17 @@ class ActivityRepo @Inject constructor(
     }
 
     /**
-     * Inserts a new activity
+     * Inserts a new activity for a fulfilled (channel ready) cjit channel order
      */
-    suspend fun insertActivityFromChannel(
-        cjitOrder: IcJitEntry?,
+    suspend fun insertActivityFromCjit(
+        cjitEntry: IcJitEntry?,
         channel: ChannelDetails,
     ): Result<Unit> = withContext(bgDispatcher) {
         runCatching {
-            requireNotNull(cjitOrder)
+            requireNotNull(cjitEntry)
 
             val amount = channel.amountOnClose
-            val now = nowTimestamp().toEpochMilli().toULong()
+            val now = nowTimestamp().epochSecond.toULong()
 
             return@withContext insertActivity(
                 Activity.Lightning(
@@ -530,7 +530,7 @@ class ActivityRepo @Inject constructor(
                         status = PaymentState.SUCCEEDED,
                         value = amount,
                         fee = 0U,
-                        invoice = cjitOrder.invoice.request,
+                        invoice = cjitEntry.invoice.request,
                         message = "",
                         timestamp = now,
                         preimage = null,
