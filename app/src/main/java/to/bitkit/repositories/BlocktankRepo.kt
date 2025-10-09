@@ -98,7 +98,7 @@ class BlocktankRepo @Inject constructor(
         }
     }
 
-    suspend fun getCjitOrder(channel: ChannelDetails): IcJitEntry? = withContext(bgDispatcher) {
+    suspend fun getCjitEntry(channel: ChannelDetails): IcJitEntry? = withContext(bgDispatcher) {
         return@withContext _blocktankState.value.cjitEntries.firstOrNull { order ->
             order.channelSizeSat == channel.channelValueSats &&
                 order.lspNode.pubkey == channel.counterpartyNodeId
@@ -132,7 +132,7 @@ class BlocktankRepo @Inject constructor(
 
             // Sync instantly from cache
             val cachedOrders = coreService.blocktank.orders(refresh = false)
-            val cachedCjitEntries = coreService.blocktank.cjitOrders(refresh = false)
+            val cachedCjitEntries = coreService.blocktank.cjitEntries(refresh = false)
             _blocktankState.update { state ->
                 state.copy(
                     orders = cachedOrders,
@@ -143,7 +143,7 @@ class BlocktankRepo @Inject constructor(
 
             // Then refresh from server
             val orders = coreService.blocktank.orders(refresh = true)
-            val cjitEntries = coreService.blocktank.cjitOrders(refresh = true)
+            val cjitEntries = coreService.blocktank.cjitEntries(refresh = true)
             _blocktankState.update { state ->
                 state.copy(
                     orders = orders,

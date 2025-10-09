@@ -48,6 +48,7 @@ android {
             useSupportLibrary = true
         }
         buildConfigField("boolean", "E2E", System.getenv("E2E")?.toBoolean()?.toString() ?: "false")
+        buildConfigField("boolean", "GEO", System.getenv("GEO")?.toBoolean()?.toString() ?: "true")
     }
 
     flavorDimensions += "network"

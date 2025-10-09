@@ -44,8 +44,8 @@ class BlocktankRepoTest : BaseUnitTest() {
         wheneverBlocking { coreService.blocktank.orders(refresh = false) }.thenReturn(emptyList())
         wheneverBlocking { coreService.blocktank.orders(refresh = true) }.thenReturn(emptyList())
 
-        wheneverBlocking { coreService.blocktank.cjitOrders(refresh = false) }.thenReturn(emptyList())
-        wheneverBlocking { coreService.blocktank.cjitOrders(refresh = true) }.thenReturn(emptyList())
+        wheneverBlocking { coreService.blocktank.cjitEntries(refresh = false) }.thenReturn(emptyList())
+        wheneverBlocking { coreService.blocktank.cjitEntries(refresh = true) }.thenReturn(emptyList())
     }
 
     private fun createSut(): BlocktankRepo {

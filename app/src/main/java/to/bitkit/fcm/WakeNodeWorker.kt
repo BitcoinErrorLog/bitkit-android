@@ -148,8 +148,8 @@ class WakeNodeWorker @AssistedInject constructor(
                         val sats = channel.amountOnClose
                         self.bestAttemptContent?.title = "Received ⚡ $sats sats"
 
-                        val cjitOrder = channel.let { blocktankRepo.getCjitOrder(it) }
-                        if (cjitOrder != null) {
+                        val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
+                        if (cjitEntry != null) {
                             val amount = channel.amountOnClose.toLong()
 
                             // Save for UI to pick up
@@ -161,7 +161,7 @@ class WakeNodeWorker @AssistedInject constructor(
                                     sats = amount,
                                 )
                             )
-                            activityRepo.insertActivityFromChannel(cjitOrder = cjitOrder, channel = channel)
+                            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
                         }
                     }
                 } else if (self.notificationType == orderPaymentConfirmed) {

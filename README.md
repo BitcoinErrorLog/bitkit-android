@@ -87,6 +87,14 @@ Simply pass `E2E=true` as environment variable and build any flavor.
 E2E=true ./gradlew assembleDevRelease
 ```
 
+#### Disable Geoblocking Checks
+
+By default, geoblocking checks via API are enabled. To disable at build time, use the `GEO` environment variable:
+
+```sh
+GEO=false E2E=true ./gradlew assembleDevRelease
+```
+
 ### Build for Release
 
 **Prerequisites**  
