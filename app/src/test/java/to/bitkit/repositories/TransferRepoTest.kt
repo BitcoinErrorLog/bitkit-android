@@ -6,6 +6,7 @@ import com.synonym.bitkitcore.IBtChannel
 import com.synonym.bitkitcore.IBtOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.Clock
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
@@ -32,11 +33,12 @@ import kotlin.test.assertTrue
 
 class TransferRepoTest : BaseUnitTest() {
 
+    private lateinit var sut: TransferRepo
+
     private val transferDao: TransferDao = mock()
     private val lightningRepo: LightningRepo = mock()
     private val blocktankRepo: BlocktankRepo = mock()
-
-    private lateinit var sut: TransferRepo
+    private val clock: Clock = mock()
 
     private val testTransferId = "test-transfer-id"
     private val testChannelId = "test-channel-id"
@@ -52,6 +54,7 @@ class TransferRepoTest : BaseUnitTest() {
             lightningRepo = lightningRepo,
             blocktankRepo = blocktankRepo,
             transferDao = transferDao,
+            clock = clock,
         )
     }
 
@@ -59,7 +62,8 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer creates TO_SPENDING transfer - LSP flow with lspOrderId, no channelId yet`() = test {
-        wheneverBlocking { transferDao.insert(any()) }.thenReturn(Unit)
+        setupClockNowMock()
+        whenever(transferDao.insert(any())).thenReturn(Unit)
 
         val result = sut.createTransfer(
             type = TransferType.TO_SPENDING,
@@ -77,7 +81,8 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer creates COOP_CLOSE transfer`() = test {
-        wheneverBlocking { transferDao.insert(any()) }.thenReturn(Unit)
+        setupClockNowMock()
+        whenever(transferDao.insert(any())).thenReturn(Unit)
 
         val result = sut.createTransfer(
             type = TransferType.COOP_CLOSE,
@@ -93,7 +98,8 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer creates FORCE_CLOSE transfer`() = test {
-        wheneverBlocking { transferDao.insert(any()) }.thenReturn(Unit)
+        setupClockNowMock()
+        whenever(transferDao.insert(any())).thenReturn(Unit)
 
         val result = sut.createTransfer(
             type = TransferType.FORCE_CLOSE,
@@ -109,7 +115,8 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer creates MANUAL_SETUP transfer - channelId and fundingTxId known immediately`() = test {
-        wheneverBlocking { transferDao.insert(any()) }.thenReturn(Unit)
+        setupClockNowMock()
+        whenever(transferDao.insert(any())).thenReturn(Unit)
 
         val result = sut.createTransfer(
             type = TransferType.MANUAL_SETUP,
@@ -125,6 +132,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer handles database insertion failure`() = test {
+        setupClockNowMock()
         val exception = Exception("Database error")
         whenever(transferDao.insert(any())).thenAnswer { throw exception }
 
@@ -139,6 +147,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `createTransfer generates unique IDs for each transfer`() = test {
+        setupClockNowMock()
         val capturedTransfers = mutableListOf<TransferEntity>()
         wheneverBlocking { transferDao.insert(any()) }.thenAnswer { invocation ->
             capturedTransfers.add(invocation.getArgument(0))
@@ -161,16 +170,18 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `markSettled successfully marks transfer as settled`() = test {
-        wheneverBlocking { transferDao.markSettled(any(), any()) }.thenReturn(Unit)
+        val settledAt = setupClockNowMock()
+        whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
         val result = sut.markSettled(testTransferId)
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), any())
+        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
     }
 
     @Test
     fun `markSettled handles database update failure`() = test {
+        setupClockNowMock()
         val exception = Exception("Database error")
         whenever(transferDao.markSettled(any(), any())).thenAnswer { throw exception }
 
@@ -194,6 +205,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `syncTransferStates settles TO_SPENDING transfer when channel is ready`() = test {
+        val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
             id = testTransferId,
             type = TransferType.TO_SPENDING,
@@ -216,7 +228,7 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), any())
+        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
     }
 
     @Test
@@ -268,6 +280,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `syncTransferStates settles TO_SAVINGS transfer when balance is swept`() = test {
+        val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
             id = testTransferId,
             type = TransferType.TO_SAVINGS,
@@ -294,7 +307,7 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), any())
+        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
     }
 
     @Test
@@ -340,6 +353,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `syncTransferStates settles TO_SAVINGS transfer when balances is null`() = test {
+        val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
             id = testTransferId,
             type = TransferType.TO_SAVINGS,
@@ -357,11 +371,12 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), any())
+        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
     }
 
     @Test
     fun `syncTransferStates handles mixed transfer types correctly`() = test {
+        val settledAt = setupClockNowMock()
         val toSpendingTransfer = TransferEntity(
             id = "spending-transfer",
             type = TransferType.TO_SPENDING,
@@ -404,8 +419,8 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq("spending-transfer"), any())
-        verify(transferDao).markSettled(eq("savings-transfer"), any())
+        verify(transferDao).markSettled(eq("spending-transfer"), eq(settledAt))
+        verify(transferDao).markSettled(eq("savings-transfer"), eq(settledAt))
     }
 
     @Test
@@ -613,6 +628,7 @@ class TransferRepoTest : BaseUnitTest() {
             lightningRepo = lightningRepo,
             blocktankRepo = blocktankRepo,
             transferDao = transferDao,
+            clock = clock,
         )
 
         testSut.activeTransfers.test {
@@ -620,4 +636,8 @@ class TransferRepoTest : BaseUnitTest() {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    private fun setupClockNowMock(): Long = Clock.System.now()
+        .also { whenever(clock.now()).thenReturn(it) }
+        .epochSeconds
 }

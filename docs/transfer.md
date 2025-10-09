@@ -66,8 +66,8 @@ See: `TransferEntity.kt`
 - `fundingTxId`: Channel funding transaction ID
 - `lspOrderId`: Blocktank order ID (LSP flow only)
 - `isSettled`: false = affects balances, true = complete
-- `createdAt`: Unix timestamp (ms) when transfer created
-- `settledAt`: Unix timestamp (ms) when settled
+- `createdAt`: Unix timestamp (seconds) when transfer created
+- `settledAt`: Unix timestamp (seconds) when settled
 
 ## Lifecycle Flows
 

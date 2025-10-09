@@ -12,7 +12,7 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.channelId
 import to.bitkit.models.TransferType
 import to.bitkit.utils.Logger
-import java.util.UUID
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +22,7 @@ class TransferRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val blocktankRepo: BlocktankRepo,
     private val transferDao: TransferDao,
+    private val clock: Clock,
 ) {
     val activeTransfers: Flow<List<TransferEntity>> = transferDao.getActiveTransfers()
 
@@ -43,7 +44,7 @@ class TransferRepo @Inject constructor(
                     fundingTxId = fundingTxId,
                     lspOrderId = lspOrderId,
                     isSettled = false,
-                    createdAt = Clock.System.now().toEpochMilliseconds(),
+                    createdAt = clock.now().epochSeconds,
                 )
             )
             Logger.info("Created transfer: id=$id type=$type channelId=$channelId", context = TAG)
@@ -55,7 +56,7 @@ class TransferRepo @Inject constructor(
 
     suspend fun markSettled(id: String): Result<Unit> = withContext(bgDispatcher) {
         runCatching {
-            val settledAt = Clock.System.now().toEpochMilliseconds()
+            val settledAt = clock.now().epochSeconds
             transferDao.markSettled(id, settledAt)
             Logger.info("Settled transfer: $id", context = TAG)
         }.onFailure { e ->
