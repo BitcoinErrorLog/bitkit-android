@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,31 +30,35 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.transferViewModel
 import to.bitkit.ui.utils.removeAccentTags
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.ui.utils.withAccentBoldBright
-import to.bitkit.ui.walletViewModel
+import to.bitkit.viewmodels.AppViewModel
+import to.bitkit.viewmodels.TransferViewModel
+import to.bitkit.viewmodels.WalletViewModel
 
 enum class SavingsProgressState { PROGRESS, SUCCESS, INTERRUPTED }
 
 @Composable
 fun SavingsProgressScreen(
+    app: AppViewModel,
+    transfer: TransferViewModel,
+    wallet: WalletViewModel,
     onContinueClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
     val window = LocalActivity.current?.window
-    val transfer = transferViewModel ?: return
-    val wallet = walletViewModel ?: return
     var progressState by remember { mutableStateOf(SavingsProgressState.PROGRESS) }
 
     // Effect to close channels & update UI
+    // TODO move this logic to viewmodel so it can outlive the screen lifecycle
     LaunchedEffect(Unit) {
         val channelsFailedToCoopClose = transfer.closeSelectedChannels()
 
@@ -64,7 +69,9 @@ fun SavingsProgressScreen(
             delay(5000)
             progressState = SavingsProgressState.SUCCESS
         } else {
-            transfer.startCoopCloseRetries(channelsFailedToCoopClose, System.currentTimeMillis())
+            transfer.startCoopCloseRetries(channelsFailedToCoopClose) {
+                app.showSheet(Sheet.ForceTransfer)
+            }
             delay(2500)
             progressState = SavingsProgressState.INTERRUPTED
         }
@@ -78,7 +85,7 @@ fun SavingsProgressScreen(
         }
     }
 
-    SavingsProgressScreen(
+    Content(
         progressState = progressState,
         onContinueClick = { onContinueClick() },
         onCloseClick = onCloseClick,
@@ -86,13 +93,15 @@ fun SavingsProgressScreen(
 }
 
 @Composable
-private fun SavingsProgressScreen(
+private fun Content(
     progressState: SavingsProgressState,
     onContinueClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
-    ScreenColumn {
+    ScreenColumn(
+        modifier = Modifier.testTag(if (inProgress) "TransferSettingUp" else "TransferSuccess")
+    ) {
         AppTopBar(
             titleText = when (progressState) {
                 SavingsProgressState.PROGRESS -> stringResource(R.string.lightning__transfer__nav_title)
@@ -176,6 +185,7 @@ private fun SavingsProgressScreen(
                 PrimaryButton(
                     text = stringResource(R.string.common__ok),
                     onClick = onContinueClick,
+                    modifier = Modifier.testTag("TransferSuccess-button")
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -183,31 +193,31 @@ private fun SavingsProgressScreen(
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
-private fun SavingsProgressScreenProgressPreview() {
+private fun PreviewProgress() {
     AppThemeSurface {
-        SavingsProgressScreen(
+        Content(
             progressState = SavingsProgressState.PROGRESS,
         )
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
-private fun SavingsProgressScreenSuccessPreview() {
+private fun PreviewSuccess() {
     AppThemeSurface {
-        SavingsProgressScreen(
+        Content(
             progressState = SavingsProgressState.SUCCESS,
         )
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
-private fun SavingsProgressScreenInterruptedPreview() {
+private fun PreviewInterrupted() {
     AppThemeSurface {
-        SavingsProgressScreen(
+        Content(
             progressState = SavingsProgressState.INTERRUPTED,
         )
     }

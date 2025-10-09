@@ -22,16 +22,16 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import to.bitkit.BuildConfig
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransferType
 import to.bitkit.di.BgDispatcher
 import to.bitkit.models.Suggestion
+import to.bitkit.models.TransferType
 import to.bitkit.models.WidgetType
 import to.bitkit.models.toSuggestionOrNull
 import to.bitkit.models.widget.ArticleModel
 import to.bitkit.models.widget.toArticleModel
 import to.bitkit.models.widget.toBlockModel
-import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.CurrencyRepo
+import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WidgetsRepo
 import to.bitkit.services.AppUpdaterService
@@ -47,7 +47,7 @@ class HomeViewModel @Inject constructor(
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
-    private val activityRepo: ActivityRepo,
+    private val transferRepo: TransferRepo,
     private val appUpdaterService: AppUpdaterService,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -105,11 +105,11 @@ class HomeViewModel @Inject constructor(
                 settingsStore.data,
                 walletRepo.balanceState
             ) { settings, balanceState ->
-                checkTimedSheets()
                 _uiState.value.copy(
                     showEmptyState = settings.showEmptyBalanceView && balanceState.totalSats == 0uL
                 )
             }.collect { newState ->
+                checkTimedSheets()
                 _uiState.update { newState }
             }
         }
@@ -228,6 +228,7 @@ class HomeViewModel @Inject constructor(
                 TimedSheets.BACKUP -> {
                     settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
                 }
+
                 TimedSheets.HIGH_BALANCE -> {
                     settingsStore.update {
                         it.copy(
@@ -241,6 +242,7 @@ class HomeViewModel @Inject constructor(
                 TimedSheets.NOTIFICATIONS -> {
                     settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
                 }
+
                 TimedSheets.QUICK_PAY -> {
                     settingsStore.update { it.copy(quickPayIntroSeen = true) }
                 }
@@ -376,6 +378,7 @@ class HomeViewModel @Inject constructor(
             val item = currentWidgets.removeAt(fromIndex)
             currentWidgets.add(toIndex, item)
 
+            // Update positions
             val updatedWidgets = currentWidgets.mapIndexed { index, widget ->
                 widget.copy(position = index)
             }
@@ -426,7 +429,7 @@ class HomeViewModel @Inject constructor(
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,
-        activityRepo.inProgressTransfers
+        transferRepo.activeTransfers,
     ) { balanceState, settings, transfers ->
         val baseSuggestions = when {
             balanceState.totalLightningSats > 0uL -> { // With Lightning

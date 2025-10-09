@@ -251,9 +251,10 @@ fun ContentRunning(
     onClickAddTag: () -> Unit,
     onClickTag: (String) -> Unit,
     onSwipeToConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 16.dp)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
@@ -262,10 +263,10 @@ fun ContentRunning(
             sats = uiState.amount.toLong(),
             useSwipeToHide = false,
             onClick = { onEvent(SendEvent.BackToAmount) },
+            testTag = "ReviewAmount",
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("ReviewAmount"),
-            testTag = "ReviewAmount"
+                .testTag("ReviewAmount")
         )
 
         Spacer(modifier = Modifier.height(16.dp))

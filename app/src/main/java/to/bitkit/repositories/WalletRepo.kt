@@ -9,13 +9,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
@@ -27,12 +25,11 @@ import to.bitkit.env.Env
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.toHex
-import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.AddressModel
 import to.bitkit.models.BalanceState
-import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
+import to.bitkit.usecases.DeriveBalanceStateUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
@@ -41,6 +38,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.days
 
+@Suppress("LongParameterList")
 @Singleton
 class WalletRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -51,6 +49,7 @@ class WalletRepo @Inject constructor(
     private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
+    private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -137,7 +136,6 @@ class WalletRepo @Inject constructor(
 
     suspend fun observeLdkWallet() = withContext(bgDispatcher) {
         lightningRepo.getSyncFlow()
-            .filter { lightningRepo.lightningState.value.nodeLifecycleState == NodeLifecycleState.Running }
             .collect {
                 runCatching {
                     syncNodeAndWallet()
@@ -146,10 +144,13 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
-        Logger.verbose("Refreshing node and wallet state…")
+        val startHeight = lightningRepo.lightningState.value.block()?.height
+        Logger.verbose("syncNodeAndWallet started at block height=$startHeight", context = TAG)
         syncBalances()
         lightningRepo.sync().onSuccess {
             syncBalances()
+            val endHeight = lightningRepo.lightningState.value.block()?.height
+            Logger.verbose("syncNodeAndWallet completed at block height=$endHeight", context = TAG)
             return@withContext Result.success(Unit)
         }.onFailure { e ->
             if (e is TimeoutCancellationException) {
@@ -160,20 +161,9 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncBalances() {
-        lightningRepo.getBalancesAsync().onSuccess { balance ->
-            _walletState.update { it.copy(balanceDetails = balance) }
-
-            val totalSats = balance.totalLightningBalanceSats + balance.totalOnchainBalanceSats
-
-            val newBalance = BalanceState(
-                totalOnchainSats = balance.totalOnchainBalanceSats,
-                totalLightningSats = balance.totalLightningBalanceSats,
-                maxSendLightningSats = lightningRepo.getChannels()?.totalNextOutboundHtlcLimitSats() ?: 0u,
-                maxSendOnchainSats = getMaxSendAmount(),
-                totalSats = totalSats,
-            )
-            _balanceState.update { newBalance }
-            saveBalanceState(newBalance)
+        deriveBalanceStateUseCase().onSuccess { balanceState ->
+            runCatching { cacheStore.cacheBalance(balanceState) }
+            _balanceState.update { balanceState }
         }.onFailure {
             Logger.warn("Could not sync balances", context = TAG)
         }
@@ -220,11 +210,11 @@ class WalletRepo @Inject constructor(
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
         try {
             keychain.wipe()
+            db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
             coreService.activity.removeAll()
-            deleteAllInvoices()
             _walletState.update { WalletState() }
             _balanceState.update { BalanceState() }
             setWalletExistsState()
@@ -316,12 +306,6 @@ class WalletRepo @Inject constructor(
             message = message,
             lightningInvoice = lightningInvoice
         )
-    }
-
-    // Balance management
-    suspend fun saveBalanceState(balanceState: BalanceState) {
-        runCatching { cacheStore.cacheBalance(balanceState) }
-        _balanceState.update { balanceState }
     }
 
     // BIP21 state management
@@ -466,26 +450,6 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    private suspend fun getMaxSendAmount(): ULong = withContext(bgDispatcher) {
-        val spendableOnchainSats = walletState.value.balanceDetails?.spendableOnchainBalanceSats ?: 0uL
-        if (spendableOnchainSats == 0uL) {
-            return@withContext 0uL
-        }
-        val fallbackMaxFee = (spendableOnchainSats.toDouble() * FALLBACK_FEE_PERCENT).toULong()
-        val speed = settingsStore.data.first().defaultTransactionSpeed
-
-        val fee = lightningRepo.calculateTotalFee(
-            amountSats = spendableOnchainSats,
-            speed = speed,
-            utxosToSpend = lightningRepo.listSpendableOutputs().getOrNull()
-        ).onFailure {
-            Logger.debug("Could not calculate max send fee, using as fallback 10% of total", context = TAG)
-        }.getOrDefault(fallbackMaxFee)
-
-        val maxSendable = (spendableOnchainSats - fee).coerceAtLeast(0u)
-        maxSendable
-    }
-
     private suspend fun Scanner.OnChain.extractLightningHash(): String? {
         val lightningInvoice: String = this.invoice.params?.get("lightning") ?: return null
         val decoded = decode(lightningInvoice)
@@ -502,7 +466,6 @@ class WalletRepo @Inject constructor(
 
     private companion object {
         const val TAG = "WalletRepo"
-        const val FALLBACK_FEE_PERCENT = 0.1
     }
 }
 
@@ -515,5 +478,4 @@ data class WalletState(
     val selectedTags: List<String> = listOf(),
     val receiveOnSpendingBalance: Boolean = true,
     val walletExists: Boolean = false,
-    val balanceDetails: BalanceDetails? = null, // TODO KEEP ONLY BalanceState IF POSSIBLE
 )

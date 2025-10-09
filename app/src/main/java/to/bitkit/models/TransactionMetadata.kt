@@ -1,4 +1,4 @@
-package to.bitkit.data.dto
+package to.bitkit.models
 
 import kotlinx.serialization.Serializable
 
@@ -9,5 +9,6 @@ data class TransactionMetadata(
     val address: String,
     val isTransfer: Boolean,
     val channelId: String?,
-    val transferTxId: String?,
-)
+) {
+    fun transferTxId(): String? = txId.takeIf { isTransfer }
+}

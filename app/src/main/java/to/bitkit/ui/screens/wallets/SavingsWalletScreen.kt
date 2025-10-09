@@ -31,6 +31,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
+import to.bitkit.ui.components.IncomingTransfer
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
@@ -87,11 +88,19 @@ fun SavingsWalletScreen(
             ) {
                 BalanceHeaderView(
                     sats = balances.totalOnchainSats.toLong(),
+                    testTag = "TotalBalance",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("TotalBalance"),
-                    testTag = "TotalBalance"
+                        .testTag("TotalBalance")
                 )
+
+                if (balances.balanceInTransferToSavings > 0u) {
+                    IncomingTransfer(
+                        amount = balances.balanceInTransferToSavings,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
                 if (!showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -145,6 +154,29 @@ private fun Preview() {
                 onTransferToSpendingClick = {},
                 onBackClick = {},
                 balances = BalanceState(totalOnchainSats = 50_000u),
+            )
+            TabBar()
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewTransfer() {
+    AppThemeSurface {
+        Box {
+            SavingsWalletScreen(
+                isGeoBlocked = false,
+                onchainActivities = previewOnchainActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSpendingClick = {},
+                onBackClick = {},
+                balances = BalanceState(
+                    totalOnchainSats = 50_000u,
+                    balanceInTransferToSavings = 25_000u,
+                ),
             )
             TabBar()
         }

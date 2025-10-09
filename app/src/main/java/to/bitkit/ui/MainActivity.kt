@@ -162,7 +162,6 @@ class MainActivity : FragmentActivity() {
                 SplashScreen(appViewModel.splashVisible)
             }
         }
-
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -6,6 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
+import to.bitkit.di.json
 import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import java.io.File
@@ -170,4 +173,12 @@ object Logger {
             }
         }
     }
+}
+
+val jsonLogger = Json(json) {
+    prettyPrint = false
+}
+
+inline fun <reified T> jsonLogOf(value: T): String = with(jsonLogger) {
+    encodeToString(serializersModule.serializer(), value)
 }

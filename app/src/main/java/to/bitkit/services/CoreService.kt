@@ -43,11 +43,9 @@ import com.synonym.bitkitcore.upsertActivity
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.ConfirmationStatus
 import org.lightningdevkit.ldknode.Network
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -263,33 +261,41 @@ class ActivityService(
         }
     }
 
-    suspend fun syncLdkNodePayments(payments: List<PaymentDetails>, forceUpdate: Boolean = false) {
+    /**
+     * Maps all `PaymentDetails` from LDK Node to bitkit-core [Activity] records.
+     *
+     * Payments are parallelly processed in chunks, handling both on-chain and Lightning payments
+     * to create new activity records or updating existing ones based on the payment's status and details.
+     *
+     * It's designed to be idempotent, meaning it can be called multiple times with the same payment
+     * list without creating duplicate entries. It checks the `updatedAt` timestamp to avoid overwriting
+     * newer local data with older data from LDK.
+     *
+     * @param payments The list of `PaymentDetails` from the LDK node to be processed.
+     * @param forceUpdate If true, it will also update activities previously marked as deleted.
+     */
+    suspend fun syncLdkNodePaymentsToActivities(payments: List<PaymentDetails>, forceUpdate: Boolean = false) {
         ServiceQueue.CORE.background {
-            withContext(Dispatchers.IO) {
-                val allResults = mutableListOf<Result<String>>()
+            val allResults = mutableListOf<Result<String>>()
 
-                payments.chunked(CHUNCK_SIZE).forEach { chunk ->
-                    val results = chunk.map { payment ->
-                        async {
-                            runCatching {
-                                processSinglePayment(payment, forceUpdate)
-                                payment.id
-                            }.onFailure { e ->
-                                Logger.error("Error syncing payment ${payment.id}:", e, context = "CoreService")
-                            }
+            payments.chunked(CHUNCK_SIZE).forEach { chunk ->
+                val results = chunk.map { payment ->
+                    async {
+                        runCatching {
+                            processSinglePayment(payment, forceUpdate)
+                            payment.id
+                        }.onFailure { e ->
+                            Logger.error("Error syncing payment with id: ${payment.id}:", e, context = TAG)
                         }
-                    }.awaitAll()
+                    }
+                }.awaitAll()
 
-                    allResults.addAll(results)
-                }
-
-                val (successful, failed) = allResults.partition { it.isSuccess }
-
-                Logger.info(
-                    "Synced ${successful.size} payments successfully, ${failed.size} failed",
-                    context = "CoreService"
-                )
+                allResults.addAll(results)
             }
+
+            val (successful, failed) = allResults.partition { it.isSuccess }
+
+            Logger.info("Synced ${successful.size} payments successfully, ${failed.size} failed", context = TAG)
         }
     }
 

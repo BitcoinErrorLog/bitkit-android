@@ -13,7 +13,6 @@ import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.AnchorChannelsConfig
 import org.lightningdevkit.ldknode.BackgroundSyncConfig
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Bolt11Invoice
 import org.lightningdevkit.ldknode.Bolt11InvoiceDescription
 import org.lightningdevkit.ldknode.BuildException
@@ -32,7 +31,6 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
-import org.lightningdevkit.ldknode.UserChannelId
 import org.lightningdevkit.ldknode.defaultConfig
 import to.bitkit.async.BaseCoroutineScope
 import to.bitkit.async.ServiceQueue
@@ -44,8 +42,10 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
+import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
-import to.bitkit.models.LnPeer.Companion.toLnPeer
+import to.bitkit.models.OpenChannelResult
+import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -335,7 +335,7 @@ class LightningService @Inject constructor(
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
-    ): Result<UserChannelId> {
+    ): Result<OpenChannelResult> {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         return ServiceQueue.LDK.background {
@@ -350,9 +350,17 @@ class LightningService @Inject constructor(
                     channelConfig = channelConfig,
                 )
 
-                Logger.info("Channel open initiated, userChannelId: $userChannelId")
+                val result = OpenChannelResult(
+                    userChannelId,
+                    peer,
+                    channelAmountSats,
+                    pushToCounterpartySats,
+                    channelConfig,
+                )
 
-                Result.success(userChannelId)
+                Logger.info("Channel open initiated, result: $result")
+
+                Result.success(result)
             } catch (e: NodeException) {
                 val error = LdkError(e)
                 Logger.error("Error initiating channel open", error)
@@ -362,21 +370,27 @@ class LightningService @Inject constructor(
     }
 
     suspend fun closeChannel(
-        userChannelId: String,
-        counterpartyNodeId: String,
+        channel: ChannelDetails,
         force: Boolean = false,
         forceCloseReason: String? = null,
     ) {
         val node = this.node ?: throw ServiceError.NodeNotStarted
+        val channelId = channel.channelId
+        val userChannelId = channel.userChannelId
+        val counterpartyNodeId = channel.counterpartyNodeId
         try {
             ServiceQueue.LDK.background {
+                Logger.debug("Initiating channel close (force=$force): '$channelId'", context = TAG)
                 if (force) {
                     node.forceCloseChannel(userChannelId, counterpartyNodeId, forceCloseReason.orEmpty())
                 } else {
                     node.closeChannel(userChannelId, counterpartyNodeId)
                 }
             }
+            Logger.info("Channel close initiated (force=$force): '$channelId'", context = TAG)
         } catch (e: NodeException) {
+            val error = LdkError(e)
+            Logger.error("Error initiating channel close (force=$force): '$channelId'", error, context = TAG)
             throw LdkError(e)
         }
     }
@@ -445,7 +459,7 @@ class LightningService @Inject constructor(
         sats: ULong,
         satsPerVByte: UInt,
         utxosToSpend: List<SpendableUtxo>? = null,
-        isMaxAmount: Boolean = false
+        isMaxAmount: Boolean = false,
     ): Txid {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
@@ -632,7 +646,7 @@ class LightningService @Inject constructor(
     ): ULong {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
-        Logger.info(
+        Logger.debug(
             "Calculating fee for $amountSats sats to $address, UTXOs=${utxosToSpend?.size}, satsPerVByte=$satsPerVByte"
         )
 
@@ -644,7 +658,7 @@ class LightningService @Inject constructor(
                     feeRate = convertVByteToKwu(satsPerVByte),
                     utxosToSpend = utxosToSpend,
                 )
-                Logger.debug("Calculated fee=$fee for $amountSats sats to $address, satsPerVByte=$satsPerVByte")
+                Logger.info("Calculated fee=$fee for $amountSats sats to $address, satsPerVByte=$satsPerVByte")
                 fee
             } catch (e: NodeException) {
                 throw LdkError(e)
@@ -749,10 +763,10 @@ class LightningService @Inject constructor(
 
     // region state
     val nodeId: String? get() = node?.nodeId()
-    val balances: BalanceDetails? get() = node?.listBalances()
+    val balances: BalanceDetails? get() = node?.listBalances()?.toDomainModel()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
-    val peers: List<LnPeer>? get() = node?.listPeers()?.map { it.toLnPeer() }
+    val peers: List<LnPeer>? get() = node?.listPeers()?.map(::LnPeer)
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
 
@@ -763,6 +777,10 @@ class LightningService @Inject constructor(
         }
     }.flowOn(bgDispatcher)
     // endregion
+
+    companion object {
+        private const val TAG = "LightningService"
+    }
 }
 
 // region helpers

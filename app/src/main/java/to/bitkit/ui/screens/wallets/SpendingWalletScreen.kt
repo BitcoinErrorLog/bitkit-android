@@ -32,6 +32,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
+import to.bitkit.ui.components.IncomingTransfer
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
@@ -90,11 +91,19 @@ fun SpendingWalletScreen(
             ) {
                 BalanceHeaderView(
                     sats = balances.totalLightningSats.toLong(),
+                    testTag = "TotalBalance",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("TotalBalance"),
-                    testTag = "TotalBalance"
+                        .testTag("TotalBalance")
                 )
+
+                if (balances.balanceInTransferToSpending > 0u) {
+                    IncomingTransfer(
+                        amount = balances.balanceInTransferToSpending,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
                 if (!showEmptyState) {
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -150,6 +159,31 @@ private fun Preview() {
                 onTransferToSavingsClick = {},
                 onBackClick = {},
                 balances = BalanceState(totalLightningSats = 50_000u),
+            )
+            TabBar()
+        }
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewTransfer() {
+    AppThemeSurface {
+        Box {
+            SpendingWalletScreen(
+                uiState = MainUiState(
+                    channels = listOf(createChannelDetails())
+                ),
+                lightningActivities = previewLightningActivityItems(),
+                onAllActivityButtonClick = {},
+                onActivityItemClick = {},
+                onEmptyActivityRowClick = {},
+                onTransferToSavingsClick = {},
+                onBackClick = {},
+                balances = BalanceState(
+                    totalLightningSats = 50_000u,
+                    balanceInTransferToSpending = 25_000u,
+                ),
             )
             TabBar()
         }

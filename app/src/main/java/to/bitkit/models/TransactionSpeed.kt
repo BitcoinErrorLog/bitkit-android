@@ -45,16 +45,9 @@ sealed class TransactionSpeed {
 }
 
 private object TransactionSpeedSerializer : KSerializer<TransactionSpeed> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("TransactionSpeed", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: TransactionSpeed) {
-        encoder.encodeString(value.serialized())
-    }
-
-    override fun deserialize(decoder: Decoder): TransactionSpeed {
-        return TransactionSpeed.fromString(decoder.decodeString())
-    }
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("TransactionSpeed", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: TransactionSpeed) = encoder.encodeString(value.serialized())
+    override fun deserialize(decoder: Decoder) = TransactionSpeed.fromString(decoder.decodeString())
 }
 
 @Composable

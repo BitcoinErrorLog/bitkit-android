@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
 import to.bitkit.data.SettingsStore
@@ -86,7 +85,6 @@ class WalletViewModel @Inject constructor(
                         bip21Description = state.bip21Description,
                         selectedTags = state.selectedTags,
                         receiveOnSpendingBalance = state.receiveOnSpendingBalance,
-                        balanceDetails = state.balanceDetails
                     )
                 }
                 if (state.walletExists && restoreState == RestoreState.RestoringWallet) {
@@ -165,28 +163,20 @@ class WalletViewModel @Inject constructor(
         walletRepo.observeLdkWallet()
     }
 
-    fun refreshState() {
-        viewModelScope.launch {
-            walletRepo.syncNodeAndWallet()
-                .onFailure { error ->
-                    Logger.error("Failed to refresh state: ${error.message}", error)
-                    if (error !is TimeoutCancellationException) {
-                        ToastEventBus.send(error)
-                    }
+    fun refreshState() = viewModelScope.launch {
+        walletRepo.syncNodeAndWallet()
+            .onFailure { error ->
+                Logger.error("Failed to refresh state: ${error.message}", error)
+                if (error !is TimeoutCancellationException) {
+                    ToastEventBus.send(error)
                 }
-        }
+            }
     }
 
     fun onPullToRefresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            walletRepo.syncNodeAndWallet()
-                .onFailure { error ->
-                    Logger.error("Failed to refresh state: ${error.message}", error)
-                    if (error !is TimeoutCancellationException) {
-                        ToastEventBus.send(error)
-                    }
-                }
+            refreshState().join()
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
@@ -314,7 +304,6 @@ class WalletViewModel @Inject constructor(
 // TODO rename to walletUiState
 data class MainUiState(
     val nodeId: String = "",
-    val balanceDetails: BalanceDetails? = null,
     val onchainAddress: String = "",
     val bolt11: String = "",
     val bip21: String = "",

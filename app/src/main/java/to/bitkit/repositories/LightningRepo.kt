@@ -12,9 +12,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,7 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
-import org.lightningdevkit.ldknode.BalanceDetails
+import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
@@ -31,17 +31,18 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
-import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.dto.TransactionMetadata
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
+import to.bitkit.models.BalanceDetails
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
+import to.bitkit.models.OpenChannelResult
+import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toCoinSelectAlgorithm
 import to.bitkit.models.toCoreNetwork
@@ -563,7 +564,6 @@ class LightningRepo @Inject constructor(
                     address = address,
                     isTransfer = isTransfer,
                     channelId = channelId,
-                    transferTxId = txId.takeIf { isTransfer }
                 )
             )
             syncState()
@@ -666,7 +666,7 @@ class LightningRepo @Inject constructor(
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
-    ): Result<UserChannelId> = executeWhenNodeRunning("Open channel") {
+    ): Result<OpenChannelResult> = executeWhenNodeRunning("Open channel") {
         val result = lightningService.openChannel(peer, channelAmountSats, pushToCounterpartySats, channelConfig)
         syncState()
         result
@@ -676,14 +676,11 @@ class LightningRepo @Inject constructor(
         channel: ChannelDetails,
         force: Boolean = false,
         forceCloseReason: String? = null,
-    ): Result<Unit> = executeWhenNodeRunning("Close channel") {
-        Logger.info("Closing channel (force=$force): ${channel.channelId}")
-
+    ): Result<Unit> = executeWhenNodeRunning("closeChannel") {
         lightningService.closeChannel(
-            userChannelId = channel.userChannelId,
-            counterpartyNodeId = channel.counterpartyNodeId,
-            force = force,
-            forceCloseReason = forceCloseReason,
+            channel,
+            force,
+            forceCloseReason,
         )
         syncState()
         Result.success(Unit)
@@ -696,6 +693,7 @@ class LightningRepo @Inject constructor(
                 nodeStatus = getStatus(),
                 peers = getPeers().orEmpty(),
                 channels = getChannels().orEmpty(),
+                balances = getBalances(),
             )
         }
     }
@@ -708,7 +706,7 @@ class LightningRepo @Inject constructor(
         }
     }
 
-    fun getSyncFlow(): Flow<Unit> = lightningService.syncFlow()
+    fun getSyncFlow() = lightningService.syncFlow().filter { lightningState.value.nodeLifecycleState.isRunning() }
 
     fun getNodeId(): String? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.nodeId else null
@@ -879,7 +877,10 @@ data class LightningState(
     val nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
     val peers: List<LnPeer> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
+    val balances: BalanceDetails? = null,
     val isSyncingWallet: Boolean = false,
     val shouldBlockLightningReceive: Boolean = false,
     val isGeoBlocked: Boolean = false,
-)
+) {
+    fun block(): BestBlock? = nodeStatus?.currentBestBlock
+}

@@ -25,15 +25,21 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.env.Env
+import to.bitkit.ext.amountOnClose
+import to.bitkit.models.EUR_CURRENCY
+import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
+import to.bitkit.models.TransferType
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
@@ -48,8 +54,8 @@ import kotlin.time.Duration.Companion.seconds
 
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
-private const val EUR_CURRENCY = "EUR"
 
+@Suppress("LongParameterList")
 @HiltViewModel
 class TransferViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -59,9 +65,14 @@ class TransferViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val transferRepo: TransferRepo,
+    private val clock: Clock,
 ) : ViewModel() {
     private val _spendingUiState = MutableStateFlow(TransferToSpendingUiState())
     val spendingUiState = _spendingUiState.asStateFlow()
+
+    private val _isForceTransferLoading = MutableStateFlow(false)
+    val isForceTransferLoading = _isForceTransferLoading.asStateFlow()
 
     val lightningSetupStep: StateFlow<Int> = settingsStore.data.map { it.lightningSetupStep }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
@@ -203,6 +214,12 @@ class TransferViewModel @Inject constructor(
                 )
                 .onSuccess { txId ->
                     cacheStore.addPaidOrder(orderId = order.id, txId = txId)
+                    transferRepo.createTransfer(
+                        type = TransferType.TO_SPENDING,
+                        amountSats = order.clientBalanceSat.toLong(),
+                        lspOrderId = order.id,
+                    )
+                    launch { walletRepo.syncBalances() }
                     watchOrder(order.id)
                 }
                 .onFailure { error ->
@@ -305,28 +322,23 @@ class TransferViewModel @Inject constructor(
     }
 
     private suspend fun updateOrder(order: IBtOrder): Int {
-        var currentStep = 0
         if (order.channel != null) {
-            return 3
+            transferRepo.syncTransferStates()
+            return LN_SETUP_STEP_3
         }
 
         when (order.state2) {
-            BtOrderState2.CREATED -> {
-                currentStep = 0
-            }
+            BtOrderState2.CREATED -> return 0
 
             BtOrderState2.PAID -> {
-                currentStep = 1
                 blocktankRepo.openChannel(order.id)
+                return 1
             }
 
-            BtOrderState2.EXECUTED -> {
-                currentStep = 2
-            }
+            BtOrderState2.EXECUTED -> return 2
 
-            else -> Unit
+            else -> return 0
         }
-        return currentStep
     }
 
     fun onUseDefaultLspBalanceClick() {
@@ -476,21 +488,25 @@ class TransferViewModel @Inject constructor(
     }
 
     /** Closes the channels selected earlier, pending closure */
-    suspend fun closeSelectedChannels(): List<ChannelDetails> {
-        return closeChannels(channelsToClose)
-    }
+    suspend fun closeSelectedChannels() = closeChannels(channelsToClose)
 
     private suspend fun closeChannels(channels: List<ChannelDetails>): List<ChannelDetails> {
         val channelsFailedToClose = coroutineScope {
             channels.map { channel ->
                 async {
-                    try {
-                        lightningRepo.closeChannel(channel).getOrThrow()
-                        null
-                    } catch (e: Throwable) {
-                        Logger.error("Error closing channel: ${channel.channelId}", e)
-                        channel
-                    }
+                    lightningRepo.closeChannel(channel)
+                        .onSuccess {
+                            transferRepo.createTransfer(
+                                type = TransferType.COOP_CLOSE,
+                                amountSats = channel.amountOnClose.toLong(),
+                                channelId = channel.channelId,
+                                fundingTxId = channel.fundingTxo?.txid,
+                            )
+                        }
+                        .fold(
+                            onSuccess = { null },
+                            onFailure = { channel }
+                        )
                 }
             }.awaitAll()
         }.filterNotNull()
@@ -501,13 +517,16 @@ class TransferViewModel @Inject constructor(
     private var coopCloseRetryJob: Job? = null
 
     /** Retry to coop close the channel(s) for 30 min */
-    fun startCoopCloseRetries(channels: List<ChannelDetails>, startTimeMs: Long) {
+    fun startCoopCloseRetries(
+        channels: List<ChannelDetails>,
+        onGiveUp: () -> Unit,
+    ) {
+        val startTimeMs = clock.now().toEpochMilliseconds()
         channelsToClose = channels
         coopCloseRetryJob?.cancel()
 
         coopCloseRetryJob = viewModelScope.launch {
             val giveUpTime = startTimeMs + GIVE_UP_MS
-            // TODO cache TransferType: COOP_CLOSE, FORCE_CLOSE and TO_SAVINGS
             while (isActive && System.currentTimeMillis() < giveUpTime) {
                 Logger.info("Trying coop close...")
                 val channelsFailedToCoopClose = closeChannels(channelsToClose)
@@ -525,14 +544,71 @@ class TransferViewModel @Inject constructor(
             }
 
             Logger.info("Giving up on coop close.")
-            // TODO: showBottomSheet: forceTransfer
+            onGiveUp()
         }
+    }
+
+    fun forceTransfer(onComplete: () -> Unit) = viewModelScope.launch {
+        _isForceTransferLoading.value = true
+        runCatching {
+            val failedChannels = forceCloseChannels(channelsToClose)
+            if (failedChannels.isEmpty()) {
+                Logger.info("Force close initiated successfully for all channels", context = TAG)
+                ToastEventBus.send(
+                    type = Toast.ToastType.LIGHTNING,
+                    title = context.getString(R.string.lightning__force_init_title),
+                    description = context.getString(R.string.lightning__force_init_msg)
+                )
+            } else {
+                Logger.error("Force close failed for ${failedChannels.size} channels", context = TAG)
+                ToastEventBus.send(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.lightning__force_failed_title),
+                    description = context.getString(R.string.lightning__force_failed_msg)
+                )
+            }
+        }.onFailure { e ->
+            Logger.error("Force close failed", e = e, context = TAG)
+            ToastEventBus.send(
+                type = Toast.ToastType.ERROR,
+                title = context.getString(R.string.lightning__force_failed_title),
+                description = context.getString(R.string.lightning__force_failed_msg)
+            )
+        }
+        _isForceTransferLoading.value = false
+        onComplete()
+    }
+
+    private suspend fun forceCloseChannels(channels: List<ChannelDetails>): List<ChannelDetails> {
+        val channelsFailedToClose = coroutineScope {
+            channels.map { channel ->
+                async {
+                    lightningRepo.closeChannel(channel, force = true)
+                        .onSuccess {
+                            transferRepo.createTransfer(
+                                type = TransferType.FORCE_CLOSE,
+                                amountSats = channel.amountOnClose.toLong(),
+                                channelId = channel.channelId,
+                                fundingTxId = channel.fundingTxo?.txid,
+                            )
+                        }
+                        .onFailure { e -> Logger.error("Error force closing channel: ${channel.channelId}", e) }
+                        .fold(
+                            onSuccess = { null },
+                            onFailure = { channel },
+                        )
+                }
+            }.awaitAll()
+        }.filterNotNull()
+
+        return channelsFailedToClose
     }
 
     // endregion
 
     companion object {
         private const val TAG = "TransferViewModel"
+        const val LN_SETUP_STEP_3 = 3
     }
 }
 

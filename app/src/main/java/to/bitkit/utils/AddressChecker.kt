@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
+import org.lightningdevkit.ldknode.OutPoint
 import to.bitkit.env.Env
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +46,15 @@ class AddressChecker @Inject constructor(
             return response.body<List<EsploraUtxo>>()
         } catch (e: Exception) {
             throw AddressCheckerError.NetworkError(e)
+        }
+    }
+
+    suspend fun getOutputAddress(outPoint: OutPoint): Result<String> = runCatching {
+        val (txid, vout) = outPoint
+        getTransaction(txid).vout.find { it.n == vout.toInt() }?.scriptpubkey_address ?: let {
+            throw AddressCheckerError.OutputNotFound("$txid:$vout").also {
+                Logger.warn("Failed to fetch funding address: ${it.message}", e = it)
+            }
         }
     }
 }
@@ -117,4 +127,5 @@ data class EsploraUtxo(
 
 sealed class AddressCheckerError(message: String? = null) : AppError(message) {
     data class NetworkError(val error: Throwable) : AddressCheckerError(error.message)
+    data class OutputNotFound(val outpoint: String) : AddressCheckerError("Output not found: $outpoint")
 }
