@@ -139,12 +139,10 @@ fun HomeScreen(
 
     val context = LocalContext.current
 
-    // Check for timed sheets when entering home screen
     LaunchedEffect(Unit) {
         appViewModel.checkTimedSheets()
     }
 
-    // Clean up when leaving home screen
     DisposableEffect(Unit) {
         onDispose {
             appViewModel.onLeftHome()

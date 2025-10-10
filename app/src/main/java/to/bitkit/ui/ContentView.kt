@@ -36,9 +36,8 @@ import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
-import to.bitkit.ui.Routes.*
+import to.bitkit.ui.Routes.ExternalConnection
 import to.bitkit.ui.components.AuthCheckScreen
-import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.components.TimedSheetType
@@ -332,7 +331,7 @@ fun ContentView(
         ) {
             AutoReadClipboardHandler()
 
-            val currentSheet by appViewModel.currentSheet
+            val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
             SheetHost(
                 shouldExpand = currentSheet != null,
                 onDismiss = { appViewModel.hideSheet() },
@@ -367,7 +366,7 @@ fun ContentView(
                         is Sheet.TimedSheet -> {
                             when (sheet.type) {
                                 TimedSheetType.APP_UPDATE -> {
-                                    UpdateSheet(onDismiss = { appViewModel.dismissTimedSheet() })
+                                    UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
                                 }
 
                                 TimedSheetType.BACKUP -> {
@@ -384,7 +383,6 @@ fun ContentView(
                                             navController.navigate(Routes.BackgroundPaymentsSettings)
                                             settingsViewModel.setBgPaymentsIntroSeen(true)
                                         },
-                                        onDismiss = { appViewModel.dismissTimedSheet() }
                                     )
                                 }
 
@@ -394,13 +392,11 @@ fun ContentView(
                                             appViewModel.dismissTimedSheet()
                                             navController.navigate(Routes.QuickPaySettings)
                                         },
-                                        onDismiss = { appViewModel.dismissTimedSheet() }
                                     )
                                 }
 
                                 TimedSheetType.HIGH_BALANCE -> {
-                                    HighBalanceWarningSheet(
-                                        onDismiss = { appViewModel.dismissTimedSheet() },
+                                    HighBalanceWarningSheet (
                                         understoodClick = { appViewModel.dismissTimedSheet() },
                                         learnMoreClick = {
                                             val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())

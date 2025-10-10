@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,7 +21,6 @@ import androidx.core.net.toUri
 import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
@@ -36,18 +34,8 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateSheet(
-    onDismiss: () -> Unit,
-) {
-    BottomSheet(onDismissRequest = onDismiss) {
-        UpdateSheetContent(onDismiss)
-    }
-}
-
-@Composable
-fun UpdateSheetContent(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,7 +106,7 @@ fun UpdateSheetContent(
 private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
-            UpdateSheetContent(
+            UpdateSheet(
                 onCancel = {},
             )
         }

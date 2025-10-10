@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,7 +17,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
-import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
@@ -32,23 +30,8 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HighBalanceWarningSheet(
-    onDismiss: () -> Unit,
-    understoodClick: () -> Unit,
-    learnMoreClick: () -> Unit,
-) {
-    BottomSheet(onDismissRequest = onDismiss) {
-        HighBalanceWarningContent(
-            understoodClick = understoodClick,
-            learnMoreClick = learnMoreClick,
-        )
-    }
-}
-
-@Composable
-fun HighBalanceWarningContent(
     understoodClick: () -> Unit,
     learnMoreClick: () -> Unit,
 ) {
@@ -85,10 +68,10 @@ fun HighBalanceWarningContent(
             VerticalSpacer(8.dp)
             BodyM(
                 text =
-                stringResource(R.string.other__high_balance__text).withAccent(
-                    defaultColor = Colors.White64,
-                    accentStyle = AppTextStyles.Subtitle.merge(color = Colors.White).toSpanStyle()
-                ),
+                    stringResource(R.string.other__high_balance__text).withAccent(
+                        defaultColor = Colors.White64,
+                        accentStyle = AppTextStyles.Subtitle.merge(color = Colors.White).toSpanStyle()
+                    ),
                 color = Colors.White64,
                 modifier = Modifier
                     .testTag("high_balance_description")
@@ -129,7 +112,7 @@ private fun Preview() {
     AppThemeSurface {
         Column {
             BottomSheetPreview {
-                HighBalanceWarningContent(
+                HighBalanceWarningSheet(
                     understoodClick = {},
                     learnMoreClick = {},
                 )
