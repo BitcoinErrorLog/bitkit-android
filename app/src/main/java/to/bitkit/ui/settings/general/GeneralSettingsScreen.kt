@@ -50,6 +50,7 @@ fun GeneralSettingsScreen(
     val lastUsedTags by settings.lastUsedTags.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settings.quickPayIntroSeen.collectAsStateWithLifecycle()
     val bgPaymentsIntroSeen by settings.bgPaymentsIntroSeen.collectAsStateWithLifecycle()
+    val notificationsGranted by settings.notificationsGranted.collectAsStateWithLifecycle()
     val languageUiState by languageViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { languageViewModel.fetchLanguageInfo() }
@@ -69,7 +70,7 @@ fun GeneralSettingsScreen(
         onTagsClick = { navController.navigateToTagsSettings() },
         onLanguageSettingsClick = { navController.navigateToLanguageSettings() },
         onBgPaymentsClick = {
-            if (bgPaymentsIntroSeen) {
+            if (bgPaymentsIntroSeen || notificationsGranted) {
                 navController.navigate(Routes.BackgroundPaymentsSettings)
             } else {
                 navController.navigate(Routes.BackgroundPaymentsIntro)
