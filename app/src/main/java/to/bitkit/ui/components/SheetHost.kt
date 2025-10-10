@@ -48,7 +48,7 @@ enum class TimedSheetType(val priority: Int) {
     BACKUP(priority = 4),
     NOTIFICATIONS(priority = 3),
     QUICK_PAY(priority = 2),
-    HIGH_BALANCE(priority = 1);
+    HIGH_BALANCE(priority = 1)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
