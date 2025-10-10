@@ -1745,7 +1745,7 @@ class AppViewModel @Inject constructor(
         )
     }
 
-    private suspend inline fun checkTimeout(
+    private fun checkTimeout(
         lastIgnoredMillis: Long,
         intervalMillis: Long,
         additionalCondition: Boolean = true,
