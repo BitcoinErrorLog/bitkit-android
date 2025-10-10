@@ -34,9 +34,10 @@ import to.bitkit.ui.utils.withAccent
 fun HighBalanceWarningSheet(
     understoodClick: () -> Unit,
     learnMoreClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .sheetHeight(isModal = true)
             .gradientBackground()

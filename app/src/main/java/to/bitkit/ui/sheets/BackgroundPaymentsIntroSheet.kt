@@ -13,10 +13,14 @@ import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsIntroContent
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
+
 @Composable
-fun BackgroundPaymentsIntroSheet(onContinue: () -> Unit) {
+fun BackgroundPaymentsIntroSheet(
+    modifier: Modifier = Modifier,
+    onContinue: () -> Unit,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .sheetHeight(isModal = true)
             .gradientBackground()
@@ -26,7 +30,7 @@ fun BackgroundPaymentsIntroSheet(onContinue: () -> Unit) {
         SheetTopBar(
             titleText = "Background Payments", // Todo Transifex
         )
-        BackgroundPaymentsIntroContent(onContinue)
+        BackgroundPaymentsIntroContent(onContinue = onContinue)
     }
 }
 

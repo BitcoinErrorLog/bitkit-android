@@ -17,9 +17,12 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
-fun QuickPayIntroSheet(onContinue: () -> Unit) {
+fun QuickPayIntroSheet(
+    modifier: Modifier = Modifier,
+    onContinue: () -> Unit,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .sheetHeight(isModal = true)
             .gradientBackground()
@@ -27,7 +30,7 @@ fun QuickPayIntroSheet(onContinue: () -> Unit) {
             .testTag("quick_pay_intro_sheet")
     ) {
         SheetTopBar(stringResource(R.string.settings__quickpay__nav_title))
-        QuickPayIntroContent(onContinue)
+        QuickPayIntroContent(onContinue = onContinue)
     }
 }
 

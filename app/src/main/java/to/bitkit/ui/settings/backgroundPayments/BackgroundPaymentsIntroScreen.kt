@@ -30,10 +30,11 @@ fun BackgroundPaymentsIntroScreen(
     onBack: () -> Unit,
     onClose: () -> Unit,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     Column(
-        modifier = Modifier.screen()
+        modifier = modifier.screen()
     ) {
         AppTopBar(
             titleText = "Background Payments", // Todo Transifex
@@ -50,9 +51,12 @@ fun BackgroundPaymentsIntroScreen(
 }
 
 @Composable
-fun BackgroundPaymentsIntroContent(onContinue: () -> Unit) {
+fun BackgroundPaymentsIntroContent(
+    modifier: Modifier = Modifier,
+    onContinue: () -> Unit,
+) {
     Column(
-        modifier = Modifier.padding(horizontal = 32.dp)
+        modifier = modifier.padding(horizontal = 32.dp)
     ) {
         Image(
             painter = painterResource(R.drawable.bell),
