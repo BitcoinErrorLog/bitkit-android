@@ -152,9 +152,7 @@ class AppViewModel @Inject constructor(
     private val processedPayments = mutableSetOf<String>()
 
     private var timedSheetsScope: CoroutineScope? = null
-
-    private val timedSheetQueue = mutableListOf<TimedSheetType>()
-
+    private var timedSheetQueue: List<TimedSheetType> = emptyList()
     private var currentTimedSheet: TimedSheetType? = null
 
     fun setShowForgotPin(value: Boolean) {
@@ -1362,16 +1360,27 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Sheets
-    var currentSheet = mutableStateOf<Sheet?>(null)
-        private set
+    private val _currentSheet: MutableStateFlow<Sheet?> = MutableStateFlow(null)
+    val currentSheet = _currentSheet.asStateFlow()
 
     fun showSheet(sheetType: Sheet) {
-        currentSheet.value = sheetType
+        viewModelScope.launch {
+            _currentSheet.value?.let {
+                _currentSheet.update { null }
+                delay(SCREEN_TRANSITION_DELAY_MS)
+            }
+            _currentSheet.update { sheetType }
+        }
     }
 
     fun hideSheet() {
-        currentSheet.value = null
+        if (currentSheet.value is Sheet.TimedSheet && currentTimedSheet != null) {
+            dismissTimedSheet()
+        } else {
+            _currentSheet.update { null }
+        }
     }
+
     // endregion
 
     // region Toasts
@@ -1579,8 +1588,7 @@ class AppViewModel @Inject constructor(
 
             if (eligibleSheets.isNotEmpty()) {
                 Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
-                timedSheetQueue.clear()
-                timedSheetQueue.addAll(eligibleSheets)
+                timedSheetQueue = eligibleSheets
                 currentTimedSheet = eligibleSheets.first()
                 showSheet(Sheet.TimedSheet(eligibleSheets.first()))
             } else {
@@ -1599,9 +1607,7 @@ class AppViewModel @Inject constructor(
         val currentSheet = currentTimedSheet
 
         if (currentQueue.isEmpty() || currentSheet == null) {
-            currentTimedSheet = null
-            timedSheetQueue.clear()
-            hideSheet()
+            clearTimedSheets()
             return
         }
 
@@ -1643,10 +1649,14 @@ class AppViewModel @Inject constructor(
             showSheet(Sheet.TimedSheet(currentQueue[nextIndex]))
         } else {
             Logger.debug("Timed sheet queue exhausted")
-            currentTimedSheet = null
-            timedSheetQueue.clear()
-            hideSheet()
+            clearTimedSheets()
         }
+    }
+
+    private fun clearTimedSheets() {
+        currentTimedSheet = null
+        timedSheetQueue = emptyList()
+        hideSheet()
     }
 
     private suspend fun shouldDisplaySheet(sheet: TimedSheetType): Boolean = when (sheet) {
@@ -1734,7 +1744,7 @@ class AppViewModel @Inject constructor(
         )
     }
 
-    private fun checkTimeout(
+    private suspend inline fun checkTimeout(
         lastIgnoredMillis: Long,
         intervalMillis: Long,
         additionalCondition: Boolean = true,
