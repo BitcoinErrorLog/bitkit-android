@@ -370,10 +370,10 @@ fun ContentView(
                                 }
 
                                 TimedSheetType.BACKUP -> {
-                                        BackupSheet(
-                                            sheet = Sheet.Backup(BackupRoute.Intro),
-                                            onDismiss = { appViewModel.dismissTimedSheet() }
-                                        )
+                                    BackupSheet(
+                                        sheet = Sheet.Backup(BackupRoute.Intro),
+                                        onDismiss = { appViewModel.dismissTimedSheet() }
+                                    )
                                 }
 
                                 TimedSheetType.NOTIFICATIONS -> {
@@ -396,7 +396,7 @@ fun ContentView(
                                 }
 
                                 TimedSheetType.HIGH_BALANCE -> {
-                                    HighBalanceWarningSheet (
+                                    HighBalanceWarningSheet(
                                         understoodClick = { appViewModel.dismissTimedSheet() },
                                         learnMoreClick = {
                                             val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())

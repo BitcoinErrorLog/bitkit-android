@@ -1712,7 +1712,8 @@ class AppViewModel @Inject constructor(
                         navOptions = navOptions {
                             popUpTo(0) { inclusive = true }
                         }
-                    ))
+                    )
+                )
                 return@withContext false
             }
 
