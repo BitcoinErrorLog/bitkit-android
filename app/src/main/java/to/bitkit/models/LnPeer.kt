@@ -3,6 +3,9 @@ package to.bitkit.models
 import kotlinx.serialization.Serializable
 import org.lightningdevkit.ldknode.PeerDetails
 
+/**
+ * TODO replace with direct usage of the now-serializable [PeerDetails] and extract utilities to extension methods
+ */
 @Serializable
 data class LnPeer(
     val nodeId: String,

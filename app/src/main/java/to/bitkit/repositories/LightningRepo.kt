@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
@@ -37,7 +38,6 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
@@ -62,8 +62,6 @@ import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-
-private const val SYNC_TIMEOUT_MS = 20_000L
 
 @Singleton
 class LightningRepo @Inject constructor(
@@ -864,8 +862,9 @@ class LightningRepo @Inject constructor(
                 }
         }
 
-    private companion object {
-        const val TAG = "LightningRepo"
+    companion object {
+        private const val TAG = "LightningRepo"
+        private const val SYNC_TIMEOUT_MS = 20_000L
     }
 }
 

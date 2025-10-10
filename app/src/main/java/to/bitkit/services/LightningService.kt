@@ -13,6 +13,7 @@ import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.AnchorChannelsConfig
 import org.lightningdevkit.ldknode.BackgroundSyncConfig
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Bolt11Invoice
 import org.lightningdevkit.ldknode.Bolt11InvoiceDescription
 import org.lightningdevkit.ldknode.BuildException
@@ -42,10 +43,8 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.LnPeer
 import to.bitkit.models.OpenChannelResult
-import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -88,16 +87,16 @@ class LightningService @Inject constructor(
         this.trustedLnPeers = Env.trustedLnPeers
         val dirPath = Env.ldkStoragePath(walletIndex)
 
-        val config = defaultConfig().apply {
-            storageDirPath = dirPath
-            network = Env.network
-
-            trustedPeers0conf = trustedLnPeers.map { it.nodeId }
+        val trustedPeers0conf = trustedLnPeers.map { it.nodeId }
+        val config = defaultConfig().copy(
+            storageDirPath = dirPath,
+            network = Env.network,
+            trustedPeers0conf = trustedPeers0conf,
             anchorChannelsConfig = AnchorChannelsConfig(
                 trustedPeersNoReserve = trustedPeers0conf,
                 perChannelReserveSats = 1u,
             )
-        }
+        )
 
         val builder = Builder.fromConfig(config).apply {
             setFilesystemLogger(generateLogFilePath(), Env.ldkLogLevel)
@@ -764,7 +763,7 @@ class LightningService @Inject constructor(
 
     // region state
     val nodeId: String? get() = node?.nodeId()
-    val balances: BalanceDetails? get() = node?.listBalances()?.toDomainModel()
+    val balances: BalanceDetails? get() = node?.listBalances()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
     val peers: List<LnPeer>? get() = node?.listPeers()?.map(::LnPeer)

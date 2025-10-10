@@ -1,6 +1,6 @@
 package to.bitkit.ext
 
-import to.bitkit.models.LightningBalance
+import org.lightningdevkit.ldknode.LightningBalance
 
 fun LightningBalance.amountSats(): ULong {
     return when (this) {
