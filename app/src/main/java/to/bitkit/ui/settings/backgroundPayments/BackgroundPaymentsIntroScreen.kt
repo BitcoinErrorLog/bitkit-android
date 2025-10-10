@@ -52,8 +52,8 @@ fun BackgroundPaymentsIntroScreen(
 
 @Composable
 fun BackgroundPaymentsIntroContent(
-    modifier: Modifier = Modifier,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp)

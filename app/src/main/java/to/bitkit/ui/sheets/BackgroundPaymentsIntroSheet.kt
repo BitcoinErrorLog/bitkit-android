@@ -16,8 +16,8 @@ import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
 fun BackgroundPaymentsIntroSheet(
-    modifier: Modifier = Modifier,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier

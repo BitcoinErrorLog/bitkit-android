@@ -45,8 +45,9 @@ fun QuickPayIntroScreen(
 
 @Composable
 fun QuickPayIntroContent(
+    onContinue: () -> Unit,
     modifier: Modifier = Modifier,
-    onContinue: () -> Unit) {
+) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp)
     ) {

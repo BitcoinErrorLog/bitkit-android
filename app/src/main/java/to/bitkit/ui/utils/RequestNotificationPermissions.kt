@@ -17,8 +17,8 @@ import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun RequestNotificationPermissions(
-    showPermissionDialog: Boolean = true,
     onPermissionChange: (Boolean) -> Unit,
+    showPermissionDialog: Boolean = true,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current

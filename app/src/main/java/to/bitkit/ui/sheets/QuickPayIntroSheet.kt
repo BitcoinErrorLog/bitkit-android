@@ -18,8 +18,8 @@ import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
 fun QuickPayIntroSheet(
-    modifier: Modifier = Modifier,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
