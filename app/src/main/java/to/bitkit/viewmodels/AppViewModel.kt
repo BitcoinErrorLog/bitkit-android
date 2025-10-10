@@ -1276,8 +1276,6 @@ class AppViewModel @Inject constructor(
                 feeRates = rates,
             )
         }
-
-        processedPayments.clear()
     }
     // endregion
 
