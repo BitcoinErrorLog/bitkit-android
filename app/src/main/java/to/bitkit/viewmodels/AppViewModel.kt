@@ -153,11 +153,9 @@ class AppViewModel @Inject constructor(
 
     private var timedSheetsScope: CoroutineScope? = null
 
-    private val _timedSheetQueue = MutableStateFlow<List<TimedSheetType>>(emptyList())
-    val timedSheetQueue = _timedSheetQueue.asStateFlow()
+    private val timedSheetQueue = mutableListOf<TimedSheetType>()
 
-    private val _currentTimedSheet = MutableStateFlow<TimedSheetType?>(null)
-    val currentTimedSheet = _currentTimedSheet.asStateFlow()
+    private var currentTimedSheet: TimedSheetType? = null
 
     fun setShowForgotPin(value: Boolean) {
         _showForgotPinSheet.value = value
@@ -1560,7 +1558,7 @@ class AppViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
-        if (_currentTimedSheet.value != null || _timedSheetQueue.value.isNotEmpty()) {
+        if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
             Logger.debug("Timed sheet already active, skipping check")
             return
         }
@@ -1570,7 +1568,7 @@ class AppViewModel @Inject constructor(
         timedSheetsScope?.launch {
             delay(CHECK_DELAY_MILLIS)
 
-            if (_currentTimedSheet.value != null || _timedSheetQueue.value.isNotEmpty()) {
+            if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
                 Logger.debug("Timed sheet became active during delay, skipping")
                 return@launch
             }
@@ -1581,8 +1579,9 @@ class AppViewModel @Inject constructor(
 
             if (eligibleSheets.isNotEmpty()) {
                 Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
-                _timedSheetQueue.value = eligibleSheets
-                _currentTimedSheet.value = eligibleSheets.first()
+                timedSheetQueue.clear()
+                timedSheetQueue.addAll(eligibleSheets)
+                currentTimedSheet = eligibleSheets.first()
                 showSheet(Sheet.TimedSheet(eligibleSheets.first()))
             } else {
                 Logger.debug("No timed sheet eligible, skipping")
@@ -1596,12 +1595,12 @@ class AppViewModel @Inject constructor(
     }
 
     fun dismissTimedSheet() {
-        val currentQueue = _timedSheetQueue.value
-        val currentSheet = _currentTimedSheet.value
+        val currentQueue = timedSheetQueue
+        val currentSheet = currentTimedSheet
 
         if (currentQueue.isEmpty() || currentSheet == null) {
-            _currentTimedSheet.value = null
-            _timedSheetQueue.value = emptyList()
+            currentTimedSheet = null
+            timedSheetQueue.clear()
             hideSheet()
             return
         }
@@ -1640,12 +1639,12 @@ class AppViewModel @Inject constructor(
 
         if (nextIndex < currentQueue.size) {
             Logger.debug("Moving to next timed sheet in queue: ${currentQueue[nextIndex].name}")
-            _currentTimedSheet.value = currentQueue[nextIndex]
+            currentTimedSheet = currentQueue[nextIndex]
             showSheet(Sheet.TimedSheet(currentQueue[nextIndex]))
         } else {
             Logger.debug("Timed sheet queue exhausted")
-            _currentTimedSheet.value = null
-            _timedSheetQueue.value = emptyList()
+            currentTimedSheet = null
+            timedSheetQueue.clear()
             hideSheet()
         }
     }
