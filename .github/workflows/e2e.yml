@@ -60,7 +60,7 @@ jobs:
           name: bitkit-e2e-apk_${{ github.run_number }}
           path: app/build/outputs/apk/dev/debug/bitkit_e2e.apk
 
-  determine-e2e-branch:
+  e2e-branch:
     uses: synonymdev/bitkit-e2e-tests/.github/workflows/determine-e2e-branch.yml@main
     with:
       app_branch: ${{ github.head_ref || github.ref_name }}
@@ -69,7 +69,7 @@ jobs:
   e2e-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    needs: [build, determine-e2e-branch]
+    needs: [build, e2e-branch]
 
     strategy:
       fail-fast: false
