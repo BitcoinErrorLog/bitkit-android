@@ -76,7 +76,8 @@ fun GeneralSettingsScreen(
                 navController.navigate(Routes.BackgroundPaymentsIntro)
             }
         },
-        selectedLanguage = languageUiState.selectedLanguage.displayName
+        selectedLanguage = languageUiState.selectedLanguage.displayName,
+        notificationsGranted = notificationsGranted
     )
 }
 
@@ -87,6 +88,7 @@ private fun GeneralSettingsContent(
     defaultTransactionSpeed: TransactionSpeed,
     selectedLanguage: String,
     showTagsButton: Boolean = false,
+    notificationsGranted: Boolean,
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
     onLocalCurrencyClick: () -> Unit = {},
@@ -158,6 +160,7 @@ private fun GeneralSettingsContent(
             SettingsButtonRow(
                 title = "Background Payments", // TODO Transifex
                 onClick = onBgPaymentsClick,
+                value = SettingsButtonValue.StringValue(if (notificationsGranted) "On" else "Off"),
                 modifier = Modifier.testTag("BackgroundPaymentSettings")
             )
         }
@@ -173,7 +176,8 @@ private fun Preview() {
             primaryDisplay = PrimaryDisplay.BITCOIN,
             defaultTransactionSpeed = TransactionSpeed.Medium,
             showTagsButton = true,
-            selectedLanguage = Language.SYSTEM_DEFAULT.displayName
+            selectedLanguage = Language.SYSTEM_DEFAULT.displayName,
+            notificationsGranted = true
         )
     }
 }
