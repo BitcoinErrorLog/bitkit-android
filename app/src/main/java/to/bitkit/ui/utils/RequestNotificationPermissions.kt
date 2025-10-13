@@ -5,29 +5,65 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import to.bitkit.ext.requiresPermission
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
-fun RequestNotificationPermissions() {
+fun RequestNotificationPermissions(
+    onPermissionChange: (Boolean) -> Unit,
+    showPermissionDialog: Boolean = true,
+) {
     val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
-    // Only check permission if running on Android 13+ (SDK 33+)
-    val requiresPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-        context.requiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    // Check if permission is required (Android 13+)
+    val requiresPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
-    var isGranted by remember { mutableStateOf(!requiresPermission) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        isGranted = it
+    var isGranted by remember {
+        mutableStateOf(NotificationUtils.areNotificationsEnabled(context))
     }
 
-    LaunchedEffect(isGranted) {
-        if (!isGranted && requiresPermission) {
+    // Permission request launcher
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        isGranted = granted
+        onPermissionChange(granted)
+    }
+
+    // Monitor lifecycle to check permission when returning from settings
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val currentPermissionState = NotificationUtils.areNotificationsEnabled(context)
+                if (currentPermissionState != isGranted) {
+                    isGranted = currentPermissionState
+                    onPermissionChange(currentPermissionState)
+                }
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Request permission on first composition if needed
+    LaunchedEffect(Unit) {
+        val currentPermissionState = NotificationUtils.areNotificationsEnabled(context)
+        isGranted = currentPermissionState
+        onPermissionChange(currentPermissionState)
+
+        if (!currentPermissionState && requiresPermission && showPermissionDialog) {
             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

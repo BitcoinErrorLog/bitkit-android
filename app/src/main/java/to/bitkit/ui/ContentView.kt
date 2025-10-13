@@ -1,5 +1,6 @@
 package to.bitkit.ui
 
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -29,13 +31,16 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import to.bitkit.env.Env
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
+import to.bitkit.ui.Routes.ExternalConnection
 import to.bitkit.ui.components.AuthCheckScreen
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
+import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
@@ -114,6 +119,8 @@ import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen
 import to.bitkit.ui.settings.advanced.ElectrumConfigScreen
 import to.bitkit.ui.settings.advanced.RgsServerScreen
 import to.bitkit.ui.settings.appStatus.AppStatusScreen
+import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsIntroScreen
+import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsSettings
 import to.bitkit.ui.settings.backups.ResetAndRestoreScreen
 import to.bitkit.ui.settings.general.DefaultUnitSettingsScreen
 import to.bitkit.ui.settings.general.GeneralSettingsScreen
@@ -136,10 +143,14 @@ import to.bitkit.ui.settings.support.ReportIssueScreen
 import to.bitkit.ui.settings.support.SupportScreen
 import to.bitkit.ui.settings.transactionSpeed.CustomFeeSettingsScreen
 import to.bitkit.ui.settings.transactionSpeed.TransactionSpeedSettingsScreen
+import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
+import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.ForceTransferSheet
+import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
+import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
@@ -320,7 +331,7 @@ fun ContentView(
         ) {
             AutoReadClipboardHandler()
 
-            val currentSheet by appViewModel.currentSheet
+            val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
             SheetHost(
                 shouldExpand = currentSheet != null,
                 onDismiss = { appViewModel.hideSheet() },
@@ -340,7 +351,7 @@ fun ContentView(
                             ReceiveSheet(
                                 walletState = walletUiState,
                                 navigateToExternalConnection = {
-                                    navController.navigate(Routes.ExternalConnection())
+                                    navController.navigate(ExternalConnection())
                                     appViewModel.hideSheet()
                                 }
                             )
@@ -349,10 +360,53 @@ fun ContentView(
                         is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
                         is Sheet.ActivityTagSelector -> TagSelectorSheet()
                         is Sheet.Pin -> PinSheet(sheet, appViewModel)
-                        is Sheet.Backup -> BackupSheet(sheet, appViewModel)
+                        is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                        Sheet.Update -> UpdateSheet(onCancel = { appViewModel.hideSheet() })
                         Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
+                        is Sheet.TimedSheet -> {
+                            when (sheet.type) {
+                                TimedSheetType.APP_UPDATE -> {
+                                    UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
+                                }
+
+                                TimedSheetType.BACKUP -> {
+                                    BackupSheet(
+                                        sheet = Sheet.Backup(BackupRoute.Intro),
+                                        onDismiss = { appViewModel.dismissTimedSheet() }
+                                    )
+                                }
+
+                                TimedSheetType.NOTIFICATIONS -> {
+                                    BackgroundPaymentsIntroSheet(
+                                        onContinue = {
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            navController.navigate(Routes.BackgroundPaymentsSettings)
+                                            settingsViewModel.setBgPaymentsIntroSeen(true)
+                                        },
+                                    )
+                                }
+
+                                TimedSheetType.QUICK_PAY -> {
+                                    QuickPayIntroSheet(
+                                        onContinue = {
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            navController.navigate(Routes.QuickPaySettings)
+                                        },
+                                    )
+                                }
+
+                                TimedSheetType.HIGH_BALANCE -> {
+                                    HighBalanceWarningSheet(
+                                        understoodClick = { appViewModel.dismissTimedSheet() },
+                                        learnMoreClick = {
+                                            val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
+                                            context.startActivity(intent)
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             ) {
@@ -763,6 +817,22 @@ private fun NavGraphBuilder.generalSettings(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.TagsSettings> {
         TagsSettingsScreen(navController)
     }
+    composableWithDefaultTransitions<Routes.BackgroundPaymentsSettings> {
+        BackgroundPaymentsSettings(
+            onBack = { navController.popBackStack() },
+            onClose = { navController.navigateToHome() },
+        )
+    }
+
+    composableWithDefaultTransitions<Routes.BackgroundPaymentsIntro> {
+        BackgroundPaymentsIntroScreen(
+            onBack = { navController.popBackStack() },
+            onClose = { navController.navigateToHome() },
+            onContinue = {
+                navController.navigate(Routes.BackgroundPaymentsSettings)
+            }
+        )
+    }
 }
 
 private fun NavGraphBuilder.advancedSettings(navController: NavHostController) {
@@ -1031,7 +1101,7 @@ private fun NavGraphBuilder.update() {
 
 private fun NavGraphBuilder.recoveryMode(
     navController: NavHostController,
-    appViewModel: AppViewModel
+    appViewModel: AppViewModel,
 ) {
     composableWithDefaultTransitions<Routes.RecoveryMode> {
         RecoveryModeScreen(
@@ -1719,4 +1789,10 @@ sealed interface Routes {
 
     @Serializable
     data object RecoveryMnemonic : Routes
+
+    @Serializable
+    data object BackgroundPaymentsIntro : Routes
+
+    @Serializable
+    data object BackgroundPaymentsSettings : Routes
 }

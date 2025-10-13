@@ -1,4 +1,4 @@
-package to.bitkit.ui.settings.quickPay
+package to.bitkit.ui.settings.backgroundPayments
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -11,6 +11,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
@@ -22,29 +23,35 @@ import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.SettingsViewModel
 
 @Composable
-fun QuickPayIntroScreen(
+fun BackgroundPaymentsIntroScreen(
     onBack: () -> Unit,
     onClose: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     Column(
         modifier = modifier.screen()
     ) {
         AppTopBar(
-            titleText = stringResource(R.string.settings__quickpay__nav_title),
+            titleText = "Background Payments", // Todo Transifex
             onBackClick = onBack,
             actions = { CloseNavIcon(onClick = onClose) },
         )
-
-        QuickPayIntroContent(onContinue = onContinue)
+        BackgroundPaymentsIntroContent(
+            onContinue = {
+                settingsViewModel.setBgPaymentsIntroSeen(true)
+                onContinue()
+            }
+        )
     }
 }
 
 @Composable
-fun QuickPayIntroContent(
+fun BackgroundPaymentsIntroContent(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -52,7 +59,7 @@ fun QuickPayIntroContent(
         modifier = modifier.padding(horizontal = 32.dp)
     ) {
         Image(
-            painter = painterResource(R.drawable.fast_forward),
+            painter = painterResource(R.drawable.bell),
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
@@ -60,16 +67,16 @@ fun QuickPayIntroContent(
         )
 
         Display(
-            text = stringResource(R.string.settings__quickpay__intro__title).withAccent(accentColor = Colors.Green),
+            text = "GET PAID\n<accent>PASSIVELY</accent>".withAccent(accentColor = Colors.Blue),
             color = Colors.White
         )
         VerticalSpacer(8.dp)
-        BodyM(text = stringResource(R.string.settings__quickpay__intro__description), color = Colors.White64)
+        BodyM(text = "Turn on notifications to get paid, even when your Bitkit app is closed.", color = Colors.White64)
         VerticalSpacer(32.dp)
         PrimaryButton(
             text = stringResource(R.string.common__continue),
             onClick = onContinue,
-            modifier = Modifier.testTag("QuickpayIntro-button")
+            modifier = Modifier.testTag("BackgroundPaymentsIntro-button")
         )
         VerticalSpacer(16.dp)
     }
@@ -79,9 +86,7 @@ fun QuickPayIntroContent(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        QuickPayIntroScreen(
-            onBack = {},
-            onClose = {},
+        BackgroundPaymentsIntroContent(
             onContinue = {}
         )
     }

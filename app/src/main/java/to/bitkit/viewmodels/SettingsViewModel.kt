@@ -22,6 +22,23 @@ class SettingsViewModel @Inject constructor(
     val hasSeenSpendingIntro = settingsStore.data.map { it.hasSeenSpendingIntro }
         .asStateFlow(initialValue = false)
 
+    val notificationsGranted = settingsStore.data.map { it.notificationsGranted }
+        .asStateFlow(initialValue = false)
+
+    fun setNotificationPreference(granted: Boolean) {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(notificationsGranted = granted) }
+        }
+    }
+    val showNotificationDetails = settingsStore.data.map { it.showNotificationDetails }
+        .asStateFlow(initialValue = false)
+
+    fun toggleNotificationDetails() {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(showNotificationDetails = !it.showNotificationDetails) }
+        }
+    }
+
     fun setHasSeenSpendingIntro(value: Boolean) {
         viewModelScope.launch {
             settingsStore.update { it.copy(hasSeenSpendingIntro = value) }
@@ -79,6 +96,15 @@ class SettingsViewModel @Inject constructor(
     fun setQuickPayIntroSeen(value: Boolean) {
         viewModelScope.launch {
             settingsStore.update { it.copy(quickPayIntroSeen = value) }
+        }
+    }
+
+    val bgPaymentsIntroSeen = settingsStore.data.map { it.bgPaymentsIntroSeen }
+        .asStateFlow(initialValue = false)
+
+    fun setBgPaymentsIntroSeen(value: Boolean) {
+        viewModelScope.launch {
+            settingsStore.update { it.copy(bgPaymentsIntroSeen = value) }
         }
     }
 

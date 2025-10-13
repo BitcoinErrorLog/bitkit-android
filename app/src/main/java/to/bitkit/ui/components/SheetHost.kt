@@ -38,8 +38,18 @@ sealed interface Sheet {
     data object ActivityDateRangeSelector : Sheet
     data object ActivityTagSelector : Sheet
     data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet
-    data object Update : Sheet
     data object ForceTransfer : Sheet
+
+    data class TimedSheet(val type: TimedSheetType) : Sheet
+}
+
+/**@param priority Priority levels for timed sheets (higher number = higher priority)*/
+enum class TimedSheetType(val priority: Int) {
+    APP_UPDATE(priority = 5),
+    BACKUP(priority = 4),
+    NOTIFICATIONS(priority = 3),
+    QUICK_PAY(priority = 2),
+    HIGH_BALANCE(priority = 1)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

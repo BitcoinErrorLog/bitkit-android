@@ -26,8 +26,11 @@ import com.synonym.bitkitcore.validateBitcoinAddress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,6 +44,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -86,6 +90,7 @@ import to.bitkit.services.AppUpdaterService
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
+import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
@@ -106,9 +111,9 @@ class AppViewModel @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
     private val blocktankRepo: BlocktankRepo,
+    private val connectivityRepo: ConnectivityRepo,
+    private val healthRepo: HealthRepo,
     private val appUpdaterService: AppUpdaterService,
-    connectivityRepo: ConnectivityRepo,
-    healthRepo: HealthRepo,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -145,6 +150,10 @@ class AppViewModel @Inject constructor(
     val showForgotPinSheet = _showForgotPinSheet.asStateFlow()
 
     private val processedPayments = mutableSetOf<String>()
+
+    private var timedSheetsScope: CoroutineScope? = null
+    private var timedSheetQueue: List<TimedSheetType> = emptyList()
+    private var currentTimedSheet: TimedSheetType? = null
 
     fun setShowForgotPin(value: Boolean) {
         _showForgotPinSheet.value = value
@@ -196,7 +205,12 @@ class AppViewModel @Inject constructor(
 
         observeLdkNodeEvents()
         observeSendEvents()
-        fetchNewReleases()
+
+        viewModelScope.launch {
+            walletRepo.balanceState.collect {
+                checkTimedSheets()
+            }
+        }
     }
 
     private fun observeLdkNodeEvents() {
@@ -1280,8 +1294,6 @@ class AppViewModel @Inject constructor(
                 feeRates = rates,
             )
         }
-
-        processedPayments.clear()
     }
     // endregion
 
@@ -1354,16 +1366,27 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Sheets
-    var currentSheet = mutableStateOf<Sheet?>(null)
-        private set
+    private val _currentSheet: MutableStateFlow<Sheet?> = MutableStateFlow(null)
+    val currentSheet = _currentSheet.asStateFlow()
 
     fun showSheet(sheetType: Sheet) {
-        currentSheet.value = sheetType
+        viewModelScope.launch {
+            _currentSheet.value?.let {
+                _currentSheet.update { null }
+                delay(SCREEN_TRANSITION_DELAY_MS)
+            }
+            _currentSheet.update { sheetType }
+        }
     }
 
     fun hideSheet() {
-        currentSheet.value = null
+        if (currentSheet.value is Sheet.TimedSheet && currentTimedSheet != null) {
+            dismissTimedSheet()
+        } else {
+            _currentSheet.update { null }
+        }
     }
+
     // endregion
 
     // region Toasts
@@ -1473,32 +1496,6 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun fetchNewReleases() {
-        viewModelScope.launch(bgDispatcher) {
-            runCatching {
-                val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
-                val currentBuildNumber = BuildConfig.VERSION_CODE
-
-                if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@launch
-
-                if (androidReleaseInfo.isCritical) {
-                    mainScreenEffect(
-                        MainScreenEffect.Navigate(
-                            route = Routes.CriticalUpdate,
-                            navOptions = navOptions {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        )
-                    )
-                } else {
-                    showSheet(sheetType = Sheet.Update)
-                }
-            }.onFailure { e ->
-                Logger.warn("Failure fetching new releases", e = e)
-            }
-        }
-    }
-
     private fun onConfirmAmountWarning(warning: SanityWarning) {
         viewModelScope.launch {
             _sendUiState.update {
@@ -1575,6 +1572,214 @@ class AppViewModel @Inject constructor(
             .replace("lnurlp:", "")
     }
 
+    fun checkTimedSheets() {
+        if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
+            Logger.debug("Timed sheet already active, skipping check")
+            return
+        }
+
+        timedSheetsScope?.cancel()
+        timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
+        timedSheetsScope?.launch {
+            delay(CHECK_DELAY_MILLIS)
+
+            if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
+                Logger.debug("Timed sheet became active during delay, skipping")
+                return@launch
+            }
+
+            val eligibleSheets = TimedSheetType.entries
+                .filter { shouldDisplaySheet(it) }
+                .sortedByDescending { it.priority }
+
+            if (eligibleSheets.isNotEmpty()) {
+                Logger.debug(
+                    "Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}",
+                    context = "Timed sheet"
+                )
+                timedSheetQueue = eligibleSheets
+                currentTimedSheet = eligibleSheets.first()
+                showSheet(Sheet.TimedSheet(eligibleSheets.first()))
+            } else {
+                Logger.debug("No timed sheet eligible, skipping", context = "Timed sheet")
+            }
+        }
+    }
+
+    fun onLeftHome() {
+        Logger.debug("Left home, skipping timed sheet check")
+        timedSheetsScope?.cancel()
+        timedSheetsScope = null
+    }
+
+    fun dismissTimedSheet(skipQueue: Boolean = false) {
+        Logger.debug("dismissTimedSheet called", context = "Timed sheet")
+
+        val currentQueue = timedSheetQueue
+        val currentSheet = currentTimedSheet
+
+        if (currentQueue.isEmpty() || currentSheet == null) {
+            clearTimedSheets()
+            return
+        }
+
+        viewModelScope.launch {
+            val currentTime = Clock.System.now().toEpochMilliseconds()
+
+            when (currentSheet) {
+                TimedSheetType.BACKUP -> {
+                    settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
+                }
+
+                TimedSheetType.HIGH_BALANCE -> {
+                    settingsStore.update {
+                        it.copy(
+                            balanceWarningTimes = it.balanceWarningTimes + 1,
+                            balanceWarningIgnoredMillis = currentTime
+                        )
+                    }
+                }
+
+                TimedSheetType.APP_UPDATE -> Unit
+
+                TimedSheetType.NOTIFICATIONS -> {
+                    settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
+                }
+
+                TimedSheetType.QUICK_PAY -> {
+                    settingsStore.update { it.copy(quickPayIntroSeen = true) }
+                }
+            }
+        }
+
+        if (skipQueue) {
+            clearTimedSheets()
+            return
+        }
+
+        val currentIndex = currentQueue.indexOf(currentSheet)
+        val nextIndex = currentIndex + 1
+
+        if (nextIndex < currentQueue.size) {
+            Logger.debug("Moving to next timed sheet in queue: ${currentQueue[nextIndex].name}")
+            currentTimedSheet = currentQueue[nextIndex]
+            showSheet(Sheet.TimedSheet(currentQueue[nextIndex]))
+        } else {
+            Logger.debug("Timed sheet queue exhausted")
+            clearTimedSheets()
+        }
+    }
+
+    private fun clearTimedSheets() {
+        currentTimedSheet = null
+        timedSheetQueue = emptyList()
+        hideSheet()
+    }
+
+    private suspend fun shouldDisplaySheet(sheet: TimedSheetType): Boolean = when (sheet) {
+        TimedSheetType.APP_UPDATE -> checkAppUpdate()
+        TimedSheetType.BACKUP -> checkBackupSheet()
+        TimedSheetType.NOTIFICATIONS -> checkNotificationSheet()
+        TimedSheetType.QUICK_PAY -> checkQuickPaySheet()
+        TimedSheetType.HIGH_BALANCE -> checkHighBalance()
+    }
+
+    private suspend fun checkQuickPaySheet(): Boolean {
+        val settings = settingsStore.data.first()
+        if (settings.quickPayIntroSeen || settings.isQuickPayEnabled) return false
+        val shouldShow = walletRepo.balanceState.value.totalLightningSats > 0U
+        return shouldShow
+    }
+
+    private suspend fun checkNotificationSheet(): Boolean {
+        val settings = settingsStore.data.first()
+        if (settings.notificationsGranted) return false
+        if (walletRepo.balanceState.value.totalLightningSats == 0UL) return false
+
+        return checkTimeout(
+            lastIgnoredMillis = settings.notificationsIgnoredMillis,
+            intervalMillis = ONE_WEEK_ASK_INTERVAL_MILLIS
+        )
+    }
+
+    private suspend fun checkBackupSheet(): Boolean {
+        val settings = settingsStore.data.first()
+        if (settings.backupVerified) return false
+
+        val hasBalance = walletRepo.balanceState.value.totalSats > 0U
+        if (!hasBalance) return false
+
+        return checkTimeout(
+            lastIgnoredMillis = settings.backupWarningIgnoredMillis,
+            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS
+        )
+    }
+
+    private suspend fun checkAppUpdate(): Boolean = withContext(bgDispatcher) {
+        try {
+            val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
+            val currentBuildNumber = BuildConfig.VERSION_CODE
+
+            if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext false
+
+            if (androidReleaseInfo.isCritical) {
+                mainScreenEffect(
+                    MainScreenEffect.Navigate(
+                        route = Routes.CriticalUpdate,
+                        navOptions = navOptions {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    )
+                )
+                return@withContext false
+            }
+
+            return@withContext true
+        } catch (e: Exception) {
+            Logger.warn("Failure fetching new releases", e = e)
+            return@withContext false
+        }
+    }
+
+    private suspend fun checkHighBalance(): Boolean {
+        val settings = settingsStore.data.first()
+
+        val totalOnChainSats = walletRepo.balanceState.value.totalSats
+        val balanceUsd = satsToUsd(totalOnChainSats) ?: return false
+        val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
+
+        if (!thresholdReached) {
+            settingsStore.update { it.copy(balanceWarningTimes = 0) }
+            return false
+        }
+
+        val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
+
+        return checkTimeout(
+            lastIgnoredMillis = settings.balanceWarningIgnoredMillis,
+            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS,
+            additionalCondition = belowMaxWarnings
+        )
+    }
+
+    private fun checkTimeout(
+        lastIgnoredMillis: Long,
+        intervalMillis: Long,
+        additionalCondition: Boolean = true,
+    ): Boolean {
+        if (!additionalCondition) return false
+
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val isTimeOutOver = lastIgnoredMillis == 0L ||
+            (currentTime - lastIgnoredMillis > intervalMillis)
+        return isTimeOutOver
+    }
+
+    private fun satsToUsd(sats: ULong): BigDecimal? {
+        val converted = currencyRepo.convertSatsToFiat(sats = sats.toLong(), currency = "USD").getOrNull()
+        return converted?.value
+    }
+
     companion object {
         private const val TAG = "AppViewModel"
         private const val SEND_AMOUNT_WARNING_THRESHOLD = 100.0
@@ -1582,6 +1787,19 @@ class AppViewModel @Inject constructor(
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
         private const val SCREEN_TRANSITION_DELAY_MS = 300L
+
+        /**How high the balance must be to show this warning to the user (in USD)*/
+        private const val BALANCE_THRESHOLD_USD = 500L
+        private const val MAX_WARNINGS = 3
+
+        /** how long this prompt will be hidden if user taps Later*/
+        private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24L
+
+        /** how long this prompt will be hidden if user taps Later*/
+        private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7L
+
+        /**How long user needs to stay on the home screen before he see this prompt*/
+        private const val CHECK_DELAY_MILLIS = 2000L
     }
 }
 

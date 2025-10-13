@@ -50,7 +50,11 @@ fun HomeNav(
     val hasSeenShopIntro: Boolean by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hazeState = rememberHazeState()
 
-    RequestNotificationPermissions()
+    RequestNotificationPermissions(
+        onPermissionChange = { granted ->
+            settingsViewModel.setNotificationPreference(granted)
+        }
+    )
 
     Box(
         modifier = Modifier.fillMaxSize()

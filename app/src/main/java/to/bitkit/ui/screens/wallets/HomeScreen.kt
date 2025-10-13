@@ -1,6 +1,5 @@
 package to.bitkit.ui.screens.wallets
 
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.SnapPosition
@@ -39,6 +38,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -53,7 +54,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -106,7 +106,6 @@ import to.bitkit.ui.screens.widgets.weather.WeatherCard
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.sheets.BackupRoute
-import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -129,7 +128,6 @@ fun HomeScreen(
     activityListViewModel: ActivityListViewModel,
     homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val hasSeenTransferIntro by settingsViewModel.hasSeenTransferIntro.collectAsStateWithLifecycle()
     val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hasSeenProfileIntro by settingsViewModel.hasSeenProfileIntro.collectAsStateWithLifecycle()
@@ -138,6 +136,18 @@ fun HomeScreen(
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        appViewModel.checkTimedSheets()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            appViewModel.onLeftHome()
+        }
+    }
 
     homeUiState.deleteWidgetAlert?.let { type ->
         DeleteWidgetAlert(type, homeViewModel)
@@ -256,7 +266,6 @@ fun HomeScreen(
             homeViewModel.moveWidget(fromIndex, toIndex)
         },
         onDismissEmptyState = homeViewModel::dismissEmptyState,
-        onDismissHighBalanceSheet = homeViewModel::dismissHighBalanceSheet,
         onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
     )
 }
@@ -281,7 +290,6 @@ private fun Content(
     onClickDeleteWidget: (WidgetType) -> Unit = {},
     onMoveWidget: (Int, Int) -> Unit = { _, _ -> },
     onDismissEmptyState: () -> Unit = {},
-    onDismissHighBalanceSheet: () -> Unit = {},
     onClickEmptyActivityRow: () -> Unit = {},
     balances: BalanceState = LocalBalances.current,
 ) {
@@ -573,19 +581,6 @@ private fun Content(
                     onClose = onDismissEmptyState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                )
-            }
-
-            if (homeUiState.highBalanceSheetVisible) {
-                val context = LocalContext.current
-                HighBalanceWarningSheet(
-                    onDismiss = onDismissHighBalanceSheet,
-                    understoodClick = onDismissHighBalanceSheet,
-                    learnMoreClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
-                        context.startActivity(intent)
-                        onDismissHighBalanceSheet()
-                    }
                 )
             }
         }
