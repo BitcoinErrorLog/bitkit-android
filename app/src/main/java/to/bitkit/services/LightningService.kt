@@ -30,6 +30,7 @@ import org.lightningdevkit.ldknode.NodeException
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
+import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import org.lightningdevkit.ldknode.defaultConfig
@@ -43,7 +44,7 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.uri
 import to.bitkit.models.OpenChannelResult
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
@@ -73,7 +74,7 @@ class LightningService @Inject constructor(
     @Volatile
     var node: Node? = null
 
-    private lateinit var trustedLnPeers: List<LnPeer>
+    private lateinit var trustedLnPeers: List<PeerDetails>
 
     suspend fun setup(
         walletIndex: Int,
@@ -284,44 +285,44 @@ class LightningService @Inject constructor(
         }
     }
 
-    suspend fun connectPeer(peer: LnPeer): Result<Unit> {
+    suspend fun connectPeer(peer: PeerDetails): Result<Unit> {
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         return ServiceQueue.LDK.background {
             try {
-                Logger.debug("Connecting peer: $peer")
+                Logger.debug("Connecting peer: ${peer.uri}")
 
                 node.connect(peer.nodeId, peer.address, persist = true)
 
-                Logger.info("Peer connected: $peer")
+                Logger.info("Peer connected: ${peer.uri}")
 
                 Result.success(Unit)
             } catch (e: NodeException) {
                 val error = LdkError(e)
-                Logger.error("Peer connect error: $peer", error)
+                Logger.error("Peer connect error: ${peer.uri}", error)
                 Result.failure(error)
             }
         }
     }
 
-    suspend fun disconnectPeer(peer: LnPeer) {
+    suspend fun disconnectPeer(peer: PeerDetails) {
         val node = this.node ?: throw ServiceError.NodeNotSetup
-        Logger.debug("Disconnecting peer: $peer")
+        Logger.debug("Disconnecting peer: ${peer.uri}")
         try {
             ServiceQueue.LDK.background {
                 node.disconnect(peer.nodeId)
             }
-            Logger.info("Peer disconnected: $peer")
+            Logger.info("Peer disconnected: ${peer.uri}")
         } catch (e: NodeException) {
-            Logger.warn("Peer disconnect error: $peer", LdkError(e))
+            Logger.warn("Peer disconnect error: ${peer.uri}", LdkError(e))
         }
     }
 
-    private fun getLspPeers(): List<LnPeer> {
+    private fun getLspPeers(): List<PeerDetails> {
         val lspPeers = Env.trustedLnPeers
         // TODO get from blocktank info.nodes[] when setup uses it to set trustedPeers0conf
         // pseudocode idea:
-        // val lspPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }
+        // val lspPeers = getInfo(true)?.nodes?.map { PeerDetails.from(nodeId = it.pubkey, address = "TO DO") }
         return lspPeers
     }
 
@@ -331,7 +332,7 @@ class LightningService @Inject constructor(
 
     // region channels
     suspend fun openChannel(
-        peer: LnPeer,
+        peer: PeerDetails,
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
@@ -340,7 +341,7 @@ class LightningService @Inject constructor(
 
         return ServiceQueue.LDK.background {
             try {
-                Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: $peer")
+                Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: ${peer.uri}")
 
                 val userChannelId = node.openChannel(
                     nodeId = peer.nodeId,
@@ -766,7 +767,7 @@ class LightningService @Inject constructor(
     val balances: BalanceDetails? get() = node?.listBalances()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
-    val peers: List<LnPeer>? get() = node?.listPeers()?.map(::LnPeer)
+    val peers: List<PeerDetails>? get() = node?.listPeers()
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
 

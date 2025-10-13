@@ -9,6 +9,7 @@ import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
+import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
@@ -28,9 +29,9 @@ import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
+import to.bitkit.ext.from
 import to.bitkit.models.BalanceState
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.OpenChannelResult
 import to.bitkit.models.TransactionMetadata
@@ -200,7 +201,7 @@ class LightningRepoTest : BaseUnitTest() {
 
     @Test
     fun `openChannel should fail when node is not running`() = test {
-        val testPeer = LnPeer("nodeId", "host", "9735")
+        val testPeer = PeerDetails.from("nodeId", "host", "9735")
         val result = sut.openChannel(testPeer, 100000uL)
         assertTrue(result.isFailure)
     }
@@ -208,7 +209,7 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `openChannel should succeed when node is running`() = test {
         startNodeForTesting()
-        val peer = LnPeer("nodeId", "host", "9735")
+        val peer = PeerDetails.from("nodeId", "host", "9735")
         val userChannelId = "testChannelId"
         val channelAmountSats = 100_000uL
         whenever(lightningService.openChannel(peer, channelAmountSats, null, null))
@@ -279,7 +280,7 @@ class LightningRepoTest : BaseUnitTest() {
         startNodeForTesting()
         val testNodeId = "test_node_id"
         val testStatus = mock<NodeStatus>()
-        val testPeers = listOf(mock<LnPeer>())
+        val testPeers = listOf(mock<PeerDetails>())
         val testChannels = listOf(mock<ChannelDetails>())
 
         whenever(lightningService.nodeId).thenReturn(testNodeId)
@@ -344,7 +345,7 @@ class LightningRepoTest : BaseUnitTest() {
 
     @Test
     fun `disconnectPeer should fail when node is not running`() = test {
-        val testPeer = LnPeer("nodeId", "host", "9735")
+        val testPeer = PeerDetails.from("nodeId", "host", "9735")
         val result = sut.disconnectPeer(testPeer)
         assertTrue(result.isFailure)
     }
@@ -352,7 +353,7 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `disconnectPeer should succeed when node is running`() = test {
         startNodeForTesting()
-        val testPeer = LnPeer("nodeId", "host", "9735")
+        val testPeer = PeerDetails.from("nodeId", "host", "9735")
         whenever(lightningService.disconnectPeer(any())).thenReturn(Unit)
 
         val result = sut.disconnectPeer(testPeer)

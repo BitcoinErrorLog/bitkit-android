@@ -3,10 +3,11 @@ package to.bitkit.env
 import android.os.Build
 import org.lightningdevkit.ldknode.LogLevel
 import org.lightningdevkit.ldknode.Network
+import org.lightningdevkit.ldknode.PeerDetails
 import to.bitkit.BuildConfig
 import to.bitkit.ext.ensureDir
+import to.bitkit.ext.parse
 import to.bitkit.models.BlocktankNotificationType
-import to.bitkit.models.LnPeer
 import to.bitkit.utils.Logger
 import java.io.File
 import kotlin.io.path.Path
@@ -24,8 +25,8 @@ internal object Env {
     // TODO: remove this to load from BT API instead
     val trustedLnPeers
         get() = when (network) {
-            Network.REGTEST -> listOf(Peers.btStaging)
-            Network.TESTNET -> listOf(Peers.btStaging)
+            Network.REGTEST -> listOf(Peers.staging)
+            Network.TESTNET -> listOf(Peers.staging)
             else -> TODO("Not yet implemented")
         }
 
@@ -143,10 +144,8 @@ internal object Env {
     }
 
     object Peers {
-        val btStaging = LnPeer(
-            nodeId = "028a8910b0048630d4eb17af25668cdd7ea6f2d8ae20956e7a06e2ae46ebcb69fc",
-            address = "34.65.86.104:9400",
-        )
+        val staging =
+            PeerDetails.parse("028a8910b0048630d4eb17af25668cdd7ea6f2d8ae20956e7a06e2ae46ebcb69fc@34.65.86.104:9400")
     }
 
     object ElectrumServers {

@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
+import org.lightningdevkit.ldknode.PeerDetails
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
-import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.repositories.BackupRepo
@@ -181,7 +181,7 @@ class WalletViewModel @Inject constructor(
         }
     }
 
-    fun disconnectPeer(peer: LnPeer) {
+    fun disconnectPeer(peer: PeerDetails) {
         viewModelScope.launch {
             lightningRepo.disconnectPeer(peer)
                 .onSuccess {
@@ -309,7 +309,7 @@ data class MainUiState(
     val bip21: String = "",
     val nodeStatus: NodeStatus? = null,
     val nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
-    val peers: List<LnPeer> = emptyList(),
+    val peers: List<PeerDetails> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
     val isRefreshing: Boolean = false,
     val receiveOnSpendingBalance: Boolean = true,

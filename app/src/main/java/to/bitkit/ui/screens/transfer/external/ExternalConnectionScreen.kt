@@ -33,9 +33,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.flow.filterNotNull
+import org.lightningdevkit.ldknode.PeerDetails
 import to.bitkit.R
+import to.bitkit.ext.from
 import to.bitkit.ext.getClipboardText
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.host
+import to.bitkit.ext.port
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.ButtonSize
@@ -105,7 +108,7 @@ fun ExternalConnectionScreen(
 @Composable
 private fun ExternalConnectionContent(
     uiState: ExternalNodeContract.UiState,
-    onContinueClick: (LnPeer) -> Unit = {},
+    onContinueClick: (PeerDetails) -> Unit = {},
     onScanClick: () -> Unit = {},
     onPasteClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
@@ -220,10 +223,12 @@ private fun ExternalConnectionContent(
                 )
                 PrimaryButton(
                     text = stringResource(R.string.common__continue),
-                    onClick = { onContinueClick(LnPeer(nodeId = nodeId, host = host, port = port)) },
+                    onClick = { onContinueClick(PeerDetails.from(nodeId = nodeId, host = host, port = port)) },
                     enabled = isValid,
                     isLoading = uiState.isLoading,
-                    modifier = Modifier.weight(1f).testTag("ExternalContinue")
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ExternalContinue")
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
