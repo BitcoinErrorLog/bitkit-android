@@ -1612,7 +1612,9 @@ class AppViewModel @Inject constructor(
         timedSheetsScope = null
     }
 
-    fun dismissTimedSheet() {
+    fun dismissTimedSheet(skipQueue: Boolean = false) {
+        Logger.debug("dismissTimedSheet called", context = "Timed sheet")
+
         val currentQueue = timedSheetQueue
         val currentSheet = currentTimedSheet
 
@@ -1648,6 +1650,11 @@ class AppViewModel @Inject constructor(
                     settingsStore.update { it.copy(quickPayIntroSeen = true) }
                 }
             }
+        }
+
+        if (skipQueue) {
+            clearTimedSheets()
+            return
         }
 
         val currentIndex = currentQueue.indexOf(currentSheet)
