@@ -1,6 +1,5 @@
 package to.bitkit.ui.screens.wallets
 
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.SnapPosition
@@ -55,13 +54,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
 import com.synonym.bitkitcore.Activity
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -79,12 +76,9 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
-import to.bitkit.ui.components.BottomSheet
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.components.Sheet.Backup
-import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.components.StatusBarSpacer
 import to.bitkit.ui.components.SuggestionCard
 import to.bitkit.ui.components.TabBar
@@ -111,13 +105,8 @@ import to.bitkit.ui.screens.widgets.price.PriceCard
 import to.bitkit.ui.screens.widgets.weather.WeatherCard
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareText
-import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
-import to.bitkit.ui.sheets.BackupSheet
-import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.PinRoute
-import to.bitkit.ui.sheets.QuickPayIntroSheet
-import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -127,7 +116,6 @@ import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     mainUiState: MainUiState,
@@ -140,7 +128,6 @@ fun HomeScreen(
     activityListViewModel: ActivityListViewModel,
     homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val hasSeenTransferIntro by settingsViewModel.hasSeenTransferIntro.collectAsStateWithLifecycle()
     val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hasSeenProfileIntro by settingsViewModel.hasSeenProfileIntro.collectAsStateWithLifecycle()
@@ -150,28 +137,15 @@ fun HomeScreen(
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        homeViewModel.checkTimedSheets()
-    }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        homeViewModel.homeEffect.collect { effect ->
-            when (effect) {
-                HomeEffects.NavigateCriticalUpdate -> {
-                    rootNavController.navigate(
-                        route = Routes.CriticalUpdate,
-                        navOptions = navOptions {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    )
-                }
-            }
-        }
+        appViewModel.checkTimedSheets()
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            homeViewModel.onLeftHome()
+            appViewModel.onLeftHome()
         }
     }
 
@@ -179,177 +153,121 @@ fun HomeScreen(
         DeleteWidgetAlert(type, homeViewModel)
     }
 
-    SheetHost(
-        shouldExpand = homeUiState.timedSheet != null,
-        onDismiss = { homeViewModel.dismissTimedSheet() },
-        sheets = {
-            when (homeUiState.timedSheet) {
-                TimedSheets.APP_UPDATE -> {
-                    UpdateSheet(onDismiss = { homeViewModel.dismissTimedSheet() })
-                }
-
-                TimedSheets.BACKUP -> {
-                    BottomSheet(onDismissRequest = { homeViewModel.dismissTimedSheet() }) {
-                        BackupSheet(
-                            sheet = Backup(BackupRoute.Intro),
-                            onDismiss = { homeViewModel.dismissTimedSheet() }
-                        )
-                    }
-                }
-
-                TimedSheets.NOTIFICATIONS -> {
-                    BackgroundPaymentsIntroSheet(
-                        onContinue = {
-                            homeViewModel.dismissTimedSheet()
-                            rootNavController.navigate(Routes.BackgroundPaymentsSettings)
-                            settingsViewModel.setBgPaymentsIntroSeen(true)
-                        },
-                        onDismiss = { homeViewModel.dismissTimedSheet() }
-                    )
-                }
-
-                TimedSheets.QUICK_PAY -> {
-                    QuickPayIntroSheet(
-                        onContinue = {
-                            homeViewModel.dismissTimedSheet()
-                            rootNavController.navigate(Routes.QuickPaySettings)
-                        },
-                        onDismiss = { homeViewModel.dismissTimedSheet() }
-                    )
-                }
-
-                TimedSheets.HIGH_BALANCE -> {
-                    HighBalanceWarningSheet(
-                        onDismiss = { homeViewModel.dismissTimedSheet() },
-                        understoodClick = { homeViewModel.dismissTimedSheet() },
-                        learnMoreClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
-                            context.startActivity(intent)
-                            homeViewModel.dismissTimedSheet()
-                        }
-                    )
-                }
-
-                null -> {}
+    Content(
+        mainUiState = mainUiState,
+        homeUiState = homeUiState,
+        rootNavController = rootNavController,
+        walletNavController = walletNavController,
+        drawerState = drawerState,
+        latestActivities = latestActivities,
+        onRefresh = {
+            activityListViewModel.fetchLatestActivities()
+            walletViewModel.onPullToRefresh()
+            homeViewModel.refreshWidgets()
+            activityListViewModel.syncLdkNodePayments()
+        },
+        onClickProfile = {
+            if (!hasSeenProfileIntro) {
+                rootNavController.navigate(Routes.ProfileIntro)
+            } else {
+                rootNavController.navigate(Routes.CreateProfile)
             }
-        }
-    ) {
-        Content(
-            mainUiState = mainUiState,
-            homeUiState = homeUiState,
-            rootNavController = rootNavController,
-            walletNavController = walletNavController,
-            drawerState = drawerState,
-            latestActivities = latestActivities,
-            onRefresh = {
-                activityListViewModel.fetchLatestActivities()
-                walletViewModel.onPullToRefresh()
-                homeViewModel.refreshWidgets()
-                activityListViewModel.syncLdkNodePayments()
-            },
-            onClickProfile = {
-                if (!hasSeenProfileIntro) {
-                    rootNavController.navigate(Routes.ProfileIntro)
-                } else {
-                    rootNavController.navigate(Routes.CreateProfile)
+        },
+        onRemoveSuggestion = { suggestion ->
+            homeViewModel.removeSuggestion(suggestion)
+        },
+        onClickSuggestion = { suggestion ->
+            when (suggestion) {
+                Suggestion.BUY -> {
+                    rootNavController.navigate(Routes.BuyIntro)
                 }
-            },
-            onRemoveSuggestion = { suggestion ->
-                homeViewModel.removeSuggestion(suggestion)
-            },
-            onClickSuggestion = { suggestion ->
-                when (suggestion) {
-                    Suggestion.BUY -> {
-                        rootNavController.navigate(Routes.BuyIntro)
-                    }
 
-                    Suggestion.LIGHTNING -> {
-                        if (!hasSeenTransferIntro) {
-                            rootNavController.navigateToTransferIntro()
-                        } else {
-                            rootNavController.navigateToTransferFunding()
-                        }
+                Suggestion.LIGHTNING -> {
+                    if (!hasSeenTransferIntro) {
+                        rootNavController.navigateToTransferIntro()
+                    } else {
+                        rootNavController.navigateToTransferFunding()
                     }
-
-                    Suggestion.BACK_UP -> {
-                        appViewModel.showSheet(Sheet.Backup(BackupRoute.Intro))
-                    }
-
-                    Suggestion.SECURE -> {
-                        appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
-                    }
-
-                    Suggestion.SUPPORT -> {
-                        rootNavController.navigate(Routes.Support)
-                    }
-
-                    Suggestion.INVITE -> {
-                        shareText(
-                            context,
-                            context.getString(R.string.settings__about__shareText)
-                                .replace("{appStoreUrl}", Env.APP_STORE_URL)
-                                .replace("{playStoreUrl}", Env.PLAY_STORE_URL)
-                        )
-                    }
-
-                    Suggestion.PROFILE -> {
-                        if (!hasSeenProfileIntro) {
-                            rootNavController.navigate(Routes.ProfileIntro)
-                        } else {
-                            rootNavController.navigate(Routes.CreateProfile)
-                        }
-                    }
-
-                    Suggestion.SHOP -> {
-                        if (!hasSeenShopIntro) {
-                            rootNavController.navigate(Routes.ShopIntro)
-                        } else {
-                            rootNavController.navigate(Routes.ShopDiscover)
-                        }
-                    }
-
-                    Suggestion.QUICK_PAY -> {
-                        if (!quickPayIntroSeen) {
-                            rootNavController.navigate(Routes.QuickPayIntro)
-                        } else {
-                            rootNavController.navigate(Routes.QuickPaySettings)
-                        }
-                    }
-
-                    Suggestion.TRANSFER_PENDING -> Unit
-                    Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
-                    Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
-                    Suggestion.LIGHTNING_READY -> Unit
                 }
-            },
-            onClickAddWidget = {
-                if (!hasSeenWidgetsIntro) {
-                    rootNavController.navigate(Routes.WidgetsIntro)
-                } else {
-                    rootNavController.navigate(Routes.AddWidget)
+
+                Suggestion.BACK_UP -> {
+                    appViewModel.showSheet(Sheet.Backup(BackupRoute.Intro))
                 }
-            },
-            onClickEditWidgetList = homeViewModel::onClickEditWidgetList,
-            onClickEditWidget = { widgetType ->
-                when (widgetType) {
-                    WidgetType.BLOCK -> rootNavController.navigate(Routes.BlocksPreview)
-                    WidgetType.CALCULATOR -> rootNavController.navigate(Routes.CalculatorPreview)
-                    WidgetType.FACTS -> rootNavController.navigate(Routes.FactsPreview)
-                    WidgetType.NEWS -> rootNavController.navigate(Routes.HeadlinesPreview)
-                    WidgetType.PRICE -> rootNavController.navigate(Routes.PricePreview)
-                    WidgetType.WEATHER -> rootNavController.navigate(Routes.WeatherPreview)
+
+                Suggestion.SECURE -> {
+                    appViewModel.showSheet(Sheet.Pin(PinRoute.Prompt(showLaterButton = true)))
                 }
-            },
-            onClickDeleteWidget = { widgetType ->
-                homeViewModel.displayAlertDeleteWidget(widgetType)
-            },
-            onMoveWidget = { fromIndex, toIndex ->
-                homeViewModel.moveWidget(fromIndex, toIndex)
-            },
-            onDismissEmptyState = homeViewModel::dismissEmptyState,
-            onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
-        )
-    }
+
+                Suggestion.SUPPORT -> {
+                    rootNavController.navigate(Routes.Support)
+                }
+
+                Suggestion.INVITE -> {
+                    shareText(
+                        context,
+                        context.getString(R.string.settings__about__shareText)
+                            .replace("{appStoreUrl}", Env.APP_STORE_URL)
+                            .replace("{playStoreUrl}", Env.PLAY_STORE_URL)
+                    )
+                }
+
+                Suggestion.PROFILE -> {
+                    if (!hasSeenProfileIntro) {
+                        rootNavController.navigate(Routes.ProfileIntro)
+                    } else {
+                        rootNavController.navigate(Routes.CreateProfile)
+                    }
+                }
+
+                Suggestion.SHOP -> {
+                    if (!hasSeenShopIntro) {
+                        rootNavController.navigate(Routes.ShopIntro)
+                    } else {
+                        rootNavController.navigate(Routes.ShopDiscover)
+                    }
+                }
+
+                Suggestion.QUICK_PAY -> {
+                    if (!quickPayIntroSeen) {
+                        rootNavController.navigate(Routes.QuickPayIntro)
+                    } else {
+                        rootNavController.navigate(Routes.QuickPaySettings)
+                    }
+                }
+
+                Suggestion.TRANSFER_PENDING -> Unit
+                Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
+                Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
+                Suggestion.LIGHTNING_READY -> Unit
+            }
+        },
+        onClickAddWidget = {
+            if (!hasSeenWidgetsIntro) {
+                rootNavController.navigate(Routes.WidgetsIntro)
+            } else {
+                rootNavController.navigate(Routes.AddWidget)
+            }
+        },
+        onClickEditWidgetList = homeViewModel::onClickEditWidgetList,
+        onClickEditWidget = { widgetType ->
+            when (widgetType) {
+                WidgetType.BLOCK -> rootNavController.navigate(Routes.BlocksPreview)
+                WidgetType.CALCULATOR -> rootNavController.navigate(Routes.CalculatorPreview)
+                WidgetType.FACTS -> rootNavController.navigate(Routes.FactsPreview)
+                WidgetType.NEWS -> rootNavController.navigate(Routes.HeadlinesPreview)
+                WidgetType.PRICE -> rootNavController.navigate(Routes.PricePreview)
+                WidgetType.WEATHER -> rootNavController.navigate(Routes.WeatherPreview)
+            }
+        },
+        onClickDeleteWidget = { widgetType ->
+            homeViewModel.displayAlertDeleteWidget(widgetType)
+        },
+        onMoveWidget = { fromIndex, toIndex ->
+            homeViewModel.moveWidget(fromIndex, toIndex)
+        },
+        onDismissEmptyState = homeViewModel::dismissEmptyState,
+        onClickEmptyActivityRow = { appViewModel.showSheet(Sheet.Receive) },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)

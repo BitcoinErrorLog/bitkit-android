@@ -2,9 +2,7 @@ package to.bitkit.ui.settings.quickPay
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,7 +18,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.CloseNavIcon
-import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -30,8 +28,11 @@ fun QuickPayIntroScreen(
     onBack: () -> Unit,
     onClose: () -> Unit,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ScreenColumn {
+    Column(
+        modifier = modifier.screen()
+    ) {
         AppTopBar(
             titleText = stringResource(R.string.settings__quickpay__nav_title),
             onBackClick = onBack,
@@ -43,9 +44,12 @@ fun QuickPayIntroScreen(
 }
 
 @Composable
-fun QuickPayIntroContent(onContinue: () -> Unit) {
+fun QuickPayIntroContent(
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier.padding(horizontal = 32.dp)
+        modifier = modifier.padding(horizontal = 32.dp)
     ) {
         Image(
             painter = painterResource(R.drawable.fast_forward),
