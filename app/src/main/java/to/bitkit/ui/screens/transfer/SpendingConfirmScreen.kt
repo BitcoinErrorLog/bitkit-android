@@ -91,7 +91,8 @@ fun SpendingConfirmScreen(
         onPermissionChange = { granted ->
             settingsViewModel.setNotificationPreference(granted)
         },
-        showPermissionDialog = false)
+        showPermissionDialog = false
+    )
 
     Content(
         onBackClick = onBackClick,
