@@ -87,9 +87,11 @@ fun SpendingConfirmScreen(
 
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
 
-    RequestNotificationPermissions(showPermissionDialog = false) { granted ->
-        settingsViewModel.setNotificationPreference(granted)
-    }
+    RequestNotificationPermissions(
+        onPermissionChange = { granted ->
+            settingsViewModel.setNotificationPreference(granted)
+        },
+        showPermissionDialog = false)
 
     Content(
         onBackClick = onBackClick,
