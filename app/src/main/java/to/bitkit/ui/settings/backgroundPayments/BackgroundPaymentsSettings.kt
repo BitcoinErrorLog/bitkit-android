@@ -93,13 +93,11 @@ private fun Content(
                 onClick = onSystemSettingsClick
             )
 
-            AnimatedVisibility(
-                visible = hasPermission,
-                modifier = Modifier.padding(vertical = 16.dp),
-            ) {
+            if (hasPermission) {
                 BodyM(
                     text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
                     color = Colors.White64,
+                    modifier = Modifier.padding(vertical = 16.dp),
                 )
             }
 
