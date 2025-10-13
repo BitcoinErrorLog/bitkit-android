@@ -37,6 +37,7 @@ import to.bitkit.utils.Logger
 import to.bitkit.utils.withPerformanceLogging
 import kotlin.time.Duration.Companion.minutes
 
+@Suppress("LongParameterList")
 @HiltWorker
 class WakeNodeWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
@@ -120,25 +121,7 @@ class WakeNodeWorker @AssistedInject constructor(
         val showDetails = settingsStore.data.first().showNotificationDetails
         val openBitkitMessage = "Open Bitkit to see details"
         when (event) {
-            is Event.PaymentReceived -> {
-                bestAttemptContent?.title = "Payment Received"
-                val sats = event.amountMsat / 1000u
-                // Save for UI to pick up
-                NewTransactionSheetDetails.save(
-                    appContext,
-                    NewTransactionSheetDetails(
-                        type = NewTransactionSheetType.LIGHTNING,
-                        direction = NewTransactionSheetDirection.RECEIVED,
-                        paymentHashOrTxId = event.paymentHash,
-                        sats = sats.toLong(),
-                    )
-                )
-                val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
-                bestAttemptContent?.body = content
-                if (self.notificationType == incomingHtlc) {
-                    self.deliver()
-                }
-            }
+            is Event.PaymentReceived -> onPaymentReceived(event, showDetails, openBitkitMessage)
 
             is Event.ChannelPending -> {
                 self.bestAttemptContent?.title = "Channel Opened"
@@ -146,49 +129,8 @@ class WakeNodeWorker @AssistedInject constructor(
                 // Don't deliver, give a chance for channelReady event to update the content if it's a turbo channel
             }
 
-            is Event.ChannelReady -> {
-                if (self.notificationType == cjitPaymentArrived) {
-                    self.bestAttemptContent?.title = "Payment received"
-                    self.bestAttemptContent?.body = "Via new channel"
-
-                    lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
-                        val sats = channel.amountOnClose
-                        val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
-                        self.bestAttemptContent?.title = content
-                        val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
-                        if (cjitEntry != null) {
-                            // Save for UI to pick up
-                            NewTransactionSheetDetails.save(
-                                appContext,
-                                NewTransactionSheetDetails(
-                                    type = NewTransactionSheetType.LIGHTNING,
-                                    direction = NewTransactionSheetDirection.RECEIVED,
-                                    sats = sats.toLong(),
-                                )
-                            )
-                            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
-                        }
-                    }
-                } else if (self.notificationType == orderPaymentConfirmed) {
-                    self.bestAttemptContent?.title = "Channel opened"
-                    self.bestAttemptContent?.body = "Ready to send"
-                }
-                self.deliver()
-            }
-
-            is Event.ChannelClosed -> {
-                self.bestAttemptContent?.title = "Channel closed"
-                self.bestAttemptContent?.body = "Reason: ${event.reason}"
-
-                if (self.notificationType == mutualClose) {
-                    self.bestAttemptContent?.body = "Balance moved from spending to savings"
-                } else if (self.notificationType == orderPaymentConfirmed) {
-                    self.bestAttemptContent?.title = "Channel failed to open in the background"
-                    self.bestAttemptContent?.body = "Please try again"
-                }
-
-                self.deliver()
-            }
+            is Event.ChannelReady -> onChannelReady(event, showDetails, openBitkitMessage)
+            is Event.ChannelClosed -> onChannelClosed(event)
 
             is Event.PaymentSuccessful -> Unit
             is Event.PaymentClaimable -> Unit
@@ -203,6 +145,78 @@ class WakeNodeWorker @AssistedInject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun onChannelClosed(event: Event.ChannelClosed) {
+        self.bestAttemptContent?.title = "Channel closed"
+        self.bestAttemptContent?.body = "Reason: ${event.reason}"
+
+        if (self.notificationType == mutualClose) {
+            self.bestAttemptContent?.body = "Balance moved from spending to savings"
+        } else if (self.notificationType == orderPaymentConfirmed) {
+            self.bestAttemptContent?.title = "Channel failed to open in the background"
+            self.bestAttemptContent?.body = "Please try again"
+        }
+
+        self.deliver()
+    }
+
+    private suspend fun onPaymentReceived(
+        event: Event.PaymentReceived,
+        showDetails: Boolean,
+        openBitkitMessage: String,
+    ) {
+        bestAttemptContent?.title = "Payment Received"
+        val sats = event.amountMsat / 1000u
+        // Save for UI to pick up
+        NewTransactionSheetDetails.save(
+            appContext,
+            NewTransactionSheetDetails(
+                type = NewTransactionSheetType.LIGHTNING,
+                direction = NewTransactionSheetDirection.RECEIVED,
+                paymentHashOrTxId = event.paymentHash,
+                sats = sats.toLong(),
+            )
+        )
+        val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
+        bestAttemptContent?.body = content
+        if (self.notificationType == incomingHtlc) {
+            self.deliver()
+        }
+    }
+
+    private suspend fun onChannelReady(
+        event: Event.ChannelReady,
+        showDetails: Boolean,
+        openBitkitMessage: String,
+    ) {
+        if (self.notificationType == cjitPaymentArrived) {
+            self.bestAttemptContent?.title = "Payment received"
+            self.bestAttemptContent?.body = "Via new channel"
+
+            lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
+                val sats = channel.amountOnClose
+                val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
+                self.bestAttemptContent?.title = content
+                val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
+                if (cjitEntry != null) {
+                    // Save for UI to pick up
+                    NewTransactionSheetDetails.save(
+                        appContext,
+                        NewTransactionSheetDetails(
+                            type = NewTransactionSheetType.LIGHTNING,
+                            direction = NewTransactionSheetDirection.RECEIVED,
+                            sats = sats.toLong(),
+                        )
+                    )
+                    activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
+                }
+            }
+        } else if (self.notificationType == orderPaymentConfirmed) {
+            self.bestAttemptContent?.title = "Channel opened"
+            self.bestAttemptContent?.body = "Ready to send"
+        }
+        self.deliver()
     }
 
     private suspend fun deliver() {

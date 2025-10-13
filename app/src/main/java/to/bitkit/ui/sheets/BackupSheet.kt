@@ -39,7 +39,7 @@ fun BackupSheet(
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val onDismissSheet by rememberUpdatedState { onDismiss }
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
 
     LaunchedEffect(Unit) {
         viewModel.loadMnemonicData()
@@ -70,7 +70,7 @@ fun BackupSheet(
                 )
 
                 BackupContract.SideEffect.NavigateToMetadata -> navController.navigate(BackupRoute.Metadata)
-                BackupContract.SideEffect.DismissSheet -> onDismissSheet()
+                BackupContract.SideEffect.DismissSheet -> currentOnDismiss()
             }
         }
     }
@@ -88,7 +88,7 @@ fun BackupSheet(
             composableWithDefaultTransitions<BackupRoute.Intro> {
                 BackupIntroScreen(
                     hasFunds = LocalBalances.current.totalSats > 0u,
-                    onClose = onDismissSheet(),
+                    onClose = currentOnDismiss,
                     onConfirm = { navController.navigate(BackupRoute.ShowMnemonic) },
                 )
             }

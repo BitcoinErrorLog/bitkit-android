@@ -94,6 +94,7 @@ private fun Content(
             )
 
             if (hasPermission) {
+                @Suppress("MaxLineLength") // TODO transifex
                 BodyM(
                     text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
                     color = Colors.White64,
