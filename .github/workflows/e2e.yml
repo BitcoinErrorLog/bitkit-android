@@ -85,6 +85,11 @@ jobs:
     name: e2e-tests - ${{ matrix.shard.name }}
 
     steps:
+      - name: Show selected E2E branch
+        env:
+          E2E_BRANCH: ${{ needs.determine-e2e-branch.outputs.branch }}
+        run: echo $E2E_BRANCH
+
       - name: Clone E2E tests
         uses: actions/checkout@v4
         with:
