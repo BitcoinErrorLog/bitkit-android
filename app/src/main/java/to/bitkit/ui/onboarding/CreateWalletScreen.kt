@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,6 +28,7 @@ import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -42,7 +42,7 @@ fun CreateWalletScreen(
     Box(
         contentAlignment = Alignment.TopCenter,
         modifier = modifier
-            .fillMaxSize()
+            .screen(insets = null)
     ) {
         Image(
             painter = painterResource(id = R.drawable.wallet),
@@ -55,7 +55,7 @@ fun CreateWalletScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.BottomCenter),
+                .align(Alignment.BottomCenter)
         ) {
             FillHeight()
             Display(text = stringResource(R.string.onboarding__slide4_header).withAccent())
@@ -106,7 +106,7 @@ private fun CreateWalletScreenPreview() {
 
 @Preview(showSystemUi = true, device = NEXUS_5)
 @Composable
-private fun CreateWalletScreenPreview2() {
+private fun PreviewSmall() {
     AppThemeSurface {
         CreateWalletScreen(
             onCreateClick = {},

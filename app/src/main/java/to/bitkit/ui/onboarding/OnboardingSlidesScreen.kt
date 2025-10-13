@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -46,6 +45,7 @@ import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.Footnote
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -63,8 +63,7 @@ fun OnboardingSlidesScreen(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
+            .screen()
     ) {
         HorizontalPager(
             state = pagerState,
@@ -195,8 +194,8 @@ fun OnboardingTab(
     title: String,
     titleAccentColor: Color,
     text: String,
-    disclaimerText: String? = null,
     modifier: Modifier = Modifier,
+    disclaimerText: String? = null,
 ) {
     Box(
         contentAlignment = Alignment.TopCenter,
