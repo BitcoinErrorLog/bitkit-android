@@ -43,6 +43,7 @@ sealed interface Sheet {
     data class TimedSheet(val type: TimedSheetType) : Sheet
 }
 
+/**@param priority Priority levels for timed sheets (higher number = higher priority)*/
 enum class TimedSheetType(val priority: Int) {
     APP_UPDATE(priority = 5),
     BACKUP(priority = 4),
