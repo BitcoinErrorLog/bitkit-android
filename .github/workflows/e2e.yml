@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       e2e_branch:
-        description: "Branch of synonymdev/bitkit-e2e-tests to use"
+        description: "Branch of synonymdev/bitkit-e2e-tests to use (main | default-feature-branch | custom branch name)"
         required: false
-        default: "main"
+        default: "default-feature-branch"
   pull_request:
 
 env:
@@ -79,10 +79,37 @@ jobs:
     name: e2e-tests - ${{ matrix.shard.name }}
 
     steps:
-      - name: Show selected E2E branch
-        env:
-          E2E_BRANCH: ${{ github.event.inputs.e2e_branch || 'main' }}
-        run: echo $E2E_BRANCH
+      - name: Determine E2E branch
+        id: e2e_branch
+        shell: bash
+        run: |
+          APP_BRANCH="${{ github.head_ref || github.ref_name }}"
+          INPUT_BRANCH="${{ github.event.inputs.e2e_branch || 'default-feature-branch' }}"
+          TEST_REPO="synonymdev/bitkit-e2e-tests"
+
+          echo "App branch: $APP_BRANCH"
+          echo "E2E input: $INPUT_BRANCH"
+
+          # Decide final branch
+          if [[ "$INPUT_BRANCH" == "main" ]]; then
+            BRANCH="main"
+
+          elif [[ "$INPUT_BRANCH" == "default-feature-branch" ]]; then
+            echo "Checking if '$APP_BRANCH' exists in $TEST_REPO..."
+            if git ls-remote --exit-code https://github.com/$TEST_REPO.git "refs/heads/$APP_BRANCH" >/dev/null 2>&1; then
+              BRANCH="$APP_BRANCH"
+              echo "Found branch: $BRANCH"
+            else
+              BRANCH="main"
+              echo "Branch '$APP_BRANCH' not found, using main."
+            fi
+
+          else
+            BRANCH="$INPUT_BRANCH"
+          fi
+
+          echo "Using E2E branch: $BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Clone E2E tests
         uses: actions/checkout@v4
