@@ -87,7 +87,7 @@ jobs:
     steps:
       - name: Show selected E2E branch
         env:
-          E2E_BRANCH: ${{ needs.determine-e2e-branch.outputs.branch }}
+          E2E_BRANCH: ${{ needs.e2e-branch.outputs.branch }}
         run: echo $E2E_BRANCH
 
       - name: Clone E2E tests
@@ -95,7 +95,7 @@ jobs:
         with:
           repository: synonymdev/bitkit-e2e-tests
           path: bitkit-e2e-tests
-          ref: ${{ needs.determine-e2e-branch.outputs.branch }}
+          ref: ${{ needs.e2e-branch.outputs.branch }}
 
       - name: Enable KVM
         run: |
