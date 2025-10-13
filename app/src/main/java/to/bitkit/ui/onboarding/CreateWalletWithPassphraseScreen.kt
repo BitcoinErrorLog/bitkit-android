@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -37,8 +36,10 @@ import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.HighlightLabel
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TopBarSpacer
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.mainRectHeight
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -53,7 +54,8 @@ fun CreateWalletWithPassphraseScreen(
     var bip39Passphrase by remember { mutableStateOf("") }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .screen()
     ) {
         Row(
             verticalAlignment = Alignment.Bottom,
@@ -117,7 +119,7 @@ fun CreateWalletWithPassphraseScreen(
                 enabled = bip39Passphrase.isNotBlank(),
                 modifier = Modifier.testTag("CreateNewWallet")
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            VerticalSpacer(16.dp)
         }
     }
 }
