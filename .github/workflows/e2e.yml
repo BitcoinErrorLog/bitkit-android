@@ -87,28 +87,35 @@ jobs:
           INPUT_BRANCH="${{ github.event.inputs.e2e_branch || 'default-feature-branch' }}"
           TEST_REPO="synonymdev/bitkit-e2e-tests"
 
-          echo "App branch: $APP_BRANCH"
-          echo "E2E input: $INPUT_BRANCH"
+          echo "🧭 App branch: $APP_BRANCH"
+          echo "🧭 Input branch: $INPUT_BRANCH"
+          echo "🧭 Checking test repo: $TEST_REPO"
 
-          # Decide final branch
           if [[ "$INPUT_BRANCH" == "main" ]]; then
             BRANCH="main"
 
           elif [[ "$INPUT_BRANCH" == "default-feature-branch" ]]; then
-            echo "Checking if '$APP_BRANCH' exists in $TEST_REPO..."
             if git ls-remote --exit-code https://github.com/$TEST_REPO.git "refs/heads/$APP_BRANCH" >/dev/null 2>&1; then
               BRANCH="$APP_BRANCH"
-              echo "Found branch: $BRANCH"
+              echo "✅ Found matching branch in test repo: $BRANCH"
             else
               BRANCH="main"
-              echo "Branch '$APP_BRANCH' not found, using main."
+              echo "⚠️ No branch '$APP_BRANCH' in test repo. Using 'main' instead."
+              echo "::notice title=No matching test branch found::bitkit-e2e-tests does not have branch '$APP_BRANCH'. Using 'main'."
             fi
 
           else
-            BRANCH="$INPUT_BRANCH"
+            # Check if user-provided branch actually exists
+            if git ls-remote --exit-code https://github.com/$TEST_REPO.git "refs/heads/$INPUT_BRANCH" >/dev/null 2>&1; then
+              BRANCH="$INPUT_BRANCH"
+              echo "✅ Using explicitly requested branch: $BRANCH"
+            else
+              echo "❌ Specified branch '$INPUT_BRANCH' not found in $TEST_REPO."
+              echo "::error title=Invalid e2e_branch::Branch '$INPUT_BRANCH' not found in $TEST_REPO"
+              exit 1
+            fi
           fi
 
-          echo "Using E2E branch: $BRANCH"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Clone E2E tests
@@ -116,7 +123,7 @@ jobs:
         with:
           repository: synonymdev/bitkit-e2e-tests
           path: bitkit-e2e-tests
-          ref: ${{ github.event.inputs.e2e_branch || 'main' }}
+          ref: ${{ steps.e2e_branch.outputs.branch }}
 
       - name: Enable KVM
         run: |
