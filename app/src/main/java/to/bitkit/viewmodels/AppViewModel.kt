@@ -1593,17 +1593,21 @@ class AppViewModel @Inject constructor(
                 .sortedByDescending { it.priority }
 
             if (eligibleSheets.isNotEmpty()) {
-                Logger.debug("Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}")
+                Logger.debug(
+                    "Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}",
+                    context = "Timed sheet"
+                )
                 timedSheetQueue = eligibleSheets
                 currentTimedSheet = eligibleSheets.first()
                 showSheet(Sheet.TimedSheet(eligibleSheets.first()))
             } else {
-                Logger.debug("No timed sheet eligible, skipping")
+                Logger.debug("No timed sheet eligible, skipping", context = "Timed sheet")
             }
         }
     }
 
     fun onLeftHome() {
+        Logger.debug("Left home, skipping timed sheet check")
         timedSheetsScope?.cancel()
         timedSheetsScope = null
     }
