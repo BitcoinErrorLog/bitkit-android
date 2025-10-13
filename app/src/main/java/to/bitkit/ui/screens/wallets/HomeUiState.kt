@@ -34,15 +34,4 @@ data class HomeUiState(
     val isEditingWidgets: Boolean = false,
     val deleteWidgetAlert: WidgetType? = null,
     val showEmptyState: Boolean = false,
-    val timedSheet: TimedSheets? = null,
-    val timedSheetQueue: List<TimedSheets> = emptyList(),
 )
-
-/**@param priority Priority levels for timed sheets (higher number = higher priority)*/
-enum class TimedSheets(val priority: Int) {
-    APP_UPDATE(2),
-    BACKUP(3),
-    NOTIFICATIONS(2),
-    QUICK_PAY(1),
-    HIGH_BALANCE(2)
-}

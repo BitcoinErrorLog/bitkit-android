@@ -28,6 +28,7 @@ import to.bitkit.ui.navigateToTransferSavingsIntro
 import to.bitkit.ui.navigateToTransferSpendingAmount
 import to.bitkit.ui.navigateToTransferSpendingIntro
 import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
+import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.ui.utils.Transitions
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
@@ -48,6 +49,12 @@ fun HomeNav(
     val hasSeenWidgetsIntro: Boolean by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
     val hasSeenShopIntro: Boolean by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hazeState = rememberHazeState()
+
+    RequestNotificationPermissions(
+        onPermissionChange = { granted ->
+            settingsViewModel.setNotificationPreference(granted)
+        }
+    )
 
     Box(
         modifier = Modifier.fillMaxSize()

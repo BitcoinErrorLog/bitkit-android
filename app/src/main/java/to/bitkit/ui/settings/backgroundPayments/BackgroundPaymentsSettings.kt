@@ -43,9 +43,12 @@ fun BackgroundPaymentsSettings(
     val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
     val showNotificationDetails by settingsViewModel.showNotificationDetails.collectAsStateWithLifecycle()
 
-    RequestNotificationPermissions(showPermissionDialog = false) { granted ->
-        settingsViewModel.setNotificationPreference(granted)
-    }
+    RequestNotificationPermissions(
+        onPermissionChange = { granted ->
+            settingsViewModel.setNotificationPreference(granted)
+        },
+        showPermissionDialog = false
+    )
 
     Content(
         onBack = onBack,
@@ -90,13 +93,11 @@ private fun Content(
                 onClick = onSystemSettingsClick
             )
 
-            AnimatedVisibility(
-                visible = hasPermission,
-                modifier = Modifier.padding(vertical = 16.dp),
-            ) {
+            if (hasPermission) {
                 BodyM(
                     text = "Background payments are enabled. You can receive funds even when the app is closed (if your device is connected to the internet).",
                     color = Colors.White64,
+                    modifier = Modifier.padding(vertical = 16.dp),
                 )
             }
 
@@ -180,4 +181,3 @@ private fun Preview2() {
         )
     }
 }
-

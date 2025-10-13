@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,8 +17,8 @@ import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun RequestNotificationPermissions(
-    showPermissionDialog: Boolean = true,
     onPermissionChange: (Boolean) -> Unit,
+    showPermissionDialog: Boolean = true,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -57,7 +58,7 @@ fun RequestNotificationPermissions(
     }
 
     // Request permission on first composition if needed
-    DisposableEffect(Unit) {
+    LaunchedEffect(Unit) {
         val currentPermissionState = NotificationUtils.areNotificationsEnabled(context)
         isGranted = currentPermissionState
         onPermissionChange(currentPermissionState)
@@ -65,7 +66,5 @@ fun RequestNotificationPermissions(
         if (!currentPermissionState && requiresPermission && showPermissionDialog) {
             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-
-        onDispose { }
     }
 }
