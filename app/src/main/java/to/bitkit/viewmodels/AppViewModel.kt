@@ -205,6 +205,12 @@ class AppViewModel @Inject constructor(
 
         observeLdkNodeEvents()
         observeSendEvents()
+
+        viewModelScope.launch {
+            walletRepo.balanceState.collect {
+                checkTimedSheets()
+            }
+        }
     }
 
     private fun observeLdkNodeEvents() {
