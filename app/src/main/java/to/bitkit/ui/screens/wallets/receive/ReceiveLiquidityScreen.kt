@@ -47,7 +47,6 @@ fun ReceiveLiquidityScreen(
     isAdditional: Boolean = false,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
-
     RequestNotificationPermissions(
         onPermissionChange = { granted ->
             settingsViewModel.setNotificationPreference(granted)
