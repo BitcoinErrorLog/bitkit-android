@@ -59,6 +59,7 @@ import javax.inject.Singleton
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.toString
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
@@ -325,7 +326,7 @@ class LightningService @Inject constructor(
         return lspPeers
     }
 
-    fun hasExternalPeers() = peers?.any { it !in getLspPeers() } == true
+    fun hasExternalPeers() = peers?.any { p -> p.toString() !in getLspPeers().map { it.toString() } } == true
 
     // endregion
 
