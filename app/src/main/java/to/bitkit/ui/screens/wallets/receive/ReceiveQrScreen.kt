@@ -1,8 +1,6 @@
 package to.bitkit.ui.screens.wallets.receive
 
-import android.app.Activity
 import android.graphics.Bitmap
-import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -59,6 +57,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
@@ -80,32 +79,7 @@ fun ReceiveQrScreen(
     onClickReceiveOnSpending: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val window = remember(context) { (context as? Activity)?.window }
-
-    // Keep screen on and set brightness to max while this composable is active
-    DisposableEffect(Unit) {
-        val originalBrightness = window?.attributes?.screenBrightness
-        val originalFlags = window?.attributes?.flags
-
-        window?.let { win ->
-            win.attributes?.let { attrs ->
-                attrs.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
-                attrs.flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-                win.attributes = attrs
-            }
-        }
-
-        onDispose {
-            window?.let { win ->
-                win.attributes?.let { attrs ->
-                    if (originalBrightness != null) attrs.screenBrightness = originalBrightness
-                    if (originalFlags != null) attrs.flags = originalFlags
-                    win.attributes = attrs
-                }
-            }
-        }
-    }
+    SetMaxBrightness()
 
     val qrLogoImageRes by remember(walletState, cjitInvoice.value) {
         val resId = when {
@@ -124,6 +98,7 @@ fun ReceiveQrScreen(
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
+            .keepScreenOn()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin))
         Column(
