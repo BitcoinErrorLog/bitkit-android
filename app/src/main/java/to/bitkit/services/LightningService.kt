@@ -326,7 +326,11 @@ class LightningService @Inject constructor(
         return lspPeers
     }
 
-    fun hasExternalPeers() = peers?.any { p -> p.toString() !in getLspPeers().map { it.toString() } } == true
+    fun hasExternalPeers(): Boolean {
+        val ourPeers = this.peers.orEmpty().map { it.uri }
+        val lspPeers = getLspPeers().map { it.uri }.toSet()
+        return ourPeers.any { p -> p !in lspPeers }
+    }
 
     // endregion
 
