@@ -59,7 +59,6 @@ import javax.inject.Singleton
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.toString
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
@@ -74,7 +73,7 @@ class LightningService @Inject constructor(
     @Volatile
     var node: Node? = null
 
-    private lateinit var trustedLnPeers: List<PeerDetails>
+    private lateinit var trustedPeers: List<PeerDetails>
 
     suspend fun setup(
         walletIndex: Int,
@@ -85,16 +84,17 @@ class LightningService @Inject constructor(
         val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
 
         // TODO get trustedLnPeers from blocktank info
-        this.trustedLnPeers = Env.trustedLnPeers
+        this.trustedPeers = Env.trustedLnPeers
         val dirPath = Env.ldkStoragePath(walletIndex)
 
-        val trustedPeers0conf = trustedLnPeers.map { it.nodeId }
+        val trustedPeerNodeIds = trustedPeers.map { it.nodeId }
+
         val config = defaultConfig().copy(
             storageDirPath = dirPath,
             network = Env.network,
-            trustedPeers0conf = trustedPeers0conf,
+            trustedPeers0conf = trustedPeerNodeIds,
             anchorChannelsConfig = AnchorChannelsConfig(
-                trustedPeersNoReserve = trustedPeers0conf,
+                trustedPeersNoReserve = trustedPeerNodeIds,
                 perChannelReserveSats = 1u,
             )
         )
@@ -274,7 +274,7 @@ class LightningService @Inject constructor(
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         ServiceQueue.LDK.background {
-            for (peer in trustedLnPeers) {
+            for (peer in trustedPeers) {
                 try {
                     node.connect(peer.nodeId, peer.address, persist = true)
                     Logger.info("Connected to trusted peer: $peer")
