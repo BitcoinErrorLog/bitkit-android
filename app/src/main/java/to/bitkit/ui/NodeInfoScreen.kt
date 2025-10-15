@@ -45,6 +45,7 @@ import to.bitkit.ext.balanceUiText
 import to.bitkit.ext.channelId
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.formatted
+import to.bitkit.ext.uri
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.formatToModernDisplay
@@ -179,7 +180,7 @@ private fun NodeIdSection(
             modifier = Modifier
                 .clickableAlpha(
                     onClick = copyToClipboard(nodeId) {
-                        onCopy(nodeId)
+                        onCopy(it)
                     }
                 )
                 .testTag("LDKNodeID")
@@ -308,7 +309,7 @@ private fun ChannelsSection(
                         overflow = TextOverflow.MiddleEllipsis,
                         modifier = Modifier.clickableAlpha(
                             onClick = copyToClipboard(channel.channelId) {
-                                onCopy(channel.channelId)
+                                onCopy(it)
                             }
                         )
                     )
@@ -380,14 +381,14 @@ private fun PeersSection(
                 modifier = Modifier.height(52.dp)
             ) {
                 BodyM(
-                    text = peer.toString(),
+                    text = peer.uri,
                     maxLines = 1,
                     overflow = TextOverflow.MiddleEllipsis,
                     modifier = Modifier
                         .weight(1f)
                         .clickableAlpha(
-                            onClick = copyToClipboard(peer.toString()) {
-                                onCopy(peer.toString())
+                            onClick = copyToClipboard(peer.uri) {
+                                onCopy(it)
                             }
                         )
                 )
