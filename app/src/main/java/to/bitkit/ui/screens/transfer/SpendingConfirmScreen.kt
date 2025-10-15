@@ -203,9 +203,9 @@ private fun Content(
                         showLabels = true,
                         modifier = Modifier.testTag("SpendingConfirmChannel")
                     )
-                }
 
-                VerticalSpacer(16.dp)
+                    VerticalSpacer(16.dp)
+                }
 
                 SettingsSwitchRow(
                     title = "Set up in background",
