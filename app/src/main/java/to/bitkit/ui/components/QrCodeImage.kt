@@ -1,6 +1,8 @@
 package to.bitkit.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -67,7 +69,7 @@ fun QrCodeImage(
     val coroutineScope = rememberCoroutineScope()
 
     Box(
-        contentAlignment = Alignment.TopCenter,
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .aspectRatio(1f)
             .clip(AppShapes.small)
@@ -79,53 +81,61 @@ fun QrCodeImage(
             onBitmapGenerated(bitmap)
         }
 
-        if (bitmap != null) {
-            val imageComposable = @Composable {
-                Image(
-                    painter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) },
-                    contentDescription = content,
-                    contentScale = ContentScale.Inside,
-                    modifier = Modifier
-                        .clickable(enabled = tipMessage.isNotBlank()) {
-                            coroutineScope.launch {
-                                context.setClipboardText(content)
-                                tooltipState.show()
-                            }
-                        }
-                        .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
-                )
-            }
-
-            if (tipMessage.isNotBlank()) {
-                Tooltip(
-                    text = tipMessage,
-                    tooltipState = tooltipState,
-                    content = imageComposable,
-                )
-            } else {
-                imageComposable()
-            }
-
-            logoPainter?.let {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(68.dp)
-                        .background(Color.White, shape = CircleShape)
-                        .align(Alignment.Center)
-                ) {
+        Crossfade(
+            targetState = bitmap,
+            animationSpec = tween(durationMillis = 200),
+            label = "QR Code Crossfade"
+        ) { currentBitmap ->
+            if (currentBitmap != null) {
+                val imageComposable = @Composable {
                     Image(
-                        painter = it,
-                        contentDescription = null,
-                        modifier = Modifier.size(50.dp)
+                        painter = remember(currentBitmap) { BitmapPainter(currentBitmap.asImageBitmap()) },
+                        contentDescription = content,
+                        contentScale = ContentScale.Inside,
+                        modifier = Modifier
+                            .clickable(enabled = tipMessage.isNotBlank()) {
+                                coroutineScope.launch {
+                                    context.setClipboardText(content)
+                                    tooltipState.show()
+                                }
+                            }
+                            .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
                     )
                 }
+
+                if (tipMessage.isNotBlank()) {
+                    Tooltip(
+                        text = tipMessage,
+                        tooltipState = tooltipState,
+                        content = imageComposable,
+                    )
+                } else {
+                    imageComposable()
+                }
             }
-        } else {
+        }
+
+        logoPainter?.let {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(68.dp)
+                    .background(Color.White, shape = CircleShape)
+                    .align(Alignment.Center)
+            ) {
+                Image(
+                    painter = it,
+                    contentDescription = null,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+        }
+
+        if (bitmap == null) {
             CircularProgressIndicator(
                 color = Colors.Black,
-                strokeWidth = 2.dp,
-                modifier = Modifier.align(Alignment.Center)
+                strokeWidth = 4.dp,
+                modifier = Modifier.size(68.dp)
             )
         }
     }
