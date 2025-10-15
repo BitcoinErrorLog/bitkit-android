@@ -287,19 +287,19 @@ class LightningService @Inject constructor(
 
     suspend fun connectPeer(peer: PeerDetails): Result<Unit> {
         val node = this.node ?: throw ServiceError.NodeNotSetup
-
+        val uri = peer.uri
         return ServiceQueue.LDK.background {
             try {
-                Logger.debug("Connecting peer: ${peer.uri}")
+                Logger.debug("Connecting peer: $uri")
 
                 node.connect(peer.nodeId, peer.address, persist = true)
 
-                Logger.info("Peer connected: ${peer.uri}")
+                Logger.info("Peer connected: $uri")
 
                 Result.success(Unit)
             } catch (e: NodeException) {
                 val error = LdkError(e)
-                Logger.error("Peer connect error: ${peer.uri}", error)
+                Logger.error("Peer connect error: $uri", error)
                 Result.failure(error)
             }
         }
@@ -307,14 +307,15 @@ class LightningService @Inject constructor(
 
     suspend fun disconnectPeer(peer: PeerDetails) {
         val node = this.node ?: throw ServiceError.NodeNotSetup
-        Logger.debug("Disconnecting peer: ${peer.uri}")
+        val uri = peer.uri
+        Logger.debug("Disconnecting peer: $uri")
         try {
             ServiceQueue.LDK.background {
                 node.disconnect(peer.nodeId)
             }
-            Logger.info("Peer disconnected: ${peer.uri}")
+            Logger.info("Peer disconnected: $uri")
         } catch (e: NodeException) {
-            Logger.warn("Peer disconnect error: ${peer.uri}", LdkError(e))
+            Logger.warn("Peer disconnect error: $uri", LdkError(e))
         }
     }
 
