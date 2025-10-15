@@ -386,7 +386,7 @@ private fun ActivityDetailContent(
                     .fillMaxWidth()
                     .clickableAlpha(
                         onClick = copyToClipboard(message) {
-                            onCopy(message)
+                            onCopy(it)
                         }
                     )
             ) {

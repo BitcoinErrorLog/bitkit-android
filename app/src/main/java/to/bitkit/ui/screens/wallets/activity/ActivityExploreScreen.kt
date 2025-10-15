@@ -196,7 +196,7 @@ private fun LightningDetails(
             value = preimage,
             modifier = Modifier.clickableAlpha(
                 onClick = copyToClipboard(preimage) {
-                    onCopy(preimage)
+                    onCopy(it)
                 }
             ),
         )
@@ -206,7 +206,7 @@ private fun LightningDetails(
         value = paymentHash,
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(paymentHash) {
-                onCopy(paymentHash)
+                onCopy(it)
             }
         ),
     )
@@ -215,7 +215,7 @@ private fun LightningDetails(
         value = invoice,
         modifier = Modifier.clickableAlpha(
             onClick = copyToClipboard(invoice) {
-                onCopy(invoice)
+                onCopy(it)
             }
         ),
     )
@@ -235,7 +235,7 @@ private fun ColumnScope.OnchainDetails(
         modifier = Modifier
             .clickableAlpha(
                 onClick = copyToClipboard(txId) {
-                    onCopy(txId)
+                    onCopy(it)
                 }
             )
             .testTag("TXID")
