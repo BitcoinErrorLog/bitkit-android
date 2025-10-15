@@ -139,7 +139,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
     val sizePx = with(LocalDensity.current) { size.roundToPx() }
 
     LaunchedEffect(content, size) {
-        if (bitmap != null) return@LaunchedEffect
+        bitmap = null // Always reset to show loading indicator
 
         launch(Dispatchers.Default) {
             val qrCodeWriter = QRCodeWriter()
