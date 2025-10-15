@@ -100,6 +100,7 @@ private fun Content(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
+                .weight(1f)
         ) {
             BodyM(
                 text = stringResource(
