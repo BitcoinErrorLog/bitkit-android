@@ -208,7 +208,7 @@ private fun Content(
                 VerticalSpacer(16.dp)
 
                 SettingsSwitchRow(
-                    title = "Setup in background",
+                    title = "Set up in background",
                     isChecked = hasNotificationPermission,
                     colors = AppSwitchDefaults.colorsPurple,
                     onClick = onSwitchClick,
