@@ -180,6 +180,8 @@ private fun Content(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            VerticalSpacer(22.dp)
+
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 SecondaryButton(
                     text = stringResource(R.string.common__learn_more),
