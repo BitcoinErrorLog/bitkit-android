@@ -20,7 +20,7 @@ fun Tooltip(
     text: String,
     tooltipState: TooltipState,
     modifier: Modifier = Modifier,
-    content: @Composable (() -> Unit)
+    content: @Composable () -> Unit
 ) {
     TooltipBox(
         modifier = modifier,
@@ -48,6 +48,7 @@ fun Tooltip(
             }
         },
         state = tooltipState,
+        focusable = false,
         content = content
     )
 }
