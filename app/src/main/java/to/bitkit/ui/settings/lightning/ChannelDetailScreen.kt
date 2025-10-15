@@ -530,8 +530,8 @@ private fun getChannelStatus(
     blocktankOrder?.let { order ->
         when {
             order.state2 == BtOrderState2.EXPIRED ||
-                order.payment.state2 == BtPaymentState2.CANCELED ||
-                order.payment.state2 == BtPaymentState2.REFUNDED -> {
+                order.payment?.state2 == BtPaymentState2.CANCELED ||
+                order.payment?.state2 == BtPaymentState2.REFUNDED -> {
                 return ChannelStatusUi.CLOSED
             }
 

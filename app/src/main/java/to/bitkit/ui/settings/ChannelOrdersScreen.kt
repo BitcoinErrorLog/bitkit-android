@@ -219,7 +219,7 @@ private fun OrderDetailView(
                         Text(text = "Order Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         DetailRow("ID", order.id)
-                        DetailRow("Onchain txs", order.payment.onchain.transactions.size.toString())
+                        DetailRow("Onchain txs", order.payment?.onchain?.transactions?.size.toString())
                         DetailRow("State", order.state.toString())
                         DetailRow("State 2", order.state2.toString())
                         DetailRow("LSP Balance", order.lspBalanceSat.formatToModernDisplay())
@@ -265,8 +265,8 @@ private fun OrderDetailView(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(text = "LSP Information", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow("Alias", order.lspNode.alias)
-                        DetailRow("Node ID", order.lspNode.pubkey)
+                        DetailRow("Alias", order.lspNode?.alias.orEmpty())
+                        DetailRow("Node ID", order.lspNode?.pubkey.orEmpty())
                         order.lnurl?.let {
                             DetailRow("LNURL", it)
                         }
