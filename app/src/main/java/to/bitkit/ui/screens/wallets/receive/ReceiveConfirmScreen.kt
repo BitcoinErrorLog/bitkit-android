@@ -271,7 +271,7 @@ private fun PreviewTablet() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                receiveSats = 12500L,
+                receiveSats = 1250L,
                 isAdditional = true,
                 networkFeeFormatted = "$0.50",
                 serviceFeeFormatted = "$1.00",
