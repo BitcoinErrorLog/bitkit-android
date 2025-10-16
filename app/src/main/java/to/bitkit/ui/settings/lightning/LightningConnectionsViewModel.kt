@@ -229,7 +229,7 @@ class LightningConnectionsViewModel @Inject constructor(
 
             createChannelDetails().copy(
                 channelId = order.id,
-                counterpartyNodeId = order.lspNode.pubkey,
+                counterpartyNodeId = order.lspNode?.pubkey.orEmpty(),
                 fundingTxo = order.channel?.fundingTx?.let { OutPoint(txid = it.id, vout = it.vout.toUInt()) },
                 channelValueSats = order.clientBalanceSat + order.lspBalanceSat,
                 outboundCapacityMsat = order.clientBalanceSat * 1000u,
@@ -246,7 +246,7 @@ class LightningConnectionsViewModel @Inject constructor(
 
             createChannelDetails().copy(
                 channelId = order.id,
-                counterpartyNodeId = order.lspNode.pubkey,
+                counterpartyNodeId = order.lspNode?.pubkey.orEmpty(),
                 fundingTxo = order.channel?.fundingTx?.let { OutPoint(txid = it.id, vout = it.vout.toUInt()) },
                 channelValueSats = order.clientBalanceSat + order.lspBalanceSat,
                 outboundCapacityMsat = order.clientBalanceSat * 1000u,

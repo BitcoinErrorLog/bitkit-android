@@ -59,6 +59,7 @@ fun ChannelStatusView(
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 private fun getStatusInfo(
     channel: ChannelUi,
@@ -122,7 +123,7 @@ private fun getStatusInfo(
             )
         }
 
-        when (order.payment.state2) {
+        when (order.payment?.state2) {
             BtPaymentState2.CANCELED -> {
                 return StatusInfo(
                     iconRes = R.drawable.ic_x,
@@ -172,6 +173,8 @@ private fun getStatusInfo(
                     statusColor = Colors.Purple
                 )
             }
+
+            null -> Unit
         }
     }
 
@@ -279,7 +282,7 @@ private fun PreviewPaymentCanceled() {
                 details = createChannelDetails(),
             ),
             blocktankOrder = mockOrder().copy(
-                payment = mockOrder().payment.copy(
+                payment = mockOrder().payment?.copy(
                     state2 = BtPaymentState2.CANCELED,
                 ),
             ),
@@ -297,7 +300,7 @@ private fun PreviewRefundAvailable() {
                 details = createChannelDetails(),
             ),
             blocktankOrder = mockOrder().copy(
-                payment = mockOrder().payment.copy(
+                payment = mockOrder().payment?.copy(
                     state2 = BtPaymentState2.REFUND_AVAILABLE,
                 ),
             ),
@@ -315,7 +318,7 @@ private fun PreviewRefunded() {
                 details = createChannelDetails(),
             ),
             blocktankOrder = mockOrder().copy(
-                payment = mockOrder().payment.copy(
+                payment = mockOrder().payment?.copy(
                     state2 = BtPaymentState2.REFUNDED,
                 ),
             ),
@@ -347,7 +350,7 @@ private fun PreviewPaymentPaid() {
                 details = createChannelDetails(),
             ),
             blocktankOrder = mockOrder().copy(
-                payment = mockOrder().payment.copy(
+                payment = mockOrder().payment?.copy(
                     state2 = BtPaymentState2.PAID,
                 ),
             ),
