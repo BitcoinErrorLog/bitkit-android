@@ -176,7 +176,7 @@ private fun OrderDetailContent(
             item {
                 InfoCard(header = "Order Details") {
                     DetailRow("ID", order.id)
-                    DetailRow("Onchain txs", order.payment?.onchain?.transactions?.size.toString())
+                    DetailRow("Onchain txs", order.payment?.onchain?.transactions?.size?.toString() ?: "0")
                     DetailRow("State", order.state.toString())
                     DetailRow("State 2", order.state2.toString())
                     DetailRow("LSP Balance", order.lspBalanceSat.formatToModernDisplay())
