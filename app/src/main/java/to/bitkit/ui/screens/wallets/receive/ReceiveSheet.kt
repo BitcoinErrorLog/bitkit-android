@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -18,10 +19,12 @@ import kotlinx.serialization.Serializable
 import to.bitkit.repositories.LightningState
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.walletViewModel
 import to.bitkit.viewmodels.AmountInputViewModel
 import to.bitkit.viewmodels.MainUiState
+import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModelEffects
 
 @Composable
@@ -29,6 +32,7 @@ fun ReceiveSheet(
     navigateToExternalConnection: () -> Unit,
     walletState: MainUiState,
     editInvoiceAmountViewModel: AmountInputViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val wallet = requireNotNull(walletViewModel)
     val navController = rememberNavController()
@@ -138,20 +142,34 @@ fun ReceiveSheet(
             }
             composableWithDefaultTransitions<ReceiveRoute.Liquidity> {
                 cjitEntryDetails.value?.let { entryDetails ->
+                    val context = LocalContext.current
+                    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+
                     ReceiveLiquidityScreen(
                         entry = entryDetails,
                         onContinue = { navController.popBackStack() },
                         onBack = { navController.popBackStack() },
+                        hasNotificationPermission = notificationsGranted,
+                        onSwitchClick = {
+                            NotificationUtils.openNotificationSettings(context)
+                        },
                     )
                 }
             }
             composableWithDefaultTransitions<ReceiveRoute.LiquidityAdditional> {
                 cjitEntryDetails.value?.let { entryDetails ->
+                    val context = LocalContext.current
+                    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+
                     ReceiveLiquidityScreen(
                         entry = entryDetails,
                         onContinue = { navController.popBackStack() },
                         isAdditional = true,
                         onBack = { navController.popBackStack() },
+                        hasNotificationPermission = notificationsGranted,
+                        onSwitchClick = {
+                            NotificationUtils.openNotificationSettings(context)
+                        },
                     )
                 }
             }

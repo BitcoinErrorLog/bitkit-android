@@ -1,8 +1,6 @@
 package to.bitkit.ui.screens.wallets.receive
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,11 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Devices.PIXEL_TABLET
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.serialization.Serializable
 import to.bitkit.R
 import to.bitkit.models.PrimaryDisplay
@@ -32,17 +31,22 @@ import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.SettingsViewModel
 
 // TODO pass these to nav?
 @Serializable
@@ -57,14 +61,19 @@ data class CjitEntryDetails(
 
 @Composable
 fun ReceiveConfirmScreen(
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     entry: CjitEntryDetails,
     isAdditional: Boolean = false,
     onLearnMore: () -> Unit,
     onContinue: (String) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     val currency = currencyViewModel ?: return
     val currencies = LocalCurrencies.current
+
+    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
 
     val networkFeeFormatted = remember(entry.networkFeeSat) {
         currency.convert(entry.networkFeeSat)
@@ -100,6 +109,10 @@ fun ReceiveConfirmScreen(
         receiveAmountFormatted = receiveAmountFormatted,
         onLearnMoreClick = onLearnMore,
         isAdditional = isAdditional,
+        onSystemSettingsClick = {
+            NotificationUtils.openNotificationSettings(context)
+        },
+        hasNotificationPermission = notificationsGranted,
         onContinueClick = { onContinue(entry.invoice) },
         onBackClick = onBack,
     )
@@ -112,6 +125,8 @@ private fun Content(
     networkFeeFormatted: String,
     serviceFeeFormatted: String,
     receiveAmountFormatted: String,
+    onSystemSettingsClick: () -> Unit,
+    hasNotificationPermission: Boolean,
     onLearnMoreClick: () -> Unit,
     onContinueClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -124,63 +139,62 @@ private fun Content(
             .navigationBarsPadding()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin), onBack = onBackClick)
-        Spacer(Modifier.height(24.dp))
-
-        Box(
-            modifier = Modifier.fillMaxWidth()
+        VerticalSpacer(24.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            Image(
-                painter = painterResource(R.drawable.lightning),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .padding(bottom = 150.dp)
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
+            BalanceHeaderView(
+                sats = receiveSats,
+                modifier = Modifier.fillMaxWidth()
+            )
+            VerticalSpacer(24.dp)
+            val text = when (isAdditional) {
+                true -> stringResource(R.string.wallet__receive_connect_additional)
+                else -> stringResource(R.string.wallet__receive_connect_initial)
+            }
+            BodyM(
+                text = text
+                    .replace("{networkFee}", networkFeeFormatted)
+                    .replace("{serviceFee}", serviceFeeFormatted)
+                    .withAccent(
+                        defaultColor = Colors.White64,
+                        accentStyle = SpanStyle(color = Colors.White, fontWeight = FontWeight.Bold)
+                    )
+            )
+            VerticalSpacer(32.dp)
+            Column {
+                Caption13Up(text = stringResource(R.string.wallet__receive_will), color = Colors.White64)
+                VerticalSpacer(4.dp)
+                Title(text = receiveAmountFormatted)
+            }
+
+            FillHeight()
+
+            SettingsSwitchRow(
+                title = "Set up in background",
+                isChecked = hasNotificationPermission,
+                colors = AppSwitchDefaults.colorsPurple,
+                onClick = onSystemSettingsClick,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) {
-                BalanceHeaderView(
-                    sats = receiveSats,
-                    modifier = Modifier.fillMaxWidth()
+            VerticalSpacer(22.dp)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SecondaryButton(
+                    text = stringResource(R.string.common__learn_more),
+                    onClick = onLearnMoreClick,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
-                val text = when (isAdditional) {
-                    true -> stringResource(R.string.wallet__receive_connect_additional)
-                    else -> stringResource(R.string.wallet__receive_connect_initial)
-                }
-                BodyM(
-                    text = text
-                        .replace("{networkFee}", networkFeeFormatted)
-                        .replace("{serviceFee}", serviceFeeFormatted)
-                        .withAccent(
-                            defaultColor = Colors.White64,
-                            accentStyle = SpanStyle(color = Colors.White, fontWeight = FontWeight.Bold)
-                        )
+                PrimaryButton(
+                    text = stringResource(R.string.common__continue),
+                    onClick = onContinueClick,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(32.dp))
-                Column {
-                    Caption13Up(text = stringResource(R.string.wallet__receive_will), color = Colors.White64)
-                    Spacer(Modifier.height(4.dp))
-                    Title(text = receiveAmountFormatted)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SecondaryButton(
-                        text = stringResource(R.string.common__learn_more),
-                        onClick = onLearnMoreClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PrimaryButton(
-                        text = stringResource(R.string.common__continue),
-                        onClick = onContinueClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                VerticalSpacer(16.dp)
             }
+            VerticalSpacer(16.dp)
         }
     }
 }
@@ -199,6 +213,8 @@ private fun Preview() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -219,6 +235,8 @@ private fun PreviewAdditional() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -239,6 +257,8 @@ private fun PreviewSmall() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = false,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -251,7 +271,7 @@ private fun PreviewTablet() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                receiveSats = 12500L,
+                receiveSats = 1250L,
                 isAdditional = true,
                 networkFeeFormatted = "$0.50",
                 serviceFeeFormatted = "$1.00",
@@ -259,6 +279,8 @@ private fun PreviewTablet() {
                 onLearnMoreClick = {},
                 onContinueClick = {},
                 onBackClick = {},
+                hasNotificationPermission = true,
+                onSystemSettingsClick = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
