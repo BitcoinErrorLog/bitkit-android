@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ fun SettingsSwitchRow(
     isChecked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    colors: SwitchColors = AppSwitchDefaults.colors,
 ) {
     Column(
         modifier = modifier.height(52.dp)
@@ -42,7 +44,7 @@ fun SettingsSwitchRow(
             Switch(
                 checked = isChecked,
                 onCheckedChange = null, // handled by parent
-                colors = AppSwitchDefaults.colors,
+                colors = colors,
             )
         }
         HorizontalDivider(color = Colors.White10)

@@ -128,16 +128,16 @@ fun HomeScreen(
     activityListViewModel: ActivityListViewModel,
     homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val hasSeenTransferIntro by settingsViewModel.hasSeenTransferIntro.collectAsStateWithLifecycle()
     val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hasSeenProfileIntro by settingsViewModel.hasSeenProfileIntro.collectAsStateWithLifecycle()
     val hasSeenWidgetsIntro: Boolean by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
+    val bgPaymentsIntroSeen: Boolean by settingsViewModel.bgPaymentsIntroSeen.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settingsViewModel.quickPayIntroSeen.collectAsStateWithLifecycle()
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
-
-    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         appViewModel.checkTimedSheets()
@@ -239,6 +239,13 @@ fun HomeScreen(
                 Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
                 Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
                 Suggestion.LIGHTNING_READY -> Unit
+                Suggestion.NOTIFICATIONS -> {
+                    if (bgPaymentsIntroSeen) {
+                        rootNavController.navigate(Routes.BackgroundPaymentsSettings)
+                    } else {
+                        rootNavController.navigate(Routes.BackgroundPaymentsIntro)
+                    }
+                }
             }
         },
         onClickAddWidget = {
