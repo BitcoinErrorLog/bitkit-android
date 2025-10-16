@@ -536,7 +536,9 @@ class LightningRepo @Inject constructor(
         channelId: String? = null,
         isMaxAmount: Boolean = false,
     ): Result<Txid> =
-        executeWhenNodeRunning("Send on-chain") {
+        executeWhenNodeRunning("sendOnChain") {
+            require(address.isNotEmpty()) { "Send address cannot be empty" }
+
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
             val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
