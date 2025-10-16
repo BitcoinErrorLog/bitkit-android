@@ -59,6 +59,7 @@ fun ChannelStatusView(
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 private fun getStatusInfo(
     channel: ChannelUi,
