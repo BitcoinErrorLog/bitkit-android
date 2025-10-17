@@ -206,7 +206,7 @@ class TransferViewModel @Inject constructor(
         viewModelScope.launch {
             lightningRepo
                 .sendOnChain(
-                    address = order.payment.onchain.address,
+                    address = order.payment?.onchain?.address.orEmpty(),
                     sats = order.feeSat,
                     speed = speed,
                     isTransfer = true,

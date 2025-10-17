@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
-import to.bitkit.models.LnPeer
+import to.bitkit.env.Env
+import to.bitkit.ext.host
+import to.bitkit.ext.port
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Caption13Up
@@ -173,13 +175,7 @@ private fun InfoRow(
 private fun Preview() {
     AppThemeSurface {
         Content(
-            uiState = LnurlChannelUiState(
-                peer = LnPeer(
-                    nodeId = "12345678901234567890123456789012345678901234567890",
-                    host = "127.0.0.1",
-                    port = "9735",
-                )
-            ),
+            uiState = LnurlChannelUiState(peer = Env.Peers.staging),
         )
     }
 }

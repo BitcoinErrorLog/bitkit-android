@@ -1,6 +1,7 @@
 package to.bitkit.usecases
 
 import kotlinx.coroutines.flow.first
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.entities.TransferEntity
@@ -8,7 +9,6 @@ import to.bitkit.ext.amountSats
 import to.bitkit.ext.channelId
 import to.bitkit.ext.minusOrZero
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.BalanceState
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.TransferRepo

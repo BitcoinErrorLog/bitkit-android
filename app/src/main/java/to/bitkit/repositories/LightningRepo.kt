@@ -23,12 +23,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
+import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.data.CacheStore
@@ -37,9 +39,7 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
-import to.bitkit.models.BalanceDetails
 import to.bitkit.models.CoinSelectionPreference
-import to.bitkit.models.LnPeer
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.OpenChannelResult
 import to.bitkit.models.TransactionMetadata
@@ -62,8 +62,6 @@ import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-
-private const val SYNC_TIMEOUT_MS = 20_000L
 
 @Singleton
 class LightningRepo @Inject constructor(
@@ -421,7 +419,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun connectPeer(peer: LnPeer): Result<Unit> = executeWhenNodeRunning("connectPeer") {
+    suspend fun connectPeer(peer: PeerDetails): Result<Unit> = executeWhenNodeRunning("connectPeer") {
         lightningService.connectPeer(peer).onFailure { e ->
             return@executeWhenNodeRunning Result.failure(e)
         }
@@ -429,7 +427,7 @@ class LightningRepo @Inject constructor(
         Result.success(Unit)
     }
 
-    suspend fun disconnectPeer(peer: LnPeer): Result<Unit> = executeWhenNodeRunning("Disconnect peer") {
+    suspend fun disconnectPeer(peer: PeerDetails): Result<Unit> = executeWhenNodeRunning("Disconnect peer") {
         lightningService.disconnectPeer(peer)
         syncState()
         Result.success(Unit)
@@ -538,7 +536,9 @@ class LightningRepo @Inject constructor(
         channelId: String? = null,
         isMaxAmount: Boolean = false,
     ): Result<Txid> =
-        executeWhenNodeRunning("Send on-chain") {
+        executeWhenNodeRunning("sendOnChain") {
+            require(address.isNotEmpty()) { "Send address cannot be empty" }
+
             val transactionSpeed = speed ?: settingsStore.data.first().defaultTransactionSpeed
             val satsPerVByte = getFeeRateForSpeed(transactionSpeed, feeRates).getOrThrow().toUInt()
 
@@ -662,7 +662,7 @@ class LightningRepo @Inject constructor(
     }
 
     suspend fun openChannel(
-        peer: LnPeer,
+        peer: PeerDetails,
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
@@ -721,7 +721,7 @@ class LightningRepo @Inject constructor(
     fun getStatus(): NodeStatus? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.status else null
 
-    fun getPeers(): List<LnPeer>? =
+    fun getPeers(): List<PeerDetails>? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.peers else null
 
     fun getChannels(): List<ChannelDetails>? =
@@ -864,8 +864,9 @@ class LightningRepo @Inject constructor(
                 }
         }
 
-    private companion object {
-        const val TAG = "LightningRepo"
+    companion object {
+        private const val TAG = "LightningRepo"
+        private const val SYNC_TIMEOUT_MS = 20_000L
     }
 }
 
@@ -875,7 +876,7 @@ data class LightningState(
     val nodeId: String = "",
     val nodeStatus: NodeStatus? = null,
     val nodeLifecycleState: NodeLifecycleState = NodeLifecycleState.Stopped,
-    val peers: List<LnPeer> = emptyList(),
+    val peers: List<PeerDetails> = emptyList(),
     val channels: List<ChannelDetails> = emptyList(),
     val balances: BalanceDetails? = null,
     val isSyncingWallet: Boolean = false,

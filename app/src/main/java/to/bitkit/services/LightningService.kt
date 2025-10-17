@@ -13,6 +13,7 @@ import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.AnchorChannelsConfig
 import org.lightningdevkit.ldknode.BackgroundSyncConfig
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.Bolt11Invoice
 import org.lightningdevkit.ldknode.Bolt11InvoiceDescription
 import org.lightningdevkit.ldknode.BuildException
@@ -29,6 +30,7 @@ import org.lightningdevkit.ldknode.NodeException
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
+import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import org.lightningdevkit.ldknode.defaultConfig
@@ -42,10 +44,8 @@ import to.bitkit.env.Env
 import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
-import to.bitkit.models.BalanceDetails
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.uri
 import to.bitkit.models.OpenChannelResult
-import to.bitkit.models.toDomainModel
 import to.bitkit.utils.LdkError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -59,7 +59,6 @@ import javax.inject.Singleton
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.toString
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
@@ -74,7 +73,7 @@ class LightningService @Inject constructor(
     @Volatile
     var node: Node? = null
 
-    private lateinit var trustedLnPeers: List<LnPeer>
+    private lateinit var trustedPeers: List<PeerDetails>
 
     suspend fun setup(
         walletIndex: Int,
@@ -85,19 +84,20 @@ class LightningService @Inject constructor(
         val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
 
         // TODO get trustedLnPeers from blocktank info
-        this.trustedLnPeers = Env.trustedLnPeers
+        this.trustedPeers = Env.trustedLnPeers
         val dirPath = Env.ldkStoragePath(walletIndex)
 
-        val config = defaultConfig().apply {
-            storageDirPath = dirPath
-            network = Env.network
+        val trustedPeerNodeIds = trustedPeers.map { it.nodeId }
 
-            trustedPeers0conf = trustedLnPeers.map { it.nodeId }
+        val config = defaultConfig().copy(
+            storageDirPath = dirPath,
+            network = Env.network,
+            trustedPeers0conf = trustedPeerNodeIds,
             anchorChannelsConfig = AnchorChannelsConfig(
-                trustedPeersNoReserve = trustedPeers0conf,
+                trustedPeersNoReserve = trustedPeerNodeIds,
                 perChannelReserveSats = 1u,
             )
-        }
+        )
 
         val builder = Builder.fromConfig(config).apply {
             setFilesystemLogger(generateLogFilePath(), Env.ldkLogLevel)
@@ -274,7 +274,7 @@ class LightningService @Inject constructor(
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         ServiceQueue.LDK.background {
-            for (peer in trustedLnPeers) {
+            for (peer in trustedPeers) {
                 try {
                     node.connect(peer.nodeId, peer.address, persist = true)
                     Logger.info("Connected to trusted peer: $peer")
@@ -285,54 +285,59 @@ class LightningService @Inject constructor(
         }
     }
 
-    suspend fun connectPeer(peer: LnPeer): Result<Unit> {
+    suspend fun connectPeer(peer: PeerDetails): Result<Unit> {
         val node = this.node ?: throw ServiceError.NodeNotSetup
-
+        val uri = peer.uri
         return ServiceQueue.LDK.background {
             try {
-                Logger.debug("Connecting peer: $peer")
+                Logger.debug("Connecting peer: $uri")
 
                 node.connect(peer.nodeId, peer.address, persist = true)
 
-                Logger.info("Peer connected: $peer")
+                Logger.info("Peer connected: $uri")
 
                 Result.success(Unit)
             } catch (e: NodeException) {
                 val error = LdkError(e)
-                Logger.error("Peer connect error: $peer", error)
+                Logger.error("Peer connect error: $uri", error)
                 Result.failure(error)
             }
         }
     }
 
-    suspend fun disconnectPeer(peer: LnPeer) {
+    suspend fun disconnectPeer(peer: PeerDetails) {
         val node = this.node ?: throw ServiceError.NodeNotSetup
-        Logger.debug("Disconnecting peer: $peer")
+        val uri = peer.uri
+        Logger.debug("Disconnecting peer: $uri")
         try {
             ServiceQueue.LDK.background {
                 node.disconnect(peer.nodeId)
             }
-            Logger.info("Peer disconnected: $peer")
+            Logger.info("Peer disconnected: $uri")
         } catch (e: NodeException) {
-            Logger.warn("Peer disconnect error: $peer", LdkError(e))
+            Logger.warn("Peer disconnect error: $uri", LdkError(e))
         }
     }
 
-    private fun getLspPeers(): List<LnPeer> {
+    private fun getLspPeers(): List<PeerDetails> {
         val lspPeers = Env.trustedLnPeers
         // TODO get from blocktank info.nodes[] when setup uses it to set trustedPeers0conf
         // pseudocode idea:
-        // val lspPeers = getInfo(refresh = true)?.nodes?.map { LnPeer(nodeId = it.pubkey, address = "TO_DO") }
+        // val lspPeers = getInfo(true)?.nodes?.map { PeerDetails.from(nodeId = it.pubkey, address = "TO DO") }
         return lspPeers
     }
 
-    fun hasExternalPeers() = peers?.any { p -> p.toString() !in getLspPeers().map { it.toString() } } == true
+    fun hasExternalPeers(): Boolean {
+        val ourPeers = this.peers.orEmpty().map { it.uri }
+        val lspPeers = getLspPeers().map { it.uri }.toSet()
+        return ourPeers.any { p -> p !in lspPeers }
+    }
 
     // endregion
 
     // region channels
     suspend fun openChannel(
-        peer: LnPeer,
+        peer: PeerDetails,
         channelAmountSats: ULong,
         pushToCounterpartySats: ULong? = null,
         channelConfig: ChannelConfig? = null,
@@ -341,7 +346,7 @@ class LightningService @Inject constructor(
 
         return ServiceQueue.LDK.background {
             try {
-                Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: $peer")
+                Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: ${peer.uri}")
 
                 val userChannelId = node.openChannel(
                     nodeId = peer.nodeId,
@@ -764,10 +769,10 @@ class LightningService @Inject constructor(
 
     // region state
     val nodeId: String? get() = node?.nodeId()
-    val balances: BalanceDetails? get() = node?.listBalances()?.toDomainModel()
+    val balances: BalanceDetails? get() = node?.listBalances()
     val status: NodeStatus? get() = node?.status()
     val config: Config? get() = node?.config()
-    val peers: List<LnPeer>? get() = node?.listPeers()?.map(::LnPeer)
+    val peers: List<PeerDetails>? get() = node?.listPeers()
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
 

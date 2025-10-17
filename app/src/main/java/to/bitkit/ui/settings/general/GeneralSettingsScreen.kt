@@ -87,8 +87,8 @@ private fun GeneralSettingsContent(
     primaryDisplay: PrimaryDisplay,
     defaultTransactionSpeed: TransactionSpeed,
     selectedLanguage: String,
-    showTagsButton: Boolean = false,
     notificationsGranted: Boolean,
+    showTagsButton: Boolean = false,
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
     onLocalCurrencyClick: () -> Unit = {},
@@ -175,9 +175,8 @@ private fun Preview() {
             selectedCurrency = "USD",
             primaryDisplay = PrimaryDisplay.BITCOIN,
             defaultTransactionSpeed = TransactionSpeed.Medium,
-            showTagsButton = true,
             selectedLanguage = Language.SYSTEM_DEFAULT.displayName,
-            notificationsGranted = true
+            notificationsGranted = true,
         )
     }
 }

@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.Clock
 import org.junit.Before
 import org.junit.Test
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.ChannelDetails
+import org.lightningdevkit.ldknode.LightningBalance
 import org.lightningdevkit.ldknode.OutPoint
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -22,8 +24,6 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.dao.TransferDao
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.createChannelDetails
-import to.bitkit.models.BalanceDetails
-import to.bitkit.models.LightningBalance
 import to.bitkit.models.TransferType
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals

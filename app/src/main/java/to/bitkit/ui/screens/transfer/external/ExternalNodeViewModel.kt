@@ -13,13 +13,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.Event
+import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.ext.WatchResult
+import to.bitkit.ext.parse
 import to.bitkit.ext.watchUntil
-import to.bitkit.models.LnPeer
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
@@ -67,7 +68,7 @@ class ExternalNodeViewModel @Inject constructor(
         }
     }
 
-    fun onConnectionContinue(peer: LnPeer) {
+    fun onConnectionContinue(peer: PeerDetails) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -90,7 +91,7 @@ class ExternalNodeViewModel @Inject constructor(
 
     fun parseNodeUri(uriString: String) {
         viewModelScope.launch {
-            val result = LnPeer.parseUri(uriString.trim())
+            val result = runCatching { PeerDetails.parse(uriString) }
 
             if (result.isSuccess) {
                 _uiState.update { it.copy(peer = result.getOrNull()) }
@@ -229,7 +230,7 @@ class ExternalNodeViewModel @Inject constructor(
 interface ExternalNodeContract {
     data class UiState(
         val isLoading: Boolean = false,
-        val peer: LnPeer? = null,
+        val peer: PeerDetails? = null,
         val amount: Amount = Amount(),
         val networkFee: Long = 0,
         val customFeeRate: UInt? = null,

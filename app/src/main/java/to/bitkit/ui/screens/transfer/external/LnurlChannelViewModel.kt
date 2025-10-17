@@ -9,8 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.lightningdevkit.ldknode.PeerDetails
 import to.bitkit.R
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.parse
 import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.ui.Routes
@@ -37,7 +38,7 @@ class LnurlChannelViewModel @Inject constructor(
         viewModelScope.launch {
             lightningRepo.fetchLnurlChannelInfo(params.uri)
                 .onSuccess { channelInfo ->
-                    val peer = LnPeer.parseUri(channelInfo.uri).getOrElse {
+                    val peer = runCatching { PeerDetails.parse(channelInfo.uri) }.getOrElse {
                         errorToast(it)
                         return@onSuccess
                     }
@@ -91,7 +92,7 @@ class LnurlChannelViewModel @Inject constructor(
 }
 
 data class LnurlChannelUiState(
-    val peer: LnPeer? = null,
+    val peer: PeerDetails? = null,
     val isConnecting: Boolean = false,
     val isConnected: Boolean = false,
 )

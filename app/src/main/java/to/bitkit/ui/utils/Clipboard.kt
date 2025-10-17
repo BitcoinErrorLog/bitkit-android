@@ -15,7 +15,7 @@ import to.bitkit.R
 fun copyToClipboard(
     text: String,
     label: String = stringResource(R.string.app_name),
-    block: (() -> Unit)? = null,
+    callback: ((String) -> Unit)? = null,
 ): () -> Unit {
     val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
@@ -26,7 +26,7 @@ fun copyToClipboard(
             val clipData = ClipData.newPlainText(label, text)
             clipboard.setClipEntry(ClipEntry(clipData))
             haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-            block?.invoke()
+            callback?.invoke(text)
         }
     }
 }

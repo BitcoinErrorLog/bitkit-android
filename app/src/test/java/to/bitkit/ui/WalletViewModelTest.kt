@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import org.lightningdevkit.ldknode.PeerDetails
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
@@ -13,7 +14,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import to.bitkit.data.SettingsStore
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.from
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
@@ -82,7 +83,7 @@ class WalletViewModelTest : BaseUnitTest() {
 
     @Test
     fun `disconnectPeer should call lightningRepo disconnectPeer and send success toast`() = test {
-        val testPeer = LnPeer("nodeId", "host", "9735")
+        val testPeer = PeerDetails.from("nodeId", "host", "9735")
         whenever(lightningRepo.disconnectPeer(testPeer)).thenReturn(Result.success(Unit))
 
         sut.disconnectPeer(testPeer)
@@ -93,7 +94,7 @@ class WalletViewModelTest : BaseUnitTest() {
 
     @Test
     fun `disconnectPeer should call lightningRepo disconnectPeer and send failure toast`() = test {
-        val testPeer = LnPeer("nodeId", "host", "9735")
+        val testPeer = PeerDetails.from("nodeId", "host", "9735")
         val testError = Exception("Test error")
         whenever(lightningRepo.disconnectPeer(testPeer)).thenReturn(Result.failure(testError))
 

@@ -31,19 +31,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.datetime.Clock
+import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BalanceSource
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelDetails
+import org.lightningdevkit.ldknode.LightningBalance
 import org.lightningdevkit.ldknode.NodeStatus
+import org.lightningdevkit.ldknode.PeerDetails
 import to.bitkit.R
+import to.bitkit.env.Env
 import to.bitkit.ext.amountSats
 import to.bitkit.ext.balanceUiText
 import to.bitkit.ext.channelId
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.formatted
-import to.bitkit.models.BalanceDetails
-import to.bitkit.models.LightningBalance
-import to.bitkit.models.LnPeer
+import to.bitkit.ext.uri
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.formatToModernDisplay
@@ -108,7 +110,7 @@ private fun Content(
     onBack: () -> Unit = {},
     onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
-    onDisconnectPeer: (LnPeer) -> Unit = {},
+    onDisconnectPeer: (PeerDetails) -> Unit = {},
     onCopy: (String) -> Unit = {},
 ) {
     ScreenColumn {
@@ -178,7 +180,7 @@ private fun NodeIdSection(
             modifier = Modifier
                 .clickableAlpha(
                     onClick = copyToClipboard(nodeId) {
-                        onCopy(nodeId)
+                        onCopy(it)
                     }
                 )
                 .testTag("LDKNodeID")
@@ -307,7 +309,7 @@ private fun ChannelsSection(
                         overflow = TextOverflow.MiddleEllipsis,
                         modifier = Modifier.clickableAlpha(
                             onClick = copyToClipboard(channel.channelId) {
-                                onCopy(channel.channelId)
+                                onCopy(it)
                             }
                         )
                     )
@@ -366,8 +368,8 @@ private fun ChannelsSection(
 
 @Composable
 private fun PeersSection(
-    peers: List<LnPeer>,
-    onDisconnectPeer: (LnPeer) -> Unit,
+    peers: List<PeerDetails>,
+    onDisconnectPeer: (PeerDetails) -> Unit,
     onCopy: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -379,14 +381,14 @@ private fun PeersSection(
                 modifier = Modifier.height(52.dp)
             ) {
                 BodyM(
-                    text = peer.toString(),
+                    text = peer.uri,
                     maxLines = 1,
                     overflow = TextOverflow.MiddleEllipsis,
                     modifier = Modifier
                         .weight(1f)
                         .clickableAlpha(
-                            onClick = copyToClipboard(peer.toString()) {
-                                onCopy(peer.toString())
+                            onClick = copyToClipboard(peer.uri) {
+                                onCopy(it)
                             }
                         )
                 )
@@ -465,12 +467,7 @@ private fun PreviewDevMode() {
                     latestChannelMonitorArchivalHeight = null,
                 ),
                 nodeId = "0348a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-                peers = listOf(
-                    LnPeer(
-                        nodeId = "0248a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-                        address = "192.168.1.1:9735",
-                    ),
-                ),
+                peers = listOf(Env.Peers.staging),
                 channels = listOf(
                     createChannelDetails().copy(
                         channelId = "abc123def456789012345678901234567890123456789012345678901234567890",

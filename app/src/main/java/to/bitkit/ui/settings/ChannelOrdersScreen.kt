@@ -1,15 +1,11 @@
 package to.bitkit.ui.settings
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,26 +15,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.BtBolt11InvoiceState
 import com.synonym.bitkitcore.BtOrderState
@@ -54,17 +40,26 @@ import com.synonym.bitkitcore.IBtPayment
 import com.synonym.bitkitcore.IDiscount
 import com.synonym.bitkitcore.ILspNode
 import com.synonym.bitkitcore.IcJitEntry
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.Routes
 import to.bitkit.ui.blocktankViewModel
 import to.bitkit.ui.components.BodyS
+import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.CaptionB
+import to.bitkit.ui.components.Footnote
+import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.PrimaryButton
+import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.copyToClipboard
 import to.bitkit.utils.Logger
 
 @Composable
@@ -77,98 +72,60 @@ fun ChannelOrdersScreen(
     val orders by blocktank.orders.collectAsStateWithLifecycle()
     val cJitEntries by blocktank.cJitEntries.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        blocktank.refreshOrders()
-    }
+    LaunchedEffect(Unit) { blocktank.refreshOrders() }
 
-    ChannelOrdersView(
+    Content(
         orders = orders,
         cJitEntries = cJitEntries,
-        onBackClick = onBackClick,
-        onOrderItemClick = onOrderItemClick,
-        onCjitItemClick = onCjitItemClick,
+        onBack = onBackClick,
+        onClickOrder = onOrderItemClick,
+        onClickCjit = onCjitItemClick,
     )
 }
 
 @Composable
-private fun ChannelOrdersView(
+private fun Content(
     orders: List<IBtOrder>,
     cJitEntries: List<IcJitEntry>,
-    onBackClick: () -> Unit,
-    onOrderItemClick: (String) -> Unit,
-    onCjitItemClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
+    onClickOrder: (String) -> Unit = {},
+    onClickCjit: (String) -> Unit = {},
 ) {
     Scaffold(
-        topBar = {
-            AppTopBar(
-                titleText = "Channel Orders",
-                onBackClick = onBackClick,
-            )
-        }
+        topBar = { AppTopBar(titleText = "Channel Orders", onBackClick = onBack) },
+        modifier = modifier,
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            modifier = Modifier
+                .padding(padding)
         ) {
-            item {
-                Text(
-                    text = "Orders",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
+            stickyHeader {
+                SectionHeader(title = "Orders", padding = PaddingValues.Zero)
             }
-
             orders.let { orders ->
                 if (orders.isEmpty()) {
                     item {
-                        Text(
-                            text = "No orders found…",
-                            color = Color.Gray,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        BodyS(text = "No CJIT entries found…")
                     }
                 } else {
                     items(orders) { order ->
-                        Card(
-                            colors = cardColors,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                                .clickable { onOrderItemClick(order.id) }
-                        ) {
-                            OrderRow(order = order)
-                        }
+                        OrderCard(order, onClickOrder)
                     }
                 }
             }
-
-            item {
-                Text(
-                    text = "CJIT Entries",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
+            stickyHeader {
+                SectionHeader(title = "CJIT Entries", padding = PaddingValues.Zero)
             }
-
             cJitEntries.let { entries ->
                 if (entries.isEmpty()) {
                     item {
-                        Text(
-                            text = "No CJIT entries found…",
-                            color = Color.Gray,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        BodyS(text = "No CJIT entries found…")
                     }
                 } else {
                     items(entries) { entry ->
-                        Card(
-                            colors = cardColors,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                                .clickable { onCjitItemClick(entry.id) }
-                        ) {
-                            CJitRow(entry = entry)
-                        }
+                        CJitCard(entry, onClickCjit)
                     }
                 }
             }
@@ -179,160 +136,99 @@ private fun ChannelOrdersView(
 @Composable
 fun OrderDetailScreen(
     orderItem: Routes.OrderDetail,
-    onBackClick: () -> Unit,
+    onBackClick: () -> Unit = {},
 ) {
     val blocktank = blocktankViewModel ?: return
     val orders by blocktank.orders.collectAsStateWithLifecycle()
     val order = orders.find { it.id == orderItem.id } ?: return
-    OrderDetailView(
+    val coroutineScope = rememberCoroutineScope()
+
+    OrderDetailContent(
         order = order,
-        onBackClick = onBackClick,
+        onBack = onBackClick,
+        onClickOpen = {
+            coroutineScope.launch {
+                Logger.info("Opening channel for order ${order.id}")
+                try {
+                    blocktank.openChannel(orderId = order.id)
+                    Logger.info("Channel opened for order ${order.id}")
+                } catch (e: Throwable) {
+                    Logger.error("Error opening channel for order ${order.id}", e)
+                }
+            }
+        },
     )
 }
 
 @Composable
-private fun OrderDetailView(
+private fun OrderDetailContent(
     order: IBtOrder,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit = {},
+    onClickOpen: () -> Unit = {},
 ) {
-    val coroutineScope = rememberCoroutineScope()
     Scaffold(
-        topBar = {
-            AppTopBar(
-                titleText = "Order Details",
-                onBackClick = onBackClick,
-            )
-        }
+        topBar = { AppTopBar(titleText = "Order Details", onBackClick = onBack) }
     ) { padding ->
         LazyColumn(
+            contentPadding = PaddingValues(16.dp),
             modifier = Modifier.padding(padding)
         ) {
-            // Order Details
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Order Details", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow("ID", order.id)
-                        DetailRow("Onchain txs", order.payment.onchain.transactions.size.toString())
-                        DetailRow("State", order.state.toString())
-                        DetailRow("State 2", order.state2.toString())
-                        DetailRow("LSP Balance", order.lspBalanceSat.formatToModernDisplay())
-                        DetailRow("Client Balance", order.clientBalanceSat.formatToModernDisplay())
-                        DetailRow("Total Fee", order.feeSat.formatToModernDisplay())
-                        DetailRow("Network Fee", order.networkFeeSat.formatToModernDisplay())
-                        DetailRow("Service Fee", order.serviceFeeSat.formatToModernDisplay())
+                InfoCard(header = "Order Details") {
+                    DetailRow("ID", order.id)
+                    DetailRow("Onchain txs", order.payment?.onchain?.transactions?.size?.toString() ?: "0")
+                    DetailRow("State", order.state.toString())
+                    DetailRow("State 2", order.state2.toString())
+                    DetailRow("LSP Balance", order.lspBalanceSat.formatToModernDisplay())
+                    DetailRow("Client Balance", order.clientBalanceSat.formatToModernDisplay())
+                    DetailRow("Total Fee", order.feeSat.formatToModernDisplay())
+                    DetailRow("Network Fee", order.networkFeeSat.formatToModernDisplay())
+                    DetailRow("Service Fee", order.serviceFeeSat.formatToModernDisplay())
+                }
+            }
+            item {
+                InfoCard(header = "Channel Settings") {
+                    DetailRow("Zero Conf", if (order.zeroConf) "Yes" else "No")
+                    DetailRow("Zero Reserve", if (order.zeroReserve) "Yes" else "No")
+                    order.clientNodeId?.let {
+                        DetailRow("Client Node ID", it)
+                    }
+                    DetailRow("Expiry Weeks", order.channelExpiryWeeks.toString())
+                    DetailRow("Channel Expires", order.channelExpiresAt)
+                    DetailRow("Order Expires", order.orderExpiresAt)
+                }
+            }
+            item {
+                InfoCard(header = "LSP Info") {
+                    DetailRow("Alias", order.lspNode?.alias.orEmpty())
+                    DetailRow("Node ID", order.lspNode?.pubkey.orEmpty())
+                    order.lnurl?.let {
+                        DetailRow("LNURL", it)
                     }
                 }
             }
-
-            // Channel Settings
-            item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Channel Settings", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow("Zero Conf", if (order.zeroConf) "Yes" else "No")
-                        DetailRow("Zero Reserve", if (order.zeroReserve) "Yes" else "No")
-                        order.clientNodeId?.let {
-                            DetailRow("Client Node ID", it)
-                        }
-                        DetailRow("Expiry Weeks", order.channelExpiryWeeks.toString())
-                        DetailRow("Channel Expires", order.channelExpiresAt)
-                        DetailRow("Order Expires", order.orderExpiresAt)
-                    }
-                }
-            }
-
-            // LSP Information
-            item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "LSP Information", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow("Alias", order.lspNode.alias)
-                        DetailRow("Node ID", order.lspNode.pubkey)
-                        order.lnurl?.let {
-                            DetailRow("LNURL", it)
-                        }
-                    }
-                }
-            }
-
-            // Discount Section
             order.couponCode?.let { couponCode ->
                 item {
-                    Card(
-                        colors = cardColors,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Discount",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            DetailRow("Coupon Code", couponCode)
-                            order.discount?.let { discount ->
-                                DetailRow("Discount Type", discount.code)
-                                DetailRow("Value", discount.absoluteSat.formatToModernDisplay())
-                            }
+                    InfoCard(header = "Discount") {
+                        DetailRow("Coupon Code", couponCode)
+                        order.discount?.let { discount ->
+                            DetailRow("Discount Type", discount.code)
+                            DetailRow("Value", discount.absoluteSat.formatToModernDisplay())
                         }
                     }
                 }
             }
-
-            // Timestamps Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Timestamps", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow("Created", order.createdAt)
-                        DetailRow("Updated", order.updatedAt)
-                    }
+                InfoCard(header = "Timestamps") {
+                    DetailRow("Created", order.createdAt)
+                    DetailRow("Updated", order.updatedAt)
                 }
             }
-
-            // Open Channel Button
             if (order.state2 == BtOrderState2.PAID) {
                 item {
-                    val blocktank = blocktankViewModel ?: return@item
                     PrimaryButton(
                         text = "Open Channel",
-                        onClick = {
-                            coroutineScope.launch {
-                                Logger.info("Opening channel for order ${order.id}")
-                                try {
-                                    blocktank.openChannel(orderId = order.id)
-                                    Logger.info("Channel opened for order ${order.id}")
-                                } catch (e: Throwable) {
-                                    Logger.error("Error opening channel for order ${order.id}", e)
-                                }
-                            }
-                        },
+                        onClick = onClickOpen,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -344,363 +240,261 @@ private fun OrderDetailView(
 @Composable
 fun CJitDetailScreen(
     cjitItem: Routes.CjitDetail,
-    onBackClick: () -> Unit,
+    onBackClick: () -> Unit = {},
 ) {
     val blocktank = blocktankViewModel ?: return
     val cJitEntries by blocktank.cJitEntries.collectAsStateWithLifecycle()
     val entry = cJitEntries.find { it.id == cjitItem.id } ?: return
-    CJitDetailView(
+    CJitDetailContent(
         entry = entry,
-        onBackClick = onBackClick,
+        onBack = onBackClick,
     )
 }
 
 @Composable
-private fun CJitDetailView(
+private fun CJitDetailContent(
     entry: IcJitEntry,
-    onBackClick: () -> Unit,
+    onBack: () -> Unit = {},
 ) {
     Scaffold(
-        topBar = {
-            AppTopBar(
-                titleText = "CJIT Entry Details",
-                onBackClick = onBackClick,
-            )
-        }
+        topBar = { AppTopBar(titleText = "CJIT Details", onBackClick = onBack) }
     ) { padding ->
         LazyColumn(
+            contentPadding = PaddingValues(horizontal = 16.dp),
             modifier = Modifier.padding(padding)
         ) {
-            // Entry Details Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Entry Details", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "ID", value = entry.id)
-                        DetailRow(label = "State", value = entry.state.toString())
-                        DetailRow(label = "Channel Size", value = entry.channelSizeSat.formatToModernDisplay())
-                        entry.channelOpenError?.let { error ->
-                            DetailRow(label = "Error", value = error, isError = true)
-                        }
+                InfoCard(header = "CJIT Details") {
+                    DetailRow(label = "ID", value = entry.id)
+                    DetailRow(label = "State", value = entry.state.toString())
+                    DetailRow(label = "Channel Size", value = entry.channelSizeSat.formatToModernDisplay())
+                    entry.channelOpenError?.let { error ->
+                        DetailRow(label = "Error", value = error, isError = true)
                     }
                 }
             }
-
-            // Fees Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Fees", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "Total Fee", value = entry.feeSat.formatToModernDisplay())
-                        DetailRow(label = "Network Fee", value = entry.networkFeeSat.formatToModernDisplay())
-                        DetailRow(label = "Service Fee", value = entry.serviceFeeSat.formatToModernDisplay())
-                    }
+                InfoCard(header = "Fees") {
+                    DetailRow(label = "Total Fee", value = entry.feeSat.formatToModernDisplay())
+                    DetailRow(label = "Network Fee", value = entry.networkFeeSat.formatToModernDisplay())
+                    DetailRow(label = "Service Fee", value = entry.serviceFeeSat.formatToModernDisplay())
                 }
             }
-
-            // Channel Settings Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Channel Settings", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "Node ID", value = entry.nodeId)
-                        DetailRow(label = "Expiry Weeks", value = "${entry.channelExpiryWeeks}")
-                    }
+                InfoCard(header = "Channel Settings") {
+                    DetailRow(label = "Node ID", value = entry.nodeId)
+                    DetailRow(label = "Expiry Weeks", value = "${entry.channelExpiryWeeks}")
                 }
             }
-
-            // LSP Information Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "LSP Information", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "Alias", value = entry.lspNode.alias)
-                        DetailRow(label = "Node ID", value = entry.lspNode.pubkey)
-                    }
+                InfoCard(header = "LSP Information") {
+                    DetailRow(label = "Alias", value = entry.lspNode.alias)
+                    DetailRow(label = "Node ID", value = entry.lspNode.pubkey)
                 }
             }
-
-            // Discount Section
             if (entry.couponCode.isNotEmpty()) {
                 item {
-                    Card(
-                        colors = cardColors,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Discount", style = MaterialTheme.typography.titleMedium)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            DetailRow(label = "Coupon Code", value = entry.couponCode)
-                            entry.discount?.let { discount ->
-                                DetailRow(label = "Discount Type", value = discount.code)
-                                DetailRow(label = "Value", value = "${discount.absoluteSat}")
-                            }
+                    InfoCard(header = "Discount") {
+                        DetailRow(label = "Coupon Code", value = entry.couponCode)
+                        entry.discount?.let { discount ->
+                            DetailRow(label = "Discount Type", value = discount.code)
+                            DetailRow(label = "Value", value = "${discount.absoluteSat}")
                         }
                     }
                 }
             }
-
-            // Timestamps Section
             item {
-                Card(
-                    colors = cardColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Timestamps", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DetailRow(label = "Created", value = entry.createdAt)
-                        DetailRow(label = "Updated", value = entry.updatedAt)
-                        DetailRow(label = "Expires", value = entry.expiresAt)
-                    }
+                InfoCard(header = "Timestamps") {
+                    DetailRow(label = "Created", value = entry.createdAt)
+                    DetailRow(label = "Updated", value = entry.updatedAt)
+                    DetailRow(label = "Expires", value = entry.expiresAt)
                 }
             }
         }
     }
 }
 
-// region Helpers
-
-private val cardColors: CardColors
-    @Composable get() = CardDefaults.cardColors(containerColor = Colors.White10)
+private val cardColors: CardColors @Composable get() = CardDefaults.cardColors(containerColor = Colors.White10)
 
 @Composable
-private fun CopyableText(text: String) {
-    val clipboardManager = LocalClipboardManager.current
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale"
-    )
-    val coroutineScope = rememberCoroutineScope()
-
-    Text(
-        text = text,
-        fontSize = if (text.length > 20) 10.sp else 12.sp,
-        fontFamily = FontFamily.Monospace,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier
-            .scale(scale)
-            .clickableAlpha {
-                clipboardManager.setText(AnnotatedString(text))
-                coroutineScope.launch {
-                    isPressed = true
-                    delay(100)
-                    isPressed = false
-                }
+private fun InfoCard(
+    header: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = modifier) {
+        SectionHeader(header, padding = PaddingValues.Zero)
+        Card(
+            colors = cardColors,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                content()
             }
-    )
-}
-
-@Composable
-private fun OrderRow(order: IBtOrder) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CopyableText(text = order.id)
-            Surface(
-                color = Colors.White16,
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text(
-                    text = order.state2.toString(),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            InfoCell(label = "LSP Balance", value = order.lspBalanceSat.formatToModernDisplay())
-            InfoCell(
-                label = "Client Balance",
-                value = order.clientBalanceSat.formatToModernDisplay(),
-                alignment = Alignment.End
-            )
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            InfoCell(label = "Fees", value = order.feeSat.formatToModernDisplay())
-            InfoCell(
-                label = "Expires",
-                value = order.channelExpiresAt.take(10),
-                alignment = Alignment.End
-            )
         }
     }
 }
 
 @Composable
-private fun CJitRow(entry: IcJitEntry) {
-    Column(
+private fun OrderCard(model: IBtOrder, onClick: (String) -> Unit) {
+    Card(
+        colors = cardColors,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .clickable { onClick(model.id) }
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            CopyableText(text = entry.id)
-            Surface(
-                color = Colors.White16,
-                shape = MaterialTheme.shapes.small
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = entry.state.toString(),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(4.dp)
+                CaptionB(
+                    text = model.id,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    modifier = Modifier.clickableAlpha(onClick = copyToClipboard(model.id))
+                )
+                Surface(color = Colors.White16, shape = AppShapes.small) {
+                    Footnote(
+                        text = model.state2.toString(),
+                        color = Colors.White64,
+                        maxLines = 1,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                InfoCell(label = "LSP Balance", value = model.lspBalanceSat.formatToModernDisplay())
+                InfoCell(
+                    label = "Client Balance",
+                    value = model.clientBalanceSat.formatToModernDisplay(),
+                    alignment = Alignment.End
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                InfoCell(label = "Fees", value = model.feeSat.formatToModernDisplay())
+                InfoCell(
+                    label = "Expires",
+                    value = model.channelExpiresAt.take(10),
+                    alignment = Alignment.End
                 )
             }
         }
+    }
+}
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+@Composable
+private fun CJitCard(model: IcJitEntry, onClick: (String) -> Unit) {
+    Card(
+        colors = cardColors,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(model.id) }
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            InfoCell(label = "Channel Size", value = "${entry.channelSizeSat.formatToModernDisplay()} sats")
-            InfoCell(
-                label = "Fees",
-                value = "${entry.feeSat.formatToModernDisplay()} sats",
-                alignment = Alignment.End
-            )
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CaptionB(
+                    text = model.id,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    modifier = Modifier.clickableAlpha(onClick = copyToClipboard(model.id))
+                )
+                Surface(color = Colors.White16, shape = MaterialTheme.shapes.small) {
+                    Footnote(
+                        text = model.state.toString(),
+                        color = Colors.White64,
+                        maxLines = 1,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
 
-        entry.channelOpenError?.let { error ->
-            Text(
-                text = error,
-                fontSize = if (error.length > 50) 10.sp else 12.sp,
-                color = MaterialTheme.colorScheme.error,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                InfoCell(label = "Channel Size", value = "${model.channelSizeSat.formatToModernDisplay()} sats")
+                InfoCell(
+                    label = "Fees",
+                    value = "${model.feeSat.formatToModernDisplay()} sats",
+                    alignment = Alignment.End
+                )
+            }
 
-        Text(
-            text = "Expires: ${entry.expiresAt.take(10)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray
-        )
+            Column {
+                model.channelOpenError?.let { error ->
+                    Caption(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                VerticalSpacer(4.dp)
+                Footnote(text = "Expires: ${model.expiresAt.take(10)}", color = Colors.White32)
+            }
+        }
     }
 }
 
 @Composable
 private fun InfoCell(label: String, value: String, alignment: Alignment.Horizontal = Alignment.Start) {
     Column(horizontalAlignment = alignment) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Caption13Up(text = label, color = Colors.White64)
+        VerticalSpacer(4.dp)
+        BodySSB(text = value)
     }
 }
 
 @Composable
 private fun DetailRow(label: String, value: String, isError: Boolean = false) {
-    val clipboardManager = LocalClipboardManager.current
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale"
-    )
-    val coroutineScope = rememberCoroutineScope()
-
-    val fontSize = when {
-        value.length > 40 -> 11.sp
-        value.length > 30 -> 12.sp
-        else -> 13.sp
-    }
-
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 6.dp)
     ) {
-        BodyS(
+        Caption(
             text = label,
             color = Colors.White64,
+            overflow = TextOverflow.MiddleEllipsis,
+            maxLines = 1,
         )
-        Text(
+        HorizontalSpacer(16.dp)
+        Caption(
             text = value,
-            fontSize = fontSize,
             color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.End,
-            modifier = Modifier
-                .scale(scale)
-                .clickableAlpha {
-                    clipboardManager.setText(AnnotatedString(value))
-                    coroutineScope.launch {
-                        isPressed = true
-                        delay(100)
-                        isPressed = false
-                    }
-                }
+            overflow = TextOverflow.MiddleEllipsis,
+            maxLines = 1,
+            modifier = Modifier.clickableAlpha(onClick = copyToClipboard(value))
         )
     }
 }
-
-// endregion
-
-// region Preview
 
 @Suppress("SpellCheckingInspection")
 private val order = IBtOrder(
@@ -806,38 +600,42 @@ private val cjitEntry = IcJitEntry(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun ChannelOrdersViewPreview() {
+private fun Preview() {
     AppThemeSurface {
-        ChannelOrdersView(
-            orders = mutableListOf(order),
-            cJitEntries = mutableListOf(cjitEntry),
-            onBackClick = { },
-            onOrderItemClick = { },
-            onCjitItemClick = { },
+        Content(
+            orders = listOf(order),
+            cJitEntries = listOf(cjitEntry),
         )
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-private fun OrderDetailViewPreview() {
+private fun PreviewEmpty() {
     AppThemeSurface {
-        OrderDetailView(
+        Content(
+            orders = emptyList(),
+            cJitEntries = emptyList(),
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewOrderDetail() {
+    AppThemeSurface {
+        OrderDetailContent(
             order = order,
-            onBackClick = { },
         )
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-private fun CJitDetailViewPreview() {
+private fun PreviewCJitDetail() {
     AppThemeSurface {
-        CJitDetailView(
+        CJitDetailContent(
             entry = cjitEntry,
-            onBackClick = { },
         )
     }
 }
-
-// endregion

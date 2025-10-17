@@ -1,6 +1,8 @@
 package to.bitkit.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -37,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
-import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +48,10 @@ import to.bitkit.ext.setClipboardText
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+
+private const val QUIET_ZONE_MIN = 2
+private const val QUIET_ZONE_MAX = 4
+private const val QUIET_ZONE_RATIO = 150
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +69,11 @@ fun QrCodeImage(
     val coroutineScope = rememberCoroutineScope()
 
     Box(
-        contentAlignment = Alignment.TopCenter,
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .background(Color.White, AppShapes.small)
             .aspectRatio(1f)
-            .padding(8.dp)
+            .clip(AppShapes.small)
+            .background(Color.White)
     ) {
         val bitmap = rememberQrBitmap(content, size)
 
@@ -75,53 +81,61 @@ fun QrCodeImage(
             onBitmapGenerated(bitmap)
         }
 
-        if (bitmap != null) {
-            val imageComposable = @Composable {
-                Image(
-                    painter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) },
-                    contentDescription = content,
-                    contentScale = ContentScale.Inside,
-                    modifier = Modifier
-                        .clickable(enabled = tipMessage.isNotBlank()) {
-                            coroutineScope.launch {
-                                context.setClipboardText(content)
-                                tooltipState.show()
-                            }
-                        }
-                        .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
-                )
-            }
-
-            if (tipMessage.isNotBlank()) {
-                Tooltip(
-                    text = tipMessage,
-                    tooltipState = tooltipState,
-                    content = imageComposable,
-                )
-            } else {
-                imageComposable()
-            }
-
-            logoPainter?.let {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(68.dp)
-                        .background(Color.White, shape = CircleShape)
-                        .align(Alignment.Center)
-                ) {
+        Crossfade(
+            targetState = bitmap,
+            animationSpec = tween(durationMillis = 200),
+            label = "QR Code Crossfade"
+        ) { currentBitmap ->
+            if (currentBitmap != null) {
+                val imageComposable = @Composable {
                     Image(
-                        painter = it,
-                        contentDescription = null,
-                        modifier = Modifier.size(50.dp)
+                        painter = remember(currentBitmap) { BitmapPainter(currentBitmap.asImageBitmap()) },
+                        contentDescription = content,
+                        contentScale = ContentScale.Inside,
+                        modifier = Modifier
+                            .clickable(enabled = tipMessage.isNotBlank()) {
+                                coroutineScope.launch {
+                                    context.setClipboardText(content)
+                                    tooltipState.show()
+                                }
+                            }
+                            .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
                     )
                 }
+
+                if (tipMessage.isNotBlank()) {
+                    Tooltip(
+                        text = tipMessage,
+                        tooltipState = tooltipState,
+                        content = imageComposable,
+                    )
+                } else {
+                    imageComposable()
+                }
             }
-        } else {
+        }
+
+        logoPainter?.let {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(68.dp)
+                    .background(Color.White, shape = CircleShape)
+                    .align(Alignment.Center)
+            ) {
+                Image(
+                    painter = it,
+                    contentDescription = null,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+        }
+
+        if (bitmap == null) {
             CircularProgressIndicator(
                 color = Colors.Black,
-                strokeWidth = 2.dp,
-                modifier = Modifier.align(Alignment.Center)
+                strokeWidth = 4.dp,
+                modifier = Modifier.size(68.dp)
             )
         }
     }
@@ -135,16 +149,16 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
     val sizePx = with(LocalDensity.current) { size.roundToPx() }
 
     LaunchedEffect(content, size) {
-        if (bitmap != null) return@LaunchedEffect
+        bitmap = null // Always reset to show loading indicator
 
         launch(Dispatchers.Default) {
             val qrCodeWriter = QRCodeWriter()
 
-            val encodeHints = mutableMapOf<EncodeHintType, Any?>().apply {
-                this[EncodeHintType.MARGIN] = 0
-            }
+            val quietZoneModules = (content.length / QUIET_ZONE_RATIO + 1).coerceIn(QUIET_ZONE_MIN, QUIET_ZONE_MAX)
 
-            val bitmapMatrix = try {
+            val encodeHints = mapOf(EncodeHintType.MARGIN to quietZoneModules)
+
+            val bitmapMatrix = runCatching {
                 qrCodeWriter.encode(
                     content,
                     BarcodeFormat.QR_CODE,
@@ -152,29 +166,22 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
                     sizePx,
                     encodeHints,
                 )
-            } catch (_: WriterException) {
-                null
-            }
+            }.getOrElse { return@launch }
 
-            val matrixWidth = bitmapMatrix?.width ?: sizePx
-            val matrixHeight = bitmapMatrix?.height ?: sizePx
+            val matrixWidth = bitmapMatrix.width
+            val matrixHeight = bitmapMatrix.height
 
-            val newBitmap = createBitmap(
-                width = bitmapMatrix?.width ?: sizePx,
-                height = bitmapMatrix?.height ?: sizePx
-            )
-
+            val newBitmap = createBitmap(width = matrixWidth, height = matrixHeight)
             val pixels = IntArray(matrixWidth * matrixHeight)
 
             for (x in 0 until matrixWidth) {
                 for (y in 0 until matrixHeight) {
-                    val shouldColorPixel = bitmapMatrix?.get(x, y) ?: false
-                    val pixelColor =
-                        if (shouldColorPixel) {
-                            android.graphics.Color.BLACK
-                        } else {
-                            android.graphics.Color.WHITE
-                        }
+                    val shouldColorPixel = bitmapMatrix[x, y]
+                    val pixelColor = if (shouldColorPixel) {
+                        android.graphics.Color.BLACK
+                    } else {
+                        android.graphics.Color.WHITE
+                    }
 
                     pixels[y * matrixWidth + x] = pixelColor
                 }
