@@ -70,5 +70,6 @@ When performing a code review, check that new features integrate well with the e
 
 ## Business Logic
 
-When performing a code review on balance management logic, get context from `/docs/balance.md` file
-When performing a code review on transfer logic, get context from `/docs/transfer.md` file
+When performing a code review on balance management logic, get context from `/docs/balance.md` file.
+
+When performing a code review on transfer logic, get context from `/docs/transfer.md` file.
