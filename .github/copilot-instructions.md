@@ -67,3 +67,9 @@ When performing a code review, ensure code follows the established patterns from
 When performing a code review, verify that complex business logic is properly documented.
 
 When performing a code review, check that new features integrate well with the existing MVVM architecture.
+
+## Business Logic
+
+When performing a code review on balance management logic, get context from `/docs/balance.md` file.
+
+When performing a code review on transfer logic, get context from `/docs/transfer.md` file.
