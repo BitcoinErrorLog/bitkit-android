@@ -21,12 +21,14 @@ import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun TagSelectorSheet() {
@@ -57,6 +59,13 @@ private fun Content(
             .padding(horizontal = 16.dp)
     ) {
         SheetTopBar(stringResource(R.string.wallet__tags_filter_title))
+
+        Spacer(modifier = Modifier.height(42.dp))
+
+        Caption13Up(
+            text = stringResource(R.string.wallet__tags_filter),
+            color = Colors.White64,
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
