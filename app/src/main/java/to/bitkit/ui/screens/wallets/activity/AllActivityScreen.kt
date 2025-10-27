@@ -20,13 +20,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.Activity
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.Sheet
@@ -96,7 +92,6 @@ private fun AllActivityScreenContent(
     onDateRangeClick: () -> Unit,
     onActivityItemClick: (String) -> Unit,
     onEmptyActivityRowClick: () -> Unit,
-    hazeState: HazeState = rememberHazeState(),
 ) {
     Column(
         modifier = Modifier.screen()
@@ -125,8 +120,6 @@ private fun AllActivityScreenContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(state = hazeState)
-                .zIndex(0f)
         ) {
             ActivityListGrouped(
                 items = filteredActivities,
@@ -182,7 +175,6 @@ private fun Preview() {
             hasDateRangeFilter = false,
             tabs = ActivityTab.entries,
             currentTabIndex = 0,
-            hazeState = rememberHazeState(),
             onTabChange = {},
             onBackClick = {},
             onTagClick = {},
@@ -207,7 +199,6 @@ private fun PreviewEmpty() {
             hasDateRangeFilter = false,
             tabs = ActivityTab.entries,
             currentTabIndex = 0,
-            hazeState = rememberHazeState(),
             onTabChange = {},
             onBackClick = {},
             onTagClick = {},
