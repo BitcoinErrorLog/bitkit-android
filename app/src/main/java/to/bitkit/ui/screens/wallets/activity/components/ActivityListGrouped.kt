@@ -1,5 +1,11 @@
 package to.bitkit.ui.screens.wallets.activity.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.synonym.bitkitcore.Activity
 import to.bitkit.R
+import to.bitkit.ext.rawId
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.TertiaryButton
@@ -54,21 +62,50 @@ fun ActivityListGrouped(
                 contentPadding = contentPadding,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(groupedItems) { index, item ->
-                    when (item) {
-                        is String -> {
-                            Caption13Up(
-                                text = item,
-                                color = Colors.White64,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
-                            )
-                        }
+                itemsIndexed(
+                    items = groupedItems,
+                    key = { index, item ->
+                        when (item) {
+                            is String -> "header_$item"
+                            is Activity -> when (item) {
+                                is Activity.Lightning -> "lightning_${item.rawId()}"
+                                is Activity.Onchain -> "onchain_${item.rawId()}"
+                            }
 
-                        is Activity -> {
-                            ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
-                            VerticalSpacer(16.dp)
+                            else -> "item_$index"
+                        }
+                    }
+                ) { index, item ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 400, delayMillis = 50)) +
+                            expandVertically(
+                                animationSpec = tween(durationMillis = 400, delayMillis = 50),
+                                expandFrom = Alignment.Top
+                            ),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                            shrinkVertically(
+                                animationSpec = tween(durationMillis = 300),
+                                shrinkTowards = Alignment.Top
+                            )
+                    ) {
+                        when (item) {
+                            is String -> {
+                                Caption13Up(
+                                    text = item,
+                                    color = Colors.White64,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp)
+                                )
+                            }
+
+                            is Activity -> {
+                                Column {
+                                    ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
+                                    VerticalSpacer(16.dp)
+                                }
+                            }
                         }
                     }
                 }
