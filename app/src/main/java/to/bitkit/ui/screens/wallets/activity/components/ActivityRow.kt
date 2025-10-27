@@ -1,6 +1,7 @@
 package to.bitkit.ui.screens.wallets.activity.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,6 +44,7 @@ import to.bitkit.ui.shared.animations.BalanceAnimations
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.Shapes
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -79,10 +81,11 @@ fun ActivityRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickableAlpha { onClick(item.rawId()) }
-            .padding(vertical = 16.dp)
+            .background(color = Colors.Gray6, shape = Shapes.medium)
+            .padding(16.dp)
             .testTag(testTag)
     ) {
-        ActivityIcon(activity = item, size = 32.dp)
+        ActivityIcon(activity = item, size = 40.dp)
         Spacer(modifier = Modifier.width(16.dp))
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
