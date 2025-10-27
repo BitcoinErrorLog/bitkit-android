@@ -1,31 +1,21 @@
 package to.bitkit.ui.screens.wallets.activity
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,9 +24,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.Activity
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
@@ -47,8 +35,8 @@ import to.bitkit.ui.screens.wallets.activity.components.ActivityListFilter
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
 import to.bitkit.ui.screens.wallets.activity.components.ActivityTab
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.ActivityListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,50 +94,27 @@ private fun AllActivityScreenContent(
     onEmptyActivityRowClick: () -> Unit,
     hazeState: HazeState = rememberHazeState(),
 ) {
-    val density = LocalDensity.current
-    var headerHeight by remember { mutableStateOf(120.dp) }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Colors.Black)
+    Column(
+        modifier = Modifier.screen()
     ) {
-        // Header
-        val (gradientStart, gradientEnd) = Color(0xFF1e1e1e) to Color(0xFF161616)
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
-                .background(Brush.horizontalGradient(listOf(gradientStart, gradientEnd)))
-                .hazeEffect(
-                    state = hazeState,
-                    style = CupertinoMaterials.ultraThin(containerColor = gradientEnd)
-                )
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(0f to gradientEnd, 0.5f to Color.Transparent)
-                    )
-                )
-                .background(Brush.horizontalGradient(listOf(Colors.White06, Color.Transparent)))
-                .onGloballyPositioned { coords -> headerHeight = with(density) { coords.size.height.toDp() } }
-                .zIndex(1f)
-        ) {
-            AppTopBar(stringResource(R.string.wallet__activity_all), onBackClick)
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) {
-                ActivityListFilter(
-                    searchText = searchText,
-                    onSearchTextChange = onSearchTextChange,
-                    hasTagFilter = hasTagFilter,
-                    hasDateRangeFilter = hasDateRangeFilter,
-                    onTagClick = onTagClick,
-                    onDateRangeClick = onDateRangeClick,
-                    tabs = tabs,
-                    currentTabIndex = currentTabIndex,
-                    onTabChange = { onTabChange(tabs.indexOf(it)) },
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
+
+        AppTopBar(stringResource(R.string.wallet__activity_all), onBackClick)
+
+        ActivityListFilter(
+            searchText = searchText,
+            onSearchTextChange = onSearchTextChange,
+            hasTagFilter = hasTagFilter,
+            hasDateRangeFilter = hasDateRangeFilter,
+            onTagClick = onTagClick,
+            onDateRangeClick = onDateRangeClick,
+            tabs = tabs,
+            currentTabIndex = currentTabIndex,
+            onTabChange = { onTabChange(tabs.indexOf(it)) },
+            modifier = Modifier.padding(horizontal = 16.dp)
+
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
         // List
         Box(
             modifier = Modifier
@@ -161,7 +126,6 @@ private fun AllActivityScreenContent(
                 items = filteredActivities,
                 onActivityItemClick = onActivityItemClick,
                 onEmptyActivityRowClick = onEmptyActivityRowClick,
-                contentPadding = PaddingValues(top = headerHeight + 20.dp),
                 modifier = Modifier
                     .swipeToChangeTab(
                         currentTabIndex = currentTabIndex,
