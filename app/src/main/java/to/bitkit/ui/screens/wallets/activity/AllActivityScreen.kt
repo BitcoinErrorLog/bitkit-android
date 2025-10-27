@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -124,6 +125,7 @@ private fun AllActivityScreenContent(
                 items = filteredActivities,
                 onActivityItemClick = onActivityItemClick,
                 onEmptyActivityRowClick = onEmptyActivityRowClick,
+                contentPadding = PaddingValues(top = 0.dp),
                 modifier = Modifier
                     .swipeToChangeTab(
                         currentTabIndex = currentTabIndex,
