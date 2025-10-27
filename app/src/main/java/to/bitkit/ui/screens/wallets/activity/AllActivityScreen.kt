@@ -96,7 +96,6 @@ private fun AllActivityScreenContent(
     Column(
         modifier = Modifier.screen()
     ) {
-
         AppTopBar(stringResource(R.string.wallet__activity_all), onBackClick)
 
         ActivityListFilter(
