@@ -89,24 +89,6 @@ private fun Content(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            SecondaryButton(
-                onClick = onClearClick,
-                text = stringResource(R.string.wallet__filter_clear),
-                modifier = Modifier.weight(1f),
-            )
-            PrimaryButton(
-                onClick = onApplyClick,
-                text = stringResource(R.string.wallet__filter_apply),
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
