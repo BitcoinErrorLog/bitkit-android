@@ -59,8 +59,6 @@ fun CustomTabRowWithSpacing(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     // Animated indicator
                     val animatedAlpha by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0.2f,
