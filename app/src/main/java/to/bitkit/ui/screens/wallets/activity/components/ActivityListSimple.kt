@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.synonym.bitkitcore.Activity
 import to.bitkit.R
 import to.bitkit.ui.components.TertiaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
 import to.bitkit.ui.theme.AppThemeSurface
 
@@ -32,7 +33,7 @@ fun ActivityListSimple(
         if (items != null && items.isNotEmpty()) {
             items.forEachIndexed { index, item ->
                 ActivityRow(item, onActivityItemClick, testTag = "ActivityShort-$index")
-                HorizontalDivider()
+                VerticalSpacer(16.dp)
             }
             TertiaryButton(
                 text = stringResource(R.string.wallet__activity_show_all),

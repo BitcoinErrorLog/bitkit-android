@@ -22,6 +22,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.TertiaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -71,7 +72,7 @@ fun ActivityListGrouped(
                             val hasNextItem =
                                 index < groupedItems.size - 1 && groupedItems[index + 1] !is String
                             if (hasNextItem) {
-                                HorizontalDivider()
+                                VerticalSpacer(16.dp)
                             }
                         }
                     }
