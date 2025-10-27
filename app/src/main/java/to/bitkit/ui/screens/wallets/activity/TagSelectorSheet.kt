@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.wallets.activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,8 +21,6 @@ import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BottomSheetPreview
-import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.scaffold.SheetTopBar
@@ -42,13 +39,6 @@ fun TagSelectorSheet() {
         availableTags = availableTags,
         selectedTags = selectedTags,
         onTagClick = { activity.toggleTag(it) },
-        onClearClick = {
-            activity.clearTags()
-            app.hideSheet()
-        },
-        onApplyClick = {
-            app.hideSheet()
-        },
     )
 }
 
@@ -57,8 +47,6 @@ private fun Content(
     availableTags: List<String>,
     selectedTags: Set<String>,
     onTagClick: (String) -> Unit = {},
-    onClearClick: () -> Unit = {},
-    onApplyClick: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
