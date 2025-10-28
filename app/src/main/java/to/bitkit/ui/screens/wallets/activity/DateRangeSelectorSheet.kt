@@ -2,7 +2,6 @@ package to.bitkit.ui.screens.wallets.activity
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,27 +12,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
@@ -45,6 +53,7 @@ import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.Typography
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -82,11 +91,22 @@ private fun Content(
     onClearClick: () -> Unit = {},
     onApplyClick: (Long?, Long?) -> Unit = { _, _ -> },
 ) {
-    var currentMonthMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var selectedStartDate by remember { mutableLongStateOf(initialStartDate ?: 0L) }
-    var selectedEndDate by remember { mutableLongStateOf(initialEndDate ?: 0L) }
+    var displayedMonth by remember {
+        mutableStateOf(
+            initialStartDate?.let {
+                Instant.fromEpochMilliseconds(it)
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                    .date
+            } ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        )
+    }
 
-    val hasSelection = selectedStartDate != 0L
+    var startDate by remember { mutableStateOf(initialStartDate) }
+    var endDate by remember { mutableStateOf(initialEndDate) }
+
+    val hasSelection = startDate != null
+
+    var calendar = remember { Calendar.getInstance() }
 
     Column(
         modifier = Modifier
@@ -96,80 +116,153 @@ private fun Content(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
-        // Month header (swipeable)
-        Text(
-            text = getMonthYearLabel(currentMonthMillis),
-            style = MaterialTheme.typography.titleLarge,
-            color = Colors.White,
-            fontWeight = FontWeight.Bold,
+        // Month navigation header
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            textAlign = TextAlign.Center
-        )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = displayedMonth.toMonthYearString(),
+                style = Typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+
+            Row {
+                IconButton(
+                    onClick = {
+                        displayedMonth = displayedMonth.minusMonths(1)
+                    },
+                    modifier = Modifier.testTag("PrevMonth")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = "Previous month",
+                        tint = Colors.Brand
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        displayedMonth = displayedMonth.plusMonths(1)
+                    },
+                    modifier = Modifier.testTag("NextMonth")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Next month",
+                        tint = Colors.Brand
+                    )
+                }
+            }
+        }
+
+        // Weekday headers
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            calendar.firstDayOfWeek = Calendar.SUNDAY
+            val weekdaySymbols = SimpleDateFormat("EEE", Locale.getDefault()).apply {
+                calendar = Calendar.getInstance()
+            }
+
+            for (i in 0 until 7) {
+                val dayOfWeek = (calendar.firstDayOfWeek + i - 1) % 7 + 1
+                calendar.set(Calendar.DAY_OF_WEEK, dayOfWeek)
+                Text(
+                    text = weekdaySymbols.format(calendar.time).take(3),
+                    style = Typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Calendar grid
-        MonthCalendarGrid(
-            currentMonthMillis = currentMonthMillis,
-            selectedStartDate = selectedStartDate,
-            selectedEndDate = selectedEndDate,
-            onDateClick = { dateMillis ->
+        CalendarGrid(
+            displayedMonth = displayedMonth,
+            startDate = startDate,
+            endDate = endDate,
+            onDateSelected = { selectedDate ->
+                val selectedMillis = selectedDate.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+
                 when {
-                    selectedStartDate == 0L -> {
+                    startDate == null -> {
                         // First selection
-                        selectedStartDate = dateMillis
-                        selectedEndDate = 0L
+                        startDate = selectedMillis
+                        endDate = selectedMillis
                     }
-                    selectedEndDate == 0L -> {
-                        // Second selection
-                        if (dateMillis < selectedStartDate) {
-                            selectedEndDate = selectedStartDate
-                            selectedStartDate = dateMillis
+                    startDate == endDate -> {
+                        // Second selection - create range
+                        if (selectedMillis < startDate!!) {
+                            endDate = startDate
+                            startDate = selectedMillis
+                        } else if (selectedMillis == startDate) {
+                            // Same date clicked - do nothing
+                            return@CalendarGrid
                         } else {
-                            selectedEndDate = dateMillis
+                            endDate = selectedMillis
                         }
                     }
                     else -> {
-                        // Reset and start new selection
-                        selectedStartDate = dateMillis
-                        selectedEndDate = 0L
+                        // Third selection - start new range
+                        startDate = selectedMillis
+                        endDate = selectedMillis
                     }
                 }
-            },
-            onSwipeLeft = {
-                currentMonthMillis = adjustMonth(currentMonthMillis, 1)
-            },
-            onSwipeRight = {
-                currentMonthMillis = adjustMonth(currentMonthMillis, -1)
-            },
-            modifier = Modifier.weight(1f)
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Selected date display
-        if (hasSelection) {
-            Text(
-                text = formatSelectedDateRange(selectedStartDate, selectedEndDate),
-                style = MaterialTheme.typography.bodyLarge,
-                color = Colors.White,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(36.dp))
+        // Display selected range
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (startDate != null) {
+                val startLocalDate = Instant.fromEpochMilliseconds(startDate!!)
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val endLocalDate = endDate?.let {
+                    Instant.fromEpochMilliseconds(it)
+                        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                }
+
+                Text(
+                    text = if (endLocalDate != null && startLocalDate != endLocalDate) {
+                        "${startLocalDate.toFormattedString()} - ${endLocalDate.toFormattedString()}"
+                    } else {
+                        startLocalDate.toFormattedString()
+                    },
+                    style = Typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // Action buttons
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
         ) {
             SecondaryButton(
                 onClick = {
-                    selectedStartDate = 0L
-                    selectedEndDate = 0L
+                    startDate = null
+                    endDate = null
                     onClearClick()
                 },
                 text = stringResource(R.string.wallet__filter_clear),
@@ -180,10 +273,7 @@ private fun Content(
             )
             PrimaryButton(
                 onClick = {
-                    onApplyClick(
-                        if (selectedStartDate != 0L) selectedStartDate else null,
-                        if (selectedEndDate != 0L) selectedEndDate else null
-                    )
+                    onApplyClick(startDate, endDate)
                 },
                 text = stringResource(R.string.wallet__filter_apply),
                 enabled = hasSelection,
@@ -192,110 +282,52 @@ private fun Content(
                     .testTag("CalendarApplyButton")
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-private fun MonthCalendarGrid(
-    currentMonthMillis: Long,
-    selectedStartDate: Long,
-    selectedEndDate: Long,
-    onDateClick: (Long) -> Unit,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit,
-    modifier: Modifier = Modifier
+private fun CalendarGrid(
+    displayedMonth: LocalDate,
+    startDate: Long?,
+    endDate: Long?,
+    onDateSelected: (LocalDate) -> Unit
 ) {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = currentMonthMillis
-        set(Calendar.DAY_OF_MONTH, 1)
+    val daysInMonth = remember(displayedMonth) {
+        getDaysInMonth(displayedMonth)
     }
 
-    val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-    val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1 // 0 = Sunday
+    val today = remember {
+        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    }
 
     Column(
-        modifier = modifier
-            .pointerInput(Unit) {
-                var totalDrag = 0f
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        when {
-                            totalDrag > 100 -> onSwipeRight() // Swipe right = previous month
-                            totalDrag < -100 -> onSwipeLeft() // Swipe left = next month
-                        }
-                        totalDrag = 0f
-                    },
-                    onHorizontalDrag = { _, dragAmount ->
-                        totalDrag += dragAmount
-                    }
-                )
-            }
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Day of week headers
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
-                Text(
-                    text = day,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = Colors.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        daysInMonth.chunked(7).forEach { week ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                week.forEach { date ->
+                    if (date != null) {
+                        val dateMillis = date.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                        val isSelected = isDateInRange(dateMillis, startDate, endDate)
+                        val isStartDate = dateMillis == startDate
+                        val isEndDate = dateMillis == endDate
+                        val isToday = date == today
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Calendar days grid
-        var dayCounter = 1
-        val weeks = ((firstDayOfWeek + daysInMonth) / 7.0).toInt() + 1
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            repeat(weeks) { week ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    repeat(7) { dayOfWeek ->
-                        val dayIndex = week * 7 + dayOfWeek
-
-                        if (dayIndex < firstDayOfWeek || dayCounter > daysInMonth) {
-                            // Empty cell
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                            )
-                        } else {
-                            val dayCalendar = Calendar.getInstance().apply {
-                                timeInMillis = currentMonthMillis
-                                set(Calendar.DAY_OF_MONTH, dayCounter)
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val dateMillis = dayCalendar.timeInMillis
-
-                            DayCell(
-                                day = dayCounter,
-                                dateMillis = dateMillis,
-                                isSelected = dateMillis == selectedStartDate || dateMillis == selectedEndDate,
-                                isInRange = selectedEndDate != 0L && dateMillis in selectedStartDate..selectedEndDate,
-                                isRangeStart = dateMillis == selectedStartDate && selectedEndDate != 0L,
-                                isRangeEnd = dateMillis == selectedEndDate && selectedStartDate != 0L,
-                                onClick = { onDateClick(dateMillis) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            dayCounter++
-                        }
+                        CalendarDayView(
+                            date = date,
+                            isSelected = isSelected,
+                            isStartDate = isStartDate,
+                            isEndDate = isEndDate,
+                            isToday = isToday,
+                            onClick = { onDateSelected(date) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        // Empty space for days outside the month
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -304,83 +336,172 @@ private fun MonthCalendarGrid(
 }
 
 @Composable
-private fun DayCell(
-    day: Int,
-    dateMillis: Long,
+private fun CalendarDayView(
+    date: LocalDate,
     isSelected: Boolean,
-    isInRange: Boolean,
-    isRangeStart: Boolean,
-    isRangeEnd: Boolean,
+    isStartDate: Boolean,
+    isEndDate: Boolean,
+    isToday: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .padding(2.dp)
-            .then(
-                if (isInRange && !isSelected) {
-                    Modifier.background(Colors.Brand16)
-                } else {
-                    Modifier
-                }
-            )
-            .then(
-                if (isSelected) {
-                    Modifier
-                        .clip(CircleShape)
-                        .background(Colors.Brand)
-                } else {
-                    Modifier
-                }
-            )
-            .clickable { onClick() },
+            .clickable(onClick = onClick)
+            .testTag(if (isToday) "Today" else "Day-${date.dayOfMonth}"),
         contentAlignment = Alignment.Center
     ) {
+        // Background for range selection
+        if (isSelected) {
+            when {
+                isStartDate && isEndDate -> {
+                    // Single day or same start/end
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Colors.Brand16)
+                    )
+                }
+                isStartDate -> {
+                    // Start of range
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Colors.Brand16)
+                    )
+                }
+                isEndDate -> {
+                    // End of range
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Colors.Brand16)
+                    )
+                }
+                else -> {
+                    // Middle of range
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Colors.Brand16)
+                    )
+                }
+            }
+        }
+
+        // Today indicator (if not selected)
+        if (isToday && !isSelected) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+        }
+
+        // Day number
         Text(
-            text = day.toString(),
-            color = when {
-                isSelected -> Colors.White
-                isInRange -> Colors.White
-                else -> Colors.White80
-            },
-            fontSize = 14.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            text = date.dayOfMonth.toString(),
+            style = Typography.bodyMedium,
+            fontWeight = if (isStartDate || isEndDate) FontWeight.Bold else FontWeight.Normal,
+            color = if (isStartDate || isEndDate) Colors.Brand else Color.White
         )
     }
 }
 
-private fun adjustMonth(currentMillis: Long, monthOffset: Int): Long {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = currentMillis
-        add(Calendar.MONTH, monthOffset)
+// Helper functions
+private fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
+    val firstDayOfMonth = LocalDate(month.year, month.month, 1)
+    val daysInMonth = month.month.length(isLeapYear(month.year))
+
+    // Get the day of week for the first day (1 = Monday, 7 = Sunday)
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.ordinal + 1 // Convert to 1-7
+
+    // Calculate offset (days before the first day)
+    // We want Sunday to be 0, so adjust accordingly
+    val offset = (firstDayOfWeek % 7)
+
+    val days = mutableListOf<LocalDate?>()
+
+    // Add empty spaces before the first day
+    repeat(offset) {
+        days.add(null)
     }
-    return calendar.timeInMillis
+
+    // Add all days of the month
+    for (day in 1..daysInMonth) {
+        days.add(LocalDate(month.year, month.month, day))
+    }
+
+    // Add empty spaces to complete the last week (total should be multiple of 7)
+    while (days.size % 7 != 0) {
+        days.add(null)
+    }
+
+    return days
 }
 
-private fun getMonthYearLabel(millis: Long): String {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = millis
-    }
+private fun isLeapYear(year: Int): Boolean {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+private fun isDateInRange(dateMillis: Long, startMillis: Long?, endMillis: Long?): Boolean {
+    if (startMillis == null) return false
+    val end = endMillis ?: startMillis
+
+    val normalizedDate = Instant.fromEpochMilliseconds(dateMillis)
+        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val normalizedStart = Instant.fromEpochMilliseconds(startMillis)
+        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val normalizedEnd = Instant.fromEpochMilliseconds(end)
+        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+    return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
+}
+
+private fun LocalDate.toMonthYearString(): String {
     val formatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    calendar.set(year, monthNumber - 1, 1)
     return formatter.format(calendar.time)
 }
 
-private fun formatSelectedDateRange(startMillis: Long, endMillis: Long): String {
-    val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+private fun LocalDate.toFormattedString(): String {
+    val formatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    calendar.set(year, monthNumber - 1, dayOfMonth)
+    return formatter.format(calendar.time)
+}
 
-    return if (endMillis == 0L || startMillis == endMillis) {
-        // Single day selection
-        formatter.format(startMillis)
-    } else {
-        // Date range selection
-        "${formatter.format(startMillis)} - ${formatter.format(endMillis)}"
-    }
+private fun LocalDate.minusMonths(months: Int): LocalDate {
+    val calendar = Calendar.getInstance()
+    calendar.set(year, monthNumber - 1, dayOfMonth)
+    calendar.add(Calendar.MONTH, -months)
+    return LocalDate(
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH) + 1,
+        1 // Always use first day of month for display
+    )
+}
+
+private fun LocalDate.plusMonths(months: Int): LocalDate {
+    val calendar = Calendar.getInstance()
+    calendar.set(year, monthNumber - 1, dayOfMonth)
+    calendar.add(Calendar.MONTH, months)
+    return LocalDate(
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH) + 1,
+        1 // Always use first day of month for display
+    )
 }
 
 @Preview(showSystemUi = true)
 @Composable
-private fun Preview() {
+private fun PreviewEmpty() {
     AppThemeSurface {
         BottomSheetPreview {
             Content()
@@ -390,11 +511,11 @@ private fun Preview() {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun Preview2() {
+private fun PreviewWithSelection() {
     AppThemeSurface {
         BottomSheetPreview {
             Content(
-                initialStartDate = Clock.System.now().minus(2.days).toEpochMilliseconds(),
+                initialStartDate = Clock.System.now().minus(7.days).toEpochMilliseconds(),
                 initialEndDate = Clock.System.now().toEpochMilliseconds(),
             )
         }
