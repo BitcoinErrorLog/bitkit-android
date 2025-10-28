@@ -50,11 +50,11 @@ fun ActivityListFilter(
             trailingContent = {
                 if (selectedTags.isNotEmpty()) {
                     Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .sizeIn(maxWidth = 150.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .horizontalScroll(rememberScrollState())
                     ) {
                         selectedTags.forEach { tag ->
                             TagButton(
