@@ -143,10 +143,10 @@ class LightningService @Inject constructor(
     private suspend fun Builder.configureGossipSource(customRgsServerUrl: String?) {
         val rgsServerUrl = customRgsServerUrl ?: settingsStore.data.first().rgsServerUrl
         if (rgsServerUrl != null) {
-            Logger.info("Using gossip source rgs url: $rgsServerUrl")
+            Logger.info("Using gossip source: RGS server '$rgsServerUrl'")
             setGossipSourceRgs(rgsServerUrl)
         } else {
-            Logger.info("Using gossip source p2p")
+            Logger.info("Using gossip source: P2P")
             setGossipSourceP2p()
         }
     }
