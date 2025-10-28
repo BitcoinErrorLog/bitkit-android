@@ -54,6 +54,13 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import to.bitkit.R
+import to.bitkit.ext.CalendarConstants
+import to.bitkit.ext.DatePattern
+import to.bitkit.ext.getDaysInMonth
+import to.bitkit.ext.isDateInRange
+import to.bitkit.ext.minusMonths
+import to.bitkit.ext.plusMonths
+import to.bitkit.ext.toMonthYearString
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BodyMSB
@@ -76,50 +83,23 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.days
 
-private object CalendarConstants {
+// Animation
+private const val SWIPE_THRESHOLD_DP = 100
+private const val FADE_DURATION_MILLIS = 200
+private const val SLIDE_OFFSET_PX = 1000f
+private const val INITIAL_ALPHA = 1f
+private const val TRANSPARENT_ALPHA = 0f
+private const val INITIAL_OFFSET = 0f
 
-    // Calendar grid
-    const val DAYS_IN_WEEK = 7
-    const val FIRST_DAY_OF_MONTH = 1
+// Month navigation
+private const val NEXT_MONTH = 1
+private const val PREVIOUS_MONTH = -1
 
-    // Date formatting
-    const val MONTH_YEAR_FORMAT = "MMMM yyyy"
-    const val DATE_FORMAT = "MMM d, yyyy"
-    const val WEEKDAY_FORMAT = "EEE"
-    const val WEEKDAY_ABBREVIATION_LENGTH = 3
-
-    // Animation
-    const val SWIPE_THRESHOLD_DP = 100
-    const val FADE_DURATION_MILLIS = 200
-    const val SLIDE_OFFSET_PX = 1000f
-    const val INITIAL_ALPHA = 1f
-    const val TRANSPARENT_ALPHA = 0f
-    const val INITIAL_OFFSET = 0f
-
-    // Month navigation
-    const val NEXT_MONTH = 1
-    const val PREVIOUS_MONTH = -1
-
-    // Day view styling
-    const val DAY_ASPECT_RATIO = 1f
-    const val ROUNDED_CORNER_PERCENT = 50
-    const val NO_CORNER_RADIUS = 0
-    const val TODAY_INDICATOR_ALPHA = 0.1f
-
-    // Calendar math
-    const val DAYS_IN_WEEK_MOD = 7
-    const val CALENDAR_WEEK_OFFSET = 1
-    const val FIRST_MONTH_INDEX = 1
-    const val MONTH_INDEX_OFFSET = 1
-
-    // Leap year calculation
-    const val LEAP_YEAR_DIVISOR_4 = 4
-    const val LEAP_YEAR_DIVISOR_100 = 100
-    const val LEAP_YEAR_DIVISOR_400 = 400
-
-    // Preview
-    const val PREVIEW_DAYS_AGO = 7
-}
+// Day view styling
+private const val DAY_ASPECT_RATIO = 1f
+private const val ROUNDED_CORNER_PERCENT = 50
+private const val NO_CORNER_RADIUS = 0
+private const val TODAY_INDICATOR_ALPHA = 0.1f
 
 @Composable
 fun DateRangeSelectorSheet() {
@@ -172,14 +152,14 @@ private fun Content(
 
     // Swipe animation state
     val scope = rememberCoroutineScope()
-    val offsetX = remember { Animatable(CalendarConstants.INITIAL_OFFSET) }
+    val offsetX = remember { Animatable(INITIAL_OFFSET) }
     val density = LocalDensity.current
-    var dragOffset by remember { mutableFloatStateOf(CalendarConstants.INITIAL_OFFSET) }
-    val swipeThreshold = with(density) { CalendarConstants.SWIPE_THRESHOLD_DP.dp.toPx() }
+    var dragOffset by remember { mutableFloatStateOf(INITIAL_OFFSET) }
+    val swipeThreshold = with(density) { SWIPE_THRESHOLD_DP.dp.toPx() }
 
     // Animation for month transition
     var isAnimating by remember { mutableStateOf(false) }
-    val monthAlpha = remember { Animatable(CalendarConstants.INITIAL_ALPHA) }
+    val monthAlpha = remember { Animatable(INITIAL_ALPHA) }
 
     fun navigateMonth(direction: Int) {
         if (isAnimating) return
@@ -190,40 +170,40 @@ private fun Content(
             // Fade out and slide
             launch {
                 monthAlpha.animateTo(
-                    targetValue = CalendarConstants.TRANSPARENT_ALPHA,
-                    animationSpec = tween(durationMillis = CalendarConstants.FADE_DURATION_MILLIS)
+                    targetValue = TRANSPARENT_ALPHA,
+                    animationSpec = tween(durationMillis = FADE_DURATION_MILLIS)
                 )
             }
 
             launch {
                 offsetX.animateTo(
-                    targetValue = if (direction > 0) -CalendarConstants.SLIDE_OFFSET_PX else CalendarConstants.SLIDE_OFFSET_PX,
-                    animationSpec = tween(durationMillis = CalendarConstants.FADE_DURATION_MILLIS)
+                    targetValue = if (direction > 0) -SLIDE_OFFSET_PX else SLIDE_OFFSET_PX,
+                    animationSpec = tween(durationMillis = FADE_DURATION_MILLIS)
                 )
             }
 
             // Wait for animation to complete
-            offsetX.snapTo(if (direction > 0) CalendarConstants.SLIDE_OFFSET_PX else -CalendarConstants.SLIDE_OFFSET_PX)
+            offsetX.snapTo(if (direction > 0) SLIDE_OFFSET_PX else -SLIDE_OFFSET_PX)
 
             // Update month
             displayedMonth = if (direction > 0) {
-                displayedMonth.plusMonths(CalendarConstants.NEXT_MONTH)
+                displayedMonth.plusMonths(NEXT_MONTH)
             } else {
-                displayedMonth.minusMonths(CalendarConstants.NEXT_MONTH)
+                displayedMonth.minusMonths(NEXT_MONTH)
             }
 
             // Fade in and slide back
             launch {
                 monthAlpha.animateTo(
-                    targetValue = CalendarConstants.INITIAL_ALPHA,
-                    animationSpec = tween(durationMillis = CalendarConstants.FADE_DURATION_MILLIS)
+                    targetValue = INITIAL_ALPHA,
+                    animationSpec = tween(durationMillis = FADE_DURATION_MILLIS)
                 )
             }
 
             launch {
                 offsetX.animateTo(
-                    targetValue = CalendarConstants.INITIAL_OFFSET,
-                    animationSpec = tween(durationMillis = CalendarConstants.FADE_DURATION_MILLIS)
+                    targetValue = INITIAL_OFFSET,
+                    animationSpec = tween(durationMillis = FADE_DURATION_MILLIS)
                 )
             }
 
@@ -259,7 +239,7 @@ private fun Content(
             Row {
                 IconButton(
                     onClick = {
-                        navigateMonth(CalendarConstants.PREVIOUS_MONTH)
+                        navigateMonth(PREVIOUS_MONTH)
                     },
                     modifier = Modifier.testTag("PrevMonth")
                 ) {
@@ -272,7 +252,7 @@ private fun Content(
 
                 IconButton(
                     onClick = {
-                        navigateMonth(CalendarConstants.NEXT_MONTH)
+                        navigateMonth(NEXT_MONTH)
                     },
                     modifier = Modifier.testTag("NextMonth")
                 ) {
@@ -291,7 +271,7 @@ private fun Content(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             calendar.firstDayOfWeek = Calendar.SUNDAY
-            val weekdaySymbols = SimpleDateFormat(CalendarConstants.WEEKDAY_FORMAT, Locale.getDefault()).apply {
+            val weekdaySymbols = SimpleDateFormat(DatePattern.WEEKDAY_FORMAT, Locale.getDefault()).apply {
                 calendar = Calendar.getInstance()
             }
 
@@ -317,37 +297,37 @@ private fun Content(
                 .fillMaxWidth()
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onDragStart = { dragOffset = CalendarConstants.INITIAL_OFFSET },
+                        onDragStart = { dragOffset = INITIAL_OFFSET },
                         onDragEnd = {
                             scope.launch {
                                 if (abs(dragOffset) > swipeThreshold) {
                                     // Trigger month change
                                     val direction =
-                                        if (dragOffset < 0) CalendarConstants.NEXT_MONTH else CalendarConstants.PREVIOUS_MONTH
+                                        if (dragOffset < 0) NEXT_MONTH else PREVIOUS_MONTH
                                     navigateMonth(direction)
                                 } else {
                                     // Spring back to original position
                                     offsetX.animateTo(
-                                        targetValue = CalendarConstants.INITIAL_OFFSET,
+                                        targetValue = INITIAL_OFFSET,
                                         animationSpec = spring(
                                             dampingRatio = Spring.DampingRatioMediumBouncy,
                                             stiffness = Spring.StiffnessLow
                                         )
                                     )
                                 }
-                                dragOffset = CalendarConstants.INITIAL_OFFSET
+                                dragOffset = INITIAL_OFFSET
                             }
                         },
                         onDragCancel = {
                             scope.launch {
                                 offsetX.animateTo(
-                                    targetValue = CalendarConstants.INITIAL_OFFSET,
+                                    targetValue = INITIAL_OFFSET,
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioMediumBouncy,
                                         stiffness = Spring.StiffnessLow
                                     )
                                 )
-                                dragOffset = CalendarConstants.INITIAL_OFFSET
+                                dragOffset = INITIAL_OFFSET
                             }
                         },
                         onHorizontalDrag = { _, dragAmount ->
@@ -531,7 +511,7 @@ private fun CalendarDayView(
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(CalendarConstants.DAY_ASPECT_RATIO)
+            .aspectRatio(DAY_ASPECT_RATIO)
             .clickable(onClick = onClick)
             .testTag(if (isToday) "Today" else "Day-${date.dayOfMonth}"),
         contentAlignment = Alignment.Center
@@ -556,10 +536,10 @@ private fun CalendarDayView(
                             .matchParentSize()
                             .clip(
                                 RoundedCornerShape(
-                                    topStartPercent = CalendarConstants.ROUNDED_CORNER_PERCENT,
-                                    bottomStartPercent = CalendarConstants.ROUNDED_CORNER_PERCENT,
-                                    topEndPercent = CalendarConstants.NO_CORNER_RADIUS,
-                                    bottomEndPercent = CalendarConstants.NO_CORNER_RADIUS,
+                                    topStartPercent = ROUNDED_CORNER_PERCENT,
+                                    bottomStartPercent = ROUNDED_CORNER_PERCENT,
+                                    topEndPercent = NO_CORNER_RADIUS,
+                                    bottomEndPercent = NO_CORNER_RADIUS,
                                 )
                             )
                             .background(Colors.Brand16)
@@ -579,10 +559,10 @@ private fun CalendarDayView(
                             .matchParentSize()
                             .clip(
                                 RoundedCornerShape(
-                                    topStartPercent = CalendarConstants.NO_CORNER_RADIUS,
-                                    bottomStartPercent = CalendarConstants.NO_CORNER_RADIUS,
-                                    topEndPercent = CalendarConstants.ROUNDED_CORNER_PERCENT,
-                                    bottomEndPercent = CalendarConstants.ROUNDED_CORNER_PERCENT,
+                                    topStartPercent = NO_CORNER_RADIUS,
+                                    bottomStartPercent = NO_CORNER_RADIUS,
+                                    topEndPercent = ROUNDED_CORNER_PERCENT,
+                                    bottomEndPercent = ROUNDED_CORNER_PERCENT,
                                 )
                             )
                             .background(Colors.Brand16)
@@ -612,7 +592,7 @@ private fun CalendarDayView(
                 modifier = Modifier
                     .matchParentSize()
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = CalendarConstants.TODAY_INDICATOR_ALPHA))
+                    .background(Color.White.copy(alpha = TODAY_INDICATOR_ALPHA))
             )
         }
 
@@ -624,91 +604,11 @@ private fun CalendarDayView(
     }
 }
 
-// Helper functions
-private fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
-    val firstDayOfMonth = LocalDate(month.year, month.month, CalendarConstants.FIRST_DAY_OF_MONTH)
-    val daysInMonth = month.month.length(isLeapYear(month.year))
-
-    // Get the day of week for the first day (1 = Monday, 7 = Sunday)
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.ordinal + CalendarConstants.CALENDAR_WEEK_OFFSET
-
-    // Calculate offset (days before the first day)
-    // We want Sunday to be 0, so adjust accordingly
-    val offset = (firstDayOfWeek % CalendarConstants.DAYS_IN_WEEK_MOD)
-
-    val days = mutableListOf<LocalDate?>()
-
-    // Add empty spaces before the first day
-    repeat(offset) {
-        days.add(null)
-    }
-
-    // Add all days of the month
-    for (day in CalendarConstants.FIRST_DAY_OF_MONTH..daysInMonth) {
-        days.add(LocalDate(month.year, month.month, day))
-    }
-
-    // Add empty spaces to complete the last week (total should be multiple of 7)
-    while (days.size % CalendarConstants.DAYS_IN_WEEK_MOD != 0) {
-        days.add(null)
-    }
-
-    return days
-}
-
-private fun isLeapYear(year: Int): Boolean {
-    return (year % CalendarConstants.LEAP_YEAR_DIVISOR_4 == 0 && year % CalendarConstants.LEAP_YEAR_DIVISOR_100 != 0) ||
-        (year % CalendarConstants.LEAP_YEAR_DIVISOR_400 == 0)
-}
-
-private fun isDateInRange(dateMillis: Long, startMillis: Long?, endMillis: Long?): Boolean {
-    if (startMillis == null) return false
-    val end = endMillis ?: startMillis
-
-    val normalizedDate = Instant.fromEpochMilliseconds(dateMillis)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val normalizedStart = Instant.fromEpochMilliseconds(startMillis)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val normalizedEnd = Instant.fromEpochMilliseconds(end)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-
-    return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
-}
-
-private fun LocalDate.toMonthYearString(): String {
-    val formatter = SimpleDateFormat(CalendarConstants.MONTH_YEAR_FORMAT, Locale.getDefault())
-    val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, CalendarConstants.FIRST_DAY_OF_MONTH)
-    return formatter.format(calendar.time)
-}
-
 private fun LocalDate.toFormattedString(): String {
-    val formatter = SimpleDateFormat(CalendarConstants.DATE_FORMAT, Locale.getDefault())
+    val formatter = SimpleDateFormat(DatePattern.DATE_FORMAT, Locale.getDefault())
     val calendar = Calendar.getInstance()
     calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, dayOfMonth)
     return formatter.format(calendar.time)
-}
-
-private fun LocalDate.minusMonths(months: Int): LocalDate {
-    val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, dayOfMonth)
-    calendar.add(Calendar.MONTH, -months)
-    return LocalDate(
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH) + CalendarConstants.MONTH_INDEX_OFFSET,
-        CalendarConstants.FIRST_DAY_OF_MONTH // Always use first day of month for display
-    )
-}
-
-private fun LocalDate.plusMonths(months: Int): LocalDate {
-    val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, dayOfMonth)
-    calendar.add(Calendar.MONTH, months)
-    return LocalDate(
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH) + CalendarConstants.MONTH_INDEX_OFFSET,
-        CalendarConstants.FIRST_DAY_OF_MONTH // Always use first day of month for display
-    )
 }
 
 @Preview(showSystemUi = true)
