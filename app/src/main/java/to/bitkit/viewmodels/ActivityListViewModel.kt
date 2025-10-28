@@ -196,10 +196,6 @@ class ActivityListViewModel @Inject constructor(
         _endDate.value = null
     }
 
-    fun clearTags() {
-        _selectedTags.value = mutableSetOf()
-    }
-
     fun clearFilters() {
         viewModelScope.launch(bgDispatcher) {
             try {

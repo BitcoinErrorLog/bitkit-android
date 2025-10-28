@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.wallets.activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,14 +21,14 @@ import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BottomSheetPreview
-import to.bitkit.ui.components.PrimaryButton
-import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun TagSelectorSheet() {
@@ -41,12 +40,8 @@ fun TagSelectorSheet() {
     Content(
         availableTags = availableTags,
         selectedTags = selectedTags,
-        onTagClick = { activity.toggleTag(it) },
-        onClearClick = {
-            activity.clearTags()
-            app.hideSheet()
-        },
-        onApplyClick = {
+        onTagClick = {
+            activity.toggleTag(it)
             app.hideSheet()
         },
     )
@@ -57,8 +52,6 @@ private fun Content(
     availableTags: List<String>,
     selectedTags: Set<String>,
     onTagClick: (String) -> Unit = {},
-    onClearClick: () -> Unit = {},
-    onApplyClick: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -69,6 +62,13 @@ private fun Content(
             .padding(horizontal = 16.dp)
     ) {
         SheetTopBar(stringResource(R.string.wallet__tags_filter_title))
+
+        Spacer(modifier = Modifier.height(42.dp))
+
+        Caption13Up(
+            text = stringResource(R.string.wallet__tags_filter),
+            color = Colors.White64,
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -89,24 +89,6 @@ private fun Content(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            SecondaryButton(
-                onClick = onClearClick,
-                text = stringResource(R.string.wallet__filter_clear),
-                modifier = Modifier.weight(1f),
-            )
-            PrimaryButton(
-                onClick = onApplyClick,
-                text = stringResource(R.string.wallet__filter_apply),
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

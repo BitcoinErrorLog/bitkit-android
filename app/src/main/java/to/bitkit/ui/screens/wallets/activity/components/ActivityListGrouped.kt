@@ -1,5 +1,6 @@
 package to.bitkit.ui.screens.wallets.activity.components
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,9 +19,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.synonym.bitkitcore.Activity
 import to.bitkit.R
+import to.bitkit.ext.rawId
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.TertiaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -54,7 +56,19 @@ fun ActivityListGrouped(
                 contentPadding = contentPadding,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(groupedItems) { index, item ->
+                itemsIndexed(
+                    items = groupedItems,
+                    key = { index, item ->
+                        when (item) {
+                            is String -> "header_$item"
+                            is Activity -> when (item) {
+                                is Activity.Lightning -> "lightning_${item.rawId()}"
+                                is Activity.Onchain -> "onchain_${item.rawId()}"
+                            }
+                            else -> "item_$index"
+                        }
+                    }
+                ) { index, item ->
                     when (item) {
                         is String -> {
                             Caption13Up(
@@ -63,15 +77,25 @@ fun ActivityListGrouped(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
+                                    .animateItem(
+                                        fadeInSpec = tween(durationMillis = 300),
+                                        fadeOutSpec = tween(durationMillis = 300),
+                                        placementSpec = tween(durationMillis = 300)
+                                    )
                             )
                         }
 
                         is Activity -> {
-                            ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
-                            val hasNextItem =
-                                index < groupedItems.size - 1 && groupedItems[index + 1] !is String
-                            if (hasNextItem) {
-                                HorizontalDivider()
+                            Column(
+                                modifier = Modifier
+                                    .animateItem(
+                                        fadeInSpec = tween(durationMillis = 300),
+                                        fadeOutSpec = tween(durationMillis = 300),
+                                        placementSpec = tween(durationMillis = 300)
+                                    )
+                            ) {
+                                ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
+                                VerticalSpacer(16.dp)
                             }
                         }
                     }

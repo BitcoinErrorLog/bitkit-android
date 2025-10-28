@@ -1,31 +1,29 @@
 package to.bitkit.ui.screens.wallets.activity.components
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
-import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.components.SearchInput
 import to.bitkit.ui.components.SearchInputIconButton
+import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.theme.Colors
 
 @Composable
 fun ActivityListFilter(
@@ -39,6 +37,8 @@ fun ActivityListFilter(
     currentTabIndex: Int,
     onTabChange: (ActivityTab) -> Unit,
     modifier: Modifier = Modifier,
+    selectedTags: Set<String> = emptySet(),
+    onRemoveTag: (String) -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
 
@@ -48,6 +48,26 @@ fun ActivityListFilter(
             onValueChange = onSearchTextChange,
             modifier = Modifier.fillMaxWidth(),
             trailingContent = {
+                if (selectedTags.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .sizeIn(maxWidth = 150.dp)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        selectedTags.forEach { tag ->
+                            TagButton(
+                                text = tag,
+                                onClick = { onRemoveTag(tag) },
+                                isSelected = false,
+                                displayIconClose = true,
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
                 SearchInputIconButton(
                     iconRes = R.drawable.ic_tag,
                     isActive = hasTagFilter,
@@ -72,42 +92,11 @@ fun ActivityListFilter(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column {
-            TabRow(
-                selectedTabIndex = currentTabIndex,
-                containerColor = Color.Transparent,
-                indicator = { tabPositions ->
-                    if (currentTabIndex < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            color = Colors.Brand,
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[currentTabIndex])
-                        )
-                    }
-                },
-                divider = {
-                    HorizontalDivider(thickness = 3.0.dp)
-                }
-            ) {
-                tabs.map { tab ->
-                    val isSelected = tabs[currentTabIndex] == tab
-                    Tab(
-                        text = {
-                            CaptionB(
-                                tab.uiText,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = if (isSelected) Colors.White else Colors.White50
-                            )
-                        },
-                        selected = isSelected,
-                        onClick = { onTabChange(tab) },
-                        unselectedContentColor = Colors.White64,
-                        modifier = Modifier
-                            .testTag("Tab-${tab.name.lowercase()}")
-                    )
-                }
-            }
-        }
+        CustomTabRowWithSpacing(
+            tabs = tabs,
+            currentTabIndex = currentTabIndex,
+            onTabChange = onTabChange
+        )
     }
 }
 
@@ -138,6 +127,26 @@ private fun Preview() {
             tabs = ActivityTab.entries,
             currentTabIndex = 0,
             onTabChange = {},
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewWithTags() {
+    AppThemeSurface {
+        ActivityListFilter(
+            searchText = "",
+            onSearchTextChange = {},
+            hasTagFilter = false,
+            onTagClick = {},
+            hasDateRangeFilter = false,
+            onDateRangeClick = {},
+            tabs = ActivityTab.entries,
+            currentTabIndex = 0,
+            onTabChange = {},
+            selectedTags = setOf("Tag1", "Tag2"),
             modifier = Modifier.padding(16.dp)
         )
     }
