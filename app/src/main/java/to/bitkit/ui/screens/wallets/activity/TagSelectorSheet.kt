@@ -40,7 +40,10 @@ fun TagSelectorSheet() {
     Content(
         availableTags = availableTags,
         selectedTags = selectedTags,
-        onTagClick = { activity.toggleTag(it) },
+        onTagClick = {
+            activity.toggleTag(it)
+            app.hideSheet()
+        },
     )
 }
 
