@@ -44,12 +44,12 @@ fun CustomTabRowWithSpacing(
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onTabChange(tab) }
                             .padding(vertical = 8.dp)
                             .testTag("Tab-${tab.name.lowercase()}"),
-                        contentAlignment = Alignment.Center
                     ) {
                         CaptionB(
                             tab.uiText,
