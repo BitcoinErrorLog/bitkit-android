@@ -28,7 +28,7 @@ When performing a code review, check that Material3 design guidelines are follow
 
 When performing a code review, ensure proper state management patterns with `MutableStateFlow` and `StateFlow`.
 
-When performing a code review, check if modifiers last in args list
+When performing a code review, check if modifiers are in last place in args list
 
 ## Code Quality & Readability
 
