@@ -1,11 +1,6 @@
 package to.bitkit.ui.screens.wallets.activity.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -71,40 +66,37 @@ fun ActivityListGrouped(
                                 is Activity.Lightning -> "lightning_${item.rawId()}"
                                 is Activity.Onchain -> "onchain_${item.rawId()}"
                             }
-
                             else -> "item_$index"
                         }
                     }
                 ) { index, item ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(animationSpec = tween(durationMillis = 400, delayMillis = 50)) +
-                            expandVertically(
-                                animationSpec = tween(durationMillis = 400, delayMillis = 50),
-                                expandFrom = Alignment.Top
-                            ),
-                        exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
-                            shrinkVertically(
-                                animationSpec = tween(durationMillis = 300),
-                                shrinkTowards = Alignment.Top
+                    when (item) {
+                        is String -> {
+                            Caption13Up(
+                                text = item,
+                                color = Colors.White64,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .animateItem(
+                                        fadeInSpec = tween(durationMillis = 300),
+                                        fadeOutSpec = tween(durationMillis = 300),
+                                        placementSpec = tween(durationMillis = 300)
+                                    )
                             )
-                    ) {
-                        when (item) {
-                            is String -> {
-                                Caption13Up(
-                                    text = item,
-                                    color = Colors.White64,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 16.dp)
-                                )
-                            }
+                        }
 
-                            is Activity -> {
-                                Column {
-                                    ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
-                                    VerticalSpacer(16.dp)
-                                }
+                        is Activity -> {
+                            Column(
+                                modifier = Modifier
+                                    .animateItem(
+                                        fadeInSpec = tween(durationMillis = 300),
+                                        fadeOutSpec = tween(durationMillis = 300),
+                                        placementSpec = tween(durationMillis = 300)
+                                    )
+                            ) {
+                                ActivityRow(item, onActivityItemClick, testTag = "Activity-$index")
+                                VerticalSpacer(16.dp)
                             }
                         }
                     }
