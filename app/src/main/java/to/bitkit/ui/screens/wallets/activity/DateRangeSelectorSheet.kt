@@ -126,6 +126,7 @@ fun DateRangeSelectorSheet() {
     )
 }
 
+@Suppress("MaxLineLength", "CyclomaticComplexMethod")
 @Composable
 private fun Content(
     initialStartDate: Long? = null,
@@ -345,9 +346,10 @@ private fun Content(
                 displayedMonth = displayedMonth,
                 startDate = startDate,
                 endDate = endDate,
-                onDateSelected = { selectedDate ->
+                onSelectDate = { selectedDate ->
                     val selectedMillis = selectedDate
-                        .atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                        .atStartOfDayIn(TimeZone.currentSystemDefault())
+                        .toEpochMilliseconds()
 
                     when (startDate) {
                         null -> {
@@ -452,7 +454,7 @@ private fun CalendarGrid(
     displayedMonth: LocalDate,
     startDate: Long?,
     endDate: Long?,
-    onDateSelected: (LocalDate) -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val daysInMonth = remember(displayedMonth) {
@@ -486,7 +488,7 @@ private fun CalendarGrid(
                             isStartDate = isStartDate,
                             isEndDate = isEndDate,
                             isToday = isToday,
-                            onClick = { onDateSelected(date) },
+                            onClick = { onSelectDate(date) },
                             modifier = Modifier.weight(1f)
                         )
                     } else {

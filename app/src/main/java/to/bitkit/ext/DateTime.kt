@@ -144,11 +144,9 @@ object CalendarConstants {
     // Date formatting
     const val WEEKDAY_ABBREVIATION_LENGTH = 3
 
-
     // Calendar math
     const val DAYS_IN_WEEK_MOD = 7
     const val CALENDAR_WEEK_OFFSET = 1
-    const val FIRST_MONTH_INDEX = 1
     const val MONTH_INDEX_OFFSET = 1
 
     // Leap year calculation
