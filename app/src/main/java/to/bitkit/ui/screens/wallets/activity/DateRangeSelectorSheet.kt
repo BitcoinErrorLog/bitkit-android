@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,10 +45,15 @@ import kotlinx.datetime.toLocalDateTime
 import to.bitkit.R
 import to.bitkit.ui.activityListViewModel
 import to.bitkit.ui.appViewModel
+import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.SheetSize
+import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
@@ -118,6 +121,10 @@ private fun Content(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
+        SheetTopBar(stringResource(R.string.wallet__filter_title))
+
+        VerticalSpacer(10.dp)
+
         // Month navigation header
         Row(
             modifier = Modifier
@@ -126,10 +133,8 @@ private fun Content(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
+            BodyMSB(
                 text = displayedMonth.toMonthYearString(),
-                style = Typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
                 color = Color.White
             )
 
@@ -175,17 +180,16 @@ private fun Content(
             for (i in 0 until 7) {
                 val dayOfWeek = (calendar.firstDayOfWeek + i - 1) % 7 + 1
                 calendar.set(Calendar.DAY_OF_WEEK, dayOfWeek)
-                Text(
-                    text = weekdaySymbols.format(calendar.time).take(3),
-                    style = Typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f),
+                Caption13Up(
+                    text = weekdaySymbols.format(calendar.time).take(3).uppercase(),
+                    color = Colors.White64,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        VerticalSpacer(8.dp)
 
         // Calendar grid
         CalendarGrid(
@@ -224,7 +228,7 @@ private fun Content(
             }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        FillHeight()
 
         // Display selected range
         Box(
@@ -241,20 +245,18 @@ private fun Content(
                         .toLocalDateTime(TimeZone.currentSystemDefault()).date
                 }
 
-                Text(
+                BodyMSB(
                     text = if (endLocalDate != null && startLocalDate != endLocalDate) {
                         "${startLocalDate.toFormattedString()} - ${endLocalDate.toFormattedString()}"
                     } else {
                         startLocalDate.toFormattedString()
                     },
-                    style = Typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        VerticalSpacer(36.dp)
 
         // Action buttons
         Row(
@@ -437,10 +439,8 @@ private fun CalendarDayView(
         }
 
         // Day number
-        Text(
+        BodyMSB(
             text = date.dayOfMonth.toString(),
-            style = Typography.bodyMedium,
-            fontWeight = if (isStartDate || isEndDate) FontWeight.Bold else FontWeight.Normal,
             color = if (isStartDate || isEndDate) Colors.Brand else Color.White
         )
     }
