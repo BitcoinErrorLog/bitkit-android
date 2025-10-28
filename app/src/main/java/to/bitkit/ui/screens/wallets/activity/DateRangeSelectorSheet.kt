@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -199,6 +201,7 @@ private fun Content(
                         startDate = selectedMillis
                         endDate = selectedMillis
                     }
+
                     startDate == endDate -> {
                         // Second selection - create range
                         if (selectedMillis < startDate!!) {
@@ -211,6 +214,7 @@ private fun Content(
                             endDate = selectedMillis
                         }
                     }
+
                     else -> {
                         // Third selection - start new range
                         startDate = selectedMillis
@@ -290,7 +294,7 @@ private fun CalendarGrid(
     displayedMonth: LocalDate,
     startDate: Long?,
     endDate: Long?,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
 ) {
     val daysInMonth = remember(displayedMonth) {
         getDaysInMonth(displayedMonth)
@@ -343,7 +347,7 @@ private fun CalendarDayView(
     isEndDate: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
@@ -359,29 +363,58 @@ private fun CalendarDayView(
                     // Single day or same start/end
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .matchParentSize()
                             .clip(CircleShape)
                             .background(Colors.Brand16)
                     )
                 }
+
                 isStartDate -> {
                     // Start of range
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .matchParentSize()
+                            .clip(
+                                RoundedCornerShape(
+                                    topStartPercent = 50,
+                                    bottomStartPercent = 50,
+                                    topEndPercent = 0,
+                                    bottomEndPercent = 0,
+                                )
+                            )
+                            .background(Colors.Brand16)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
                             .clip(CircleShape)
                             .background(Colors.Brand16)
                     )
                 }
+
                 isEndDate -> {
                     // End of range
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .matchParentSize()
+                            .clip(
+                                RoundedCornerShape(
+                                    topStartPercent = 0,
+                                    bottomStartPercent = 0,
+                                    topEndPercent = 50,
+                                    bottomEndPercent = 50,
+                                )
+                            )
+                            .background(Colors.Brand16)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
                             .clip(CircleShape)
                             .background(Colors.Brand16)
                     )
                 }
+
                 else -> {
                     // Middle of range
                     Box(
@@ -397,7 +430,7 @@ private fun CalendarDayView(
         if (isToday && !isSelected) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .matchParentSize()
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.1f))
             )
