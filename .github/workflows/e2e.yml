@@ -61,6 +61,7 @@ jobs:
           path: app/build/outputs/apk/dev/debug/bitkit_e2e.apk
 
   e2e-branch:
+    if: github.event.pull_request.draft == false
     uses: synonymdev/bitkit-e2e-tests/.github/workflows/determine-e2e-branch.yml@main
     with:
       app_branch: ${{ github.head_ref || github.ref_name }}
