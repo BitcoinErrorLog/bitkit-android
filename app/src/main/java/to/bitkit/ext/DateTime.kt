@@ -4,6 +4,7 @@ import android.icu.text.DateFormat
 import android.icu.util.ULocale
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -14,6 +15,8 @@ import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 
 fun nowTimestamp(): Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 
@@ -118,6 +121,13 @@ fun LocalDate.plusMonths(months: Int): LocalDate {
         calendar.get(Calendar.MONTH) + CalendarConstants.MONTH_INDEX_OFFSET,
         CalendarConstants.FIRST_DAY_OF_MONTH // Always use first day of month for display
     )
+}
+
+fun LocalDate.endOfDay(): Long {
+    return this.atStartOfDayIn(TimeZone.currentSystemDefault())
+        .plus(1.days)
+        .minus(1.milliseconds)
+        .toEpochMilliseconds()
 }
 
 object DatePattern {

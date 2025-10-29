@@ -56,6 +56,7 @@ import kotlinx.datetime.toLocalDateTime
 import to.bitkit.R
 import to.bitkit.ext.CalendarConstants
 import to.bitkit.ext.DatePattern
+import to.bitkit.ext.endOfDay
 import to.bitkit.ext.getDaysInMonth
 import to.bitkit.ext.isDateInRange
 import to.bitkit.ext.minusMonths
@@ -351,30 +352,41 @@ private fun Content(
                         .atStartOfDayIn(TimeZone.currentSystemDefault())
                         .toEpochMilliseconds()
 
-                    when (startDate) {
-                        null -> {
-                            // First selection
+                    // Check if startDate and endDate are on the same day
+                    val isSameDay = startDate != null && endDate != null &&
+                        Instant.fromEpochMilliseconds(startDate!!)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date ==
+                        Instant.fromEpochMilliseconds(endDate!!)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+                    when {
+                        startDate == null -> {
+                            // First selection - set both start (beginning of day) and end (end of day)
                             startDate = selectedMillis
-                            endDate = selectedMillis
+                            endDate = selectedDate.endOfDay()
                         }
 
-                        endDate -> {
+                        isSameDay -> {
                             // Second selection - create range
                             if (selectedMillis < startDate!!) {
-                                endDate = startDate
+                                // Selected date is before start, swap them
+                                val originalStart = Instant.fromEpochMilliseconds(startDate!!)
+                                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                endDate = originalStart.endOfDay()
                                 startDate = selectedMillis
                             } else if (selectedMillis == startDate) {
                                 // Same date clicked - do nothing
                                 return@CalendarGrid
                             } else {
-                                endDate = selectedMillis
+                                // Selected date is after start, set as end of day
+                                endDate = selectedDate.endOfDay()
                             }
                         }
 
                         else -> {
                             // Third selection - start new range
                             startDate = selectedMillis
-                            endDate = selectedMillis
+                            endDate = selectedDate.endOfDay()
                         }
                     }
                 },
@@ -479,7 +491,7 @@ private fun CalendarGrid(
                         val dateMillis = date.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         val isSelected = isDateInRange(dateMillis, startDate, endDate)
                         val isStartDate = dateMillis == startDate
-                        val isEndDate = dateMillis == endDate
+                        val isEndDate = date.endOfDay() == endDate
                         val isToday = date == today
 
                         CalendarDayView(
