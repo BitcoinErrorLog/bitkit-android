@@ -150,7 +150,7 @@ private fun Content(
 
     val hasSelection = startDate != null
 
-    var calendar = remember { Calendar.getInstance() }
+    val calendar = remember { Calendar.getInstance() }
 
     // Swipe animation state
     val scope = rememberCoroutineScope()
@@ -273,9 +273,7 @@ private fun Content(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             calendar.firstDayOfWeek = Calendar.SUNDAY
-            val weekdaySymbols = SimpleDateFormat(DatePattern.WEEKDAY_FORMAT, Locale.getDefault()).apply {
-                calendar = Calendar.getInstance()
-            }
+            val weekdaySymbols = SimpleDateFormat(DatePattern.WEEKDAY_FORMAT, Locale.getDefault())
 
             for (i in 0 until CalendarConstants.DAYS_IN_WEEK) {
                 val dayOfWeek =
