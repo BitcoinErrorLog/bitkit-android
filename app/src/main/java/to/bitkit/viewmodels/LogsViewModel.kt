@@ -84,7 +84,7 @@ class LogsViewModel @Inject constructor(
     fun deleteAllLogs() {
         viewModelScope.launch {
             try {
-                val logDir = File(Env.logDir)
+                val logDir = runCatching { File(Env.logDir) }.getOrElse { return@launch }
                 logDir.listFiles { file ->
                     file.extension == "log"
                 }?.forEach { file ->

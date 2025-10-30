@@ -122,6 +122,10 @@ fun LocalDate.endOfDay(): Long {
         .toEpochMilliseconds()
 }
 
+fun utcDateFormatterOf(pattern: String) = SimpleDateFormat(pattern, Locale.US).apply {
+    timeZone = java.util.TimeZone.getTimeZone("UTC")
+}
+
 object DatePattern {
     const val DATE_TIME = "dd/MM/yyyy, HH:mm"
     const val INVOICE_EXPIRY = "MMM dd, h:mm a"
@@ -129,8 +133,9 @@ object DatePattern {
     const val ACTIVITY_ROW_DATE = "MMMM d, HH:mm"
     const val ACTIVITY_ROW_DATE_YEAR = "MMMM d yyyy, HH:mm"
     const val ACTIVITY_TIME = "h:mm"
-    const val LOG_FILE = "yyyy-MM-dd_HH-mm-ss"
     const val CHANNEL_DETAILS = "MMM d, yyyy, HH:mm"
+    const val LOG_FILE = "yyyy-MM-dd_HH-mm-ss"
+    const val LOG_LINE = "yyyy-MM-dd HH:mm:ss.SSS"
 
     const val MONTH_YEAR_FORMAT = "MMMM yyyy"
     const val DATE_FORMAT = "MMM d, yyyy"
@@ -159,4 +164,3 @@ object CalendarConstants {
     // Preview
     const val PREVIEW_DAYS_AGO = 7
 }
-

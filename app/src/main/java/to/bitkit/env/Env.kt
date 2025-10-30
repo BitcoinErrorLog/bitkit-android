@@ -22,6 +22,8 @@ internal object Env {
     val platform = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     const val version = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
 
+    val ldkLogLevel = LogLevel.TRACE
+
     // TODO: remove this to load from BT API instead
     val trustedLnPeers
         get() = when (network) {
@@ -110,8 +112,8 @@ internal object Env {
 
     fun initAppStoragePath(path: String) {
         require(path.isNotBlank()) { "App storage path cannot be empty." }
-        Logger.info("App storage path: $path")
         appStoragePath = path
+        Logger.info("App storage path: $path")
     }
 
     val logDir: String
@@ -119,8 +121,6 @@ internal object Env {
             require(::appStoragePath.isInitialized)
             return File(appStoragePath).resolve("logs").ensureDir().path
         }
-
-    val ldkLogLevel = LogLevel.TRACE
 
     fun ldkStoragePath(walletIndex: Int) = storagePathOf(walletIndex, network.name.lowercase(), "ldk")
 

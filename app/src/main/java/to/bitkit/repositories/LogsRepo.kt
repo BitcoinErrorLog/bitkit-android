@@ -14,6 +14,7 @@ import to.bitkit.ext.fromBase64
 import to.bitkit.ext.getEnumValueOf
 import to.bitkit.ext.toBase64
 import to.bitkit.models.ChatwootMessage
+import to.bitkit.utils.LogSource
 import to.bitkit.utils.Logger
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
@@ -57,10 +58,8 @@ class LogsRepo @Inject constructor(
     /** Lists log files sorted by newest first */
     suspend fun getLogs(): Result<List<LogFile>> = withContext(bgDispatcher) {
         try {
-            val logDir = File(Env.logDir)
-            if (!logDir.exists()) {
-                return@withContext Result.failure(Exception("Logs dir not found"))
-            }
+            val logDir = runCatching { File(Env.logDir) }.getOrElse { return@withContext Result.failure(it) }
+            if (!logDir.exists()) return@withContext Result.failure(Exception("Logs dir not found"))
 
             val logFiles = logDir
                 .listFiles { file -> file.extension == "log" }
@@ -205,5 +204,3 @@ data class LogFile(
 ) {
     val fileName: String get() = file.name
 }
-
-enum class LogSource { Ldk, Bitkit, Unknown }
