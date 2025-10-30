@@ -339,7 +339,7 @@ class LightningService @Inject constructor(
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         return ServiceQueue.LDK.background {
-            runCatching {
+            try {
                 val pushToCounterpartyMsat = pushToCounterpartySats?.let { it * 1000u }
                 Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: ${peer.uri}")
 
@@ -361,11 +361,11 @@ class LightningService @Inject constructor(
 
                 Logger.info("Channel open initiated, result: $result")
 
-                result
-            }.onFailure { e ->
-                val error = if (e is NodeException) LdkError(e) else e
+                Result.success(result)
+            } catch (e: NodeException) {
+                val error = LdkError(e)
                 Logger.error("Error initiating channel open", error)
-                error
+                Result.failure(error)
             }
         }
     }

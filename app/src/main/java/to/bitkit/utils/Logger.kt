@@ -248,10 +248,10 @@ private fun buildSessionLogFilePath(source: LogSource): String {
     return sessionLogFilePath
 }
 
-private fun formatLog(level: LogLevel, msg: String?, tag: String, path: String, line: Int): String {
+private fun formatLog(level: LogLevel, msg: String?, context: String, path: String, line: Int): String {
     val timestamp = utcDateFormatterOf(DatePattern.LOG_LINE).format(Date())
     val message = msg?.trim().orEmpty()
-    val context = if (tag.isNotEmpty()) " - $tag" else ""
+    val contextString = if (context.isNotEmpty()) " - $context" else ""
     return String.format(
         Locale.US,
         "%s %-7s [%s:%d] %s%s",
@@ -260,9 +260,23 @@ private fun formatLog(level: LogLevel, msg: String?, tag: String, path: String, 
         path,
         line,
         message,
-        context,
+        contextString,
     )
 }
+
+/**
+ * Determines which stack frame to use for caller info.
+ *
+ * The value 5 is chosen based on the current call chain:
+ * - [0] `Thread.getStackTrace`
+ * - [1] `getCallerPath`/`getCallerLine`
+ * - [2] `LoggerImpl.log_method` (e.g., debug, info, etc.)
+ * - [3] `LdkLogWriter.log_method`
+ * - [4] external caller
+ * - [5] actual caller of logging function
+ *
+ * If the call chain changes, this index may need to be updated.
+ */
 
 private const val STACK_INDEX = 5
 private fun getCallerPath(): String = Thread.currentThread().stackTrace.getOrNull(STACK_INDEX)?.fileName ?: "Unknown"
