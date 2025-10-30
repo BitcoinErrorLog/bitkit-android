@@ -32,8 +32,9 @@ internal object Env {
 
     val ldkRgsServerUrl
         get() = when (network) {
-            Network.BITCOIN -> "https://rgs.blocktank.to/snapshot/"
+            Network.BITCOIN -> "https://rgs.blocktank.to/snapshot"
             Network.TESTNET -> "https://rapidsync.lightningdevkit.org/testnet/snapshot"
+            Network.REGTEST -> "https://bitkit.stag0.blocktank.to/rgs/snapshot"
             else -> null
         }
 

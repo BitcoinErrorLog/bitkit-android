@@ -17,7 +17,7 @@ import kotlin.coroutines.CoroutineContext
 enum class ServiceQueue {
     LDK, CORE, FOREX, MIGRATION;
 
-    private val scope by lazy { CoroutineScope(dispatcher("$name-queue".lowercase()) + SupervisorJob()) }
+    private val scope by lazy { CoroutineScope(newSingleThreadDispatcher(name) + SupervisorJob()) }
 
     fun <T> blocking(
         coroutineContext: CoroutineContext = scope.coroutineContext,
@@ -52,11 +52,10 @@ enum class ServiceQueue {
             }
         }
     }
+}
 
-    companion object {
-        fun dispatcher(name: String): ExecutorCoroutineDispatcher {
-            val threadFactory = ThreadFactory { Thread(it, name).apply { priority = Thread.NORM_PRIORITY - 1 } }
-            return Executors.newSingleThreadExecutor(threadFactory).asCoroutineDispatcher()
-        }
-    }
+fun newSingleThreadDispatcher(id: String): ExecutorCoroutineDispatcher {
+    val name = "$id-queue".lowercase()
+    val threadFactory = ThreadFactory { Thread(it, name).apply { priority = Thread.NORM_PRIORITY - 1 } }
+    return Executors.newSingleThreadExecutor(threadFactory).asCoroutineDispatcher()
 }
