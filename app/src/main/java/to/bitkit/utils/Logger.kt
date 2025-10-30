@@ -173,6 +173,8 @@ class LogSaverImpl(private val sessionFilePath: String) : LogSaver {
     }
 
     override fun save(message: String) {
+        if (sessionFilePath.isEmpty()) return
+
         queue.launch {
             runCatching {
                 FileOutputStream(File(sessionFilePath), true).use { stream ->
@@ -186,10 +188,10 @@ class LogSaverImpl(private val sessionFilePath: String) : LogSaver {
 
     private fun cleanupOldLogFiles(maxTotalSizeMB: Int = 20) {
         Log.v(APP, "Deleting old log files…")
-        val baseDir = File(Env.logDir)
-        if (!baseDir.exists()) return
+        val logDir = runCatching { File(Env.logDir) }.getOrElse { return }
+        if (!logDir.exists()) return
 
-        val logFiles = baseDir
+        val logFiles = logDir
             .listFiles { file -> file.extension == "log" }
             ?.map { file -> Triple(file, file.length(), file.lastModified()) }
             ?: return
@@ -241,9 +243,12 @@ class LdkLogWriter(
 }
 
 private fun buildSessionLogFilePath(source: LogSource): String {
+    val logDir = runCatching { File(Env.logDir) }.getOrElse { return "" }
+    if (!logDir.exists()) return ""
+
     val sourceName = source.name.lowercase()
     val timestamp = utcDateFormatterOf(DatePattern.LOG_FILE).format(Date())
-    val sessionLogFilePath = File(Env.logDir).resolve("${sourceName}_$timestamp.log").path
+    val sessionLogFilePath = logDir.resolve("${sourceName}_$timestamp.log").path
     Log.i(APP, "Log session for '$sourceName' initialized with file path: '$sessionLogFilePath'")
     return sessionLogFilePath
 }

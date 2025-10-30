@@ -58,10 +58,8 @@ class LogsRepo @Inject constructor(
     /** Lists log files sorted by newest first */
     suspend fun getLogs(): Result<List<LogFile>> = withContext(bgDispatcher) {
         try {
-            val logDir = File(Env.logDir)
-            if (!logDir.exists()) {
-                return@withContext Result.failure(Exception("Logs dir not found"))
-            }
+            val logDir = runCatching { File(Env.logDir) }.getOrElse { return@withContext Result.failure(it) }
+            if (!logDir.exists()) return@withContext Result.failure(Exception("Logs dir not found"))
 
             val logFiles = logDir
                 .listFiles { file -> file.extension == "log" }
