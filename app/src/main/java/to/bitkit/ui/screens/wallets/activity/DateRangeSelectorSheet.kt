@@ -400,10 +400,10 @@ private fun Content(
 
         // Display selected range
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(24.dp),
-            contentAlignment = Alignment.Center
+                .height(24.dp)
         ) {
             if (startDate != null) {
                 val startLocalDate = Instant.fromEpochMilliseconds(startDate!!)
@@ -503,7 +503,9 @@ private fun CalendarGrid(
                         )
                     } else {
                         // Empty space for days outside the month
-                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -522,11 +524,11 @@ private fun CalendarDayView(
     modifier: Modifier = Modifier,
 ) {
     Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .aspectRatio(DAY_ASPECT_RATIO)
             .clickable(onClick = onClick)
-            .testTag(if (isToday) "Today" else "Day-${date.dayOfMonth}"),
-        contentAlignment = Alignment.Center
+            .testTag(if (isToday) "Today" else "Day-${date.dayOfMonth}")
     ) {
         // Background for range selection
         if (isSelected) {
