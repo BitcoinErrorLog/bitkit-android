@@ -41,19 +41,14 @@ import to.bitkit.data.backup.VssStoreIdProvider
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
-import to.bitkit.ext.DatePattern
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.ext.uByteList
 import to.bitkit.ext.uri
 import to.bitkit.models.OpenChannelResult
 import to.bitkit.utils.LdkError
+import to.bitkit.utils.LdkLogWriter
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.path.Path
@@ -88,7 +83,6 @@ class LightningService @Inject constructor(
         val dirPath = Env.ldkStoragePath(walletIndex)
 
         val trustedPeerNodeIds = trustedPeers.map { it.nodeId }
-
         val config = defaultConfig().copy(
             storageDirPath = dirPath,
             network = Env.network,
@@ -96,11 +90,11 @@ class LightningService @Inject constructor(
             anchorChannelsConfig = AnchorChannelsConfig(
                 trustedPeersNoReserve = trustedPeerNodeIds,
                 perChannelReserveSats = 1u,
-            )
+            ),
         )
 
         val builder = Builder.fromConfig(config).apply {
-            setFilesystemLogger(generateLogFilePath(), Env.ldkLogLevel)
+            setCustomLogger(LdkLogWriter())
 
             configureChainSource(customServerUrl)
             configureGossipSource(customRgsServerUrl)
@@ -345,15 +339,16 @@ class LightningService @Inject constructor(
         val node = this.node ?: throw ServiceError.NodeNotSetup
 
         return ServiceQueue.LDK.background {
-            try {
+            runCatching {
+                val pushToCounterpartyMsat = pushToCounterpartySats?.let { it * 1000u }
                 Logger.debug("Initiating channel open (sats: $channelAmountSats) with peer: ${peer.uri}")
 
                 val userChannelId = node.openChannel(
-                    nodeId = peer.nodeId,
-                    address = peer.address,
-                    channelAmountSats = channelAmountSats,
-                    pushToCounterpartyMsat = pushToCounterpartySats?.let { it * 1000u },
-                    channelConfig = channelConfig,
+                    peer.nodeId,
+                    peer.address,
+                    channelAmountSats,
+                    pushToCounterpartyMsat,
+                    channelConfig,
                 )
 
                 val result = OpenChannelResult(
@@ -366,11 +361,11 @@ class LightningService @Inject constructor(
 
                 Logger.info("Channel open initiated, result: $result")
 
-                Result.success(result)
-            } catch (e: NodeException) {
-                val error = LdkError(e)
+                result
+            }.onFailure { e ->
+                val error = if (e is NodeException) LdkError(e) else e
                 Logger.error("Error initiating channel open", error)
-                Result.failure(error)
+                error
             }
         }
     }
@@ -790,19 +785,9 @@ class LightningService @Inject constructor(
 }
 
 // region helpers
-
-private fun generateLogFilePath(): String {
-    val dateFormatter = SimpleDateFormat(DatePattern.LOG_FILE, Locale.US).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
-    val timestamp = dateFormatter.format(Date())
-
-    val sessionLogFilePath = File(Env.logDir).resolve("ldk_$timestamp.log").path
-
-    Logger.debug("Generated LDK log file path: $sessionLogFilePath")
-    return sessionLogFilePath
-}
-
+/**
+ * TODO remove, replace all usages with [FeeRate.fromSatPerVbUnchecked]
+ * */
 private fun convertVByteToKwu(satsPerVByte: UInt): FeeRate {
     // 1 vbyte = 4 weight units, so 1 sats/vbyte = 250 sats/kwu
     val satPerKwu = satsPerVByte.toULong() * 250u

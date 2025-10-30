@@ -14,6 +14,7 @@ import to.bitkit.ext.fromBase64
 import to.bitkit.ext.getEnumValueOf
 import to.bitkit.ext.toBase64
 import to.bitkit.models.ChatwootMessage
+import to.bitkit.utils.LogSource
 import to.bitkit.utils.Logger
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
@@ -205,5 +206,3 @@ data class LogFile(
 ) {
     val fileName: String get() = file.name
 }
-
-enum class LogSource { Ldk, Bitkit, Unknown }
