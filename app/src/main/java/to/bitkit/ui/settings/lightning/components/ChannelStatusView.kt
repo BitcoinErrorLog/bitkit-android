@@ -59,7 +59,7 @@ fun ChannelStatusView(
     }
 }
 
-@Suppress("CyclomaticComplexMethod")
+@Suppress("CyclomaticComplexMethod", "ReturnCount")
 @Composable
 private fun getStatusInfo(
     channel: ChannelUi,
