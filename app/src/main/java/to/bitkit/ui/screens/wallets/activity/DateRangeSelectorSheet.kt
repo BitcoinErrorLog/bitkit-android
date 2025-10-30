@@ -1,5 +1,6 @@
 package to.bitkit.ui.screens.wallets.activity
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -104,21 +105,25 @@ private const val TODAY_INDICATOR_ALPHA = 0.1f
 
 @Composable
 fun DateRangeSelectorSheet() {
-    val activity = activityListViewModel ?: return
+    val activityListVM = activityListViewModel ?: return
     val app = appViewModel ?: return
 
-    val startDate by activity.startDate.collectAsState()
-    val endDate by activity.endDate.collectAsState()
+    val startDate by activityListVM.startDate.collectAsState()
+    val endDate by activityListVM.endDate.collectAsState()
+
+    BackHandler {
+        app.hideSheet()
+    }
 
     Content(
         initialStartDate = startDate,
         initialEndDate = endDate,
         onClearClick = {
-            activity.clearDateRange()
+            activityListVM.clearDateRange()
             app.hideSheet()
         },
         onApplyClick = { start, end ->
-            activity.setDateRange(
+            activityListVM.setDateRange(
                 startDate = start,
                 endDate = end,
             )
