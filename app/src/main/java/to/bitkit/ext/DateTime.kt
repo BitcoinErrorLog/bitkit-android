@@ -5,6 +5,8 @@ import android.icu.util.ULocale
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.toLocalDateTime
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -101,27 +103,17 @@ fun LocalDate.toMonthYearString(): String {
     return formatter.format(calendar.time)
 }
 
-fun LocalDate.minusMonths(months: Int): LocalDate {
-    val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, dayOfMonth)
-    calendar.add(Calendar.MONTH, -months)
-    return LocalDate(
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH) + CalendarConstants.MONTH_INDEX_OFFSET,
-        CalendarConstants.FIRST_DAY_OF_MONTH // Always use first day of month for display
-    )
-}
+fun LocalDate.minusMonths(months: Int): LocalDate =
+    this.toJavaLocalDate()
+        .minusMonths(months.toLong())
+        .withDayOfMonth(1) // Always use first day of month for display
+        .toKotlinLocalDate()
 
-fun LocalDate.plusMonths(months: Int): LocalDate {
-    val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, dayOfMonth)
-    calendar.add(Calendar.MONTH, months)
-    return LocalDate(
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH) + CalendarConstants.MONTH_INDEX_OFFSET,
-        CalendarConstants.FIRST_DAY_OF_MONTH // Always use first day of month for display
-    )
-}
+fun LocalDate.plusMonths(months: Int): LocalDate =
+    this.toJavaLocalDate()
+        .plusMonths(months.toLong())
+        .withDayOfMonth(1) // Always use first day of month for display
+        .toKotlinLocalDate()
 
 fun LocalDate.endOfDay(): Long {
     return this.atStartOfDayIn(TimeZone.currentSystemDefault())
