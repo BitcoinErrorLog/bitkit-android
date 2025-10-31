@@ -429,10 +429,6 @@ class BackupRepo @Inject constructor(
             json.encodeToString(payload).toByteArray()
         }
 
-        BackupCategory.SLASHTAGS -> {
-            throw NotImplementedError("Slashtags backup not yet implemented")
-        }
-
         BackupCategory.LDK_ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
             val cacheData = cacheStore.data.first()
