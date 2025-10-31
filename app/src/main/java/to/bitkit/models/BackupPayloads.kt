@@ -5,7 +5,7 @@ import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
 import kotlinx.serialization.Serializable
-import to.bitkit.data.dto.PendingBoostActivity
+import to.bitkit.data.AppCacheData
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.entities.TransferEntity
 
@@ -13,14 +13,12 @@ import to.bitkit.data.entities.TransferEntity
  * Wallet backup payload (v1)
  *
  * Contains:
- * - Boosted transaction activities from CacheStore
  * - Transfer entities from Room database
  */
 @Serializable
 data class WalletBackupV1(
     val version: Int = 1,
     val createdAt: Long,
-    val boostedActivities: List<PendingBoostActivity>,
     val transfers: List<TransferEntity>,
 )
 
@@ -29,21 +27,20 @@ data class WalletBackupV1(
  *
  * Contains:
  * - Tag metadata entities from Room database
- * - Transaction metadata from CacheStore
+ * - Entire AppCacheData from CacheStore
  */
 @Serializable
 data class MetadataBackupV1(
     val version: Int = 1,
     val createdAt: Long,
     val tagMetadata: List<TagMetadataEntity>,
-    val transactionsMetadata: List<TransactionMetadata>,
+    val cache: AppCacheData,
 )
 
 /**
  * Blocktank backup payload (v1)
  *
  * Contains:
- * - Paid orders map from CacheStore
  * - List of IBtOrder from bitkit-core
  * - List of IcJitEntry from bitkit-core
  * - IBtInfo from bitkit-core
@@ -52,7 +49,6 @@ data class MetadataBackupV1(
 data class BlocktankBackupV1(
     val version: Int = 1,
     val createdAt: Long,
-    val paidOrders: Map<String, String>, // orderId -> txId
     val orders: List<IBtOrder>,
     val cjitEntries: List<IcJitEntry>,
     val info: IBtInfo? = null,
@@ -63,14 +59,10 @@ data class BlocktankBackupV1(
  *
  * Contains:
  * - ALL activities (onchain + lightning) from bitkit-core
- * - Deleted activity IDs from CacheStore
- * - Activities pending deletion from CacheStore
  */
 @Serializable
 data class ActivityBackupV1(
     val version: Int = 1,
     val createdAt: Long,
     val activities: List<Activity>,
-    val deletedActivities: List<String>,
-    val activitiesPendingDelete: List<String>,
 )

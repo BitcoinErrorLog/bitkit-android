@@ -147,21 +147,6 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(widgetsJob)
 
-        // WALLET - Observe boosted activities
-        val boostJob = scope.launch {
-            // TODO concat into one job using combine of boosts + transfers
-            cacheStore.data
-                .map { it.pendingBoostActivities }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.WALLET)
-                    }
-                }
-        }
-        dataListenerJobs.add(boostJob)
-
         // WALLET - Observe transfers
         val transfersJob = scope.launch {
             // TODO concat into one job using combine of boosts + transfers
@@ -178,7 +163,6 @@ class BackupRepo @Inject constructor(
 
         // METADATA - Observe tag metadata
         val tagMetadataJob = scope.launch {
-            // TODO concat into one job using combine of tagMetadataDao + transactionsMetadata
             db.tagMetadataDao().observeAll()
                 .distinctUntilChanged()
                 .drop(1)
@@ -190,11 +174,9 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(tagMetadataJob)
 
-        // METADATA - Observe transaction metadata
-        val txMetadataJob = scope.launch {
-            // TODO concat into one job using combine of tagMetadataDao + transactionsMetadata
+        // METADATA - Observe entire CacheStore
+        val cacheMetadataJob = scope.launch {
             cacheStore.data
-                .map { it.transactionsMetadata }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
@@ -203,13 +185,11 @@ class BackupRepo @Inject constructor(
                     }
                 }
         }
-        dataListenerJobs.add(txMetadataJob)
+        dataListenerJobs.add(cacheMetadataJob)
 
-        // BLOCKTANK - Observe paid orders
+        // BLOCKTANK - Observe blocktank state changes (orders, cjitEntries, info)
         val blocktankJob = scope.launch {
-            cacheStore.data
-                .map { it.paidOrders }
-                .distinctUntilChanged()
+            blocktankRepo.blocktankState
                 .drop(1)
                 .collect {
                     if (!isRestoring) {
@@ -219,8 +199,7 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(blocktankJob)
 
-        // ACTIVITY - Observe all activity changes
-        // ActivityRepo notifies on insert, update, delete, tag changes, and sync completion
+        // ACTIVITY - Observe all activity changes notified by ActivityRepo on any mutation to core's activity store
         val activityChangesJob = scope.launch {
             activityRepo.activitiesChanged
                 .drop(1)
@@ -231,36 +210,6 @@ class BackupRepo @Inject constructor(
                 }
         }
         dataListenerJobs.add(activityChangesJob)
-
-        // ACTIVITY - Also observe deleted activities list from CacheStore
-        val deletedActivitiesJob = scope.launch {
-            // TODO concat into one job using combine of deletedActivities + activitiesPendingDelete
-            cacheStore.data
-                .map { it.deletedActivities }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.LDK_ACTIVITY)
-                    }
-                }
-        }
-        dataListenerJobs.add(deletedActivitiesJob)
-
-        // ACTIVITY - Also observe activities pending delete from CacheStore
-        val activitiesPendingDeleteJob = scope.launch {
-            // TODO concat into one job using combine of deletedActivities + activitiesPendingDelete
-            cacheStore.data
-                .map { it.activitiesPendingDelete }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.LDK_ACTIVITY)
-                    }
-                }
-        }
-        dataListenerJobs.add(activitiesPendingDeleteJob)
 
         // LIGHTNING_CONNECTIONS - Only display sync timestamp, ldk-node manages its own backups
         val lightningConnectionsJob = scope.launch {
@@ -390,12 +339,10 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.WALLET -> {
-            val boostedActivities = cacheStore.data.first().pendingBoostActivities
             val transfers = db.transferDao().getAll()
 
             val payload = WalletBackupV1(
                 createdAt = currentTimeMillis(),
-                boostedActivities = boostedActivities,
                 transfers = transfers
             )
 
@@ -404,24 +351,22 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll()
-            val txMetadata = cacheStore.data.first().transactionsMetadata
+            val cacheData = cacheStore.data.first()
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
                 tagMetadata = tagMetadata,
-                transactionsMetadata = txMetadata
+                cache = cacheData,
             )
 
             json.encodeToString(payload).toByteArray()
         }
 
         BackupCategory.BLOCKTANK -> {
-            val paidOrders = cacheStore.data.first().paidOrders
             val blocktankState = blocktankRepo.blocktankState.first()
 
             val payload = BlocktankBackupV1(
                 createdAt = currentTimeMillis(),
-                paidOrders = paidOrders,
                 orders = blocktankState.orders,
                 cjitEntries = blocktankState.cjitEntries,
                 info = blocktankState.info,
@@ -432,13 +377,10 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.LDK_ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
-            val cacheData = cacheStore.data.first()
 
             val payload = ActivityBackupV1(
                 createdAt = currentTimeMillis(),
                 activities = activities,
-                deletedActivities = cacheData.deletedActivities,
-                activitiesPendingDelete = cacheData.activitiesPendingDelete,
             )
 
             json.encodeToString(payload).toByteArray()
@@ -469,16 +411,7 @@ class BackupRepo @Inject constructor(
                     db.transferDao().insert(transfer)
                 }
 
-                // Restore boosted activities (idempotent via txId)
-                parsed.boostedActivities.forEach { activity ->
-                    // TODO add addActivityToPendingBoost(vararg) and use it instead
-                    cacheStore.addActivityToPendingBoost(activity)
-                }
-
-                Logger.debug(
-                    "Restored ${parsed.transfers.size} transfers and ${parsed.boostedActivities.size} boosted activities",
-                    context = TAG
-                )
+                Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
             }
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
@@ -489,27 +422,14 @@ class BackupRepo @Inject constructor(
                     db.tagMetadataDao().saveTagMetadata(entity)
                 }
 
-                // Restore transaction metadata (idempotent via txId)
-                parsed.transactionsMetadata.forEach { metadata ->
-                    // TODO add addTransactionMetadata(vararg) and use it instead
-                    cacheStore.addTransactionMetadata(metadata)
-                }
+                cacheStore.update { parsed.cache }
 
-                Logger.debug(
-                    "Restored ${parsed.tagMetadata.size} tag metadata entries and ${parsed.transactionsMetadata.size} transaction metadata",
-                    context = TAG
-                )
+                Logger.debug("Restored ${parsed.tagMetadata.size} tags and complete cache data", context = TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
 
-                // Restore paid orders (idempotent via orderId)
-                // TODO add addPaidOrder(vararg) and use it instead
-                parsed.paidOrders.forEach { (orderId, txId) ->
-                    cacheStore.addPaidOrder(orderId, txId)
-                }
-
-                // TODO: Restore orders, CJIT entries, and info to bitkit-core storage
+                // TODO: Restore orders, CJIT entries, and info in bitkit-core
                 // This requires bitkit-core to expose an API for restoring orders/cjitEntries/info
                 // For now, trigger a refresh from the Blocktank server to sync the data
                 // Data is preserved in backup: ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null}
@@ -517,7 +437,7 @@ class BackupRepo @Inject constructor(
                 blocktankRepo.refreshOrders()
 
                 Logger.debug(
-                    "Restored ${parsed.paidOrders.size} paid orders (${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null} backed up)",
+                    "Triggered Blocktank refresh (${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null} backed up)",
                     context = TAG,
                 )
             }
@@ -529,28 +449,10 @@ class BackupRepo @Inject constructor(
                     activityRepo.upsertActivity(activity)
                 }
 
-                // Restore deleted activities list (idempotent via addActivityToDeletedList)
-                // TODO add addActivityToDeletedList(vararg) and use it instead
-                parsed.deletedActivities.forEach { activityId ->
-                    cacheStore.addActivityToDeletedList(activityId)
-                }
-
-                // Restore activities pending deletion (idempotent via addActivityToPendingDelete)
-                // TODO add addActivityToPendingDelete(vararg) and use it instead
-                parsed.activitiesPendingDelete.forEach { activityId ->
-                    cacheStore.addActivityToPendingDelete(activityId)
-                }
-
-                Logger.debug(
-                    "Restored ${parsed.activities.size} activities, ${parsed.deletedActivities.size} deleted, ${parsed.activitiesPendingDelete.size} pending delete",
-                    context = TAG,
-                )
+                Logger.debug("Restored ${parsed.activities.size} activities", context = TAG)
             }
 
-            // TODO: Add other backup categories as they get implemented:
-            // performSlashtagsRestore()
-
-            Logger.info("Full restore completed", context = TAG)
+            Logger.info("Full restore success", context = TAG)
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.warn("Full restore error", e = e, context = TAG)
