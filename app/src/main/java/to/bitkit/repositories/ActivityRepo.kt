@@ -641,9 +641,7 @@ class ActivityRepo @Inject constructor(
                 tags = tags,
                 createdAt = nowTimestamp().toEpochMilli()
             )
-            db.tagMetadataDao().saveTagMetadata(
-                tagMetadata = entity
-            )
+            db.tagMetadataDao().insert(tagMetadata = entity)
             Logger.debug("Tag metadata saved: $entity", context = TAG)
         }.onFailure { e ->
             Logger.error("getAllAvailableTags error", e, context = TAG)

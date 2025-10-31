@@ -13,7 +13,7 @@ import to.bitkit.data.entities.TagMetadataEntity
 interface TagMetadataDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveTagMetadata(tagMetadata: TagMetadataEntity)
+    suspend fun insert(tagMetadata: TagMetadataEntity)
 
     @Upsert
     suspend fun upsert(tagMetadata: TagMetadataEntity)

@@ -424,9 +424,7 @@ class WalletRepo @Inject constructor(
                     isReceive = true,
                     createdAt = nowTimestamp().toEpochMilli()
                 )
-                db.tagMetadataDao().saveTagMetadata(
-                    tagMetadata = entity
-                )
+                db.tagMetadataDao().insert(tagMetadata = entity)
                 Logger.debug("Tag metadata saved: $entity", context = TAG)
             } catch (e: Throwable) {
                 Logger.error("saveInvoice error", e, context = TAG)
