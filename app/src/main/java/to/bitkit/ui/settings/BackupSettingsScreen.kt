@@ -31,8 +31,6 @@ import to.bitkit.env.Env
 import to.bitkit.ext.toLocalizedTimestamp
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
-import to.bitkit.models.uiIcon
-import to.bitkit.models.uiTitle
 import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.backupsViewModel
@@ -176,11 +174,11 @@ private fun BackupStatusItem(
     ) {
         BackupStatusIcon(
             status = uiState.status,
-            iconRes = uiState.category.uiIcon(),
+            iconRes = uiState.category.uiIcon,
         )
 
         Column(modifier = Modifier.weight(1f)) {
-            BodyMSB(text = stringResource(uiState.category.uiTitle()))
+            BodyMSB(text = stringResource(uiState.category.uiTitle))
             CaptionB(text = subtitle, color = Colors.White64, maxLines = 1)
         }
 
