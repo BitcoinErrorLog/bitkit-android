@@ -6,6 +6,7 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.Clock
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -36,6 +37,7 @@ class ActivityRepoTest : BaseUnitTest() {
     private val cacheStore: CacheStore = mock()
     private val addressChecker: AddressChecker = mock()
     private val db: AppDb = mock()
+    private val clock: Clock = mock()
 
     private lateinit var sut: ActivityRepo
 
@@ -55,6 +57,7 @@ class ActivityRepoTest : BaseUnitTest() {
     fun setUp() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
         whenever(coreService.activity).thenReturn(mock())
+        whenever(clock.now()).thenReturn(Clock.System.now())
 
         sut = ActivityRepo(
             bgDispatcher = testDispatcher,
@@ -64,6 +67,7 @@ class ActivityRepoTest : BaseUnitTest() {
             addressChecker = addressChecker,
             db = db,
             transferRepo = mock(),
+            clock = clock,
         )
     }
 
