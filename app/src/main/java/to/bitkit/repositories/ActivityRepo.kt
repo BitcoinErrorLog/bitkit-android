@@ -83,7 +83,7 @@ class ActivityRepo @Inject constructor(
                     boostPendingActivities()
                     transferRepo.syncTransferStates()
                     isSyncingLdkNodePayments.value = false
-                    notifyActivitiesChanged()
+                    // Note: We don't call notifyActivitiesChanged() here to avoid backups on every sync.
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
                     Logger.error("Failed to sync ldk-node payments", e, context = TAG)
