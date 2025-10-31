@@ -149,7 +149,6 @@ class BackupRepo @Inject constructor(
 
         // WALLET - Observe transfers
         val transfersJob = scope.launch {
-            // TODO concat into one job using combine of boosts + transfers
             db.transferDao().observeAll()
                 .distinctUntilChanged()
                 .drop(1)
@@ -407,8 +406,7 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
 
                 parsed.transfers.forEach { transfer ->
-                    // TODO add transferDao().upsert() and use it instead
-                    db.transferDao().insert(transfer)
+                    db.transferDao().upsert(transfer)
                 }
 
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
@@ -418,8 +416,7 @@ class BackupRepo @Inject constructor(
 
                 // Restore tag metadata (idempotent via primary key with INSERT OR REPLACE)
                 parsed.tagMetadata.forEach { entity ->
-                    // TODO add tagMetadataDao().upsert() and use it instead
-                    db.tagMetadataDao().saveTagMetadata(entity)
+                    db.tagMetadataDao().upsert(entity)
                 }
 
                 cacheStore.update { parsed.cache }

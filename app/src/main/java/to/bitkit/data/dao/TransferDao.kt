@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import to.bitkit.data.entities.TransferEntity
 
@@ -12,6 +13,9 @@ import to.bitkit.data.entities.TransferEntity
 interface TransferDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transfer: TransferEntity)
+
+    @Upsert
+    suspend fun upsert(transfer: TransferEntity)
 
     @Update
     suspend fun update(transfer: TransferEntity)
