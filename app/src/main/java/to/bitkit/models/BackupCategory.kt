@@ -3,18 +3,6 @@ package to.bitkit.models
 import kotlinx.serialization.Serializable
 import to.bitkit.R
 
-/**
- * @property running In progress
- * @property synced Timestamp in ms of last time this backup was synced
- * @property required Timestamp in ms of last time this backup was required
- */
-@Serializable
-data class BackupItemStatus(
-    val running: Boolean = false,
-    val synced: Long = 0L,
-    val required: Long = 0L,
-)
-
 @Serializable
 enum class BackupCategory(
     val uiIcon: Int,
@@ -58,3 +46,15 @@ enum class BackupCategory(
     //     uiTitle = R.string.settings__backup__category_contacts,
     // ),
 }
+
+/**
+ * @property running In progress
+ * @property synced Timestamp in ms of last time this backup was synced
+ * @property required Timestamp in ms of last time this backup was required
+ */
+@Serializable
+data class BackupItemStatus(
+    val running: Boolean = false,
+    val synced: Long = 0L,
+    val required: Long = 0L,
+)
