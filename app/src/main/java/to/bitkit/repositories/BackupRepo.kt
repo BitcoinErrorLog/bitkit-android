@@ -205,7 +205,7 @@ class BackupRepo @Inject constructor(
                 .drop(1)
                 .collect {
                     if (!isRestoring) {
-                        markBackupRequired(BackupCategory.LDK_ACTIVITY)
+                        markBackupRequired(BackupCategory.ACTIVITY)
                     }
                 }
         }
@@ -375,7 +375,7 @@ class BackupRepo @Inject constructor(
             json.encodeToString(payload).toByteArray()
         }
 
-        BackupCategory.LDK_ACTIVITY -> {
+        BackupCategory.ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
 
             val payload = ActivityBackupV1(
@@ -441,7 +441,7 @@ class BackupRepo @Inject constructor(
                     context = TAG,
                 )
             }
-            performRestore(BackupCategory.LDK_ACTIVITY) { dataBytes ->
+            performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
 
                 // Restore activities using upsertActivity (idempotent - insert or update)

@@ -251,7 +251,7 @@ private fun Preview() {
             val timestamp = System.currentTimeMillis() - (minutesAgo * 60 * 1000)
 
             when (it.category) {
-                BackupCategory.LDK_ACTIVITY -> it.copy(disableRetry = true)
+                BackupCategory.ACTIVITY -> it.copy(disableRetry = true)
                 BackupCategory.WALLET -> it.copy(status = BackupItemStatus(running = true, required = 1))
                 BackupCategory.METADATA -> it.copy(status = BackupItemStatus(required = 1))
                 else -> it.copy(status = BackupItemStatus(synced = timestamp, required = timestamp))

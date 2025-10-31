@@ -16,7 +16,7 @@ enum class BackupCategory(
         uiIcon = R.drawable.ic_note,
         uiTitle = R.string.settings__backup__category_connection_receipts,
     ),
-    LDK_ACTIVITY(
+    ACTIVITY(
         uiIcon = R.drawable.ic_transfer,
         uiTitle = R.string.settings__backup__category_transaction_log,
     ),
