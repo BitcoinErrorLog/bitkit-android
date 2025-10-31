@@ -429,15 +429,15 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
 
-                // TODO: Restore orders, CJIT entries, and info in bitkit-core
-                // This requires bitkit-core to expose an API for restoring orders/cjitEntries/info
-                // For now, trigger a refresh from the Blocktank server to sync the data
-                // Data is preserved in backup: ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null}
+                // TODO: Restore orders, CJIT entries, and info to bitkit-core using synonymdev/bitkit-core#46
+                // For now, trigger a refresh from the server to sync the data
                 blocktankRepo.refreshInfo()
                 blocktankRepo.refreshOrders()
 
                 Logger.debug(
-                    "Triggered Blocktank refresh (${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null} backed up)",
+                    "Triggered Blocktank refresh (${parsed.orders.size} orders," +
+                        "${parsed.cjitEntries.size} CJIT entries," +
+                        "info=${parsed.info != null} backed up)",
                     context = TAG,
                 )
             }
