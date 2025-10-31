@@ -32,6 +32,7 @@ import to.bitkit.models.BlocktankBackupV1
 import to.bitkit.models.MetadataBackupV1
 import to.bitkit.models.Toast
 import to.bitkit.models.WalletBackupV1
+import to.bitkit.services.LightningService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -47,6 +48,7 @@ class BackupRepo @Inject constructor(
     private val widgetsStore: WidgetsStore,
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
+    private val lightningService: LightningService,
     private val db: AppDb,
 ) {
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
@@ -258,6 +260,23 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(activitiesPendingDeleteJob)
 
+        // LIGHTNING_CONNECTIONS - Only display sync timestamp, ldk-node manages its own backups
+        val lightningConnectionsJob = scope.launch {
+            lightningService.syncFlow()
+                .collect {
+                    val lastSync = lightningService.status?.latestLightningWalletSyncTimestamp?.toLong()
+                        ?.let { it * 1000 } // Convert seconds to millis
+                        ?: return@collect
+                    if (!isRestoring) {
+                        cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
+                            it.copy(required = lastSync, synced = lastSync, running = false)
+                        }
+                        Logger.verbose("Updated lightning backup timestamp to: '$lastSync'", context = TAG)
+                    }
+                }
+        }
+        dataListenerJobs.add(lightningConnectionsJob)
+
         Logger.debug("Started ${dataListenerJobs.size} data store listeners", context = TAG)
     }
 
@@ -397,7 +416,6 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.BLOCKTANK -> {
             val paidOrders = cacheStore.data.first().paidOrders
-            // Fetch all orders, CJIT entries, and info from BlocktankRepo state
             val blocktankState = blocktankRepo.blocktankState.first()
 
             val payload = BlocktankBackupV1(
@@ -429,9 +447,7 @@ class BackupRepo @Inject constructor(
             json.encodeToString(payload).toByteArray()
         }
 
-        BackupCategory.LIGHTNING_CONNECTIONS -> {
-            throw NotImplementedError("Lightning connections backup not yet implemented")
-        }
+        BackupCategory.LIGHTNING_CONNECTIONS -> throw NotImplementedError("LIGHTNING backup is managed by ldk-node")
     }
 
     suspend fun performFullRestoreFromLatestBackup(): Result<Unit> = withContext(bgDispatcher) {
