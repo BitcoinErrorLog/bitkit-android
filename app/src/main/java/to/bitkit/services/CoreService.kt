@@ -199,6 +199,12 @@ class ActivityService(
         }
     }
 
+    suspend fun upsert(activity: Activity) {
+        ServiceQueue.CORE.background {
+            upsertActivity(activity)
+        }
+    }
+
     suspend fun getActivity(id: String): Activity? {
         return ServiceQueue.CORE.background {
             getActivityById(id)

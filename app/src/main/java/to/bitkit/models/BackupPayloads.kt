@@ -58,3 +58,19 @@ data class BlocktankBackupV1(
     val info: IBtInfo? = null,
 )
 
+/**
+ * Activity backup payload (v1)
+ *
+ * Contains:
+ * - ALL activities (onchain + lightning) from bitkit-core
+ * - Deleted activity IDs from CacheStore
+ * - Activities pending deletion from CacheStore
+ */
+@Serializable
+data class ActivityBackupV1(
+    val version: Int = 1,
+    val createdAt: Long,
+    val activities: List<Activity>,
+    val deletedActivities: List<String>,
+    val activitiesPendingDelete: List<String>,
+)
