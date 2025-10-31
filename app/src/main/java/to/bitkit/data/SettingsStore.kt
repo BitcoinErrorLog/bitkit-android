@@ -20,7 +20,7 @@ import javax.inject.Singleton
 
 private val Context.settingsDataStore: DataStore<SettingsData> by dataStore(
     fileName = "settings.json",
-    serializer = SettingsSerializer
+    serializer = SettingsSerializer,
 )
 
 @Singleton

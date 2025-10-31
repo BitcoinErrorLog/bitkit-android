@@ -27,7 +27,7 @@ import javax.inject.Singleton
 
 private val Context.widgetsDataStore: DataStore<WidgetsData> by dataStore(
     fileName = "widgets.json",
-    serializer = WidgetsSerializer
+    serializer = WidgetsSerializer,
 )
 
 @Singleton

@@ -16,6 +16,12 @@ interface TransferDao {
     @Update
     suspend fun update(transfer: TransferEntity)
 
+    @Query("SELECT * FROM transfers")
+    suspend fun getAll(): List<TransferEntity>
+
+    @Query("SELECT * FROM transfers")
+    fun observeAll(): Flow<List<TransferEntity>>
+
     @Query("SELECT * FROM transfers WHERE isSettled = 0")
     fun getActiveTransfers(): Flow<List<TransferEntity>>
 

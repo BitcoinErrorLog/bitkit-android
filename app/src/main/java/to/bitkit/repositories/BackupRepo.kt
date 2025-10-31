@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.R
+import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
@@ -27,6 +28,7 @@ import to.bitkit.ext.formatPlural
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.Toast
+import to.bitkit.models.WalletBackupV1
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -40,6 +42,7 @@ class BackupRepo @Inject constructor(
     private val vssBackupClient: VssBackupClient,
     private val settingsStore: SettingsStore,
     private val widgetsStore: WidgetsStore,
+    private val db: AppDb,
 ) {
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -134,6 +137,35 @@ class BackupRepo @Inject constructor(
                 }
         }
         dataListenerJobs.add(widgetsJob)
+
+        // WALLET - Observe boosted activities
+        val boostJob = scope.launch {
+            // TODO concat into one job using combine of boosts + transfers
+            cacheStore.data
+                .map { it.pendingBoostActivities }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    if (!isRestoring) {
+                        markBackupRequired(BackupCategory.WALLET)
+                    }
+                }
+        }
+        dataListenerJobs.add(boostJob)
+
+        // WALLET - Observe transfers
+        val transfersJob = scope.launch {
+            // TODO concat into one job using combine of boosts + transfers
+            db.transferDao().observeAll()
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    if (!isRestoring) {
+                        markBackupRequired(BackupCategory.WALLET)
+                    }
+                }
+        }
+        dataListenerJobs.add(transfersJob)
 
         Logger.debug("Started ${dataListenerJobs.size} data store listeners", context = TAG)
     }
@@ -247,7 +279,16 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.WALLET -> {
-            throw NotImplementedError("Wallet backup not yet implemented")
+            val boostedActivities = cacheStore.data.first().pendingBoostActivities
+            val transfers = db.transferDao().getAll()
+
+            val payload = WalletBackupV1(
+                createdAt = System.currentTimeMillis(),
+                boostedActivities = boostedActivities,
+                transfers = transfers
+            )
+
+            json.encodeToString(payload).toByteArray()
         }
 
         BackupCategory.METADATA -> {
@@ -285,9 +326,26 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<WidgetsData>(String(dataBytes))
                 widgetsStore.update { parsed }
             }
+            performRestore(BackupCategory.WALLET) { dataBytes ->
+                val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
+
+                parsed.transfers.forEach { transfer ->
+                    // TODO add transferDao().upsert() and use it instead
+                    db.transferDao().insert(transfer)
+                }
+
+                // Restore boosted activities (idempotent via txId)
+                parsed.boostedActivities.forEach { activity ->
+                    cacheStore.addActivityToPendingBoost(activity)
+                }
+
+                Logger.debug(
+                    "Restored ${parsed.transfers.size} transfers and ${parsed.boostedActivities.size} boosted activities",
+                    context = TAG
+                )
+            }
             // TODO: Add other backup categories as they get implemented:
             // performMetadataRestore()
-            // performWalletRestore()
             // performBlocktankRestore()
             // performSlashtagsRestore()
             // performLdkActivityRestore()

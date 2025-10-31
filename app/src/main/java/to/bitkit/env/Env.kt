@@ -134,8 +134,16 @@ internal object Env {
         return "$BIT_REFILL_URL/$page/$BITREFILL_PARAMS"
     }
 
+    /**
+     * Generates the storage path for a specified wallet index, network, and directory.
+     *
+     * Output format:
+     *
+     * `appStoragePath/network/walletN/dir`
+     */
     private fun storagePathOf(walletIndex: Int, network: String, dir: String): String {
         require(::appStoragePath.isInitialized) { "App storage path should be 'context.filesDir.absolutePath'." }
+        // appStoragePath/network/walletN/dir
         val path = Path(appStoragePath, network, "wallet$walletIndex", dir)
             .toFile()
             .ensureDir()
