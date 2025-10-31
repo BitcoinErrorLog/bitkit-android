@@ -148,7 +148,9 @@ private fun Content(
                     text = stringResource(R.string.settings__es__button_reset),
                     onClick = onClickReset,
                     enabled = !uiState.isLoading && uiState.canReset,
-                    modifier = Modifier.weight(1f).testTag("ResetToDefault")
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ResetToDefault")
                 )
 
                 PrimaryButton(
@@ -156,7 +158,9 @@ private fun Content(
                     onClick = onClickConnect,
                     enabled = !uiState.isLoading && uiState.canConnect,
                     isLoading = uiState.isLoading,
-                    modifier = Modifier.weight(1f).testTag("ConnectToHost")
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("ConnectToHost")
                 )
             }
             VerticalSpacer(16.dp)
