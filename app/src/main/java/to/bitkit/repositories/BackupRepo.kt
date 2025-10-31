@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import to.bitkit.R
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
@@ -49,6 +50,7 @@ class BackupRepo @Inject constructor(
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
     private val lightningService: LightningService,
+    private val clock: Clock,
     private val db: AppDb,
 ) {
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
@@ -271,7 +273,6 @@ class BackupRepo @Inject constructor(
                         cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
                             it.copy(required = lastSync, synced = lastSync, running = false)
                         }
-                        Logger.verbose("Updated lightning backup timestamp to: '$lastSync'", context = TAG)
                     }
                 }
         }
@@ -292,7 +293,7 @@ class BackupRepo @Inject constructor(
     private fun markBackupRequired(category: BackupCategory) {
         scope.launch {
             cacheStore.updateBackupStatus(category) {
-                it.copy(required = System.currentTimeMillis())
+                it.copy(required = currentTimeMillis())
             }
             Logger.verbose("Marked backup required for: '$category'", context = TAG)
         }
@@ -316,7 +317,7 @@ class BackupRepo @Inject constructor(
     }
 
     private fun checkForFailedBackups() {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = currentTimeMillis()
 
         // find if there are any backup categories that have been failing for more than 30 minutes
         scope.launch {
@@ -356,7 +357,7 @@ class BackupRepo @Inject constructor(
         Logger.debug("Backup starting for: '$category'", context = TAG)
 
         cacheStore.updateBackupStatus(category) {
-            it.copy(running = true, required = System.currentTimeMillis())
+            it.copy(running = true, required = currentTimeMillis())
         }
 
         vssBackupClient.putObject(key = category.name, data = getBackupDataBytes(category))
@@ -364,7 +365,7 @@ class BackupRepo @Inject constructor(
                 cacheStore.updateBackupStatus(category) {
                     it.copy(
                         running = false,
-                        synced = System.currentTimeMillis(),
+                        synced = currentTimeMillis(),
                     )
                 }
                 Logger.info("Backup succeeded for: '$category'", context = TAG)
@@ -393,7 +394,7 @@ class BackupRepo @Inject constructor(
             val transfers = db.transferDao().getAll()
 
             val payload = WalletBackupV1(
-                createdAt = System.currentTimeMillis(),
+                createdAt = currentTimeMillis(),
                 boostedActivities = boostedActivities,
                 transfers = transfers
             )
@@ -406,7 +407,7 @@ class BackupRepo @Inject constructor(
             val txMetadata = cacheStore.data.first().transactionsMetadata
 
             val payload = MetadataBackupV1(
-                createdAt = System.currentTimeMillis(),
+                createdAt = currentTimeMillis(),
                 tagMetadata = tagMetadata,
                 transactionsMetadata = txMetadata
             )
@@ -419,7 +420,7 @@ class BackupRepo @Inject constructor(
             val blocktankState = blocktankRepo.blocktankState.first()
 
             val payload = BlocktankBackupV1(
-                createdAt = System.currentTimeMillis(),
+                createdAt = currentTimeMillis(),
                 paidOrders = paidOrders,
                 orders = blocktankState.orders,
                 cjitEntries = blocktankState.cjitEntries,
@@ -434,7 +435,7 @@ class BackupRepo @Inject constructor(
             val cacheData = cacheStore.data.first()
 
             val payload = ActivityBackupV1(
-                createdAt = System.currentTimeMillis(),
+                createdAt = currentTimeMillis(),
                 activities = activities,
                 deletedActivities = cacheData.deletedActivities,
                 activitiesPendingDelete = cacheData.activitiesPendingDelete,
@@ -577,9 +578,11 @@ class BackupRepo @Inject constructor(
             }
 
         cacheStore.updateBackupStatus(category) {
-            it.copy(running = false, synced = System.currentTimeMillis())
+            it.copy(running = false, synced = currentTimeMillis())
         }
     }
+
+    private fun currentTimeMillis(): Long = clock.now().toEpochMilliseconds()
 
     companion object {
         private const val TAG = "BackupRepo"
