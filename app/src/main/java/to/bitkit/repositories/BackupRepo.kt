@@ -27,6 +27,7 @@ import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
+import to.bitkit.models.BlocktankBackupV1
 import to.bitkit.models.MetadataBackupV1
 import to.bitkit.models.Toast
 import to.bitkit.models.WalletBackupV1
@@ -43,6 +44,7 @@ class BackupRepo @Inject constructor(
     private val vssBackupClient: VssBackupClient,
     private val settingsStore: SettingsStore,
     private val widgetsStore: WidgetsStore,
+    private val blocktankRepo: BlocktankRepo,
     private val db: AppDb,
 ) {
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
@@ -197,6 +199,20 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(txMetadataJob)
 
+        // BLOCKTANK - Observe paid orders
+        val blocktankJob = scope.launch {
+            cacheStore.data
+                .map { it.paidOrders }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    if (!isRestoring) {
+                        markBackupRequired(BackupCategory.BLOCKTANK)
+                    }
+                }
+        }
+        dataListenerJobs.add(blocktankJob)
+
         Logger.debug("Started ${dataListenerJobs.size} data store listeners", context = TAG)
     }
 
@@ -335,8 +351,17 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.BLOCKTANK -> {
-            throw NotImplementedError("Blocktank backup not yet implemented")
-        }
+            val paidOrders = cacheStore.data.first().paidOrders
+            // Fetch all orders, CJIT entries, and info from BlocktankRepo state
+            val blocktankState = blocktankRepo.blocktankState.first()
+
+            val payload = BlocktankBackupV1(
+                createdAt = System.currentTimeMillis(),
+                paidOrders = paidOrders,
+                orders = blocktankState.orders,
+                cjitEntries = blocktankState.cjitEntries,
+                info = blocktankState.info,
+            )
 
         BackupCategory.SLASHTAGS -> {
             throw NotImplementedError("Slashtags backup not yet implemented")
@@ -404,8 +429,28 @@ class BackupRepo @Inject constructor(
                     context = TAG
                 )
             }
+            performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
+                val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
+
+                // Restore paid orders (idempotent via orderId)
+                parsed.paidOrders.forEach { (orderId, txId) ->
+                    // TODO add addPaidOrder(vararg) and use it instead
+                    cacheStore.addPaidOrder(orderId, txId)
+                }
+
+                // TODO: Restore orders, CJIT entries, and info to bitkit-core storage
+                // This requires bitkit-core to expose an API for restoring orders/cjitEntries/info
+                // For now, trigger a refresh from the Blocktank server to sync the data
+                // Data is preserved in backup: ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null}
+                blocktankRepo.refreshInfo()
+                blocktankRepo.refreshOrders()
+
+                Logger.debug(
+                    "Restored ${parsed.paidOrders.size} paid orders (${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries, info=${parsed.info != null} backed up)",
+                    context = TAG,
+                )
+            }
             // TODO: Add other backup categories as they get implemented:
-            // performBlocktankRestore()
             // performSlashtagsRestore()
             // performLdkActivityRestore()
 
