@@ -2,7 +2,9 @@ package to.bitkit.data.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(tableName = "tag_metadata")
 /**
  * @param id This will be paymentHash, txId, or address depending on context

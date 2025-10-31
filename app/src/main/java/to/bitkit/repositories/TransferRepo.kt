@@ -54,6 +54,8 @@ class TransferRepo @Inject constructor(
         }
     }
 
+    // TODO maybe replace with delete, or call delete once activity item was augmented with the transfer's data.
+    //  Likely no clear reason to keep persisting transfers afterwards.
     suspend fun markSettled(id: String): Result<Unit> = withContext(bgDispatcher) {
         runCatching {
             val settledAt = clock.now().epochSeconds

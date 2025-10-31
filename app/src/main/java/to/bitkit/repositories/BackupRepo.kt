@@ -27,6 +27,7 @@ import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
+import to.bitkit.models.MetadataBackupV1
 import to.bitkit.models.Toast
 import to.bitkit.models.WalletBackupV1
 import to.bitkit.ui.shared.toast.ToastEventBus
@@ -167,6 +168,35 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(transfersJob)
 
+        // METADATA - Observe tag metadata
+        val tagMetadataJob = scope.launch {
+            // TODO concat into one job using combine of tagMetadataDao + transactionsMetadata
+            db.tagMetadataDao().observeAll()
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    if (!isRestoring) {
+                        markBackupRequired(BackupCategory.METADATA)
+                    }
+                }
+        }
+        dataListenerJobs.add(tagMetadataJob)
+
+        // METADATA - Observe transaction metadata
+        val txMetadataJob = scope.launch {
+            // TODO concat into one job using combine of tagMetadataDao + transactionsMetadata
+            cacheStore.data
+                .map { it.transactionsMetadata }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    if (!isRestoring) {
+                        markBackupRequired(BackupCategory.METADATA)
+                    }
+                }
+        }
+        dataListenerJobs.add(txMetadataJob)
+
         Logger.debug("Started ${dataListenerJobs.size} data store listeners", context = TAG)
     }
 
@@ -292,7 +322,16 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.METADATA -> {
-            throw NotImplementedError("Metadata backup not yet implemented")
+            val tagMetadata = db.tagMetadataDao().getAll()
+            val txMetadata = cacheStore.data.first().transactionsMetadata
+
+            val payload = MetadataBackupV1(
+                createdAt = System.currentTimeMillis(),
+                tagMetadata = tagMetadata,
+                transactionsMetadata = txMetadata
+            )
+
+            json.encodeToString(payload).toByteArray()
         }
 
         BackupCategory.BLOCKTANK -> {
@@ -336,6 +375,7 @@ class BackupRepo @Inject constructor(
 
                 // Restore boosted activities (idempotent via txId)
                 parsed.boostedActivities.forEach { activity ->
+                    // TODO add addActivityToPendingBoost(vararg) and use it instead
                     cacheStore.addActivityToPendingBoost(activity)
                 }
 
@@ -344,8 +384,27 @@ class BackupRepo @Inject constructor(
                     context = TAG
                 )
             }
+            performRestore(BackupCategory.METADATA) { dataBytes ->
+                val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
+
+                // Restore tag metadata (idempotent via primary key with INSERT OR REPLACE)
+                parsed.tagMetadata.forEach { entity ->
+                    // TODO add tagMetadataDao().upsert() and use it instead
+                    db.tagMetadataDao().saveTagMetadata(entity)
+                }
+
+                // Restore transaction metadata (idempotent via txId)
+                parsed.transactionsMetadata.forEach { metadata ->
+                    // TODO add addTransactionMetadata(vararg) and use it instead
+                    cacheStore.addTransactionMetadata(metadata)
+                }
+
+                Logger.debug(
+                    "Restored ${parsed.tagMetadata.size} tag metadata entries and ${parsed.transactionsMetadata.size} transaction metadata",
+                    context = TAG
+                )
+            }
             // TODO: Add other backup categories as they get implemented:
-            // performMetadataRestore()
             // performBlocktankRestore()
             // performSlashtagsRestore()
             // performLdkActivityRestore()
