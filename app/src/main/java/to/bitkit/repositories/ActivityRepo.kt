@@ -51,10 +51,6 @@ class ActivityRepo @Inject constructor(
 ) {
     val isSyncingLdkNodePayments = MutableStateFlow(false)
 
-    /**
-     * Emits a timestamp whenever activities are modified (insert, update, delete, tag changes, etc.)
-     * Used to trigger backups and UI updates.
-     */
     private val _activitiesChanged = MutableStateFlow(0L)
     val activitiesChanged: StateFlow<Long> = _activitiesChanged
 
@@ -83,7 +79,6 @@ class ActivityRepo @Inject constructor(
                     boostPendingActivities()
                     transferRepo.syncTransferStates()
                     isSyncingLdkNodePayments.value = false
-                    // Note: We don't call notifyActivitiesChanged() here to avoid backups on every sync.
                     return@withContext Result.success(Unit)
                 }.onFailure { e ->
                     Logger.error("Failed to sync ldk-node payments", e, context = TAG)

@@ -9,12 +9,6 @@ import to.bitkit.data.AppCacheData
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.entities.TransferEntity
 
-/**
- * Wallet backup payload (v1)
- *
- * Contains:
- * - Transfer entities from Room database
- */
 @Serializable
 data class WalletBackupV1(
     val version: Int = 1,
@@ -22,13 +16,6 @@ data class WalletBackupV1(
     val transfers: List<TransferEntity>,
 )
 
-/**
- * Metadata backup payload (v1)
- *
- * Contains:
- * - Tag metadata entities from Room database
- * - Entire AppCacheData from CacheStore
- */
 @Serializable
 data class MetadataBackupV1(
     val version: Int = 1,
@@ -37,14 +24,6 @@ data class MetadataBackupV1(
     val cache: AppCacheData,
 )
 
-/**
- * Blocktank backup payload (v1)
- *
- * Contains:
- * - List of IBtOrder from bitkit-core
- * - List of IcJitEntry from bitkit-core
- * - IBtInfo from bitkit-core
- */
 @Serializable
 data class BlocktankBackupV1(
     val version: Int = 1,
@@ -54,12 +33,6 @@ data class BlocktankBackupV1(
     val info: IBtInfo? = null,
 )
 
-/**
- * Activity backup payload (v1)
- *
- * Contains:
- * - ALL activities (onchain + lightning) from bitkit-core
- */
 @Serializable
 data class ActivityBackupV1(
     val version: Int = 1,
