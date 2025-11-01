@@ -128,9 +128,8 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.SETTINGS)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.SETTINGS)
                 }
         }
         dataListenerJobs.add(settingsJob)
@@ -140,9 +139,8 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.WIDGETS)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.WIDGETS)
                 }
         }
         dataListenerJobs.add(widgetsJob)
@@ -153,9 +151,8 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.WALLET)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.WALLET)
                 }
         }
         dataListenerJobs.add(transfersJob)
@@ -166,9 +163,8 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.METADATA)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.METADATA)
                 }
         }
         dataListenerJobs.add(tagMetadataJob)
@@ -179,9 +175,8 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.METADATA)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.METADATA)
                 }
         }
         dataListenerJobs.add(cacheMetadataJob)
@@ -191,9 +186,8 @@ class BackupRepo @Inject constructor(
             blocktankRepo.blocktankState
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.BLOCKTANK)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.BLOCKTANK)
                 }
         }
         dataListenerJobs.add(blocktankJob)
@@ -203,9 +197,8 @@ class BackupRepo @Inject constructor(
             activityRepo.activitiesChanged
                 .drop(1)
                 .collect {
-                    if (!isRestoring) {
-                        markBackupRequired(BackupCategory.ACTIVITY)
-                    }
+                    if (isRestoring) return@collect
+                    markBackupRequired(BackupCategory.ACTIVITY)
                 }
         }
         dataListenerJobs.add(activityChangesJob)
@@ -217,10 +210,9 @@ class BackupRepo @Inject constructor(
                     val lastSync = lightningService.status?.latestLightningWalletSyncTimestamp?.toLong()
                         ?.let { it * 1000 } // Convert seconds to millis
                         ?: return@collect
-                    if (!isRestoring) {
-                        cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
-                            it.copy(required = lastSync, synced = lastSync, running = false)
-                        }
+                    if (isRestoring) return@collect
+                    cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
+                        it.copy(required = lastSync, synced = lastSync, running = false)
                     }
                 }
         }
