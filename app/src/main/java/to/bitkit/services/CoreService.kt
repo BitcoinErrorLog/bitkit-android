@@ -164,7 +164,7 @@ class CoreService @Inject constructor(
 // endregion
 
 // region Activity
-private const val CHUNCK_SIZE = 50
+private const val CHUNK_SIZE = 50
 
 class ActivityService(
     private val coreService: CoreService,
@@ -284,7 +284,7 @@ class ActivityService(
         ServiceQueue.CORE.background {
             val allResults = mutableListOf<Result<String>>()
 
-            payments.chunked(CHUNCK_SIZE).forEach { chunk ->
+            payments.chunked(CHUNK_SIZE).forEach { chunk ->
                 val results = chunk.map { payment ->
                     async {
                         runCatching {
