@@ -406,7 +406,6 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
 
-                // Restore tag metadata (idempotent via primary key with INSERT OR REPLACE)
                 parsed.tagMetadata.forEach { entity ->
                     db.tagMetadataDao().upsert(entity)
                 }
@@ -433,7 +432,6 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
 
-                // Restore activities using upsertActivity (idempotent - insert or update)
                 parsed.activities.forEach { activity ->
                     activityRepo.upsertActivity(activity)
                 }
