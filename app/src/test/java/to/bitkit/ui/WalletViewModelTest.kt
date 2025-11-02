@@ -69,9 +69,9 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `refreshReceiveState should refresh receive state`() = test {
         sut.refreshReceiveState()
 
+        verify(blocktankRepo).refreshInfo()
         verify(lightningRepo).updateGeoBlockState()
         verify(walletRepo).refreshBip21()
-        verify(blocktankRepo).refreshInfo()
     }
 
     @Test
@@ -102,23 +102,6 @@ class WalletViewModelTest : BaseUnitTest() {
 
         verify(lightningRepo).disconnectPeer(testPeer)
         // Add verification for ToastEventBus.send if you have a way to capture those events
-    }
-
-    @Test
-    fun `updateBip21Invoice should call walletRepo updateBip21Invoice and send failure toast`() = test {
-        val testError = Exception("Test error")
-        whenever(walletRepo.updateBip21Invoice(anyOrNull(), any())).thenReturn(Result.failure(testError))
-
-        sut.updateBip21Invoice()
-
-        verify(walletRepo).updateBip21Invoice(anyOrNull(), any())
-        // Add verification for ToastEventBus.send
-    }
-
-    @Test
-    fun `refreshBip21 should call walletRepo refreshBip21`() = test {
-        sut.refreshBip21()
-        verify(walletRepo).refreshBip21()
     }
 
     @Test
@@ -170,7 +153,7 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `updateBip21Description should call walletRepo updateBip21Description`() = test {
         sut.updateBip21Description("test_description")
 
-        verify(walletRepo).updateBip21Description("test_description")
+        verify(walletRepo).setBip21Description("test_description")
     }
 
     @Test

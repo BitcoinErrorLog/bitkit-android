@@ -201,19 +201,6 @@ class WalletRepoTest : BaseUnitTest() {
     }
 
     @Test
-    fun `refreshBip21 forced should always generate new address`() = test {
-        val existingAddress = "existingAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = existingAddress)))
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
-
-        val result = sut.refreshBip21(force = true)
-
-        assertTrue(result.isSuccess)
-        verify(lightningRepo).newAddress()
-    }
-
-    @Test
     fun `syncBalances should update balance cache and state`() = test {
         val expectedState = BalanceState(
             totalOnchainSats = 100_000u,

@@ -257,7 +257,7 @@ class LightningRepo @Inject constructor(
         _isRecoveryMode.value = enabled
     }
 
-    suspend fun updateGeoBlockState() {
+    suspend fun updateGeoBlockState() = withContext(bgDispatcher) {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
             it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightningReceive = shouldBlockLightning)

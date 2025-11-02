@@ -98,39 +98,15 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun refreshBip21(force: Boolean = false): Result<Unit> = withContext(bgDispatcher) {
-        Logger.debug("Refreshing bip21 (force: $force)", context = TAG)
+    suspend fun refreshBip21(): Result<Unit> = withContext(bgDispatcher) {
+        Logger.debug("Refreshing bip21", context = TAG)
 
-        val shouldBlockLightningReceive = coreService.checkGeoBlock().second
+        val (_, shouldBlockLightningReceive) = coreService.checkGeoBlock()
         _walletState.update {
             it.copy(receiveOnSpendingBalance = !shouldBlockLightningReceive)
         }
-
-        // Reset invoice state
-        _walletState.update {
-            it.copy(
-                selectedTags = emptyList(),
-                bip21Description = "",
-                bip21 = "",
-                bip21AmountSats = null,
-            )
-        }
-
-        // Check current address or generate new one
-        val currentAddress = getOnchainAddress()
-        if (force || currentAddress.isEmpty()) {
-            newAddress()
-        } else {
-            // Check if current address has been used
-            checkAddressUsage(currentAddress)
-                .onSuccess { hasTransactions ->
-                    if (hasTransactions) {
-                        // Address has been used, generate a new one
-                        newAddress()
-                    }
-                }
-        }
-
+        clearBip21State()
+        refreshAddressIfNeeded()
         updateBip21Invoice()
         return@withContext Result.success(Unit)
     }
@@ -172,9 +148,64 @@ class WalletRepo @Inject constructor(
 
     suspend fun refreshBip21ForEvent(event: Event) {
         when (event) {
-            is Event.PaymentReceived, is Event.ChannelReady, is Event.ChannelClosed -> refreshBip21()
+            is Event.ChannelReady -> {
+                // Only refresh bolt11 if we can now receive on lightning
+                if (lightningRepo.canReceive()) {
+                    lightningRepo.createInvoice(
+                        amountSats = _walletState.value.bip21AmountSats,
+                        description = _walletState.value.bip21Description,
+                    ).onSuccess { bolt11 ->
+                        setBolt11(bolt11)
+                        updateBip21Url()
+                    }
+                }
+            }
+
+            is Event.ChannelClosed -> {
+                // Clear bolt11 if we can no longer receive on lightning
+                if (!lightningRepo.canReceive()) {
+                    setBolt11("")
+                    updateBip21Url()
+                }
+            }
+
+            is Event.PaymentReceived -> {
+                // Check if onchain address was used, generate new one if needed
+                refreshAddressIfNeeded()
+                updateBip21Url()
+            }
+
             else -> Unit
         }
+    }
+
+    private suspend fun refreshAddressIfNeeded() = withContext(bgDispatcher) {
+        val address = getOnchainAddress()
+        if (address.isEmpty()) {
+            newAddress()
+        } else {
+            checkAddressUsage(address).onSuccess { wasUsed ->
+                if (wasUsed) {
+                    newAddress()
+                }
+            }
+        }
+    }
+
+    private suspend fun updateBip21Url(
+        amountSats: ULong? = _walletState.value.bip21AmountSats,
+        message: String = _walletState.value.bip21Description,
+    ): String {
+        val address = getOnchainAddress()
+        val newBip21 = buildBip21Url(
+            bitcoinAddress = address,
+            amountSats = amountSats,
+            message = message.ifBlank { Env.DEFAULT_INVOICE_MESSAGE },
+            lightningInvoice = getBolt11(),
+        )
+        setBip21(newBip21)
+
+        return newBip21
     }
 
     suspend fun createWallet(bip39Passphrase: String?): Result<Unit> = withContext(bgDispatcher) {
@@ -310,12 +341,19 @@ class WalletRepo @Inject constructor(
     }
 
     // BIP21 state management
-    fun updateBip21AmountSats(amount: ULong?) {
-        _walletState.update { it.copy(bip21AmountSats = amount) }
-    }
+    fun setBip21AmountSats(amount: ULong?) = _walletState.update { it.copy(bip21AmountSats = amount) }
 
-    fun updateBip21Description(description: String) {
-        _walletState.update { it.copy(bip21Description = description) }
+    fun setBip21Description(description: String) = _walletState.update { it.copy(bip21Description = description) }
+
+    fun clearBip21State() {
+        _walletState.update {
+            it.copy(
+                bip21 = "",
+                selectedTags = emptyList(),
+                bip21AmountSats = null,
+                bip21Description = "",
+            )
+        }
     }
 
     suspend fun toggleReceiveOnSpendingBalance(): Result<Unit> = withContext(bgDispatcher) {
@@ -348,37 +386,23 @@ class WalletRepo @Inject constructor(
 
     // BIP21 invoice creation
     suspend fun updateBip21Invoice(
-        amountSats: ULong? = null,
-        description: String = "",
+        amountSats: ULong? = walletState.value.bip21AmountSats,
+        description: String = walletState.value.bip21Description,
     ): Result<Unit> = withContext(bgDispatcher) {
         try {
-            updateBip21AmountSats(amountSats)
-            updateBip21Description(description)
+            setBip21AmountSats(amountSats)
+            setBip21Description(description)
 
             val canReceive = lightningRepo.canReceive()
             if (canReceive && _walletState.value.receiveOnSpendingBalance) {
-                lightningRepo.createInvoice(
-                    amountSats = _walletState.value.bip21AmountSats,
-                    description = _walletState.value.bip21Description,
-                ).onSuccess { bolt11 ->
-                    setBolt11(bolt11)
+                lightningRepo.createInvoice(amountSats, description).onSuccess {
+                    setBolt11(it)
                 }
             } else {
                 setBolt11("")
             }
-            val address = getOnchainAddress()
-            val newBip21 = buildBip21Url(
-                bitcoinAddress = address,
-                amountSats = _walletState.value.bip21AmountSats,
-                message = description.ifBlank { Env.DEFAULT_INVOICE_MESSAGE },
-                lightningInvoice = getBolt11()
-            )
-            setBip21(newBip21)
-            saveInvoiceWithTags(
-                bip21Invoice = newBip21,
-                onChainAddress = address,
-                tags = _walletState.value.selectedTags
-            )
+            val newBip21Url = updateBip21Url(amountSats, description)
+            persistTagsMetadata(newBip21Url)
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.error("Update BIP21 invoice error", e, context = TAG)
@@ -404,14 +428,16 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun saveInvoiceWithTags(bip21Invoice: String, onChainAddress: String, tags: List<String>) =
+    private suspend fun persistTagsMetadata(bip21Url: String) =
         withContext(bgDispatcher) {
+            val tags = _walletState.value.selectedTags
             if (tags.isEmpty()) return@withContext
 
+            val onChainAddress = getOnchainAddress()
+
             try {
-                deleteExpiredInvoices()
-                val decoded = decode(bip21Invoice)
-                val paymentHash = when (decoded) {
+                deleteExpiredTagMetadata()
+                val paymentHash = when (val decoded = decode(bip21Url)) {
                     is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
                     is Scanner.OnChain -> decoded.extractLightningHash()
                     else -> null
@@ -432,15 +458,7 @@ class WalletRepo @Inject constructor(
             }
         }
 
-    suspend fun deleteAllInvoices() = withContext(bgDispatcher) {
-        try {
-            db.tagMetadataDao().deleteAll()
-        } catch (e: Throwable) {
-            Logger.error("deleteAllInvoices error", e, context = TAG)
-        }
-    }
-
-    suspend fun deleteExpiredInvoices() = withContext(bgDispatcher) {
+    private suspend fun deleteExpiredTagMetadata() = withContext(bgDispatcher) {
         try {
             val twoDaysAgoMillis = Clock.System.now().minus(2.days).toEpochMilliseconds()
             db.tagMetadataDao().deleteExpired(expirationTimeStamp = twoDaysAgoMillis)
@@ -451,9 +469,8 @@ class WalletRepo @Inject constructor(
 
     private suspend fun Scanner.OnChain.extractLightningHash(): String? {
         val lightningInvoice: String = this.invoice.params?.get("lightning") ?: return null
-        val decoded = decode(lightningInvoice)
 
-        return when (decoded) {
+        return when (val decoded = decode(lightningInvoice)) {
             is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
             else -> null
         }
