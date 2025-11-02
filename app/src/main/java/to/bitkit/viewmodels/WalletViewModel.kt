@@ -72,8 +72,8 @@ class WalletViewModel @Inject constructor(
         collectStates()
     }
 
-    private fun collectStates() { // This is necessary to avoid a bigger refactor in all application
-        viewModelScope.launch(bgDispatcher) {
+    private fun collectStates() {
+        viewModelScope.launch {
             walletState.collect { state ->
                 walletExists = state.walletExists
                 _uiState.update {
@@ -93,7 +93,7 @@ class WalletViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             lightningState.collect { state ->
                 _uiState.update {
                     it.copy(
@@ -111,7 +111,7 @@ class WalletViewModel @Inject constructor(
     private fun triggerBackupRestore() {
         restoreState = RestoreState.RestoringBackups
 
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             backupRepo.performFullRestoreFromLatestBackup()
             // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
             restoreState = RestoreState.BackupRestoreCompleted
