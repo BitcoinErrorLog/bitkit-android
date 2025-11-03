@@ -16,7 +16,10 @@ interface TagMetadataDao {
     suspend fun insert(tagMetadata: TagMetadataEntity)
 
     @Upsert
-    suspend fun upsert(tagMetadata: TagMetadataEntity)
+    suspend fun upsert(entities: TagMetadataEntity)
+
+    @Upsert
+    suspend fun upsert(tagMetadataList: List<TagMetadataEntity>)
 
     @Query("SELECT * FROM tag_metadata")
     fun observeAll(): Flow<List<TagMetadataEntity>>

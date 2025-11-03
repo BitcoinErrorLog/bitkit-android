@@ -401,51 +401,31 @@ class BackupRepo @Inject constructor(
             }
             performRestore(BackupCategory.WALLET) { dataBytes ->
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
-
-                parsed.transfers.forEach { transfer ->
-                    db.transferDao().upsert(transfer)
-                }
-
+                db.transferDao().upsert(parsed.transfers)
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
             }
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-
-                parsed.tagMetadata.forEach { entity ->
-                    db.tagMetadataDao().upsert(entity)
-                }
-
+                db.tagMetadataDao().upsert(parsed.tagMetadata)
                 cacheStore.update { parsed.cache }
-
                 Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", context = TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
-
-                blocktankRepo.restoreFromBackup(parsed)
-                    .onSuccess {
-                        Logger.debug(
-                            "Restored LSP info, ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries",
-                            context = TAG,
-                        )
-                    }.onFailure { e ->
-                        Logger.warn("Failed to restore LSP info, orders and CJIT entries", e, context = TAG)
-                    }
-
+                blocktankRepo.restoreFromBackup(parsed).onSuccess {
+                    Logger.debug(
+                        "Restored ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJITs", context = TAG,
+                    )
+                }
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
-
-                activityRepo.restoreFromBackup(parsed)
-                    .onSuccess {
-                        Logger.debug(
-                            "Restored ${parsed.activities.size} activities and " +
-                                "${parsed.closedChannels.size} closed channels",
-                            context = TAG,
-                        )
-                    }.onFailure { e ->
-                        Logger.warn("Failed to restore activities and closed channels", e, context = TAG)
-                    }
+                activityRepo.restoreFromBackup(parsed).onSuccess {
+                    Logger.debug(
+                        "Restored ${parsed.activities.size} activities, ${parsed.closedChannels.size} closed channels",
+                        context = TAG,
+                    )
+                }
             }
 
             Logger.info("Full restore success", context = TAG)
