@@ -8,10 +8,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+# AI
+.ai
 .cursor
 *.local.*
 CLAUDE.md
-
 # Secrets
 google-services.json
 .env
