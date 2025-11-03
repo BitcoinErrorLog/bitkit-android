@@ -171,9 +171,10 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(tagMetadataJob)
 
-        // METADATA - Observe entire CacheStore
+        // METADATA - Observe entire CacheStore excluding backup statuses
         val cacheMetadataJob = scope.launch {
             cacheStore.data
+                .map { it.copy(backupStatuses = mapOf()) }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
@@ -414,7 +415,7 @@ class BackupRepo @Inject constructor(
 
                 cacheStore.update { parsed.cache }
 
-                Logger.debug("Restored ${parsed.tagMetadata.size} tags and complete cache data", context = TAG)
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata", context = TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
