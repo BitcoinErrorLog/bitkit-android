@@ -445,6 +445,159 @@ class WalletRepoTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
     }
+
+    @Test
+    fun `clearBip21State should clear all bip21 related state`() = test {
+        sut.addTagToSelected("tag1")
+        sut.updateBip21Invoice(amountSats = 1000uL, description = "test")
+
+        sut.clearBip21State()
+
+        assertEquals("", sut.walletState.value.bip21)
+        assertEquals(null, sut.walletState.value.bip21AmountSats)
+        assertEquals("", sut.walletState.value.bip21Description)
+        assertTrue(sut.walletState.value.selectedTags.isEmpty())
+    }
+
+    @Test
+    fun `setBip21AmountSats should update state`() = test {
+        val testAmount = 5000uL
+
+        sut.setBip21AmountSats(testAmount)
+
+        assertEquals(testAmount, sut.walletState.value.bip21AmountSats)
+    }
+
+    @Test
+    fun `setBip21Description should update state`() = test {
+        val testDescription = "test description"
+
+        sut.setBip21Description(testDescription)
+
+        assertEquals(testDescription, sut.walletState.value.bip21Description)
+    }
+
+    @Test
+    fun `refreshBip21ForEvent ChannelReady should update bolt11 and preserve amount`() = test {
+        val testAmount = 1000uL
+        val testDescription = "test"
+        val testInvoice = "newInvoice"
+        sut.setBip21AmountSats(testAmount)
+        sut.setBip21Description(testDescription)
+        whenever(lightningRepo.canReceive()).thenReturn(true)
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(testInvoice))
+
+        sut.refreshBip21ForEvent(
+            Event.ChannelReady(
+                channelId = "testChannelId",
+                userChannelId = "testUserChannelId",
+                counterpartyNodeId = null
+            )
+        )
+
+        assertEquals(testInvoice, sut.walletState.value.bolt11)
+        assertEquals(testAmount, sut.walletState.value.bip21AmountSats)
+        assertEquals(testDescription, sut.walletState.value.bip21Description)
+    }
+
+    @Test
+    fun `refreshBip21ForEvent ChannelReady should not create invoice when cannot receive`() = test {
+        sut.setBip21AmountSats(1000uL)
+        whenever(lightningRepo.canReceive()).thenReturn(false)
+
+        sut.refreshBip21ForEvent(
+            Event.ChannelReady(
+                channelId = "testChannelId",
+                userChannelId = "testUserChannelId",
+                counterpartyNodeId = null
+            )
+        )
+
+        verify(lightningRepo, never()).createInvoice(anyOrNull(), any(), any())
+    }
+
+    @Test
+    fun `refreshBip21ForEvent ChannelClosed should clear bolt11 when cannot receive`() = test {
+        val testAddress = "testAddress"
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
+        sut = createSut()
+        sut.setBolt11("existingInvoice")
+        whenever(lightningRepo.canReceive()).thenReturn(false)
+
+        sut.refreshBip21ForEvent(
+            Event.ChannelClosed(
+                channelId = "testChannelId",
+                userChannelId = "testUserChannelId",
+                counterpartyNodeId = null,
+                reason = null
+            )
+        )
+
+        assertEquals("", sut.walletState.value.bolt11)
+    }
+
+    @Test
+    fun `refreshBip21ForEvent ChannelClosed should not clear bolt11 when can still receive`() = test {
+        val testInvoice = "existingInvoice"
+        sut.setBolt11(testInvoice)
+        whenever(lightningRepo.canReceive()).thenReturn(true)
+
+        sut.refreshBip21ForEvent(
+            Event.ChannelClosed(
+                channelId = "testChannelId",
+                userChannelId = "testUserChannelId",
+                counterpartyNodeId = null,
+                reason = null
+            )
+        )
+
+        assertEquals(testInvoice, sut.walletState.value.bolt11)
+    }
+
+    @Test
+    fun `refreshBip21ForEvent PaymentReceived should refresh address if used`() = test {
+        val testAddress = "testAddress"
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
+        whenever(addressChecker.getAddressInfo(any())).thenReturn(
+            mockAddressInfo().let { addressInfo ->
+                addressInfo.copy(
+                    chain_stats = addressInfo.chain_stats.copy(tx_count = 1)
+                )
+            }
+        )
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        sut = createSut()
+
+        sut.refreshBip21ForEvent(
+            Event.PaymentReceived(
+                paymentId = "testPaymentId",
+                paymentHash = "testPaymentHash",
+                amountMsat = 1000uL,
+                customRecords = emptyList()
+            )
+        )
+
+        verify(lightningRepo).newAddress()
+    }
+
+    @Test
+    fun `refreshBip21ForEvent PaymentReceived should not refresh address if not used`() = test {
+        val testAddress = "testAddress"
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
+        whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
+        sut = createSut()
+
+        sut.refreshBip21ForEvent(
+            Event.PaymentReceived(
+                paymentId = "testPaymentId",
+                paymentHash = "testPaymentHash",
+                amountMsat = 1000uL,
+                customRecords = emptyList()
+            )
+        )
+
+        verify(lightningRepo, never()).newAddress()
+    }
 }
 
 private fun mockAddressInfo() = AddressInfo(
