@@ -4,6 +4,7 @@ import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.BtOrderState2
 import com.synonym.bitkitcore.CJitStateEnum
+import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.CreateCjitOptions
 import com.synonym.bitkitcore.CreateOrderOptions
 import com.synonym.bitkitcore.FeeRates
@@ -39,7 +40,13 @@ import com.synonym.bitkitcore.refreshActiveOrders
 import com.synonym.bitkitcore.removeTags
 import com.synonym.bitkitcore.updateActivity
 import com.synonym.bitkitcore.updateBlocktankUrl
+import com.synonym.bitkitcore.upsertActivities
 import com.synonym.bitkitcore.upsertActivity
+import com.synonym.bitkitcore.upsertCjitEntries
+import com.synonym.bitkitcore.upsertClosedChannel
+import com.synonym.bitkitcore.upsertClosedChannels
+import com.synonym.bitkitcore.upsertInfo
+import com.synonym.bitkitcore.upsertOrders
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -205,6 +212,18 @@ class ActivityService(
         }
     }
 
+    suspend fun upsert(activities: List<Activity>) = ServiceQueue.CORE.background {
+        upsertActivities(activities)
+    }
+
+    suspend fun upsert(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
+        upsertClosedChannel(closedChannel)
+    }
+
+    suspend fun upsert(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
+        upsertClosedChannels(closedChannels)
+    }
+
     suspend fun getActivity(id: String): Activity? {
         return ServiceQueue.CORE.background {
             getActivityById(id)
@@ -325,7 +344,7 @@ class ActivityService(
         }
     }
 
-    private suspend fun processBolt11(
+    private fun processBolt11(
         kind: PaymentKind.Bolt11,
         payment: PaymentDetails,
         state: PaymentState,
@@ -664,6 +683,18 @@ class BlocktankService(
         return ServiceQueue.CORE.background {
             openChannel(orderId = orderId, connectionString = nodeId)
         }
+    }
+
+    suspend fun upsert(info: IBtInfo) = ServiceQueue.CORE.background {
+        upsertInfo(info)
+    }
+
+    suspend fun upsert(orders: List<IBtOrder>) = ServiceQueue.CORE.background {
+        upsertOrders(orders)
+    }
+
+    suspend fun upsert(cjitEntries: List<IcJitEntry>) = ServiceQueue.CORE.background {
+        upsertCjitEntries(cjitEntries)
     }
 
     // MARK: - Regtest methods
