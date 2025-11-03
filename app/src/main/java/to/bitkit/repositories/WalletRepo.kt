@@ -454,7 +454,7 @@ class WalletRepo @Inject constructor(
                 db.tagMetadataDao().insert(tagMetadata = entity)
                 Logger.debug("Tag metadata saved: $entity", context = TAG)
             } catch (e: Throwable) {
-                Logger.error("saveInvoice error", e, context = TAG)
+                Logger.error("Error persisting tag metadata", e, context = TAG)
             }
         }
 
@@ -463,7 +463,7 @@ class WalletRepo @Inject constructor(
             val twoDaysAgoMillis = Clock.System.now().minus(2.days).toEpochMilliseconds()
             db.tagMetadataDao().deleteExpired(expirationTimeStamp = twoDaysAgoMillis)
         } catch (e: Throwable) {
-            Logger.error("deleteExpiredInvoices error", e, context = TAG)
+            Logger.error("Error deleting expired tag metadata records", e, context = TAG)
         }
     }
 
