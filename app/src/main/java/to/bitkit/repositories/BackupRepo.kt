@@ -39,6 +39,7 @@ import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("LongParameterList")
 @Singleton
 class BackupRepo @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -122,6 +123,7 @@ class BackupRepo @Inject constructor(
         Logger.debug("Started ${statusObserverJobs.size} backup status observers", context = TAG)
     }
 
+    @Suppress("LongMethod")
     private fun startDataStoreListeners() {
         val settingsJob = scope.launch {
             settingsStore.data
