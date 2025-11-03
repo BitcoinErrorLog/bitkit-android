@@ -421,6 +421,7 @@ class ActivityService(
                 confirmed = isConfirmed,
                 timestamp = timestamp,
                 isBoosted = false,
+                boostTxIds = emptyList(),
                 isTransfer = false,
                 doesExist = true,
                 confirmTimestamp = confirmedTimestamp,
@@ -471,11 +472,11 @@ class ActivityService(
             )
 
             repeat(count) { i ->
-                val isLightning = Random.Default.nextBoolean()
+                val isLightning = Random.nextBoolean()
                 val value = (1000..1_000_000).random().toULong()
                 val txTimestamp =
                     (timestamp.toLong() - (0..30L * 24 * 60 * 60).random()).toULong() // Random time in last 30 days
-                val txType = if (Random.Default.nextBoolean()) PaymentType.SENT else PaymentType.RECEIVED
+                val txType = if (Random.nextBoolean()) PaymentType.SENT else PaymentType.RECEIVED
                 val status = when ((0..10).random()) {
                     in 0..7 -> PaymentState.SUCCEEDED // 80% chance
                     8 -> PaymentState.PENDING // 10% chance
@@ -497,7 +498,7 @@ class ActivityService(
                             invoice = "lnbc$value",
                             message = possibleMessages.random(),
                             timestamp = txTimestamp,
-                            preimage = if (Random.Default.nextBoolean()) "preimage$i" else null,
+                            preimage = if (Random.nextBoolean()) "preimage$i" else null,
                             createdAt = txTimestamp,
                             updatedAt = txTimestamp
                         )
@@ -513,16 +514,17 @@ class ActivityService(
                             fee = (100..10_000).random().toULong(),
                             feeRate = (1..100).random().toULong(),
                             address = "bc1...$i",
-                            confirmed = Random.Default.nextBoolean(),
+                            confirmed = Random.nextBoolean(),
                             timestamp = txTimestamp,
-                            isBoosted = Random.Default.nextBoolean(),
-                            isTransfer = Random.Default.nextBoolean(),
+                            isBoosted = Random.nextBoolean(),
+                            boostTxIds = emptyList(),
+                            isTransfer = Random.nextBoolean(),
                             doesExist = true,
-                            confirmTimestamp = if (Random.Default.nextBoolean()) txTimestamp + 3600.toULong() else null,
-                            channelId = if (Random.Default.nextBoolean()) "channel$i" else null,
+                            confirmTimestamp = if (Random.nextBoolean()) txTimestamp + 3600.toULong() else null,
+                            channelId = if (Random.nextBoolean()) "channel$i" else null,
                             transferTxId = null,
                             createdAt = txTimestamp,
-                            updatedAt = txTimestamp
+                            updatedAt = txTimestamp,
                         )
                     )
                 }
