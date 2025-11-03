@@ -31,6 +31,7 @@ import to.bitkit.data.CacheStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.nowTimestamp
+import to.bitkit.models.BlocktankBackupV1
 import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.services.CoreService
 import to.bitkit.services.LightningService
@@ -372,6 +373,27 @@ class BlocktankRepo @Inject constructor(
 
     suspend fun resetState() = withContext(bgDispatcher) {
         _blocktankState.update { BlocktankState() }
+    }
+
+    suspend fun restoreFromBackup(backup: BlocktankBackupV1): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.blocktank.upsert(backup.orders)
+            coreService.blocktank.upsert(backup.cjitEntries)
+            backup.info?.let { info ->
+                coreService.blocktank.upsert(info)
+            }
+
+            // We don't refresh orders here because we rely on the polling mechanism.
+            // We also don't restore `paidOrders` as the refresh should do it using the paidOrderIds from restored cache.
+
+            _blocktankState.update {
+                it.copy(
+                    orders = backup.orders,
+                    cjitEntries = backup.cjitEntries,
+                    info = backup.info,
+                )
+            }
+        }
     }
 
     companion object {

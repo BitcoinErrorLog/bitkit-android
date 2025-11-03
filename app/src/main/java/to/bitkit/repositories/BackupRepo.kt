@@ -415,22 +415,21 @@ class BackupRepo @Inject constructor(
 
                 cacheStore.update { parsed.cache }
 
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata", context = TAG)
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", context = TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
 
-                // TODO: Restore orders, CJIT entries, and info to bitkit-core using synonymdev/bitkit-core#46
-                // For now, trigger a refresh from the server to sync the data
-                blocktankRepo.refreshInfo()
-                blocktankRepo.refreshOrders()
+                blocktankRepo.restoreFromBackup(parsed)
+                    .onSuccess {
+                        Logger.debug(
+                            "Restored LSP info, ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJIT entries",
+                            context = TAG,
+                        )
+                    }.onFailure { e ->
+                        Logger.warn("Failed to restore LSP info, orders and CJIT entries", e, context = TAG)
+                    }
 
-                Logger.debug(
-                    "Triggered Blocktank refresh (${parsed.orders.size} orders," +
-                        "${parsed.cjitEntries.size} CJIT entries," +
-                        "info=${parsed.info != null} backed up)",
-                    context = TAG,
-                )
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
