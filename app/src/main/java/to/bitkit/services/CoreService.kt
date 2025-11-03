@@ -27,6 +27,7 @@ import com.synonym.bitkitcore.deleteActivityById
 import com.synonym.bitkitcore.estimateOrderFeeFull
 import com.synonym.bitkitcore.getActivities
 import com.synonym.bitkitcore.getActivityById
+import com.synonym.bitkitcore.getAllClosedChannels
 import com.synonym.bitkitcore.getAllUniqueTags
 import com.synonym.bitkitcore.getCjitEntries
 import com.synonym.bitkitcore.getInfo
@@ -206,10 +207,8 @@ class ActivityService(
         }
     }
 
-    suspend fun upsert(activity: Activity) {
-        ServiceQueue.CORE.background {
-            upsertActivity(activity)
-        }
+    suspend fun upsert(activity: Activity) = ServiceQueue.CORE.background {
+        upsertActivity(activity)
     }
 
     suspend fun upsert(activities: List<Activity>) = ServiceQueue.CORE.background {
@@ -284,6 +283,12 @@ class ActivityService(
         return ServiceQueue.CORE.background {
             getAllUniqueTags()
         }
+    }
+
+    suspend fun closedChannels(
+        sortDirection: SortDirection,
+    ): List<ClosedChannelDetails> = ServiceQueue.CORE.background {
+        getAllClosedChannels(sortDirection)
     }
 
     /**

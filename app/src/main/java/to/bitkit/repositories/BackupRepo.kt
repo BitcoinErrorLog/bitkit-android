@@ -371,10 +371,12 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
+            val closedChannels = activityRepo.getClosedChannels().getOrDefault(emptyList())
 
             val payload = ActivityBackupV1(
                 createdAt = currentTimeMillis(),
                 activities = activities,
+                closedChannels = closedChannels,
             )
 
             json.encodeToString(payload).toByteArray()
@@ -434,11 +436,16 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
 
-                parsed.activities.forEach { activity ->
-                    activityRepo.upsertActivity(activity)
-                }
-
-                Logger.debug("Restored ${parsed.activities.size} activities", context = TAG)
+                activityRepo.restoreFromBackup(parsed)
+                    .onSuccess {
+                        Logger.debug(
+                            "Restored ${parsed.activities.size} activities and " +
+                                "${parsed.closedChannels.size} closed channels",
+                            context = TAG,
+                        )
+                    }.onFailure { e ->
+                        Logger.warn("Failed to restore activities and closed channels", e, context = TAG)
+                    }
             }
 
             Logger.info("Full restore success", context = TAG)
