@@ -46,7 +46,7 @@ import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.SettingsViewModel
 
-// TODO pass these to nav?
+// TODO replace with direct use of the now serializable IcJitEntry
 @Serializable
 data class CjitEntryDetails(
     val networkFeeSat: Long,

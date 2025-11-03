@@ -180,18 +180,10 @@ fun ReceiveSheet(
                     amountInputViewModel = editInvoiceAmountViewModel,
                     walletUiState = walletUiState,
                     onBack = { navController.popBackStack() },
-                    updateInvoice = { sats ->
-                        wallet.updateBip21Invoice(amountSats = sats)
-                    },
-                    onClickAddTag = {
-                        navController.navigate(ReceiveRoute.AddTag)
-                    },
-                    onClickTag = { tagToRemove ->
-                        wallet.removeTag(tagToRemove)
-                    },
-                    onDescriptionUpdate = { newText ->
-                        wallet.updateBip21Description(newText = newText)
-                    },
+                    updateInvoice = wallet::updateBip21Invoice,
+                    onClickAddTag = { navController.navigate(ReceiveRoute.AddTag) },
+                    onClickTag = wallet::removeTag,
+                    onDescriptionUpdate = wallet::updateBip21Description,
                     navigateReceiveConfirm = { entry ->
                         cjitEntryDetails.value = entry
                         navController.navigate(ReceiveRoute.ConfirmIncreaseInbound)

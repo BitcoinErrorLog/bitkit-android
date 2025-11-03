@@ -139,10 +139,7 @@ fun EditInvoiceScreen(
             }
         },
         onContinueKeyboard = { keyboardVisible = false },
-        onContinueGeneral = {
-            updateInvoice(amountInputUiState.sats.toULong())
-            editInvoiceVM.onClickContinue()
-        },
+        onContinueGeneral = { editInvoiceVM.onClickContinue() },
         onClickAddTag = onClickAddTag,
         onClickTag = onClickTag,
         isSoftKeyboardVisible = isSoftKeyboardVisible

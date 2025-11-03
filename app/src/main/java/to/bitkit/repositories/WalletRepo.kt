@@ -112,6 +112,7 @@ class WalletRepo @Inject constructor(
                 selectedTags = emptyList(),
                 bip21Description = "",
                 bip21 = "",
+                bip21AmountSats = null,
             )
         }
 
