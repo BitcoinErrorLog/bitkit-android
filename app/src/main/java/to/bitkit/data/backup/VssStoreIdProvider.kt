@@ -28,17 +28,13 @@ class VssStoreIdProvider @Inject constructor(
                 passphrase = passphrase,
             )
 
-            Logger.info("VSS store id: '$storeId' for walletIndex: $walletIndex", context = TAG)
             cachedStoreIds[walletIndex] = storeId
+            Logger.info("VSS store id setup for wallet[$walletIndex]: '$storeId'", context = TAG)
             return storeId
         }
     }
 
-    fun clearCache() {
-        cachedStoreIds.clear()
-    }
-
-    fun clearCache(walletIndex: Int) {
+    fun clearCache(walletIndex: Int = 0) {
         cachedStoreIds.remove(walletIndex)
     }
 
