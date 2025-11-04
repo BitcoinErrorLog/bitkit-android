@@ -44,11 +44,19 @@ fun MetadataScreen(
 
 @Composable
 private fun MetadataContent(
-    lastBackupTimeMs: Long,
+    lastBackupTimeMs: Long?,
     onDismiss: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val latestBackupTime = remember(lastBackupTimeMs) { lastBackupTimeMs.toLocalizedTimestamp() }
+    val backupTimeText = remember(lastBackupTimeMs) {
+        runCatching { lastBackupTimeMs?.toLocalizedTimestamp() }.getOrNull()
+    }
+    val lastBackupText = backupTimeText
+        ?.let { stringResource(R.string.security__mnemonic_latest_backup).replace("{time}", it) }
+        ?: run {
+            val err = stringResource(R.string.settings__status__backup__error)
+            stringResource(R.string.security__mnemonic_latest_backup).replace("{time}", err)
+        }
 
     Column(
         modifier = Modifier
@@ -80,9 +88,7 @@ private fun MetadataContent(
             )
 
             BodyS(
-                text = stringResource(R.string.security__mnemonic_latest_backup)
-                    .replace("{time}", latestBackupTime)
-                    .withBold(),
+                text = lastBackupText.withBold(),
                 modifier = Modifier.testTag("backup_time_text")
             )
 
@@ -105,6 +111,18 @@ private fun Preview() {
     AppThemeSurface {
         MetadataContent(
             lastBackupTimeMs = System.currentTimeMillis(),
+            onDismiss = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewFailed() {
+    AppThemeSurface {
+        MetadataContent(
+            lastBackupTimeMs = null,
             onDismiss = {},
             onBack = {},
         )
