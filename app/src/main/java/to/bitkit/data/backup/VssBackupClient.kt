@@ -26,12 +26,13 @@ class VssBackupClient @Inject constructor(
 ) {
     private val isSetup = CompletableDeferred<Unit>()
 
-    suspend fun setup() = withContext(bgDispatcher) {
+    suspend fun setup(walletIndex: Int = 0) = withContext(bgDispatcher) {
         try {
             withTimeout(30.seconds) {
                 Logger.debug("VSS client setting up…", context = TAG)
                 val vssUrl = Env.vssServerUrl
                 val lnurlAuthServerUrl = Env.lnurlAuthServerUrl
+                val vssStoreId = vssStoreIdProvider.getVssStoreId(walletIndex)
                 Logger.verbose("Building VSS client with vssUrl: '$vssUrl'")
                 Logger.verbose("Building VSS client with lnurlAuthServerUrl: '$lnurlAuthServerUrl'")
                 if (lnurlAuthServerUrl.isNotEmpty()) {
@@ -41,7 +42,7 @@ class VssBackupClient @Inject constructor(
 
                     vssNewClientWithLnurlAuth(
                         baseUrl = vssUrl,
-                        storeId = vssStoreIdProvider.getVssStoreId(),
+                        storeId = vssStoreId,
                         mnemonic = mnemonic,
                         passphrase = passphrase,
                         lnurlAuthServerUrl = lnurlAuthServerUrl,
@@ -49,7 +50,7 @@ class VssBackupClient @Inject constructor(
                 } else {
                     vssNewClient(
                         baseUrl = vssUrl,
-                        storeId = vssStoreIdProvider.getVssStoreId(),
+                        storeId = vssStoreId,
                     )
                 }
                 isSetup.complete(Unit)
