@@ -651,8 +651,8 @@ class ActivityRepo @Inject constructor(
 
     suspend fun restoreFromBackup(backup: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.activity.upsert(backup.activities)
-            coreService.activity.upsert(backup.closedChannels)
+            coreService.activity.upsertList(backup.activities)
+            coreService.activity.upsertClosedChannelList(backup.closedChannels)
         }
     }
 

@@ -211,15 +211,15 @@ class ActivityService(
         upsertActivity(activity)
     }
 
-    suspend fun upsert(activities: List<Activity>) = ServiceQueue.CORE.background {
+    suspend fun upsertList(activities: List<Activity>) = ServiceQueue.CORE.background {
         upsertActivities(activities)
     }
 
-    suspend fun upsert(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
+    suspend fun upsertClosedChannelItem(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
         upsertClosedChannel(closedChannel)
     }
 
-    suspend fun upsert(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
+    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
         upsertClosedChannels(closedChannels)
     }
 
@@ -690,15 +690,15 @@ class BlocktankService(
         }
     }
 
-    suspend fun upsert(info: IBtInfo) = ServiceQueue.CORE.background {
+    suspend fun setInfo(info: IBtInfo) = ServiceQueue.CORE.background {
         upsertInfo(info)
     }
 
-    suspend fun upsert(orders: List<IBtOrder>) = ServiceQueue.CORE.background {
+    suspend fun upsertOrderList(orders: List<IBtOrder>) = ServiceQueue.CORE.background {
         upsertOrders(orders)
     }
 
-    suspend fun upsert(cjitEntries: List<IcJitEntry>) = ServiceQueue.CORE.background {
+    suspend fun upsertCjitList(cjitEntries: List<IcJitEntry>) = ServiceQueue.CORE.background {
         upsertCjitEntries(cjitEntries)
     }
 

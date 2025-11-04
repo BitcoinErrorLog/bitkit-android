@@ -377,10 +377,10 @@ class BlocktankRepo @Inject constructor(
 
     suspend fun restoreFromBackup(backup: BlocktankBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.blocktank.upsert(backup.orders)
-            coreService.blocktank.upsert(backup.cjitEntries)
+            coreService.blocktank.upsertOrderList(backup.orders)
+            coreService.blocktank.upsertCjitList(backup.cjitEntries)
             backup.info?.let { info ->
-                coreService.blocktank.upsert(info)
+                coreService.blocktank.setInfo(info)
             }
 
             // We don't refresh orders here because we rely on the polling mechanism.
