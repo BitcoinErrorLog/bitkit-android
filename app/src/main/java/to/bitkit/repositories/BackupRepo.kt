@@ -408,14 +408,12 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
                 db.tagMetadataDao().upsert(parsed.tagMetadata)
                 cacheStore.update { parsed.cache }
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", context = TAG)
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
                 blocktankRepo.restoreFromBackup(parsed).onSuccess {
-                    Logger.debug(
-                        "Restored ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJITs", context = TAG,
-                    )
+                    Logger.debug("Restored ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJITs", TAG)
                 }
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->

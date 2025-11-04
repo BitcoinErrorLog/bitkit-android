@@ -211,7 +211,7 @@ class ActivityRepo @Inject constructor(
         runCatching {
             coreService.activity.closedChannels(sortDirection)
         }.onFailure { e ->
-            Logger.error("Error getting closed channels (sortDirection=${SortDirection})", e, context = TAG)
+            Logger.error("Error getting closed channels (sortDirection=$sortDirection)", e, context = TAG)
         }
     }
 

@@ -384,7 +384,7 @@ class BlocktankRepo @Inject constructor(
             }
 
             // We don't refresh orders here because we rely on the polling mechanism.
-            // We also don't restore `paidOrders` as the refresh should do it using the paidOrderIds from restored cache.
+            // We also don't restore `paidOrders` the refresh interval uses restored paidOrderIds to rebuild the list.
 
             _blocktankState.update {
                 it.copy(
