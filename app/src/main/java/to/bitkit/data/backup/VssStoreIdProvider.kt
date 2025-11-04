@@ -5,6 +5,7 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.env.Env
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,7 +13,7 @@ import javax.inject.Singleton
 class VssStoreIdProvider @Inject constructor(
     private val keychain: Keychain,
 ) {
-    private val cachedStoreIds: MutableMap<Int, String> = mutableMapOf()
+    private val cachedStoreIds: MutableMap<Int, String> = ConcurrentHashMap()
 
     fun getVssStoreId(walletIndex: Int = 0): String {
         synchronized(this) {
@@ -34,15 +35,11 @@ class VssStoreIdProvider @Inject constructor(
     }
 
     fun clearCache() {
-        synchronized(this) {
-            cachedStoreIds.clear()
-        }
+        cachedStoreIds.clear()
     }
 
     fun clearCache(walletIndex: Int) {
-        synchronized(this) {
-            cachedStoreIds.remove(walletIndex)
-        }
+        cachedStoreIds.remove(walletIndex)
     }
 
     companion object {
