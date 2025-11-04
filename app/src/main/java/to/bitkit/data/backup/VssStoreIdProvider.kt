@@ -13,11 +13,11 @@ import javax.inject.Singleton
 class VssStoreIdProvider @Inject constructor(
     private val keychain: Keychain,
 ) {
-    private val cachedStoreIds: MutableMap<Int, String> = ConcurrentHashMap()
+    private val cacheMap: MutableMap<Int, String> = ConcurrentHashMap()
 
     fun getVssStoreId(walletIndex: Int = 0): String {
         synchronized(this) {
-            cachedStoreIds[walletIndex]?.let { return it }
+            cacheMap[walletIndex]?.let { return it }
 
             val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound
             val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
@@ -28,14 +28,14 @@ class VssStoreIdProvider @Inject constructor(
                 passphrase = passphrase,
             )
 
-            cachedStoreIds[walletIndex] = storeId
+            cacheMap[walletIndex] = storeId
             Logger.info("VSS store id setup for wallet[$walletIndex]: '$storeId'", context = TAG)
             return storeId
         }
     }
 
     fun clearCache(walletIndex: Int = 0) {
-        cachedStoreIds.remove(walletIndex)
+        cacheMap.remove(walletIndex)
     }
 
     companion object {
