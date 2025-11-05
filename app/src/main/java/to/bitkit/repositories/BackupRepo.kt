@@ -371,10 +371,12 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
+            val closedChannels = activityRepo.getClosedChannels().getOrDefault(emptyList())
 
             val payload = ActivityBackupV1(
                 createdAt = currentTimeMillis(),
                 activities = activities,
+                closedChannels = closedChannels,
             )
 
             json.encodeToString(payload).toByteArray()
@@ -399,47 +401,29 @@ class BackupRepo @Inject constructor(
             }
             performRestore(BackupCategory.WALLET) { dataBytes ->
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
-
-                parsed.transfers.forEach { transfer ->
-                    db.transferDao().upsert(transfer)
-                }
-
+                db.transferDao().upsert(parsed.transfers)
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
             }
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-
-                parsed.tagMetadata.forEach { entity ->
-                    db.tagMetadataDao().upsert(entity)
-                }
-
+                db.tagMetadataDao().upsert(parsed.tagMetadata)
                 cacheStore.update { parsed.cache }
-
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata", context = TAG)
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
-
-                // TODO: Restore orders, CJIT entries, and info to bitkit-core using synonymdev/bitkit-core#46
-                // For now, trigger a refresh from the server to sync the data
-                blocktankRepo.refreshInfo()
-                blocktankRepo.refreshOrders()
-
-                Logger.debug(
-                    "Triggered Blocktank refresh (${parsed.orders.size} orders," +
-                        "${parsed.cjitEntries.size} CJIT entries," +
-                        "info=${parsed.info != null} backed up)",
-                    context = TAG,
-                )
+                blocktankRepo.restoreFromBackup(parsed).onSuccess {
+                    Logger.debug("Restored ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJITs", TAG)
+                }
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
-
-                parsed.activities.forEach { activity ->
-                    activityRepo.upsertActivity(activity)
+                activityRepo.restoreFromBackup(parsed).onSuccess {
+                    Logger.debug(
+                        "Restored ${parsed.activities.size} activities, ${parsed.closedChannels.size} closed channels",
+                        context = TAG,
+                    )
                 }
-
-                Logger.debug("Restored ${parsed.activities.size} activities", context = TAG)
             }
 
             Logger.info("Full restore success", context = TAG)

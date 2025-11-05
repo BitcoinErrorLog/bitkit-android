@@ -4,6 +4,7 @@ import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.BtOrderState2
 import com.synonym.bitkitcore.CJitStateEnum
+import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.CreateCjitOptions
 import com.synonym.bitkitcore.CreateOrderOptions
 import com.synonym.bitkitcore.FeeRates
@@ -26,6 +27,7 @@ import com.synonym.bitkitcore.deleteActivityById
 import com.synonym.bitkitcore.estimateOrderFeeFull
 import com.synonym.bitkitcore.getActivities
 import com.synonym.bitkitcore.getActivityById
+import com.synonym.bitkitcore.getAllClosedChannels
 import com.synonym.bitkitcore.getAllUniqueTags
 import com.synonym.bitkitcore.getCjitEntries
 import com.synonym.bitkitcore.getInfo
@@ -39,7 +41,13 @@ import com.synonym.bitkitcore.refreshActiveOrders
 import com.synonym.bitkitcore.removeTags
 import com.synonym.bitkitcore.updateActivity
 import com.synonym.bitkitcore.updateBlocktankUrl
+import com.synonym.bitkitcore.upsertActivities
 import com.synonym.bitkitcore.upsertActivity
+import com.synonym.bitkitcore.upsertCjitEntries
+import com.synonym.bitkitcore.upsertClosedChannel
+import com.synonym.bitkitcore.upsertClosedChannels
+import com.synonym.bitkitcore.upsertInfo
+import com.synonym.bitkitcore.upsertOrders
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -199,10 +207,20 @@ class ActivityService(
         }
     }
 
-    suspend fun upsert(activity: Activity) {
-        ServiceQueue.CORE.background {
-            upsertActivity(activity)
-        }
+    suspend fun upsert(activity: Activity) = ServiceQueue.CORE.background {
+        upsertActivity(activity)
+    }
+
+    suspend fun upsertList(activities: List<Activity>) = ServiceQueue.CORE.background {
+        upsertActivities(activities)
+    }
+
+    suspend fun upsertClosedChannelItem(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
+        upsertClosedChannel(closedChannel)
+    }
+
+    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
+        upsertClosedChannels(closedChannels)
     }
 
     suspend fun getActivity(id: String): Activity? {
@@ -267,6 +285,12 @@ class ActivityService(
         }
     }
 
+    suspend fun closedChannels(
+        sortDirection: SortDirection,
+    ): List<ClosedChannelDetails> = ServiceQueue.CORE.background {
+        getAllClosedChannels(sortDirection)
+    }
+
     /**
      * Maps all `PaymentDetails` from LDK Node to bitkit-core [Activity] records.
      *
@@ -325,7 +349,7 @@ class ActivityService(
         }
     }
 
-    private suspend fun processBolt11(
+    private fun processBolt11(
         kind: PaymentKind.Bolt11,
         payment: PaymentDetails,
         state: PaymentState,
@@ -421,6 +445,7 @@ class ActivityService(
                 confirmed = isConfirmed,
                 timestamp = timestamp,
                 isBoosted = false,
+                boostTxIds = emptyList(),
                 isTransfer = false,
                 doesExist = true,
                 confirmTimestamp = confirmedTimestamp,
@@ -471,11 +496,11 @@ class ActivityService(
             )
 
             repeat(count) { i ->
-                val isLightning = Random.Default.nextBoolean()
+                val isLightning = Random.nextBoolean()
                 val value = (1000..1_000_000).random().toULong()
                 val txTimestamp =
                     (timestamp.toLong() - (0..30L * 24 * 60 * 60).random()).toULong() // Random time in last 30 days
-                val txType = if (Random.Default.nextBoolean()) PaymentType.SENT else PaymentType.RECEIVED
+                val txType = if (Random.nextBoolean()) PaymentType.SENT else PaymentType.RECEIVED
                 val status = when ((0..10).random()) {
                     in 0..7 -> PaymentState.SUCCEEDED // 80% chance
                     8 -> PaymentState.PENDING // 10% chance
@@ -497,7 +522,7 @@ class ActivityService(
                             invoice = "lnbc$value",
                             message = possibleMessages.random(),
                             timestamp = txTimestamp,
-                            preimage = if (Random.Default.nextBoolean()) "preimage$i" else null,
+                            preimage = if (Random.nextBoolean()) "preimage$i" else null,
                             createdAt = txTimestamp,
                             updatedAt = txTimestamp
                         )
@@ -513,16 +538,17 @@ class ActivityService(
                             fee = (100..10_000).random().toULong(),
                             feeRate = (1..100).random().toULong(),
                             address = "bc1...$i",
-                            confirmed = Random.Default.nextBoolean(),
+                            confirmed = Random.nextBoolean(),
                             timestamp = txTimestamp,
-                            isBoosted = Random.Default.nextBoolean(),
-                            isTransfer = Random.Default.nextBoolean(),
+                            isBoosted = Random.nextBoolean(),
+                            boostTxIds = emptyList(),
+                            isTransfer = Random.nextBoolean(),
                             doesExist = true,
-                            confirmTimestamp = if (Random.Default.nextBoolean()) txTimestamp + 3600.toULong() else null,
-                            channelId = if (Random.Default.nextBoolean()) "channel$i" else null,
+                            confirmTimestamp = if (Random.nextBoolean()) txTimestamp + 3600.toULong() else null,
+                            channelId = if (Random.nextBoolean()) "channel$i" else null,
                             transferTxId = null,
                             createdAt = txTimestamp,
-                            updatedAt = txTimestamp
+                            updatedAt = txTimestamp,
                         )
                     )
                 }
@@ -662,6 +688,18 @@ class BlocktankService(
         return ServiceQueue.CORE.background {
             openChannel(orderId = orderId, connectionString = nodeId)
         }
+    }
+
+    suspend fun setInfo(info: IBtInfo) = ServiceQueue.CORE.background {
+        upsertInfo(info)
+    }
+
+    suspend fun upsertOrderList(orders: List<IBtOrder>) = ServiceQueue.CORE.background {
+        upsertOrders(orders)
+    }
+
+    suspend fun upsertCjitList(cjitEntries: List<IcJitEntry>) = ServiceQueue.CORE.background {
+        upsertCjitEntries(cjitEntries)
     }
 
     // MARK: - Regtest methods

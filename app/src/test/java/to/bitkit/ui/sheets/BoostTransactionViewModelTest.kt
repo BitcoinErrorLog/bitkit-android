@@ -51,6 +51,7 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
         confirmed = false,
         timestamp = 1234567890UL,
         isBoosted = false,
+        boostTxIds = emptyList(),
         isTransfer = false,
         doesExist = true,
         confirmTimestamp = null,

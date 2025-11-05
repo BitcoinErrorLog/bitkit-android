@@ -693,6 +693,7 @@ private fun PreviewOnchain() {
                     confirmed = true,
                     timestamp = (System.currentTimeMillis() / 1000 - 3600).toULong(),
                     isBoosted = false,
+                    boostTxIds = emptyList(),
                     isTransfer = false,
                     doesExist = true,
                     confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),

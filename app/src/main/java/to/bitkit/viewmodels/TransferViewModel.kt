@@ -240,8 +240,9 @@ class TransferViewModel @Inject constructor(
                     Logger.debug("Refreshing order '$orderId'")
                     val order = blocktankRepo.getOrder(orderId, refresh = true).getOrNull()
                     if (order == null) {
-                        error = Exception("Order not found '$orderId'")
-                        Logger.error("Order not found '$orderId'", context = TAG)
+                        error = Exception("Order not found '$orderId'").also {
+                            Logger.error(it.message, context = TAG)
+                        }
                         break
                     }
 
@@ -250,8 +251,9 @@ class TransferViewModel @Inject constructor(
                     Logger.debug("LN setup step: $step")
 
                     if (order.state2 == BtOrderState2.EXPIRED) {
-                        error = Exception("Order expired '$orderId'")
-                        Logger.error("Order expired '$orderId'", context = TAG)
+                        error = Exception("Order expired '$orderId'").also {
+                            Logger.error(it.message, context = TAG)
+                        }
                         break
                     }
                     if (step > 2) {

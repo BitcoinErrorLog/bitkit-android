@@ -17,6 +17,9 @@ interface TransferDao {
     @Upsert
     suspend fun upsert(transfer: TransferEntity)
 
+    @Upsert
+    suspend fun upsert(transfers: List<TransferEntity>)
+
     @Update
     suspend fun update(transfer: TransferEntity)
 

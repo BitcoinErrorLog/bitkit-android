@@ -2,6 +2,7 @@ package to.bitkit.repositories
 
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IcJitEntry
 import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.PaymentState
@@ -29,6 +30,7 @@ import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.matchesPaymentId
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
+import to.bitkit.models.ActivityBackupV1
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
@@ -166,9 +168,6 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    /**
-     * Gets activities with specified filters
-     */
     suspend fun getActivities(
         filter: ActivityFilter? = null,
         txType: PaymentType? = null,
@@ -198,14 +197,21 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    /**
-     * Gets a specific activity by ID
-     */
     suspend fun getActivity(id: String): Result<Activity?> = withContext(bgDispatcher) {
         return@withContext runCatching {
             coreService.activity.getActivity(id)
         }.onFailure { e ->
             Logger.error("getActivity error for ID: $id", e, context = TAG)
+        }
+    }
+
+    suspend fun getClosedChannels(
+        sortDirection: SortDirection = SortDirection.ASC,
+    ): Result<List<ClosedChannelDetails>> = withContext(bgDispatcher) {
+        runCatching {
+            coreService.activity.closedChannels(sortDirection)
+        }.onFailure { e ->
+            Logger.error("Error getting closed channels (sortDirection=$sortDirection)", e, context = TAG)
         }
     }
 
@@ -640,6 +646,13 @@ class ActivityRepo @Inject constructor(
             Logger.debug("Tag metadata saved: $entity", context = TAG)
         }.onFailure { e ->
             Logger.error("getAllAvailableTags error", e, context = TAG)
+        }
+    }
+
+    suspend fun restoreFromBackup(backup: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.upsertList(backup.activities)
+            coreService.activity.upsertClosedChannelList(backup.closedChannels)
         }
     }
 

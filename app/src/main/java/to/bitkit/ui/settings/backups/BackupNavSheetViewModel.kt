@@ -10,12 +10,17 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
+import to.bitkit.models.BackupCategory
+import to.bitkit.models.HealthState
 import to.bitkit.models.Toast
+import to.bitkit.repositories.HealthRepo
 import to.bitkit.ui.settings.backups.BackupContract.SideEffect
 import to.bitkit.ui.settings.backups.BackupContract.UiState
 import to.bitkit.ui.shared.toast.ToastEventBus
@@ -27,6 +32,8 @@ class BackupNavSheetViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsStore: SettingsStore,
     private val keychain: Keychain,
+    private val healthRepo: HealthRepo,
+    private val cacheStore: CacheStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -36,6 +43,34 @@ class BackupNavSheetViewModel @Inject constructor(
     val effects = _effects.asSharedFlow()
 
     private fun setEffect(effect: SideEffect) = viewModelScope.launch { _effects.emit(effect) }
+
+    companion object {
+        private const val TAG = "BackupNavSheetViewModel"
+    }
+
+    init {
+        collectState()
+    }
+
+    private fun collectState() {
+        viewModelScope.launch {
+            combine(healthRepo.healthState, cacheStore.backupStatuses) { healthState, backupStatuses ->
+                when (healthState.backups) {
+                    HealthState.ERROR -> null
+                    else -> {
+                        BackupCategory.entries
+                            .filter { it != BackupCategory.LIGHTNING_CONNECTIONS }
+                            .maxOfOrNull { category -> backupStatuses[category]?.synced ?: 0L }
+                            .takeIf { it != 0L }
+                    }
+                }
+            }.collect { lastBackupTimeMs ->
+                _uiState.update {
+                    it.copy(lastBackupTimeMs = lastBackupTimeMs)
+                }
+            }
+        }
+    }
 
     fun loadMnemonicData() {
         viewModelScope.launch {
@@ -50,7 +85,7 @@ class BackupNavSheetViewModel @Inject constructor(
                     )
                 }
             } catch (e: Throwable) {
-                Logger.error("Error loading mnemonic", e)
+                Logger.error("Error loading mnemonic", e, context = TAG)
                 ToastEventBus.send(
                     type = Toast.ToastType.WARNING,
                     title = context.getString(R.string.security__mnemonic_error),
@@ -109,11 +144,6 @@ class BackupNavSheetViewModel @Inject constructor(
     }
 
     fun onMultipleDevicesContinue() {
-        // TODO: get from actual repository state
-        val lastBackupTimeMs = System.currentTimeMillis()
-        _uiState.update {
-            it.copy(lastBackupTimeMs = lastBackupTimeMs)
-        }
         setEffect(SideEffect.NavigateToMetadata)
     }
 
@@ -136,7 +166,7 @@ interface BackupContract {
         val bip39Passphrase: String = "",
         val showMnemonic: Boolean = false,
         val enteredPassphrase: String = "",
-        val lastBackupTimeMs: Long = System.currentTimeMillis(),
+        val lastBackupTimeMs: Long? = null,
     )
 
     sealed interface SideEffect {
