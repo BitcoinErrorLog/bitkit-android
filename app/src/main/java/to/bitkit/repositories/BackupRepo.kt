@@ -23,7 +23,7 @@ import to.bitkit.data.WidgetsData
 import to.bitkit.data.WidgetsStore
 import to.bitkit.data.backup.VssBackupClient
 import to.bitkit.data.resetPin
-import to.bitkit.di.BgDispatcher
+import to.bitkit.di.IoDispatcher
 import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.models.ActivityBackupV1
@@ -43,7 +43,7 @@ import javax.inject.Singleton
 @Singleton
 class BackupRepo @Inject constructor(
     @ApplicationContext private val context: Context,
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val cacheStore: CacheStore,
     private val vssBackupClient: VssBackupClient,
     private val settingsStore: SettingsStore,
@@ -54,7 +54,7 @@ class BackupRepo @Inject constructor(
     private val clock: Clock,
     private val db: AppDb,
 ) {
-    private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
+    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
 
     private val backupJobs = mutableMapOf<BackupCategory, Job>()
     private val statusObserverJobs = mutableListOf<Job>()
@@ -296,7 +296,7 @@ class BackupRepo @Inject constructor(
         }
     }
 
-    suspend fun triggerBackup(category: BackupCategory) = withContext(bgDispatcher) {
+    suspend fun triggerBackup(category: BackupCategory) = withContext(ioDispatcher) {
         Logger.debug("Backup starting for: '$category'", context = TAG)
 
         cacheStore.updateBackupStatus(category) {
@@ -385,7 +385,7 @@ class BackupRepo @Inject constructor(
         BackupCategory.LIGHTNING_CONNECTIONS -> throw NotImplementedError("LIGHTNING backup is managed by ldk-node")
     }
 
-    suspend fun performFullRestoreFromLatestBackup(): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun performFullRestoreFromLatestBackup(): Result<Unit> = withContext(ioDispatcher) {
         Logger.debug("Full restore starting", context = TAG)
 
         isRestoring = true

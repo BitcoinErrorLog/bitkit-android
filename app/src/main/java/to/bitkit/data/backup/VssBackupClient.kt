@@ -10,7 +10,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import to.bitkit.data.keychain.Keychain
-import to.bitkit.di.BgDispatcher
+import to.bitkit.di.IoDispatcher
 import to.bitkit.env.Env
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -20,13 +20,13 @@ import kotlin.time.Duration.Companion.seconds
 
 @Singleton
 class VssBackupClient @Inject constructor(
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val vssStoreIdProvider: VssStoreIdProvider,
     private val keychain: Keychain,
 ) {
     private val isSetup = CompletableDeferred<Unit>()
 
-    suspend fun setup(walletIndex: Int = 0) = withContext(bgDispatcher) {
+    suspend fun setup(walletIndex: Int = 0) = withContext(ioDispatcher) {
         try {
             withTimeout(30.seconds) {
                 Logger.debug("VSS client setting up…", context = TAG)
@@ -50,7 +50,7 @@ class VssBackupClient @Inject constructor(
                 } else {
                     vssNewClient(
                         baseUrl = vssUrl,
-                        storeId = vssStoreId,
+                        storeId = vssStoreIdProvider.getVssStoreId(),
                     )
                 }
                 isSetup.complete(Unit)
@@ -65,7 +65,7 @@ class VssBackupClient @Inject constructor(
     suspend fun putObject(
         key: String,
         data: ByteArray,
-    ): Result<VssItem> = withContext(bgDispatcher) {
+    ): Result<VssItem> = withContext(ioDispatcher) {
         isSetup.await()
         Logger.verbose("VSS 'putObject' call for '$key'", context = TAG)
         runCatching {
@@ -80,7 +80,7 @@ class VssBackupClient @Inject constructor(
         }
     }
 
-    suspend fun getObject(key: String): Result<VssItem?> = withContext(bgDispatcher) {
+    suspend fun getObject(key: String): Result<VssItem?> = withContext(ioDispatcher) {
         isSetup.await()
         Logger.verbose("VSS 'getObject' call for '$key'", context = TAG)
         runCatching {
