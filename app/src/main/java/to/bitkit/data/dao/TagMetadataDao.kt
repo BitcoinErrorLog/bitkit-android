@@ -5,13 +5,21 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 import to.bitkit.data.entities.TagMetadataEntity
 
 @Dao
 interface TagMetadataDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveTagMetadata(tagMetadata: TagMetadataEntity)
+    suspend fun insert(tagMetadata: TagMetadataEntity)
+
+    @Upsert
+    suspend fun upsert(tagMetadata: TagMetadataEntity)
+
+    @Query("SELECT * FROM tag_metadata")
+    fun observeAll(): Flow<List<TagMetadataEntity>>
 
     @Query("SELECT * FROM tag_metadata")
     suspend fun getAll(): List<TagMetadataEntity>

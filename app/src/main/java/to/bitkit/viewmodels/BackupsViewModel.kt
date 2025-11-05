@@ -37,7 +37,7 @@ class BackupsViewModel @Inject constructor(
                     val cachedStatus = cachedStatuses[category] ?: BackupItemStatus(synced = 0, required = 1)
                     category.toUiState(cachedStatus).let { uiState ->
                         when (category) {
-                            BackupCategory.LDK_ACTIVITY -> uiState.copy(disableRetry = true)
+                            BackupCategory.LIGHTNING_CONNECTIONS -> uiState.copy(disableRetry = true)
                             else -> uiState
                         }
                     }

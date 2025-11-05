@@ -166,9 +166,9 @@ class LightningRepo @Inject constructor(
         walletIndex: Int = 0,
         timeout: Duration? = null,
         shouldRetry: Boolean = true,
-        eventHandler: NodeEventHandler? = null,
         customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
+        eventHandler: NodeEventHandler? = null,
     ): Result<Unit> = withContext(bgDispatcher) {
         if (_isRecoveryMode.value) {
             return@withContext Result.failure(
@@ -239,9 +239,9 @@ class LightningRepo @Inject constructor(
                     walletIndex = walletIndex,
                     timeout = timeout,
                     shouldRetry = false,
-                    eventHandler = eventHandler,
                     customServerUrl = customServerUrl,
                     customRgsServerUrl = customRgsServerUrl,
+                    eventHandler = eventHandler,
                 )
             } else {
                 Logger.error("Node start error", e, context = TAG)
@@ -257,7 +257,7 @@ class LightningRepo @Inject constructor(
         _isRecoveryMode.value = enabled
     }
 
-    suspend fun updateGeoBlockState() {
+    suspend fun updateGeoBlockState() = withContext(bgDispatcher) {
         val (isGeoBlocked, shouldBlockLightning) = coreService.checkGeoBlock()
         _lightningState.update {
             it.copy(isGeoBlocked = isGeoBlocked, shouldBlockLightningReceive = shouldBlockLightning)
@@ -337,9 +337,9 @@ class LightningRepo @Inject constructor(
         Logger.debug("Starting node with new electrum server: '$newServerUrl'")
 
         start(
-            eventHandler = cachedEventHandler,
-            customServerUrl = newServerUrl,
             shouldRetry = false,
+            customServerUrl = newServerUrl,
+            eventHandler = cachedEventHandler,
         ).onFailure { startError ->
             Logger.warn("Failed ldk-node config change, attempting recovery…")
             restartWithPreviousConfig()
@@ -364,9 +364,9 @@ class LightningRepo @Inject constructor(
         Logger.debug("Starting node with new RGS server: '$newRgsUrl'")
 
         start(
-            eventHandler = cachedEventHandler,
             shouldRetry = false,
             customRgsServerUrl = newRgsUrl,
+            eventHandler = cachedEventHandler,
         ).onFailure { startError ->
             Logger.warn("Failed ldk-node config change, attempting recovery…")
             restartWithPreviousConfig()
@@ -390,8 +390,8 @@ class LightningRepo @Inject constructor(
         Logger.debug("Starting node with previous config for recovery")
 
         start(
-            eventHandler = cachedEventHandler,
             shouldRetry = false,
+            eventHandler = cachedEventHandler,
         ).onSuccess {
             Logger.debug("Successfully started node with previous config")
         }.onFailure { e ->

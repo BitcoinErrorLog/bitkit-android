@@ -72,8 +72,8 @@ class WalletViewModel @Inject constructor(
         collectStates()
     }
 
-    private fun collectStates() { // This is necessary to avoid a bigger refactor in all application
-        viewModelScope.launch(bgDispatcher) {
+    private fun collectStates() {
+        viewModelScope.launch {
             walletState.collect { state ->
                 walletExists = state.walletExists
                 _uiState.update {
@@ -93,7 +93,7 @@ class WalletViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             lightningState.collect { state ->
                 _uiState.update {
                     it.copy(
@@ -111,7 +111,7 @@ class WalletViewModel @Inject constructor(
     private fun triggerBackupRestore() {
         restoreState = RestoreState.RestoringBackups
 
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             backupRepo.performFullRestoreFromLatestBackup()
             // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
             restoreState = RestoreState.BackupRestoreCompleted
@@ -202,13 +202,10 @@ class WalletViewModel @Inject constructor(
     }
 
     fun updateBip21Invoice(
-        amountSats: ULong? = null,
+        amountSats: ULong? = walletState.value.bip21AmountSats,
     ) {
         viewModelScope.launch {
-            walletRepo.updateBip21Invoice(
-                amountSats = amountSats,
-                description = walletState.value.bip21Description,
-            ).onFailure { error ->
+            walletRepo.updateBip21Invoice(amountSats).onFailure { error ->
                 ToastEventBus.send(
                     type = Toast.ToastType.ERROR,
                     title = "Error updating invoice",
@@ -220,33 +217,23 @@ class WalletViewModel @Inject constructor(
 
     fun toggleReceiveOnSpending() {
         viewModelScope.launch {
-            walletRepo.toggleReceiveOnSpendingBalance().onSuccess {
-                updateBip21Invoice(
-                    amountSats = walletState.value.bip21AmountSats,
-                )
-            }.onFailure { e ->
-                if (e is ServiceError.GeoBlocked) {
-                    walletEffect(WalletViewModelEffects.NavigateGeoBlockScreen)
-                    return@launch
+            walletRepo.toggleReceiveOnSpendingBalance()
+                .onSuccess {
+                    updateBip21Invoice()
+                }.onFailure { e ->
+                    if (e is ServiceError.GeoBlocked) {
+                        walletEffect(WalletViewModelEffects.NavigateGeoBlockScreen)
+                        return@launch
+                    }
+                    updateBip21Invoice()
                 }
-
-                updateBip21Invoice(
-                    amountSats = walletState.value.bip21AmountSats,
-                )
-            }
         }
     }
 
-    fun refreshReceiveState() = viewModelScope.launch(bgDispatcher) {
-        launch { lightningRepo.updateGeoBlockState() }
-        launch { walletRepo.refreshBip21() }
+    fun refreshReceiveState() = viewModelScope.launch {
         launch { blocktankRepo.refreshInfo() }
-    }
-
-    fun refreshBip21() {
-        viewModelScope.launch {
-            walletRepo.refreshBip21()
-        }
+        lightningRepo.updateGeoBlockState()
+        walletRepo.refreshBip21()
     }
 
     fun wipeWallet() {
@@ -290,7 +277,7 @@ class WalletViewModel @Inject constructor(
         if (newText.isEmpty()) {
             Logger.warn("Empty")
         }
-        walletRepo.updateBip21Description(newText)
+        walletRepo.setBip21Description(newText)
     }
 
     suspend fun handleHideBalanceOnOpen() {

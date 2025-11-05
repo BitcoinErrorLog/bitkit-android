@@ -31,8 +31,6 @@ import to.bitkit.env.Env
 import to.bitkit.ext.toLocalizedTimestamp
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
-import to.bitkit.models.uiIcon
-import to.bitkit.models.uiTitle
 import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.backupsViewModel
@@ -176,11 +174,11 @@ private fun BackupStatusItem(
     ) {
         BackupStatusIcon(
             status = uiState.status,
-            iconRes = uiState.category.uiIcon(),
+            iconRes = uiState.category.icon,
         )
 
         Column(modifier = Modifier.weight(1f)) {
-            BodyMSB(text = stringResource(uiState.category.uiTitle()))
+            BodyMSB(text = stringResource(uiState.category.title))
             CaptionB(text = subtitle, color = Colors.White64, maxLines = 1)
         }
 
@@ -253,7 +251,7 @@ private fun Preview() {
             val timestamp = System.currentTimeMillis() - (minutesAgo * 60 * 1000)
 
             when (it.category) {
-                BackupCategory.LDK_ACTIVITY -> it.copy(disableRetry = true)
+                BackupCategory.LIGHTNING_CONNECTIONS -> it.copy(disableRetry = true)
                 BackupCategory.WALLET -> it.copy(status = BackupItemStatus(running = true, required = 1))
                 BackupCategory.METADATA -> it.copy(status = BackupItemStatus(required = 1))
                 else -> it.copy(status = BackupItemStatus(synced = timestamp, required = timestamp))

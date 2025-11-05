@@ -12,9 +12,12 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.PaymentDetails
 import to.bitkit.data.AppDb
@@ -44,8 +47,14 @@ class ActivityRepo @Inject constructor(
     private val db: AppDb,
     private val addressChecker: AddressChecker,
     private val transferRepo: TransferRepo,
+    private val clock: Clock,
 ) {
     val isSyncingLdkNodePayments = MutableStateFlow(false)
+
+    private val _activitiesChanged = MutableStateFlow(0L)
+    val activitiesChanged: StateFlow<Long> = _activitiesChanged
+
+    private fun notifyActivitiesChanged() = _activitiesChanged.update { clock.now().toEpochMilliseconds() }
 
     suspend fun syncActivities(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("syncActivities called", context = TAG)
@@ -219,6 +228,7 @@ class ActivityRepo @Inject constructor(
                 )
             }
             coreService.activity.update(id, activity)
+            notifyActivitiesChanged()
         }.onFailure { e ->
             Logger.error("updateActivity error for ID: $id", e, context = TAG)
         }
@@ -445,6 +455,7 @@ class ActivityRepo @Inject constructor(
             val deleted = coreService.activity.delete(id)
             if (deleted) {
                 cacheStore.addActivityToDeletedList(id)
+                notifyActivitiesChanged()
             } else {
                 return@withContext Result.failure(Exception("Activity not deleted"))
             }
@@ -463,8 +474,25 @@ class ActivityRepo @Inject constructor(
                 return@withContext Result.failure(Exception("Activity ${activity.rawId()} was deleted"))
             }
             coreService.activity.insert(activity)
+            notifyActivitiesChanged()
         }.onFailure { e ->
             Logger.error("insertActivity error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Upserts an activity (insert or update if exists)
+     */
+    suspend fun upsertActivity(activity: Activity): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            if (activity.rawId() in cacheStore.data.first().deletedActivities) {
+                Logger.debug("Activity ${activity.rawId()} was deleted, skipping", context = TAG)
+                return@withContext Result.failure(Exception("Activity ${activity.rawId()} was deleted"))
+            }
+            coreService.activity.upsert(activity)
+            notifyActivitiesChanged()
+        }.onFailure { e ->
+            Logger.error("upsertActivity error", e, context = TAG)
         }
     }
 
@@ -519,6 +547,7 @@ class ActivityRepo @Inject constructor(
 
             if (newTags.isNotEmpty()) {
                 coreService.activity.appendTags(activityId, newTags).getOrThrow()
+                notifyActivitiesChanged()
                 Logger.info("Added ${newTags.size} new tags to activity $activityId", context = TAG)
             } else {
                 Logger.info("No new tags to add to activity $activityId", context = TAG)
@@ -558,6 +587,7 @@ class ActivityRepo @Inject constructor(
                 checkNotNull(coreService.activity.getActivity(activityId)) { "Activity with ID $activityId not found" }
 
                 coreService.activity.dropTags(activityId, tags)
+                notifyActivitiesChanged()
                 Logger.info("Removed ${tags.size} tags from activity $activityId", context = TAG)
             }.onFailure { e ->
                 Logger.error("removeTagsFromActivity error for activity $activityId", e, context = TAG)
@@ -606,9 +636,7 @@ class ActivityRepo @Inject constructor(
                 tags = tags,
                 createdAt = nowTimestamp().toEpochMilli()
             )
-            db.tagMetadataDao().saveTagMetadata(
-                tagMetadata = entity
-            )
+            db.tagMetadataDao().insert(tagMetadata = entity)
             Logger.debug("Tag metadata saved: $entity", context = TAG)
         }.onFailure { e ->
             Logger.error("getAllAvailableTags error", e, context = TAG)

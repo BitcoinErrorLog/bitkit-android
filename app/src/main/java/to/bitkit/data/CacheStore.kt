@@ -31,7 +31,6 @@ class CacheStore @Inject constructor(
     private val store = context.appCacheDataStore
 
     val data: Flow<AppCacheData> = store.data
-
     val backupStatuses: Flow<Map<BackupCategory, BackupItemStatus>> = data.map { it.backupStatuses }
 
     suspend fun update(transform: (AppCacheData) -> AppCacheData) {
