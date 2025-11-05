@@ -11,15 +11,12 @@ import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 
 @Qualifier
-@Retention(AnnotationRetention.BINARY)
 annotation class UiDispatcher
 
 @Qualifier
-@Retention(AnnotationRetention.BINARY)
 annotation class BgDispatcher
 
 @Qualifier
-@Retention(AnnotationRetention.BINARY)
 annotation class IoDispatcher
 
 @Module
