@@ -5,6 +5,7 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.env.Env
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,14 +13,11 @@ import javax.inject.Singleton
 class VssStoreIdProvider @Inject constructor(
     private val keychain: Keychain,
 ) {
-    @Volatile
-    private var cachedStoreId: String? = null
+    private val cacheMap: MutableMap<Int, String> = ConcurrentHashMap()
 
-    fun getVssStoreId(): String {
-        cachedStoreId?.let { return it }
-
-        return synchronized(this) {
-            cachedStoreId?.let { return it }
+    fun getVssStoreId(walletIndex: Int = 0): String {
+        synchronized(this) {
+            cacheMap[walletIndex]?.let { return it }
 
             val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound
             val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
@@ -30,10 +28,14 @@ class VssStoreIdProvider @Inject constructor(
                 passphrase = passphrase,
             )
 
-            Logger.info("VSS store id: '$storeId'", context = TAG)
-            cachedStoreId = storeId
-            storeId
+            cacheMap[walletIndex] = storeId
+            Logger.info("VSS store id setup for wallet[$walletIndex]: '$storeId'", context = TAG)
+            return storeId
         }
+    }
+
+    fun clearCache(walletIndex: Int = 0) {
+        cacheMap.remove(walletIndex)
     }
 
     companion object {
