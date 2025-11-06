@@ -241,15 +241,16 @@ class WalletRepo @Inject constructor(
         backupRepo.stopObservingBackups()
 
         try {
+            _walletState.update { WalletState() }
+            _balanceState.update { BalanceState() }
+
             keychain.wipe()
-            vssStoreIdProvider.clearCache(walletIndex)
+            backupRepo.reset()
             db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
             coreService.activity.removeAll()
-            _walletState.update { WalletState() }
-            _balanceState.update { BalanceState() }
             setWalletExistsState()
 
             return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)

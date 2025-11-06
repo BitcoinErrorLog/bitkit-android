@@ -37,6 +37,7 @@ import to.bitkit.models.WalletBackupV1
 import to.bitkit.services.LightningService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -65,6 +66,8 @@ class BackupRepo @Inject constructor(
     private var isRestoring = false
 
     private var lastNotificationTime = 0L
+
+    fun reset() =vssBackupClient.reset()
 
     fun startObservingBackups() {
         if (isObserving) return
@@ -407,6 +410,7 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
                 cacheStore.update { parsed.cache }
+                Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
                 db.tagMetadataDao().upsert(parsed.tagMetadata)
                 Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
@@ -447,7 +451,6 @@ class BackupRepo @Inject constructor(
             Logger.warn("Full restore error", e = e, context = TAG)
             Result.failure(e)
         } finally {
-            scheduleFullBackup()
             isRestoring = false
         }
     }

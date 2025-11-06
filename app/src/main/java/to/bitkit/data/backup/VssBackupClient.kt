@@ -24,7 +24,7 @@ class VssBackupClient @Inject constructor(
     private val vssStoreIdProvider: VssStoreIdProvider,
     private val keychain: Keychain,
 ) {
-    private val isSetup = CompletableDeferred<Unit>()
+    private var isSetup = CompletableDeferred<Unit>()
 
     suspend fun setup(walletIndex: Int = 0) = withContext(ioDispatcher) {
         try {
@@ -50,7 +50,7 @@ class VssBackupClient @Inject constructor(
                 } else {
                     vssNewClient(
                         baseUrl = vssUrl,
-                        storeId = vssStoreIdProvider.getVssStoreId(),
+                        storeId = vssStoreId,
                     )
                 }
                 isSetup.complete(Unit)
@@ -60,6 +60,12 @@ class VssBackupClient @Inject constructor(
             isSetup.completeExceptionally(e)
             Logger.error("VSS client setup error", e = e, context = TAG)
         }
+    }
+
+    fun reset() {
+        isSetup = CompletableDeferred()
+        vssStoreIdProvider.clearCache()
+        Logger.debug("VSS client reset", context = TAG)
     }
 
     suspend fun putObject(
