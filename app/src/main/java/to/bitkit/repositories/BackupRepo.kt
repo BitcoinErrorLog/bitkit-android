@@ -301,7 +301,7 @@ class BackupRepo @Inject constructor(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.settings__backup__failed_title),
                 description = context.getString(R.string.settings__backup__failed_message).formatPlural(
-                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / 60_000)) // displayed in minutes
+                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / MINUTE_IN_MS)) // displayed in minutes
                 ),
             )
         }
@@ -396,12 +396,22 @@ class BackupRepo @Inject constructor(
         BackupCategory.LIGHTNING_CONNECTIONS -> throw NotImplementedError("LIGHTNING backup is managed by ldk-node")
     }
 
-    suspend fun performFullRestoreFromLatestBackup(): Result<Unit> = withContext(ioDispatcher) {
+    suspend fun performFullRestoreFromLatestBackup(
+        onCacheRestored: suspend () -> Unit = {},
+    ): Result<Unit> = withContext(ioDispatcher) {
         Logger.debug("Full restore starting", context = TAG)
 
         isRestoring = true
 
         return@withContext try {
+            performRestore(BackupCategory.METADATA) { dataBytes ->
+                val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
+                db.tagMetadataDao().upsert(parsed.tagMetadata)
+                cacheStore.update { parsed.cache }
+                onCacheRestored()
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
+            }
+
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
                 val parsed = json.decodeFromString<SettingsData>(String(dataBytes)).resetPin()
                 settingsStore.update { parsed }
@@ -414,12 +424,6 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
                 db.transferDao().upsert(parsed.transfers)
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
-            }
-            performRestore(BackupCategory.METADATA) { dataBytes ->
-                val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                db.tagMetadataDao().upsert(parsed.tagMetadata)
-                cacheStore.update { parsed.cache }
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
@@ -485,6 +489,7 @@ class BackupRepo @Inject constructor(
     companion object {
         private const val TAG = "BackupRepo"
 
+        private const val MINUTE_IN_MS = 60_000
         private const val BACKUP_DEBOUNCE = 5000L // 5 seconds
         private const val BACKUP_CHECK_INTERVAL = 60 * 1000L // 1 minute
         private const val FAILED_BACKUP_CHECK_TIME = 30 * 60 * 1000L // 30 minutes

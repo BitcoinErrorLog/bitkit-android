@@ -62,11 +62,6 @@ class WalletRepo @Inject constructor(
     private val _balanceState = MutableStateFlow(BalanceState())
     val balanceState = _balanceState.asStateFlow()
 
-    init {
-        // Load from cache once on init
-        loadFromCache()
-    }
-
     fun loadFromCache() {
         // TODO try keeping in sync with cache if performant and reliable
         repoScope.launch {

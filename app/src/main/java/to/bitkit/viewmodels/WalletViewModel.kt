@@ -69,6 +69,9 @@ class WalletViewModel @Inject constructor(
     private fun walletEffect(effect: WalletViewModelEffects) = viewModelScope.launch { _walletEffect.emit(effect) }
 
     init {
+        if (walletExists) {
+            walletRepo.loadFromCache()
+        }
         collectStates()
     }
 
@@ -110,7 +113,7 @@ class WalletViewModel @Inject constructor(
 
     private suspend fun restoreFromBackup() {
         restoreState = RestoreState.RestoringBackups
-        backupRepo.performFullRestoreFromLatestBackup()
+        backupRepo.performFullRestoreFromLatestBackup(onCacheRestored = walletRepo::loadFromCache)
         // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
         restoreState = RestoreState.BackupRestoreCompleted
     }
