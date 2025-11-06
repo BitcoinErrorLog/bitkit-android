@@ -208,7 +208,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(isEditingWidgets = true) }
     }
 
-    private fun disableEditMode() {
+    fun disableEditMode() {
         _uiState.update { it.copy(isEditingWidgets = false) }
     }
 
