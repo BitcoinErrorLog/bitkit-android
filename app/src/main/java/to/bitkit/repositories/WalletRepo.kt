@@ -52,6 +52,7 @@ class WalletRepo @Inject constructor(
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
     private val vssStoreIdProvider: VssStoreIdProvider,
+    private val backupRepo: BackupRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -242,6 +243,8 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
+        backupRepo.stopObservingBackups()
+
         try {
             keychain.wipe()
             vssStoreIdProvider.clearCache(walletIndex)
