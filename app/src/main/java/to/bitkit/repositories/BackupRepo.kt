@@ -112,7 +112,7 @@ class BackupRepo @Inject constructor(
                         old.synced == new.synced && old.required == new.required
                     }
                     .collect { status ->
-                        if (status.synced < status.required && !status.running && !isRestoring) {
+                        if (status.isRequired && !status.running && !isRestoring) {
                             scheduleBackup(category)
                         }
                     }
@@ -258,7 +258,7 @@ class BackupRepo @Inject constructor(
 
             // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.synced < status.required && !isRestoring) {
+            if (status.isRequired && !isRestoring) {
                 triggerBackup(category)
             } else {
                 // Backup no longer needed, reset running flag
@@ -278,7 +278,7 @@ class BackupRepo @Inject constructor(
             val hasFailedBackups = BackupCategory.entries.any { category ->
                 val status = backupStatuses[category] ?: BackupItemStatus()
 
-                val isPendingAndOverdue = status.synced < status.required &&
+                val isPendingAndOverdue = status.isRequired &&
                     currentTime - status.required > FAILED_BACKUP_CHECK_TIME
                 return@any isPendingAndOverdue
             }

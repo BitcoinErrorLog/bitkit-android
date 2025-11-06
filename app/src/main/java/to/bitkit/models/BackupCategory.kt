@@ -59,4 +59,6 @@ data class BackupItemStatus(
     val running: Boolean = false,
     val synced: Long = 0,
     val required: Long = 0,
-)
+) {
+    val isRequired: Boolean get() = synced < required
+}
