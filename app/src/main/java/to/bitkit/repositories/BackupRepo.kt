@@ -301,7 +301,7 @@ class BackupRepo @Inject constructor(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.settings__backup__failed_title),
                 description = context.getString(R.string.settings__backup__failed_message).formatPlural(
-                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / MINUTE_IN_MS)) // displayed in minutes
+                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / MINUTE_IN_MS))
                 ),
             )
         }
@@ -406,9 +406,9 @@ class BackupRepo @Inject constructor(
         return@withContext try {
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                db.tagMetadataDao().upsert(parsed.tagMetadata)
                 cacheStore.update { parsed.cache }
                 onCacheRestored()
+                db.tagMetadataDao().upsert(parsed.tagMetadata)
                 Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
             }
 
