@@ -249,12 +249,22 @@ class BackupRepo @Inject constructor(
         Logger.verbose("Scheduling backup for: '$category'", context = TAG)
 
         backupJobs[category] = scope.launch {
+            // Set running immediately to prevent UI showing failure during debounce
+            cacheStore.updateBackupStatus(category) {
+                it.copy(running = true)
+            }
+
             delay(BACKUP_DEBOUNCE)
 
             // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.synced < status.required && !status.running && !isRestoring) {
+            if (status.synced < status.required && !isRestoring) {
                 triggerBackup(category)
+            } else {
+                // Backup no longer needed, reset running flag
+                cacheStore.updateBackupStatus(category) {
+                    it.copy(running = false)
+                }
             }
         }
     }
@@ -290,7 +300,7 @@ class BackupRepo @Inject constructor(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.settings__backup__failed_title),
                 description = context.getString(R.string.settings__backup__failed_message).formatPlural(
-                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / 60000)) // displayed in minutes
+                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / 60_000)) // displayed in minutes
                 ),
             )
         }
@@ -427,6 +437,9 @@ class BackupRepo @Inject constructor(
             }
 
             Logger.info("Full restore success", context = TAG)
+            scope.launch {
+                scheduleFullBackup()
+            }
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.warn("Full restore error", e = e, context = TAG)
@@ -434,6 +447,15 @@ class BackupRepo @Inject constructor(
         } finally {
             isRestoring = false
         }
+    }
+
+    fun scheduleFullBackup() {
+        Logger.debug("Scheduling backups for all categories", context = TAG)
+        BackupCategory.entries
+            .filter { it != BackupCategory.LIGHTNING_CONNECTIONS }
+            .forEach {
+                scheduleBackup(it)
+            }
     }
 
     private suspend fun performRestore(
