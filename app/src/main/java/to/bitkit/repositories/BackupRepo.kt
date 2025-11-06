@@ -26,6 +26,7 @@ import to.bitkit.data.resetPin
 import to.bitkit.di.IoDispatcher
 import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
+import to.bitkit.ext.nowMillis
 import to.bitkit.models.ActivityBackupV1
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -437,14 +438,12 @@ class BackupRepo @Inject constructor(
             }
 
             Logger.info("Full restore success", context = TAG)
-            scope.launch {
-                scheduleFullBackup()
-            }
             Result.success(Unit)
         } catch (e: Throwable) {
             Logger.warn("Full restore error", e = e, context = TAG)
             Result.failure(e)
         } finally {
+            scheduleFullBackup()
             isRestoring = false
         }
     }
@@ -475,12 +474,13 @@ class BackupRepo @Inject constructor(
                 Logger.debug("Restore error for: '$category'", context = TAG)
             }
 
+        val now = currentTimeMillis()
         cacheStore.updateBackupStatus(category) {
-            it.copy(running = false, synced = currentTimeMillis())
+            it.copy(running = false, synced = now, required = now)
         }
     }
 
-    private fun currentTimeMillis(): Long = clock.now().toEpochMilliseconds()
+    private fun currentTimeMillis(): Long = nowMillis(clock)
 
     companion object {
         private const val TAG = "BackupRepo"
