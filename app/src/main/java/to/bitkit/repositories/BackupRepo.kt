@@ -124,7 +124,7 @@ class BackupRepo @Inject constructor(
                         old.synced == new.synced && old.required == new.required
                     }
                     .collect { status ->
-                        if (status.isRequired && !status.running && !isRestoring.value) {
+                        if (status.shouldBackup()) {
                             scheduleBackup(category)
                         }
                     }
@@ -270,7 +270,7 @@ class BackupRepo @Inject constructor(
 
             // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.isRequired && !isRestoring.value) {
+            if (status.shouldBackup()) {
                 triggerBackup(category)
             } else {
                 // Backup no longer needed, reset running flag
@@ -498,6 +498,8 @@ class BackupRepo @Inject constructor(
     }
 
     private fun currentTimeMillis(): Long = nowMillis(clock)
+
+    private fun BackupItemStatus.shouldBackup() = this.isRequired && !this.running && !isRestoring.value
 
     companion object {
         private const val TAG = "BackupRepo"
