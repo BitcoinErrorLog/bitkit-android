@@ -1,6 +1,7 @@
 package to.bitkit.models
 
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.ActivityTags
 import com.synonym.bitkitcore.ActivityTagsMetadata
 import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IBtInfo
@@ -39,5 +40,6 @@ data class ActivityBackupV1(
     val version: Int = 1,
     val createdAt: Long,
     val activities: List<Activity>,
+    val activityTags: List<ActivityTags>,
     val closedChannels: List<ClosedChannelDetails>,
 )

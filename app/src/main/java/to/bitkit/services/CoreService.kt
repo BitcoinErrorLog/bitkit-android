@@ -2,6 +2,8 @@ package to.bitkit.services
 
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.ActivityTags
+import com.synonym.bitkitcore.ActivityTagsMetadata
 import com.synonym.bitkitcore.BtOrderState2
 import com.synonym.bitkitcore.CJitStateEnum
 import com.synonym.bitkitcore.ClosedChannelDetails
@@ -28,6 +30,7 @@ import com.synonym.bitkitcore.estimateOrderFeeFull
 import com.synonym.bitkitcore.getActivities
 import com.synonym.bitkitcore.getActivityById
 import com.synonym.bitkitcore.getAllClosedChannels
+import com.synonym.bitkitcore.getAllTagMetadata
 import com.synonym.bitkitcore.getAllUniqueTags
 import com.synonym.bitkitcore.getCjitEntries
 import com.synonym.bitkitcore.getInfo
@@ -44,7 +47,6 @@ import com.synonym.bitkitcore.updateBlocktankUrl
 import com.synonym.bitkitcore.upsertActivities
 import com.synonym.bitkitcore.upsertActivity
 import com.synonym.bitkitcore.upsertCjitEntries
-import com.synonym.bitkitcore.upsertClosedChannel
 import com.synonym.bitkitcore.upsertClosedChannels
 import com.synonym.bitkitcore.upsertInfo
 import com.synonym.bitkitcore.upsertOrders
@@ -215,14 +217,6 @@ class ActivityService(
         upsertActivities(activities)
     }
 
-    suspend fun upsertClosedChannelItem(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
-        upsertClosedChannel(closedChannel)
-    }
-
-    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
-        upsertClosedChannels(closedChannels)
-    }
-
     suspend fun getActivity(id: String): Activity? {
         return ServiceQueue.CORE.background {
             getActivityById(id)
@@ -283,6 +277,18 @@ class ActivityService(
         return ServiceQueue.CORE.background {
             getAllUniqueTags()
         }
+    }
+
+    suspend fun upsertTags(activityTags: List<ActivityTags>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.upsertTags(activityTags)
+    }
+
+    suspend fun getAllActivityTags(): List<ActivityTags> = ServiceQueue.CORE.background {
+        getAllTagMetadata().map { ActivityTags(it.id, tags = it.tags) }
+    }
+
+    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
+        upsertClosedChannels(closedChannels)
     }
 
     suspend fun closedChannels(

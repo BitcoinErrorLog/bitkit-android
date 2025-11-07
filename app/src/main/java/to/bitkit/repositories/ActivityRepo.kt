@@ -2,6 +2,7 @@ package to.bitkit.repositories
 
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.ActivityTags
 import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IcJitEntry
 import com.synonym.bitkitcore.LightningActivity
@@ -622,6 +623,17 @@ class ActivityRepo @Inject constructor(
         }
     }
 
+    /**
+     * Get all [ActivityTags] for backup
+     */
+    suspend fun getAllActivityTags(): Result<List<ActivityTags>> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.getAllActivityTags()
+        }.onFailure { e ->
+            Logger.error("getAllActivityTags error", e, context = TAG)
+        }
+    }
+
     suspend fun saveTagsMetadata(
         id: String,
         paymentHash: String? = null,
@@ -652,6 +664,7 @@ class ActivityRepo @Inject constructor(
     suspend fun restoreFromBackup(backup: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
             coreService.activity.upsertList(backup.activities)
+            coreService.activity.upsertTags(backup.activityTags)
             coreService.activity.upsertClosedChannelList(backup.closedChannels)
         }
     }

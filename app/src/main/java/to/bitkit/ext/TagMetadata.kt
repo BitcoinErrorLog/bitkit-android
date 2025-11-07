@@ -13,7 +13,7 @@ fun TagMetadataEntity.toActivityTagsMetadata() = ActivityTagsMetadata(
     createdAt.toULong(),
 )
 
-fun ActivityTagsMetadata.TagMetadataEntity() = TagMetadataEntity(
+fun ActivityTagsMetadata.toTagMetadataEntity() = TagMetadataEntity(
     id,
     paymentHash,
     txId,

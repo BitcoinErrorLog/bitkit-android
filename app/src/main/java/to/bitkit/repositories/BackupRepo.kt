@@ -32,7 +32,7 @@ import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.ext.nowMillis
 import to.bitkit.ext.toActivityTagsMetadata
-import to.bitkit.ext.TagMetadataEntity
+import to.bitkit.ext.toTagMetadataEntity
 import to.bitkit.models.ActivityBackupV1
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -396,10 +396,12 @@ class BackupRepo @Inject constructor(
         BackupCategory.ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
             val closedChannels = activityRepo.getClosedChannels().getOrDefault(emptyList())
+            val activityTags = activityRepo.getAllActivityTags().getOrDefault(emptyList())
 
             val payload = ActivityBackupV1(
                 createdAt = currentTimeMillis(),
                 activities = activities,
+                activityTags = activityTags,
                 closedChannels = closedChannels,
             )
 
@@ -424,7 +426,7 @@ class BackupRepo @Inject constructor(
                 }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
-                val tagMetadata = parsed.tagMetadata.map { it.TagMetadataEntity() }
+                val tagMetadata = parsed.tagMetadata.map { it.toTagMetadataEntity() }
                 db.tagMetadataDao().upsert(tagMetadata)
                 Logger.debug("Restored caches and ${tagMetadata.size} tags metadata records", TAG)
             }
@@ -452,7 +454,8 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
                 activityRepo.restoreFromBackup(parsed).onSuccess {
                     Logger.debug(
-                        "Restored ${parsed.activities.size} activities, ${parsed.closedChannels.size} closed channels",
+                        "Restored ${parsed.activities.size} activities, ${parsed.activityTags.size} activity tags, " +
+                            "${parsed.closedChannels.size} closed channels",
                         context = TAG,
                     )
                 }
