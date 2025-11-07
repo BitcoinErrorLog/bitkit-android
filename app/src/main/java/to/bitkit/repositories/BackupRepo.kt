@@ -31,6 +31,8 @@ import to.bitkit.di.IoDispatcher
 import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.ext.nowMillis
+import to.bitkit.ext.toActivityTagsMetadata
+import to.bitkit.ext.TagMetadataEntity
 import to.bitkit.models.ActivityBackupV1
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -366,7 +368,7 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.METADATA -> {
-            val tagMetadata = db.tagMetadataDao().getAll()
+            val tagMetadata = db.tagMetadataDao().getAll().map { it.toActivityTagsMetadata() }
             val cacheData = cacheStore.data.first()
 
             val payload = MetadataBackupV1(
@@ -422,8 +424,9 @@ class BackupRepo @Inject constructor(
                 }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
-                db.tagMetadataDao().upsert(parsed.tagMetadata)
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
+                val tagMetadata = parsed.tagMetadata.map { it.TagMetadataEntity() }
+                db.tagMetadataDao().upsert(tagMetadata)
+                Logger.debug("Restored caches and ${tagMetadata.size} tags metadata records", TAG)
             }
 
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
