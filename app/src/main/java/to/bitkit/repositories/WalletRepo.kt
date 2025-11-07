@@ -238,14 +238,13 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
-        backupRepo.stopObservingBackups()
-
         try {
+            backupRepo.reset()
+
             _walletState.update { WalletState() }
             _balanceState.update { BalanceState() }
 
             keychain.wipe()
-            backupRepo.reset()
             db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()

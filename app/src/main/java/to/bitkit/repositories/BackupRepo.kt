@@ -67,7 +67,10 @@ class BackupRepo @Inject constructor(
 
     private var lastNotificationTime = 0L
 
-    fun reset() = vssBackupClient.reset()
+    fun reset() {
+        stopObservingBackups()
+        vssBackupClient.reset()
+    }
 
     fun startObservingBackups() {
         if (isObserving) return
