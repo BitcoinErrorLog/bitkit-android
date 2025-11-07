@@ -1338,6 +1338,7 @@ class AppViewModel @Inject constructor(
         event: Event?,
     ) = viewModelScope.launch {
         if (backupRepo.isRestoring.value) return@launch
+
         if (!isNewTransactionSheetEnabled) {
             Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
             return@launch
@@ -1348,9 +1349,10 @@ class AppViewModel @Inject constructor(
                 paymentHashOrTxId = event.paymentHash,
                 type = ActivityFilter.ALL,
                 txType = PaymentType.RECEIVED,
-                retry = false
+                retry = false,
             ).getOrNull()
 
+            // TODO check if this is still needed now that we're disabling the sheet during restore
             // TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
             if (activity != null) {
                 Logger.warn("Activity ${activity.rawId()} already exists, skipping sheet", context = TAG)
@@ -1577,12 +1579,12 @@ class AppViewModel @Inject constructor(
     }
 
     fun checkTimedSheets() {
+        if (backupRepo.isRestoring.value) return
+
         if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
             Logger.debug("Timed sheet already active, skipping check")
             return
         }
-
-        if (backupRepo.isRestoring.value) return
 
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
