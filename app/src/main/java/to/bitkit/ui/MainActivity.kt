@@ -151,7 +151,8 @@ class MainActivity : FragmentActivity() {
                     }
                 )
 
-                if (appViewModel.showNewTransaction) {
+                val showNewTransaction by appViewModel.showNewTransaction.collectAsStateWithLifecycle()
+                if (showNewTransaction) {
                     NewTransactionSheet(
                         appViewModel = appViewModel,
                         currencyViewModel = currencyViewModel,

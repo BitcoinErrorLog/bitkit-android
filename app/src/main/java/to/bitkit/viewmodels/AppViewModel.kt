@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -1303,8 +1304,8 @@ class AppViewModel @Inject constructor(
     var isNewTransactionSheetEnabled = true
         private set
 
-    var showNewTransaction by mutableStateOf(false)
-        private set
+    private val _showNewTransaction = MutableStateFlow(false)
+    val showNewTransaction: StateFlow<Boolean> = _showNewTransaction.asStateFlow()
 
     private val _newTransaction = MutableStateFlow(
         NewTransactionSheetDetails(
@@ -1336,6 +1337,7 @@ class AppViewModel @Inject constructor(
         details: NewTransactionSheetDetails,
         event: Event?,
     ) = viewModelScope.launch {
+        if (backupRepo.isRestoring.value) return@launch
         if (!isNewTransactionSheetEnabled) {
             Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
             return@launch
@@ -1359,11 +1361,11 @@ class AppViewModel @Inject constructor(
         hideSheet()
 
         _newTransaction.update { details }
-        showNewTransaction = true
+        _showNewTransaction.value = true
     }
 
     fun hideNewTransactionSheet() {
-        showNewTransaction = false
+        _showNewTransaction.value = false
     }
     // endregion
 
