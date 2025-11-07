@@ -63,11 +63,13 @@ class VssBackupClient @Inject constructor(
     }
 
     fun reset() {
-        isSetup = CompletableDeferred()
+        synchronized(this) {
+            isSetup.cancel()
+            isSetup = CompletableDeferred()
+        }
         vssStoreIdProvider.clearCache()
         Logger.debug("VSS client reset", context = TAG)
     }
-
     suspend fun putObject(
         key: String,
         data: ByteArray,
