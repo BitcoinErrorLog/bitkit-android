@@ -126,7 +126,7 @@ class HealthRepo @Inject constructor(
                 val now = clock.now().toEpochMilliseconds()
 
                 fun isSyncOk(synced: Long, required: Long) =
-                    synced > required || (now - required) < 5.minutes.inWholeMilliseconds
+                    synced >= required || (now - required) < 5.minutes.inWholeMilliseconds
 
                 val isBackupSyncOk = BackupCategory.entries
                     .filter { it != BackupCategory.LIGHTNING_CONNECTIONS }

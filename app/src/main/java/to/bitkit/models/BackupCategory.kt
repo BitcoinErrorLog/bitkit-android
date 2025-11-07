@@ -57,6 +57,8 @@ enum class BackupCategory(
 @Serializable
 data class BackupItemStatus(
     val running: Boolean = false,
-    val synced: Long = 0L,
-    val required: Long = 0L,
-)
+    val synced: Long = 0,
+    val required: Long = 0,
+) {
+    val isRequired: Boolean get() = synced < required
+}

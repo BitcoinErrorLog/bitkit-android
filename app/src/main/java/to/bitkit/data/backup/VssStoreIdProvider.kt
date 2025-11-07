@@ -34,8 +34,8 @@ class VssStoreIdProvider @Inject constructor(
         }
     }
 
-    fun clearCache(walletIndex: Int = 0) {
-        cacheMap.remove(walletIndex)
+    fun clearCache() {
+        cacheMap.clear()
     }
 
     companion object {

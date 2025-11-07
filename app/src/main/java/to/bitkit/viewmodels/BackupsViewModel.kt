@@ -35,12 +35,7 @@ class BackupsViewModel @Inject constructor(
             cacheStore.backupStatuses.collect { cachedStatuses ->
                 val categories = BackupCategory.entries.map { category ->
                     val cachedStatus = cachedStatuses[category] ?: BackupItemStatus(synced = 0, required = 1)
-                    category.toUiState(cachedStatus).let { uiState ->
-                        when (category) {
-                            BackupCategory.LIGHTNING_CONNECTIONS -> uiState.copy(disableRetry = true)
-                            else -> uiState
-                        }
-                    }
+                    category.toUiState(cachedStatus)
                 }
                 _uiState.update { it.copy(categories = categories) }
             }
@@ -85,5 +80,6 @@ fun BackupCategory.toUiState(status: BackupItemStatus = BackupItemStatus()): Bac
     return BackupCategoryUiState(
         category = this,
         status = status,
+        disableRetry = this == BackupCategory.LIGHTNING_CONNECTIONS,
     )
 }

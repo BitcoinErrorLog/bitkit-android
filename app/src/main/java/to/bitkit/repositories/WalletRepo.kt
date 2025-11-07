@@ -52,6 +52,7 @@ class WalletRepo @Inject constructor(
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
     private val vssStoreIdProvider: VssStoreIdProvider,
+    private val backupRepo: BackupRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -60,11 +61,6 @@ class WalletRepo @Inject constructor(
 
     private val _balanceState = MutableStateFlow(BalanceState())
     val balanceState = _balanceState.asStateFlow()
-
-    init {
-        // Load from cache once on init
-        loadFromCache()
-    }
 
     fun loadFromCache() {
         // TODO try keeping in sync with cache if performant and reliable
@@ -243,15 +239,17 @@ class WalletRepo @Inject constructor(
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
         try {
+            backupRepo.reset()
+
+            _walletState.update { WalletState() }
+            _balanceState.update { BalanceState() }
+
             keychain.wipe()
-            vssStoreIdProvider.clearCache(walletIndex)
             db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
             coreService.activity.removeAll()
-            _walletState.update { WalletState() }
-            _balanceState.update { BalanceState() }
             setWalletExistsState()
 
             return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)

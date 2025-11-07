@@ -23,9 +23,10 @@ import to.bitkit.data.WidgetsData
 import to.bitkit.data.WidgetsStore
 import to.bitkit.data.backup.VssBackupClient
 import to.bitkit.data.resetPin
-import to.bitkit.di.BgDispatcher
+import to.bitkit.di.IoDispatcher
 import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
+import to.bitkit.ext.nowMillis
 import to.bitkit.models.ActivityBackupV1
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -36,6 +37,7 @@ import to.bitkit.models.WalletBackupV1
 import to.bitkit.services.LightningService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,7 +45,7 @@ import javax.inject.Singleton
 @Singleton
 class BackupRepo @Inject constructor(
     @ApplicationContext private val context: Context,
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val cacheStore: CacheStore,
     private val vssBackupClient: VssBackupClient,
     private val settingsStore: SettingsStore,
@@ -54,7 +56,7 @@ class BackupRepo @Inject constructor(
     private val clock: Clock,
     private val db: AppDb,
 ) {
-    private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
+    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
 
     private val backupJobs = mutableMapOf<BackupCategory, Job>()
     private val statusObserverJobs = mutableListOf<Job>()
@@ -64,6 +66,11 @@ class BackupRepo @Inject constructor(
     private var isRestoring = false
 
     private var lastNotificationTime = 0L
+
+    fun reset() {
+        stopObservingBackups()
+        vssBackupClient.reset()
+    }
 
     fun startObservingBackups() {
         if (isObserving) return
@@ -112,7 +119,7 @@ class BackupRepo @Inject constructor(
                         old.synced == new.synced && old.required == new.required
                     }
                     .collect { status ->
-                        if (status.synced < status.required && !status.running && !isRestoring) {
+                        if (status.isRequired && !status.running && !isRestoring) {
                             scheduleBackup(category)
                         }
                     }
@@ -249,12 +256,22 @@ class BackupRepo @Inject constructor(
         Logger.verbose("Scheduling backup for: '$category'", context = TAG)
 
         backupJobs[category] = scope.launch {
+            // Set running immediately to prevent UI showing failure during debounce
+            cacheStore.updateBackupStatus(category) {
+                it.copy(running = true)
+            }
+
             delay(BACKUP_DEBOUNCE)
 
             // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.synced < status.required && !status.running && !isRestoring) {
+            if (status.isRequired && !isRestoring) {
                 triggerBackup(category)
+            } else {
+                // Backup no longer needed, reset running flag
+                cacheStore.updateBackupStatus(category) {
+                    it.copy(running = false)
+                }
             }
         }
     }
@@ -268,7 +285,7 @@ class BackupRepo @Inject constructor(
             val hasFailedBackups = BackupCategory.entries.any { category ->
                 val status = backupStatuses[category] ?: BackupItemStatus()
 
-                val isPendingAndOverdue = status.synced < status.required &&
+                val isPendingAndOverdue = status.isRequired &&
                     currentTime - status.required > FAILED_BACKUP_CHECK_TIME
                 return@any isPendingAndOverdue
             }
@@ -290,13 +307,13 @@ class BackupRepo @Inject constructor(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.settings__backup__failed_title),
                 description = context.getString(R.string.settings__backup__failed_message).formatPlural(
-                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / 60000)) // displayed in minutes
+                    mapOf("interval" to (BACKUP_CHECK_INTERVAL / MINUTE_IN_MS))
                 ),
             )
         }
     }
 
-    suspend fun triggerBackup(category: BackupCategory) = withContext(bgDispatcher) {
+    suspend fun triggerBackup(category: BackupCategory) = withContext(ioDispatcher) {
         Logger.debug("Backup starting for: '$category'", context = TAG)
 
         cacheStore.updateBackupStatus(category) {
@@ -385,12 +402,23 @@ class BackupRepo @Inject constructor(
         BackupCategory.LIGHTNING_CONNECTIONS -> throw NotImplementedError("LIGHTNING backup is managed by ldk-node")
     }
 
-    suspend fun performFullRestoreFromLatestBackup(): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun performFullRestoreFromLatestBackup(
+        onCacheRestored: suspend () -> Unit = {},
+    ): Result<Unit> = withContext(ioDispatcher) {
         Logger.debug("Full restore starting", context = TAG)
 
         isRestoring = true
 
         return@withContext try {
+            performRestore(BackupCategory.METADATA) { dataBytes ->
+                val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
+                cacheStore.update { parsed.cache }
+                Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
+                onCacheRestored()
+                db.tagMetadataDao().upsert(parsed.tagMetadata)
+                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
+            }
+
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
                 val parsed = json.decodeFromString<SettingsData>(String(dataBytes)).resetPin()
                 settingsStore.update { parsed }
@@ -403,12 +431,6 @@ class BackupRepo @Inject constructor(
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
                 db.transferDao().upsert(parsed.transfers)
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
-            }
-            performRestore(BackupCategory.METADATA) { dataBytes ->
-                val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                db.tagMetadataDao().upsert(parsed.tagMetadata)
-                cacheStore.update { parsed.cache }
-                Logger.debug("Restored caches and ${parsed.tagMetadata.size} tags metadata records", TAG)
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
@@ -436,6 +458,15 @@ class BackupRepo @Inject constructor(
         }
     }
 
+    fun scheduleFullBackup() {
+        Logger.debug("Scheduling backups for all categories", context = TAG)
+        BackupCategory.entries
+            .filter { it != BackupCategory.LIGHTNING_CONNECTIONS }
+            .forEach {
+                scheduleBackup(it)
+            }
+    }
+
     private suspend fun performRestore(
         category: BackupCategory,
         restoreAction: suspend (ByteArray) -> Unit,
@@ -453,16 +484,18 @@ class BackupRepo @Inject constructor(
                 Logger.debug("Restore error for: '$category'", context = TAG)
             }
 
+        val now = currentTimeMillis()
         cacheStore.updateBackupStatus(category) {
-            it.copy(running = false, synced = currentTimeMillis())
+            it.copy(running = false, synced = now, required = now)
         }
     }
 
-    private fun currentTimeMillis(): Long = clock.now().toEpochMilliseconds()
+    private fun currentTimeMillis(): Long = nowMillis(clock)
 
     companion object {
         private const val TAG = "BackupRepo"
 
+        private const val MINUTE_IN_MS = 60_000
         private const val BACKUP_DEBOUNCE = 5000L // 5 seconds
         private const val BACKUP_CHECK_INTERVAL = 60 * 1000L // 1 minute
         private const val FAILED_BACKUP_CHECK_TIME = 30 * 60 * 1000L // 30 minutes

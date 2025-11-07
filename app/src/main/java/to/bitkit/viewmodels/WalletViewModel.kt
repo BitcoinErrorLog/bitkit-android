@@ -69,6 +69,9 @@ class WalletViewModel @Inject constructor(
     private fun walletEffect(effect: WalletViewModelEffects) = viewModelScope.launch { _walletEffect.emit(effect) }
 
     init {
+        if (walletExists) {
+            walletRepo.loadFromCache()
+        }
         collectStates()
     }
 
@@ -88,7 +91,7 @@ class WalletViewModel @Inject constructor(
                     )
                 }
                 if (state.walletExists && restoreState == RestoreState.RestoringWallet) {
-                    triggerBackupRestore()
+                    restoreFromBackup()
                 }
             }
         }
@@ -108,14 +111,11 @@ class WalletViewModel @Inject constructor(
         }
     }
 
-    private fun triggerBackupRestore() {
+    private suspend fun restoreFromBackup() {
         restoreState = RestoreState.RestoringBackups
-
-        viewModelScope.launch {
-            backupRepo.performFullRestoreFromLatestBackup()
-            // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
-            restoreState = RestoreState.BackupRestoreCompleted
-        }
+        backupRepo.performFullRestoreFromLatestBackup(onCacheRestored = walletRepo::loadFromCache)
+        // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
+        restoreState = RestoreState.BackupRestoreCompleted
     }
 
     fun setRestoringWalletState() {
@@ -245,9 +245,13 @@ class WalletViewModel @Inject constructor(
     }
 
     suspend fun createWallet(bip39Passphrase: String?) {
-        walletRepo.createWallet(bip39Passphrase).onFailure { error ->
-            ToastEventBus.send(error)
-        }
+        walletRepo.createWallet(bip39Passphrase)
+            .onSuccess {
+                backupRepo.scheduleFullBackup()
+            }
+            .onFailure { error ->
+                ToastEventBus.send(error)
+            }
     }
 
     suspend fun restoreWallet(mnemonic: String, bip39Passphrase: String?) {

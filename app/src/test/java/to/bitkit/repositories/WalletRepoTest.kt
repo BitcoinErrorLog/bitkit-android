@@ -48,6 +48,7 @@ class WalletRepoTest : BaseUnitTest() {
     private val cacheStore: CacheStore = mock()
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase = mock()
     private val vssStoreIdProvider = mock<VssStoreIdProvider>()
+    private val backupRepo = mock<BackupRepo>()
 
     @Before
     fun setUp() {
@@ -78,6 +79,7 @@ class WalletRepoTest : BaseUnitTest() {
         cacheStore = cacheStore,
         deriveBalanceStateUseCase = deriveBalanceStateUseCase,
         vssStoreIdProvider = vssStoreIdProvider,
+        backupRepo = backupRepo,
     )
 
     @Test
@@ -196,6 +198,7 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = existingAddress)))
         whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
         sut = createSut()
+        sut.loadFromCache()
 
         val result = sut.refreshBip21()
 
@@ -266,6 +269,7 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
         whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success("testInvoice"))
         sut = createSut()
+        sut.loadFromCache()
 
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
             assertTrue(result.isSuccess)
@@ -524,6 +528,7 @@ class WalletRepoTest : BaseUnitTest() {
         val testAddress = "testAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
         sut = createSut()
+        sut.loadFromCache()
         sut.setBolt11("existingInvoice")
         whenever(lightningRepo.canReceive()).thenReturn(false)
 
@@ -570,6 +575,7 @@ class WalletRepoTest : BaseUnitTest() {
         )
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
         sut = createSut()
+        sut.loadFromCache()
 
         sut.refreshBip21ForEvent(
             Event.PaymentReceived(
@@ -589,6 +595,7 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
         whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
         sut = createSut()
+        sut.loadFromCache()
 
         sut.refreshBip21ForEvent(
             Event.PaymentReceived(

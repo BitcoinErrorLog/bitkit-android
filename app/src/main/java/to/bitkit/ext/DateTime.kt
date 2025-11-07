@@ -4,6 +4,7 @@ package to.bitkit.ext
 
 import android.icu.text.DateFormat
 import android.icu.util.ULocale
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -21,6 +22,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
+
+fun nowMillis(clock: Clock = Clock.System): Long = clock.now().toEpochMilliseconds()
 
 fun nowTimestamp(): Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS)
 

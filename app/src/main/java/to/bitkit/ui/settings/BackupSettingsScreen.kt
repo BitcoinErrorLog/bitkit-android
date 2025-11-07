@@ -91,7 +91,7 @@ private fun BackupSettingsScreenContent(
     onBack: () -> Unit,
     onClose: () -> Unit,
 ) {
-    val allSynced = uiState.categories.all { it.status.synced >= it.status.required }
+    val allSynced = uiState.categories.all { !it.status.isRequired }
     ScreenColumn {
         AppTopBar(
             titleText = stringResource(R.string.settings__backup__title),
@@ -158,7 +158,7 @@ private fun BackupStatusItem(
 
     val subtitle = when {
         status.running -> "Running" // TODO add missing localized text
-        status.synced >= status.required -> stringResource(R.string.settings__backup__status_success)
+        !status.isRequired -> stringResource(R.string.settings__backup__status_success)
             .replace("{time}", status.synced.toLocalizedTimestamp())
 
         else -> stringResource(R.string.settings__backup__status_failed)
@@ -182,7 +182,7 @@ private fun BackupStatusItem(
             CaptionB(text = subtitle, color = Colors.White64, maxLines = 1)
         }
 
-        val showRetry = !uiState.disableRetry && !status.running && status.synced < status.required
+        val showRetry = !uiState.disableRetry && !status.running && status.isRequired
         if (showRetry) {
             BackupRetryButton(
                 onClick = { onRetryClick(uiState.category) },
@@ -204,7 +204,7 @@ private fun BackupStatusIcon(
             .background(
                 color = when {
                     status.running -> Colors.Yellow16
-                    status.synced >= status.required -> Colors.Green16
+                    !status.isRequired -> Colors.Green16
                     else -> Colors.Red16
                 },
                 shape = CircleShape
@@ -215,7 +215,7 @@ private fun BackupStatusIcon(
             contentDescription = null,
             tint = when {
                 status.running -> Colors.Yellow
-                status.synced >= status.required -> Colors.Green
+                !status.isRequired -> Colors.Green
                 else -> Colors.Red
             },
             modifier = Modifier.size(16.dp)
@@ -251,7 +251,6 @@ private fun Preview() {
             val timestamp = System.currentTimeMillis() - (minutesAgo * 60 * 1000)
 
             when (it.category) {
-                BackupCategory.LIGHTNING_CONNECTIONS -> it.copy(disableRetry = true)
                 BackupCategory.WALLET -> it.copy(status = BackupItemStatus(running = true, required = 1))
                 BackupCategory.METADATA -> it.copy(status = BackupItemStatus(required = 1))
                 else -> it.copy(status = BackupItemStatus(synced = timestamp, required = timestamp))
