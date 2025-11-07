@@ -7,10 +7,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -63,7 +67,8 @@ class BackupRepo @Inject constructor(
     private val dataListenerJobs = mutableListOf<Job>()
     private var periodicCheckJob: Job? = null
     private var isObserving = false
-    private var isRestoring = false
+    private val _isRestoring = MutableStateFlow(false)
+    val isRestoring: StateFlow<Boolean> = _isRestoring.asStateFlow()
 
     private var lastNotificationTime = 0L
 
@@ -119,7 +124,7 @@ class BackupRepo @Inject constructor(
                         old.synced == new.synced && old.required == new.required
                     }
                     .collect { status ->
-                        if (status.isRequired && !status.running && !isRestoring) {
+                        if (status.isRequired && !status.running && !isRestoring.value) {
                             scheduleBackup(category)
                         }
                     }
@@ -137,7 +142,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.SETTINGS)
                 }
         }
@@ -148,7 +153,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.WIDGETS)
                 }
         }
@@ -160,7 +165,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.WALLET)
                 }
         }
@@ -172,7 +177,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.METADATA)
                 }
         }
@@ -185,7 +190,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.METADATA)
                 }
         }
@@ -196,7 +201,7 @@ class BackupRepo @Inject constructor(
             blocktankRepo.blocktankState
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.BLOCKTANK)
                 }
         }
@@ -207,7 +212,7 @@ class BackupRepo @Inject constructor(
             activityRepo.activitiesChanged
                 .drop(1)
                 .collect {
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     markBackupRequired(BackupCategory.ACTIVITY)
                 }
         }
@@ -220,7 +225,7 @@ class BackupRepo @Inject constructor(
                     val lastSync = lightningService.status?.latestLightningWalletSyncTimestamp?.toLong()
                         ?.let { it * 1000 } // Convert seconds to millis
                         ?: return@collect
-                    if (isRestoring) return@collect
+                    if (isRestoring.value) return@collect
                     cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
                         it.copy(required = lastSync, synced = lastSync, running = false)
                     }
@@ -265,7 +270,7 @@ class BackupRepo @Inject constructor(
 
             // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.isRequired && !isRestoring) {
+            if (status.isRequired && !isRestoring.value) {
                 triggerBackup(category)
             } else {
                 // Backup no longer needed, reset running flag
@@ -362,7 +367,7 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll()
-            val cacheData = cacheStore.data.first()
+            val cacheData = cacheStore.data.first().copy(onchainAddress = "") // Force onchain address rotation
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
@@ -407,7 +412,7 @@ class BackupRepo @Inject constructor(
     ): Result<Unit> = withContext(ioDispatcher) {
         Logger.debug("Full restore starting", context = TAG)
 
-        isRestoring = true
+        _isRestoring.update { true }
 
         return@withContext try {
             performRestore(BackupCategory.METADATA) { dataBytes ->
@@ -454,7 +459,7 @@ class BackupRepo @Inject constructor(
             Logger.warn("Full restore error", e = e, context = TAG)
             Result.failure(e)
         } finally {
-            isRestoring = false
+            _isRestoring.update { false }
         }
     }
 
