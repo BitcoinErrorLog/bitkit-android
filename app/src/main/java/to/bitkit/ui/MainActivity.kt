@@ -242,8 +242,6 @@ private fun OnboardingNav(
                     scope.launch {
                         runCatching {
                             appViewModel.resetIsAuthenticatedState()
-                            walletViewModel.setInitNodeLifecycleState()
-                            walletViewModel.setRestoringWalletState()
                             walletViewModel.restoreWallet(mnemonic, passphrase)
                         }.onFailure {
                             appViewModel.toast(it)
@@ -259,7 +257,6 @@ private fun OnboardingNav(
                     scope.launch {
                         runCatching {
                             appViewModel.resetIsAuthenticatedState()
-                            walletViewModel.setInitNodeLifecycleState()
                             walletViewModel.createWallet(bip39Passphrase = passphrase)
                         }.onFailure {
                             appViewModel.toast(it)

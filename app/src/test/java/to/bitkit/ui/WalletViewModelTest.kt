@@ -82,18 +82,7 @@ class WalletViewModelTest : BaseUnitTest() {
     }
 
     @Test
-    fun `disconnectPeer should call lightningRepo disconnectPeer and send success toast`() = test {
-        val testPeer = PeerDetails.from("nodeId", "host", "9735")
-        whenever(lightningRepo.disconnectPeer(testPeer)).thenReturn(Result.success(Unit))
-
-        sut.disconnectPeer(testPeer)
-
-        verify(lightningRepo).disconnectPeer(testPeer)
-        // Add verification for ToastEventBus.send if you have a way to capture those events
-    }
-
-    @Test
-    fun `disconnectPeer should call lightningRepo disconnectPeer and send failure toast`() = test {
+    fun `disconnectPeer should call lightningRepo disconnectPeer`() = test {
         val testPeer = PeerDetails.from("nodeId", "host", "9735")
         val testError = Exception("Test error")
         whenever(lightningRepo.disconnectPeer(testPeer)).thenReturn(Result.failure(testError))
@@ -101,38 +90,50 @@ class WalletViewModelTest : BaseUnitTest() {
         sut.disconnectPeer(testPeer)
 
         verify(lightningRepo).disconnectPeer(testPeer)
-        // Add verification for ToastEventBus.send if you have a way to capture those events
     }
 
     @Test
-    fun `wipeWallet should call walletRepo wipeWallet`() =
-        test {
-            whenever(walletRepo.wipeWallet(walletIndex = 0)).thenReturn(Result.success(Unit))
-            sut.wipeWallet()
+    fun `wipeWallet should call walletRepo wipeWallet`() = test {
+        whenever(walletRepo.wipeWallet(walletIndex = 0)).thenReturn(Result.success(Unit))
+        sut.wipeWallet()
 
-            verify(walletRepo).wipeWallet(walletIndex = 0)
-        }
+        verify(walletRepo).wipeWallet(walletIndex = 0)
+    }
 
     @Test
-    fun `createWallet should call walletRepo createWallet and send failure toast`() = test {
-        val testError = Exception("Test error")
-        whenever(walletRepo.createWallet(anyOrNull())).thenReturn(Result.failure(testError))
+    fun `createWallet should call walletRepo createWallet`() = test {
+        whenever(walletRepo.createWallet(anyOrNull())).thenReturn(Result.success(Unit))
 
         sut.createWallet(null)
 
         verify(walletRepo).createWallet(anyOrNull())
-        // Add verification for ToastEventBus.send
     }
 
     @Test
-    fun `restoreWallet should call walletRepo restoreWallet and send failure toast`() = test {
-        val testError = Exception("Test error")
-        whenever(walletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.failure(testError))
+    fun `createWallet should call setInitNodeLifecycleState`() = test {
+        whenever(walletRepo.createWallet(anyOrNull())).thenReturn(Result.success(Unit))
+
+        sut.createWallet(null)
+
+        verify(lightningRepo).setInitNodeLifecycleState()
+    }
+
+    @Test
+    fun `restoreWallet should call walletRepo restoreWallet`() = test {
+        whenever(walletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.success(Unit))
 
         sut.restoreWallet("test_mnemonic", null)
 
         verify(walletRepo).restoreWallet(any(), anyOrNull())
-        // Add verification for ToastEventBus.send
+    }
+
+    @Test
+    fun `restoreWallet should call setInitNodeLifecycleState`() = test {
+        whenever(walletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.success(Unit))
+
+        sut.restoreWallet("test_mnemonic", null)
+
+        verify(lightningRepo).setInitNodeLifecycleState()
     }
 
     @Test
@@ -169,7 +170,7 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `onBackupRestoreSuccess should reset restoreState`() = test {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
-        sut.setRestoringWalletState()
+        sut.restoreWallet("mnemonic", "passphrase")
         assertEquals(RestoreState.RestoringWallet, sut.restoreState)
 
         sut.onRestoreContinue()
@@ -182,7 +183,7 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `proceedWithoutRestore should exit restore flow`() = test {
         val testError = Exception("Test error")
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.failure(testError))
-        sut.setRestoringWalletState()
+        sut.restoreWallet("mnemonic", "passphrase")
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
         assertEquals(RestoreState.BackupRestoreCompleted, sut.restoreState)
 
@@ -196,7 +197,7 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
         assertEquals(RestoreState.NotRestoring, sut.restoreState)
 
-        sut.setRestoringWalletState()
+        sut.restoreWallet("mnemonic", "passphrase")
         assertEquals(RestoreState.RestoringWallet, sut.restoreState)
 
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
