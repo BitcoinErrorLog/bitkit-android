@@ -24,19 +24,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -58,60 +56,35 @@ import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.utils.bip39Words
-import to.bitkit.utils.isBip39
-import to.bitkit.utils.validBip39Checksum
+import to.bitkit.viewmodels.RestoreWalletViewModel
 
 @Composable
 fun RestoreWalletView(
+    viewModel: RestoreWalletViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onRestoreClick: (mnemonic: String, passphrase: String?) -> Unit,
 ) {
-    val words = remember { mutableStateListOf(*Array(24) { "" }) }
-    val invalidWordIndices = remember { mutableStateListOf<Int>() }
-    val suggestions = remember { mutableStateListOf<String>() }
-    var focusedIndex by remember { mutableStateOf<Int?>(null) }
-    var bip39Passphrase by remember { mutableStateOf("") }
-    var showingPassphrase by remember { mutableStateOf(false) }
-    var firstFieldText by remember { mutableStateOf("") }
-    var is24Words by remember { mutableStateOf(false) }
-    val checksumErrorVisible by remember {
-        derivedStateOf {
-            val wordCount = if (is24Words) 24 else 12
-            words.subList(0, wordCount).none { it.isBlank() } && invalidWordIndices.isEmpty() && !words.subList(
-                0,
-                wordCount
-            ).validBip39Checksum()
-        }
-    }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
-    val keyboardController = LocalSoftwareKeyboardController.current
     val inputFieldPositions = remember { mutableMapOf<Int, Int>() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
-    val wordsPerColumn = if (is24Words) 12 else 6
-
-    val bip39Mnemonic by remember {
-        derivedStateOf {
-            val wordCount = if (is24Words) 24 else 12
-            words.subList(0, wordCount)
-                .joinToString(separator = " ")
-                .trim()
+    LaunchedEffect(uiState.shouldDismissKeyboard) {
+        if (uiState.shouldDismissKeyboard) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+            viewModel.onKeyboardDismissed()
         }
     }
 
-    fun updateSuggestions(input: String, index: Int?) {
-        if (index == null || input.length < 2) {
-            suggestions.clear()
-            return
-        }
-
-        suggestions.clear()
-        if (input.isNotEmpty()) {
-            val filtered = bip39Words.filter { it.startsWith(input.lowercase()) }.take(3)
-            if (filtered.size == 1 && filtered.firstOrNull() == input) return
-            suggestions.addAll(filtered)
+    LaunchedEffect(uiState.scrollToFieldIndex) {
+        uiState.scrollToFieldIndex?.let { index ->
+            inputFieldPositions[index]?.let { position ->
+                scrollState.animateScrollTo(position)
+            }
+            viewModel.onScrollCompleted()
         }
     }
 
@@ -149,60 +122,14 @@ fun RestoreWalletView(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        for (index in 0 until wordsPerColumn) {
+                        for (index in 0 until uiState.wordsPerColumn) {
                             MnemonicInputField(
                                 label = "${index + 1}.",
-                                value = if (index == 0) firstFieldText else words[index],
-                                isError = index in invalidWordIndices,
-                                onValueChanged = { newValue ->
-                                    if (index == 0) {
-                                        if (newValue.contains(" ")) {
-                                            handlePastedWords(
-                                                newValue,
-                                                words,
-                                                onWordCountChanged = { is24Words = it },
-                                                onFirstWordChanged = { firstFieldText = it },
-                                                onValidWords = { keyboardController?.hide() },
-                                                onInvalidWords = { invalidIndices ->
-                                                    invalidWordIndices.clear()
-                                                    invalidWordIndices.addAll(invalidIndices)
-                                                },
-                                            )
-                                        } else {
-                                            updateWordValidity(
-                                                newValue,
-                                                index,
-                                                words,
-                                                invalidWordIndices,
-                                                onWordUpdate = { firstFieldText = it }
-                                            )
-                                            updateSuggestions(newValue, focusedIndex)
-                                        }
-                                    } else {
-                                        updateWordValidity(
-                                            newValue,
-                                            index,
-                                            words,
-                                            invalidWordIndices,
-                                        )
-                                        updateSuggestions(newValue, focusedIndex)
-                                    }
-                                    coroutineScope.launch {
-                                        inputFieldPositions[index]?.let { scrollState.animateScrollTo(it) }
-                                    }
-                                },
+                                value = uiState.words[index],
+                                isError = index in uiState.invalidWordIndices,
+                                onValueChanged = { viewModel.onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
-                                    if (focused) {
-                                        focusedIndex = index
-                                        updateSuggestions(if (index == 0) firstFieldText else words[index], index)
-
-                                        coroutineScope.launch {
-                                            inputFieldPositions[index]?.let { scrollState.animateScrollTo(it) }
-                                        }
-                                    } else if (focusedIndex == index) {
-                                        focusedIndex = null
-                                        suggestions.clear()
-                                    }
+                                    viewModel.onWordFocusChanged(index, focused)
                                 },
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
@@ -216,37 +143,14 @@ fun RestoreWalletView(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        for (index in wordsPerColumn until (wordsPerColumn * 2)) {
+                        for (index in uiState.wordsPerColumn until (uiState.wordsPerColumn * 2)) {
                             MnemonicInputField(
                                 label = "${index + 1}.",
-                                value = words[index],
-                                isError = index in invalidWordIndices,
-                                onValueChanged = { newValue ->
-                                    words[index] = newValue
-
-                                    updateWordValidity(
-                                        newValue,
-                                        index,
-                                        words,
-                                        invalidWordIndices,
-                                    )
-                                    updateSuggestions(newValue, focusedIndex)
-                                    coroutineScope.launch {
-                                        inputFieldPositions[index]?.let { scrollState.animateScrollTo(it) }
-                                    }
-                                },
+                                value = uiState.words[index],
+                                isError = index in uiState.invalidWordIndices,
+                                onValueChanged = { viewModel.onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
-                                    if (focused) {
-                                        focusedIndex = index
-                                        updateSuggestions(words[index], index)
-
-                                        coroutineScope.launch {
-                                            inputFieldPositions[index]?.let { scrollState.animateScrollTo(it) }
-                                        }
-                                    } else if (focusedIndex == index) {
-                                        focusedIndex = null
-                                        suggestions.clear()
-                                    }
+                                    viewModel.onWordFocusChanged(index, focused)
                                 },
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
@@ -257,10 +161,10 @@ fun RestoreWalletView(
                     }
                 }
                 // Passphrase
-                if (showingPassphrase) {
+                if (uiState.showingPassphrase) {
                     OutlinedTextField(
-                        value = bip39Passphrase,
-                        onValueChange = { bip39Passphrase = it },
+                        value = uiState.bip39Passphrase,
+                        onValueChange = { viewModel.onPassphraseChanged(it) },
                         placeholder = {
                             Text(
                                 text = stringResource(R.string.onboarding__restore_passphrase_placeholder)
@@ -293,7 +197,7 @@ fun RestoreWalletView(
                         .weight(1f)
                 )
 
-                AnimatedVisibility(visible = invalidWordIndices.isNotEmpty()) {
+                AnimatedVisibility(visible = uiState.invalidWordIndices.isNotEmpty()) {
                     BodyS(
                         text = stringResource(
                             R.string.onboarding__restore_red_explain
@@ -303,7 +207,7 @@ fun RestoreWalletView(
                     )
                 }
 
-                AnimatedVisibility(visible = checksumErrorVisible) {
+                AnimatedVisibility(visible = uiState.checksumErrorVisible) {
                     BodyS(
                         text = stringResource(R.string.onboarding__restore_inv_checksum),
                         color = Colors.Red,
@@ -317,21 +221,11 @@ fun RestoreWalletView(
                         .padding(vertical = 16.dp)
                         .fillMaxWidth(),
                 ) {
-                    val areButtonsEnabled by remember {
-                        derivedStateOf {
-                            val wordCount = if (is24Words) 24 else 12
-                            words.subList(0, wordCount)
-                                .none { it.isBlank() } && invalidWordIndices.isEmpty() && !checksumErrorVisible
-                        }
-                    }
-                    AnimatedVisibility(visible = !showingPassphrase, modifier = Modifier.weight(1f)) {
+                    AnimatedVisibility(visible = !uiState.showingPassphrase, modifier = Modifier.weight(1f)) {
                         SecondaryButton(
                             text = stringResource(R.string.onboarding__advanced),
-                            onClick = {
-                                showingPassphrase = !showingPassphrase
-                                bip39Passphrase = ""
-                            },
-                            enabled = areButtonsEnabled,
+                            onClick = { viewModel.onAdvancedClick() },
+                            enabled = uiState.areButtonsEnabled,
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("AdvancedButton")
@@ -340,9 +234,9 @@ fun RestoreWalletView(
                     PrimaryButton(
                         text = stringResource(R.string.onboarding__restore),
                         onClick = {
-                            onRestoreClick(bip39Mnemonic, bip39Passphrase.takeIf { it.isNotEmpty() })
+                            onRestoreClick(uiState.bip39Mnemonic, uiState.bip39Passphrase.takeIf { it.isNotEmpty() })
                         },
-                        enabled = areButtonsEnabled,
+                        enabled = uiState.areButtonsEnabled,
                         modifier = Modifier
                             .weight(1f)
                             .testTag("RestoreButton")
@@ -352,7 +246,7 @@ fun RestoreWalletView(
 
             // Suggestions row
             AnimatedVisibility(
-                visible = suggestions.isNotEmpty(),
+                visible = uiState.suggestions.isNotEmpty(),
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
                 modifier = Modifier
@@ -376,31 +270,10 @@ fun RestoreWalletView(
                             .fillMaxWidth()
                             .padding(top = 12.dp)
                     ) {
-                        suggestions.forEach { suggestion ->
+                        uiState.suggestions.forEach { suggestion ->
                             PrimaryButton(
                                 text = suggestion,
-                                onClick = {
-                                    focusedIndex?.let { index ->
-                                        if (index == 0) {
-                                            firstFieldText = suggestion
-                                            updateWordValidity(
-                                                suggestion,
-                                                index,
-                                                words,
-                                                invalidWordIndices,
-                                                onWordUpdate = { firstFieldText = it }
-                                            )
-                                        } else {
-                                            updateWordValidity(
-                                                suggestion,
-                                                index,
-                                                words,
-                                                invalidWordIndices,
-                                            )
-                                        }
-                                        suggestions.clear()
-                                    }
-                                },
+                                onClick = { viewModel.onSuggestionSelected(suggestion) },
                                 size = ButtonSize.Small,
                                 fullWidth = false
                             )
@@ -450,56 +323,6 @@ fun MnemonicInputField(
                 onPositionChanged(position)
             }
     )
-}
-
-private fun handlePastedWords(
-    pastedText: String,
-    words: SnapshotStateList<String>,
-    onWordCountChanged: (Boolean) -> Unit,
-    onFirstWordChanged: (String) -> Unit,
-    onInvalidWords: (List<Int>) -> Unit,
-    onValidWords: () -> Unit,
-) {
-    val pastedWords = pastedText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    if (pastedWords.size == 12 || pastedWords.size == 24) {
-        val invalidWordIndices = pastedWords.withIndex()
-            .filter { !it.value.isBip39() }
-            .map { it.index }
-
-        if (invalidWordIndices.isNotEmpty()) {
-            onInvalidWords(invalidWordIndices)
-        }
-
-        onWordCountChanged(pastedWords.size == 24)
-        for (index in pastedWords.indices) {
-            words[index] = pastedWords[index]
-        }
-        for (index in pastedWords.size until words.size) {
-            words[index] = ""
-        }
-        onFirstWordChanged(pastedWords.first())
-        onValidWords()
-    }
-}
-
-private fun updateWordValidity(
-    newValue: String,
-    index: Int,
-    words: SnapshotStateList<String>,
-    invalidWordIndices: SnapshotStateList<Int>,
-    onWordUpdate: ((String) -> Unit)? = null,
-) {
-    words[index] = newValue
-    onWordUpdate?.invoke(newValue)
-
-    val isValid = newValue.isBip39()
-    if (!isValid && newValue.isNotEmpty()) {
-        if (!invalidWordIndices.contains(index)) {
-            invalidWordIndices.add(index)
-        }
-    } else {
-        invalidWordIndices.remove(index)
-    }
 }
 
 @Preview(showSystemUi = true)
