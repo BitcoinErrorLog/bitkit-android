@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +87,7 @@ fun RestoreWalletView(
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
     val inputFieldPositions = remember { mutableMapOf<Int, Int>() }
 
     val wordsPerColumn = if (is24Words) 12 else 6
@@ -160,10 +162,11 @@ fun RestoreWalletView(
                                                 words,
                                                 onWordCountChanged = { is24Words = it },
                                                 onFirstWordChanged = { firstFieldText = it },
+                                                onValidWords = { keyboardController?.hide() },
                                                 onInvalidWords = { invalidIndices ->
                                                     invalidWordIndices.clear()
                                                     invalidWordIndices.addAll(invalidIndices)
-                                                }
+                                                },
                                             )
                                         } else {
                                             updateWordValidity(
@@ -455,6 +458,7 @@ private fun handlePastedWords(
     onWordCountChanged: (Boolean) -> Unit,
     onFirstWordChanged: (String) -> Unit,
     onInvalidWords: (List<Int>) -> Unit,
+    onValidWords: () -> Unit,
 ) {
     val pastedWords = pastedText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     if (pastedWords.size == 12 || pastedWords.size == 24) {
@@ -474,6 +478,7 @@ private fun handlePastedWords(
             words[index] = ""
         }
         onFirstWordChanged(pastedWords.first())
+        onValidWords()
     }
 }
 
