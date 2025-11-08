@@ -11,10 +11,17 @@ import to.bitkit.utils.isBip39
 import to.bitkit.utils.validBip39Checksum
 import javax.inject.Inject
 
+private const val WORDS_MIN = 12
+private const val WORS_MAX = 24
+
 @HiltViewModel
 class RestoreWalletViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(RestoreWalletUiState())
     val uiState: StateFlow<RestoreWalletUiState> = _uiState.asStateFlow()
+
+    init {
+        _uiState.update { it.copy(focusedIndex = 0) }
+    }
 
     fun onWordChanged(index: Int, value: String) {
         if (value.contains(" ")) {
@@ -61,22 +68,24 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun onPassphraseChanged(passphrase: String) {
-        _uiState.update { it.copy(bip39Passphrase = passphrase) }
+    fun onPassphraseChanged(passphrase: String) = _uiState.update { it.copy(bip39Passphrase = passphrase) }
+
+    fun onBackspaceInEmpty(index: Int) {
+        if (index > 0) {
+            _uiState.update { it.copy(focusedIndex = index - 1) }
+        }
     }
 
-    fun onKeyboardDismissed() {
-        _uiState.update { it.copy(shouldDismissKeyboard = false) }
-    }
+    fun onKeyboardDismissed() = _uiState.update { it.copy(shouldDismissKeyboard = false) }
 
-    fun onScrollCompleted() {
-        _uiState.update { it.copy(scrollToFieldIndex = null) }
-    }
+    fun onScrollCompleted() = _uiState.update { it.copy(scrollToFieldIndex = null) }
 
     private fun handlePastedWords(pastedText: String) {
-        // Splits on one or more whitespace characters (spaces, tabs, newlines) in case user pastes from pass managers
-        val pastedWords = pastedText.split(Regex("\\s+")).filter(String::isNotBlank)
-        if (pastedWords.size == 12 || pastedWords.size == 24) {
+        val separators = Regex("\\s+") // any whitespace chars to account for different sources like password managers
+        val pastedWords = pastedText
+            .split(separators)
+            .filter { it.isNotBlank() }
+        if (pastedWords.size == WORDS_MIN || pastedWords.size == WORS_MAX) {
             val invalidIndices = pastedWords.withIndex()
                 .filter { !it.value.isBip39() }
                 .map { it.index }
@@ -84,7 +93,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
 
             val newWords = _uiState.value.words.toMutableList().apply {
                 pastedWords.forEachIndexed { index, word -> this[index] = word }
-                for (index in pastedWords.size until 24) {
+                for (index in pastedWords.size until WORS_MAX) {
                     this[index] = ""
                 }
             }
@@ -93,10 +102,10 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
                 it.copy(
                     words = newWords,
                     invalidWordIndices = invalidIndices,
-                    is24Words = pastedWords.size == 24,
+                    is24Words = pastedWords.size == WORS_MAX,
                     shouldDismissKeyboard = invalidIndices.isEmpty(),
                     focusedIndex = null,
-                    suggestions = emptyList()
+                    suggestions = emptyList(),
                 )
             }
         }
@@ -117,7 +126,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         _uiState.update {
             it.copy(
                 words = newWords,
-                invalidWordIndices = newInvalidIndices
+                invalidWordIndices = newInvalidIndices,
             )
         }
     }
@@ -140,7 +149,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
 }
 
 data class RestoreWalletUiState(
-    val words: List<String> = List(24) { "" },
+    val words: List<String> = List(WORS_MAX) { "" },
     val invalidWordIndices: Set<Int> = emptySet(),
     val suggestions: List<String> = emptyList(),
     val focusedIndex: Int? = null,
@@ -150,8 +159,8 @@ data class RestoreWalletUiState(
     val shouldDismissKeyboard: Boolean = false,
     val scrollToFieldIndex: Int? = null,
 ) {
-    val wordCount: Int get() = if (is24Words) 24 else 12
-    val wordsPerColumn: Int get() = if (is24Words) 12 else 6
+    val wordCount: Int get() = if (is24Words) WORS_MAX else WORDS_MIN
+    val wordsPerColumn: Int get() = if (is24Words) WORDS_MIN else 6
 
     val checksumErrorVisible: Boolean
         get() {

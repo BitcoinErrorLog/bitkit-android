@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,11 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalFocusManager
@@ -41,9 +47,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
@@ -51,6 +60,7 @@ import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppTextFieldDefaults
 import to.bitkit.ui.theme.AppThemeSurface
@@ -68,6 +78,7 @@ fun RestoreWalletView(
 
     val scrollState = rememberScrollState()
     val inputFieldPositions = remember { mutableMapOf<Int, Int>() }
+    val focusRequesters = remember { List(24) { FocusRequester() } }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
@@ -85,6 +96,12 @@ fun RestoreWalletView(
                 scrollState.animateScrollTo(position)
             }
             viewModel.onScrollCompleted()
+        }
+    }
+
+    LaunchedEffect(uiState.focusedIndex) {
+        uiState.focusedIndex?.let { index ->
+            focusRequesters[index].requestFocus()
         }
     }
 
@@ -109,14 +126,15 @@ fun RestoreWalletView(
                     .verticalScroll(scrollState)
             ) {
                 Display(stringResource(R.string.onboarding__restore_header).withAccent(accentColor = Colors.Blue))
-                Spacer(modifier = Modifier.height(8.dp))
+                VerticalSpacer(8.dp)
                 BodyM(
                     text = stringResource(R.string.onboarding__restore_phrase),
                     color = Colors.White80,
                 )
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                VerticalSpacer(32.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     // First column (1-6 or 1-12)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -134,6 +152,10 @@ fun RestoreWalletView(
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
                                 },
+                                onBackspaceInEmpty = {
+                                    viewModel.onBackspaceInEmpty(index)
+                                },
+                                focusRequester = focusRequesters[index],
                                 index = index,
                             )
                         }
@@ -155,11 +177,16 @@ fun RestoreWalletView(
                                 onPositionChanged = { position ->
                                     inputFieldPositions[index] = position
                                 },
+                                onBackspaceInEmpty = {
+                                    viewModel.onBackspaceInEmpty(index)
+                                },
+                                focusRequester = focusRequesters[index],
                                 index = index,
                             )
                         }
                     }
                 }
+
                 // Passphrase
                 if (uiState.showingPassphrase) {
                     OutlinedTextField(
@@ -183,7 +210,7 @@ fun RestoreWalletView(
                             .padding(top = 4.dp)
                             .testTag("PassphraseInput")
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    VerticalSpacer(16.dp)
                     BodyS(
                         text = stringResource(R.string.onboarding__restore_passphrase_meaning),
                         color = Colors.White64,
@@ -244,41 +271,51 @@ fun RestoreWalletView(
                 }
             }
 
-            // Suggestions row
-            AnimatedVisibility(
-                visible = uiState.suggestions.isNotEmpty(),
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .imePadding()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Colors.Black)
-                        .padding(horizontal = 32.dp, vertical = 8.dp)
-                ) {
-                    BodyS(
-                        text = stringResource(R.string.onboarding__restore_suggestions),
-                        color = Colors.White64,
-                    )
+            SuggestionsRow(
+                suggestions = uiState.suggestions,
+                onSelect = { viewModel.onSuggestionSelected(it) }
+            )
+        }
+    }
+}
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp)
-                    ) {
-                        uiState.suggestions.forEach { suggestion ->
-                            PrimaryButton(
-                                text = suggestion,
-                                onClick = { viewModel.onSuggestionSelected(suggestion) },
-                                size = ButtonSize.Small,
-                                fullWidth = false
-                            )
-                        }
-                    }
+@Composable
+private fun BoxScope.SuggestionsRow(
+    suggestions: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = suggestions.isNotEmpty(),
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .imePadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Colors.Black)
+                .padding(horizontal = 32.dp, vertical = 8.dp)
+        ) {
+            BodyS(
+                text = stringResource(R.string.onboarding__restore_suggestions),
+                color = Colors.White64,
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+            ) {
+                suggestions.forEach { suggestion ->
+                    PrimaryButton(
+                        text = suggestion,
+                        onClick = { onSelect(suggestion) },
+                        size = ButtonSize.Small,
+                        fullWidth = false
+                    )
                 }
             }
         }
@@ -293,11 +330,15 @@ fun MnemonicInputField(
     onValueChanged: (String) -> Unit,
     onFocusChanged: (Boolean) -> Unit,
     onPositionChanged: (Int) -> Unit,
+    onBackspaceInEmpty: () -> Unit,
+    focusRequester: FocusRequester,
     index: Int,
 ) {
+    val textFieldValue = TextFieldValue(text = value, selection = TextRange(value.length))
+
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChanged,
+        value = textFieldValue,
+        onValueChange = { onValueChanged(it.text) },
         prefix = {
             Text(
                 text = label,
@@ -316,6 +357,18 @@ fun MnemonicInputField(
             capitalization = KeyboardCapitalization.None,
         ),
         modifier = Modifier
+            .focusRequester(focusRequester)
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.key == Key.Backspace &&
+                    keyEvent.type == KeyEventType.KeyDown &&
+                    value.isEmpty()
+                ) {
+                    onBackspaceInEmpty()
+                    true
+                } else {
+                    false
+                }
+            }
             .testTag("Word-$index")
             .onFocusChanged { onFocusChanged(it.isFocused) }
             .onGloballyPositioned { coordinates ->
@@ -327,7 +380,7 @@ fun MnemonicInputField(
 
 @Preview(showSystemUi = true)
 @Composable
-fun RestoreWalletViewPreview() {
+private fun Preview() {
     AppThemeSurface {
         RestoreWalletView(
             onBackClick = {},
