@@ -147,7 +147,7 @@ fun RestoreWalletView(
                             MnemonicInputField(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
-                                isError = index in uiState.invalidWordIndices,
+                                isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
                                 onValueChanged = { viewModel.onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
                                     viewModel.onWordFocusChanged(index, focused)
@@ -172,7 +172,7 @@ fun RestoreWalletView(
                             MnemonicInputField(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
-                                isError = index in uiState.invalidWordIndices,
+                                isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
                                 onValueChanged = { viewModel.onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
                                     viewModel.onWordFocusChanged(index, focused)
@@ -227,7 +227,7 @@ fun RestoreWalletView(
                         .weight(1f)
                 )
 
-                AnimatedVisibility(visible = uiState.invalidWordIndices.isNotEmpty()) {
+                AnimatedVisibility(visible = uiState.invalidWordIndices.any { it != uiState.focusedIndex }) {
                     BodyS(
                         text = stringResource(
                             R.string.onboarding__restore_red_explain
