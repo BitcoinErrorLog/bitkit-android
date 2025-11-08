@@ -20,7 +20,6 @@ import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.backup.VssStoreIdProvider
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.models.BalanceState
 import to.bitkit.services.CoreService
@@ -47,7 +46,6 @@ class WalletRepoTest : BaseUnitTest() {
     private val lightningRepo: LightningRepo = mock()
     private val cacheStore: CacheStore = mock()
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase = mock()
-    private val vssStoreIdProvider = mock<VssStoreIdProvider>()
     private val backupRepo = mock<BackupRepo>()
 
     @Before
@@ -78,7 +76,6 @@ class WalletRepoTest : BaseUnitTest() {
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
         deriveBalanceStateUseCase = deriveBalanceStateUseCase,
-        vssStoreIdProvider = vssStoreIdProvider,
         backupRepo = backupRepo,
     )
 

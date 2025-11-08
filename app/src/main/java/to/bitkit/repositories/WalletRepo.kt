@@ -18,7 +18,6 @@ import org.lightningdevkit.ldknode.Event
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.backup.VssStoreIdProvider
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
@@ -51,7 +50,6 @@ class WalletRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
-    private val vssStoreIdProvider: VssStoreIdProvider,
     private val backupRepo: BackupRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
@@ -249,7 +247,7 @@ class WalletRepo @Inject constructor(
             settingsStore.reset()
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
-            coreService.activity.removeAll()
+            coreService.wipeData()
             setWalletExistsState()
 
             return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)

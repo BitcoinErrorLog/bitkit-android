@@ -49,6 +49,7 @@ import com.synonym.bitkitcore.upsertCjitEntries
 import com.synonym.bitkitcore.upsertClosedChannels
 import com.synonym.bitkitcore.upsertInfo
 import com.synonym.bitkitcore.upsertOrders
+import com.synonym.bitkitcore.wipeAllDatabases
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -167,6 +168,15 @@ class CoreService @Inject constructor(
         }
 
         return Pair(geoBlocked, shouldBlockLightningReceive)
+    }
+
+    suspend fun wipeData(): Result<Unit> = ServiceQueue.CORE.background {
+        runCatching {
+            wipeAllDatabases()
+            Logger.info("Wiped bitkit-core databases", context = "CoreService")
+        }.onFailure { e ->
+            Logger.error("Error wiping bitkit-core databases", e, context = "CoreService")
+        }
     }
 }
 
