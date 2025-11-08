@@ -27,7 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -63,6 +65,7 @@ import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppTextFieldDefaults
+import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
@@ -334,11 +337,13 @@ fun MnemonicInputField(
     focusRequester: FocusRequester,
     index: Int,
 ) {
+    var isFocused by remember { mutableStateOf(false) }
     val textFieldValue = TextFieldValue(text = value, selection = TextRange(value.length))
 
     OutlinedTextField(
         value = textFieldValue,
         onValueChange = { onValueChanged(it.text) },
+        textStyle = if (isFocused) AppTextStyles.BodySSB else AppTextStyles.BodyS,
         prefix = {
             Text(
                 text = label,
@@ -370,7 +375,10 @@ fun MnemonicInputField(
                 }
             }
             .testTag("Word-$index")
-            .onFocusChanged { onFocusChanged(it.isFocused) }
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                onFocusChanged(focusState.isFocused)
+            }
             .onGloballyPositioned { coordinates ->
                 val position = coordinates.positionInParent().y.toInt() * 2 // double the scroll to ensure enough space
                 onPositionChanged(position)
