@@ -54,7 +54,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.ui.utils.withAccent
-import to.bitkit.utils.bip39Words
 
 @Composable
 fun ShowMnemonicScreen(
@@ -207,7 +206,7 @@ private fun Preview() {
         BottomSheetPreview {
             var showMnemonic by remember { mutableStateOf(false) }
             ShowMnemonicContent(
-                mnemonic = bip39Words.take(12).joinToString(" "),
+                mnemonic = List(12) { "word${it + 1}" }.joinToString(" "),
                 showMnemonic = showMnemonic,
                 onRevealClick = { showMnemonic = !showMnemonic },
                 onCopyClick = {},
@@ -224,7 +223,7 @@ private fun PreviewShown() {
     AppThemeSurface {
         BottomSheetPreview {
             ShowMnemonicContent(
-                mnemonic = bip39Words.take(12).joinToString(" "),
+                mnemonic = List(12) { "word${it + 1}" }.joinToString(" "),
                 showMnemonic = true,
                 onRevealClick = {},
                 onCopyClick = {},
@@ -241,7 +240,7 @@ private fun Preview24Words() {
     AppThemeSurface {
         BottomSheetPreview {
             ShowMnemonicContent(
-                mnemonic = bip39Words.take(24).joinToString(" "),
+                mnemonic = List(24) { "word${it + 1}" }.joinToString(" "),
                 showMnemonic = true,
                 onRevealClick = {},
                 onCopyClick = {},

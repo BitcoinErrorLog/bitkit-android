@@ -1,14 +1,14 @@
 package to.bitkit.viewmodels
 
 import androidx.lifecycle.ViewModel
+import com.synonym.bitkitcore.getBip39Suggestions
+import com.synonym.bitkitcore.isValidBip39Word
+import com.synonym.bitkitcore.validateMnemonic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import to.bitkit.utils.bip39Words
-import to.bitkit.utils.isBip39
-import to.bitkit.utils.validBip39Checksum
 import javax.inject.Inject
 
 private const val WORDS_MIN = 12
@@ -87,7 +87,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
             .filter { it.isNotBlank() }
         if (pastedWords.size == WORDS_MIN || pastedWords.size == WORS_MAX) {
             val invalidIndices = pastedWords.withIndex()
-                .filter { !it.value.isBip39() }
+                .filter { !isValidBip39Word(it.value) }
                 .map { it.index }
                 .toSet()
 
@@ -117,7 +117,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
 
         val newInvalidIndices = _uiState.value.invalidWordIndices.toMutableSet()
-        if (!value.isBip39() && value.isNotEmpty()) {
+        if (!isValidBip39Word(value) && value.isNotEmpty()) {
             newInvalidIndices.add(index)
         } else {
             newInvalidIndices.remove(index)
@@ -137,14 +137,14 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
             return
         }
 
-        val filtered = bip39Words.filter { it.startsWith(input.lowercase()) }.take(3)
-        val suggestions = if (filtered.size == 1 && filtered.firstOrNull() == input) {
+        val suggestions = getBip39Suggestions(input.lowercase(), 3u)
+        val filtered = if (suggestions.size == 1 && suggestions.firstOrNull() == input) {
             emptyList()
         } else {
-            filtered
+            suggestions
         }
 
-        _uiState.update { it.copy(suggestions = suggestions) }
+        _uiState.update { it.copy(suggestions = filtered) }
     }
 }
 
@@ -180,4 +180,11 @@ data class RestoreWalletUiState(
                 invalidWordIndices.isEmpty() &&
                 !checksumErrorVisible
         }
+}
+
+private fun List<String>.validBip39Checksum(): Boolean {
+    if (this.size != 12 && this.size != 24) return false
+    if (this.any { !isValidBip39Word(it) }) return false
+
+    return runCatching { validateMnemonic(this.joinToString(" ")) }.isSuccess
 }
