@@ -30,16 +30,16 @@ class BackupIntroScreenTest {
         }
 
         // Assert
-        composeTestRule.onNodeWithTag("backup_intro_screen").assertExists()
-        composeTestRule.onNodeWithTag("backup_image").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroView").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewImage").assertExists()
         composeTestRule.onNodeWithTag("backup_title").assertExists()
 
         // Verify buttons
-        composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("later_button").assertExists().performClick()
+        composeTestRule.onNodeWithTag("BackupIntroViewButtons").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewCancel").assertExists().performClick()
         assert(closeClicked)
 
-        composeTestRule.onNodeWithTag("backup_button").assertExists().performClick()
+        composeTestRule.onNodeWithTag("BackupIntroViewContinue").assertExists().performClick()
         assert(confirmClicked)
     }
 
@@ -85,12 +85,12 @@ class BackupIntroScreenTest {
         }
 
         // Assert
-        composeTestRule.onNodeWithTag("backup_intro_screen").assertExists()
-        composeTestRule.onNodeWithTag("backup_image").assertExists()
-        composeTestRule.onNodeWithTag("backup_title").assertExists()
-        composeTestRule.onNodeWithTag("backup_description").assertExists()
-        composeTestRule.onNodeWithTag("buttons_row").assertExists()
-        composeTestRule.onNodeWithTag("later_button").assertExists()
-        composeTestRule.onNodeWithTag("backup_button").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroView").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewImage").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewTitle").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewDescription").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewButtons").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewCancel").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewContinue").assertExists()
     }
 }
