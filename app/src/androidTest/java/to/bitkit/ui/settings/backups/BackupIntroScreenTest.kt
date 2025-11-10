@@ -32,7 +32,7 @@ class BackupIntroScreenTest {
         // Assert
         composeTestRule.onNodeWithTag("BackupIntroView").assertExists()
         composeTestRule.onNodeWithTag("BackupIntroViewImage").assertExists()
-        composeTestRule.onNodeWithTag("backup_title").assertExists()
+        composeTestRule.onNodeWithTag("BackupIntroViewTitle").assertExists()
 
         // Verify buttons
         composeTestRule.onNodeWithTag("BackupIntroViewButtons").assertExists()
