@@ -28,8 +28,20 @@ private const val COMPACT = false
 enum class LogSource { Ldk, Bitkit, Unknown }
 enum class LogLevel { PERF, VERBOSE, GOSSIP, TRACE, DEBUG, INFO, WARN, ERROR; }
 
-object Logger {
-    private val delegate by lazy { LoggerImpl(APP, saver = LogSaverImpl(buildSessionLogFilePath(LogSource.Bitkit))) }
+val Logger = AppLogger()
+
+class AppLogger(
+    private val source: LogSource = LogSource.Bitkit,
+) {
+    private var delegate: LoggerImpl = createDelegate()
+
+    private fun createDelegate() = LoggerImpl(APP, LogSaverImpl(source, buildSessionLogFilePath(source)))
+
+    fun resetSession() {
+        warn("Wiping entire logs directory...")
+        Env.logDir.deleteRecursively()
+        delegate = createDelegate()
+    }
 
     fun info(
         msg: String?,
@@ -160,12 +172,17 @@ interface LogSaver {
     fun save(message: String)
 }
 
-class LogSaverImpl(private val sessionFilePath: String) : LogSaver {
+class LogSaverImpl(
+    source: LogSource,
+    private val sessionFilePath: String,
+) : LogSaver {
     private val queue: CoroutineScope by lazy {
         CoroutineScope(newSingleThreadDispatcher(ServiceQueue.LOG.name) + SupervisorJob())
     }
 
     init {
+        log("Log session for '${source.name}' initialized with file path: '$sessionFilePath'")
+
         // Clean all old log files in background
         CoroutineScope(Dispatchers.IO).launch {
             cleanupOldLogFiles()
@@ -186,10 +203,15 @@ class LogSaverImpl(private val sessionFilePath: String) : LogSaver {
         }
     }
 
+    private fun log(message: String, level: LogLevel = LogLevel.INFO) {
+        val formatted = formatLog(level, message, TAG, getCallerPath(), getCallerLine())
+        Log.i(APP, formatted)
+        save(formatted)
+    }
+
     private fun cleanupOldLogFiles(maxTotalSizeMB: Int = 20) {
-        Log.v(APP, "Deleting old log files…")
-        val logDir = runCatching { File(Env.logDir) }.getOrElse { return }
-        if (!logDir.exists()) return
+        log("Deleting old log files…", LogLevel.VERBOSE)
+        val logDir = Env.logDir
 
         val logFiles = logDir
             .listFiles { file -> file.extension == "log" }
@@ -216,11 +238,16 @@ class LogSaverImpl(private val sessionFilePath: String) : LogSaver {
             }
         Log.v(APP, "Deleted all old log files.")
     }
+
+    companion object {
+        private const val TAG = "LogSaver"
+    }
 }
 
 class LdkLogWriter(
     private val maxLogLevel: LdkLogLevel = Env.ldkLogLevel,
-    saver: LogSaver = LogSaverImpl(buildSessionLogFilePath(LogSource.Ldk)),
+    private val source: LogSource = LogSource.Ldk,
+    saver: LogSaver = LogSaverImpl(source, buildSessionLogFilePath(source)),
 ) : LogWriter {
     private val delegate: LoggerImpl = LoggerImpl(LDK, saver)
 
@@ -243,14 +270,11 @@ class LdkLogWriter(
 }
 
 private fun buildSessionLogFilePath(source: LogSource): String {
-    val logDir = runCatching { File(Env.logDir) }.getOrElse { return "" }
-    if (!logDir.exists()) return ""
-
+    val logDir = Env.logDir
     val sourceName = source.name.lowercase()
     val timestamp = utcDateFormatterOf(DatePattern.LOG_FILE).format(Date())
-    val sessionLogFilePath = logDir.resolve("${sourceName}_$timestamp.log").path
-    Log.i(APP, "Log session for '$sourceName' initialized with file path: '$sessionLogFilePath'")
-    return sessionLogFilePath
+    val path = logDir.resolve("${sourceName}_$timestamp.log").path
+    return path
 }
 
 private fun formatLog(level: LogLevel, msg: String?, context: String, path: String, line: Int): String {

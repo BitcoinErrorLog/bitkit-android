@@ -116,10 +116,10 @@ internal object Env {
         Logger.info("App storage path: $path")
     }
 
-    val logDir: String
+    val logDir: File
         get() {
             require(::appStoragePath.isInitialized)
-            return File(appStoragePath).resolve("logs").ensureDir().path
+            return File(appStoragePath).resolve("logs").ensureDir()
         }
 
     fun ldkStoragePath(walletIndex: Int) = storagePathOf(walletIndex, network.name.lowercase(), "ldk")

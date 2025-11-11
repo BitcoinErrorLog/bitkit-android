@@ -172,11 +172,15 @@ class CoreService @Inject constructor(
 
     suspend fun wipeData(): Result<Unit> = ServiceQueue.CORE.background {
         runCatching {
-            wipeAllDatabases()
-            Logger.info("Wiped bitkit-core databases", context = "CoreService")
+            val result = wipeAllDatabases()
+            Logger.info("Core DB wipe: $result", context = TAG)
         }.onFailure { e ->
-            Logger.error("Error wiping bitkit-core databases", e, context = "CoreService")
+            Logger.error("Core DB wipe error", e, context = TAG)
         }
+    }
+
+    companion object {
+        private const val TAG = "CoreService"
     }
 }
 
