@@ -1586,6 +1586,8 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        if (backupRepo.isRestoring.value) return
+
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
         timedSheetsScope?.launch {

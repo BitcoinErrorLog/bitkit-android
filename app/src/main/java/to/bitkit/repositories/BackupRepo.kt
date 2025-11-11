@@ -369,7 +369,7 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll().map { it.toActivityTagsMetadata() }
-            val cacheData = cacheStore.data.first()
+            val cacheData = cacheStore.data.first().copy(onchainAddress = "") // Force onchain address rotation
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
@@ -467,7 +467,7 @@ class BackupRepo @Inject constructor(
             Logger.warn("Full restore error", e = e, context = TAG)
             Result.failure(e)
         } finally {
-            _isRestoring.update { true }
+            _isRestoring.update { false }
         }
     }
 
