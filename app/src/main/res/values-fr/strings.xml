@@ -32,6 +32,8 @@
     <string name="cards__buyBitcoin__description">Achetez des bitcoins</string>
     <string name="cards__btFailed__title">Échec</string>
     <string name="cards__btFailed__description">Veuillez réessayer</string>
+    <string name="cards__notifications__title">Soyez rémunéré</string>
+    <string name="cards__notifications__description">Lorsque Bitkit est fermé</string>
     <string name="cards__suggestions">Suggestions</string>
     <string name="common__advanced">Avancé</string>
     <string name="common__continue">Continue</string>
@@ -767,6 +769,10 @@
     <string name="settings__gap__reset">Réinitialiser</string>
     <string name="settings__gap__gap_limit_update_title">Limite de l\'écart d\'adressage Mise à jour</string>
     <string name="settings__gap__gap_limit_update_description">Les modifications prendront effet après le redémarrage de l\'application.</string>
+    <string name="settings__gap__look_behind">Voir en arrière</string>
+    <string name="settings__gap__look_ahead">Voir en avant</string>
+    <string name="settings__gap__look_behind_change">Voir changement en arrière</string>
+    <string name="settings__gap__look_ahead_change">Voir changement en avant</string>
     <string name="settings__rgs__server_url">URL du serveur Rapid-Gossip-Sync</string>
     <string name="settings__rgs__button_connect">Connecter</string>
     <string name="settings__rgs__update_success_title">Mise à jour du serveur Rapid-Gossip-Sync</string>
