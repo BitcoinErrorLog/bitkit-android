@@ -51,6 +51,7 @@ class WalletRepo @Inject constructor(
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
     private val backupRepo: BackupRepo,
+    private val blocktankRepo: BlocktankRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -238,6 +239,7 @@ class WalletRepo @Inject constructor(
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
         try {
             backupRepo.reset()
+            blocktankRepo.resetState()
 
             _walletState.update { WalletState() }
             _balanceState.update { BalanceState() }

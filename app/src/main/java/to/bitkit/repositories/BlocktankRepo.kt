@@ -373,6 +373,7 @@ class BlocktankRepo @Inject constructor(
 
     suspend fun resetState() = withContext(bgDispatcher) {
         _blocktankState.update { BlocktankState() }
+        Logger.debug("Blocktank state reset", context = TAG)
     }
 
     suspend fun restoreFromBackup(backup: BlocktankBackupV1): Result<Unit> = withContext(bgDispatcher) {
