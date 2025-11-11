@@ -367,7 +367,7 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll()
-            val cacheData = cacheStore.data.first().copy(onchainAddress = "") // Force onchain address rotation
+            val cacheData = cacheStore.data.first()
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
@@ -417,7 +417,8 @@ class BackupRepo @Inject constructor(
         return@withContext try {
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                cacheStore.update { parsed.cache }
+                val caches = parsed.cache.copy(onchainAddress = "") // Force onchain address rotation
+                cacheStore.update { caches }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
                 db.tagMetadataDao().upsert(parsed.tagMetadata)
