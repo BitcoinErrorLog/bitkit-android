@@ -79,6 +79,7 @@ import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toActivityFilter
 import to.bitkit.models.toTxType
 import to.bitkit.repositories.ActivityRepo
+import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.ConnectivityRepo
 import to.bitkit.repositories.ConnectivityState
@@ -106,6 +107,7 @@ class AppViewModel @Inject constructor(
     private val keychain: Keychain,
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
+    private val backupRepo: BackupRepo,
     private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
@@ -1577,6 +1579,8 @@ class AppViewModel @Inject constructor(
             Logger.debug("Timed sheet already active, skipping check")
             return
         }
+
+        if (backupRepo.isRestoring.value) return
 
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
