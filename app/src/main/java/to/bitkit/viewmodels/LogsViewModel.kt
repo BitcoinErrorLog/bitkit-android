@@ -79,7 +79,7 @@ class LogsViewModel @Inject constructor(
 
     fun deleteAllLogs() {
         viewModelScope.launch {
-            Logger.resetSession()
+            Logger.reset()
             loadLogs()
         }
     }

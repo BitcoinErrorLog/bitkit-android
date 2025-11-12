@@ -250,7 +250,7 @@ class WalletRepo @Inject constructor(
             cacheStore.reset()
             // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
             coreService.wipeData()
-            Logger.resetSession()
+            Logger.reset()
             setWalletExistsState()
 
             return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)
