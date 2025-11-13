@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common__delete_yes">نعم، احذف</string>
+    <string name="settings__backup__category_contacts">جهات الاتصال</string>
     <string name="slashtags__your_name">اسمك</string>
     <string name="slashtags__your_name_capital">اسمك</string>
     <string name="slashtags__contact_name">اسم جهة الاتصال</string>
