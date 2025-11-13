@@ -27,6 +27,7 @@ import to.bitkit.R
 import to.bitkit.ext.isBoosted
 import to.bitkit.ext.isFinished
 import to.bitkit.ext.isTransfer
+import to.bitkit.ext.txType
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -41,10 +42,7 @@ fun ActivityIcon(
         is Activity.Lightning -> activity.v1.status
         is Activity.Onchain -> null
     }
-    val txType: PaymentType = when (activity) {
-        is Activity.Lightning -> activity.v1.txType
-        is Activity.Onchain -> activity.v1.txType
-    }
+    val txType: PaymentType = activity.txType()
     val arrowIcon = painterResource(if (txType == PaymentType.SENT) R.drawable.ic_sent else R.drawable.ic_received)
 
     when {

@@ -31,6 +31,7 @@ import to.bitkit.ext.isSent
 import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
 import to.bitkit.ext.totalValue
+import to.bitkit.ext.txType
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.LocalCurrencies
@@ -64,10 +65,7 @@ fun ActivityRow(
         is Activity.Lightning -> item.v1.timestamp
         is Activity.Onchain -> item.v1.timestamp
     }
-    val txType: PaymentType = when (item) {
-        is Activity.Lightning -> item.v1.txType
-        is Activity.Onchain -> item.v1.txType
-    }
+    val txType: PaymentType = item.txType()
     val isSent = item.isSent()
     val amountPrefix = if (isSent) "-" else "+"
     val confirmed: Boolean? = when (item) {
