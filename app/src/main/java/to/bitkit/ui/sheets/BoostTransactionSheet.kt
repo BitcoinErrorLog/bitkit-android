@@ -437,7 +437,7 @@ object BoostTransactionTestTags {
     const val FEE_RATE_TEXT = "fee_rate_text"
 
     @Suppress("SpellCheckingInspection")
-    const val USE_SUGGESTED_FEE_BUTTON = "RecomendedFeeButton"
+    const val USE_SUGGESTED_FEE_BUTTON = "RecommendedFeeButton"
 }
 
 @Preview(showSystemUi = true, name = "Default mode")
