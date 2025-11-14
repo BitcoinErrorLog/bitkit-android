@@ -52,6 +52,7 @@ class WalletRepo @Inject constructor(
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
     private val backupRepo: BackupRepo,
     private val blocktankRepo: BlocktankRepo,
+    private val activityRepo: ActivityRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -237,27 +238,42 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
+        // !order is critical
         try {
+            backupRepo.setWiping(true)
             backupRepo.reset()
-            blocktankRepo.resetState()
-
-            _walletState.update { WalletState() }
-            _balanceState.update { BalanceState() }
 
             keychain.wipe()
+
+            // clear stored state
+            coreService.wipeData()
             db.clearAllTables()
             settingsStore.reset()
             cacheStore.reset()
-            // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
-            coreService.wipeData()
-            Logger.reset()
-            setWalletExistsState()
 
-            return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)
+            // clear cached state
+            blocktankRepo.resetState()
+            activityRepo.resetState()
+            resetState()
+
+            // stop and wipe node caches
+            return@withContext lightningRepo.wipeStorage(walletIndex)
+                .onSuccess {
+                    // trigger nav to onboarding
+                    setWalletExistsState()
+                    Logger.reset()
+                }
         } catch (e: Throwable) {
             Logger.error("Wipe wallet error", e)
             Result.failure(e)
+        } finally {
+            backupRepo.setWiping(false)
         }
+    }
+
+    private fun resetState() {
+        _walletState.update { WalletState() }
+        _balanceState.update { BalanceState() }
     }
 
     // Blockchain address management

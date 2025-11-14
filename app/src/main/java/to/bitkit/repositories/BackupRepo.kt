@@ -69,15 +69,19 @@ class BackupRepo @Inject constructor(
     private val dataListenerJobs = mutableListOf<Job>()
     private var periodicCheckJob: Job? = null
     private var isObserving = false
+    private var lastNotificationTime = 0L
+
     private val _isRestoring = MutableStateFlow(false)
     val isRestoring: StateFlow<Boolean> = _isRestoring.asStateFlow()
 
-    private var lastNotificationTime = 0L
+    private val _isWiping = MutableStateFlow(false)
 
     fun reset() {
         stopObservingBackups()
         vssBackupClient.reset()
     }
+
+    fun setWiping(isWiping: Boolean) = _isWiping.update { isWiping }
 
     fun startObservingBackups() {
         if (isObserving) return
@@ -144,7 +148,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.SETTINGS)
                 }
         }
@@ -155,7 +159,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.WIDGETS)
                 }
         }
@@ -167,7 +171,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.WALLET)
                 }
         }
@@ -179,7 +183,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.METADATA)
                 }
         }
@@ -192,7 +196,7 @@ class BackupRepo @Inject constructor(
                 .distinctUntilChanged()
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.METADATA)
                 }
         }
@@ -203,18 +207,18 @@ class BackupRepo @Inject constructor(
             blocktankRepo.blocktankState
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.BLOCKTANK)
                 }
         }
         dataListenerJobs.add(blocktankJob)
 
-        // ACTIVITY - Observe all activity changes notified by ActivityRepo on any mutation to core's activity store
+        // ACTIVITY - Observe activity changes
         val activityChangesJob = scope.launch {
             activityRepo.activitiesChanged
                 .drop(1)
                 .collect {
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     markBackupRequired(BackupCategory.ACTIVITY)
                 }
         }
@@ -227,7 +231,7 @@ class BackupRepo @Inject constructor(
                     val lastSync = lightningService.status?.latestLightningWalletSyncTimestamp?.toLong()
                         ?.let { it * 1000 } // Convert seconds to millis
                         ?: return@collect
-                    if (isRestoring.value) return@collect
+                    if (shouldSkipBackup()) return@collect
                     cacheStore.updateBackupStatus(BackupCategory.LIGHTNING_CONNECTIONS) {
                         it.copy(required = lastSync, synced = lastSync, running = false)
                     }
@@ -505,7 +509,9 @@ class BackupRepo @Inject constructor(
 
     private fun currentTimeMillis(): Long = nowMillis(clock)
 
-    private fun BackupItemStatus.shouldBackup() = this.isRequired && !this.running && !isRestoring.value
+    private fun shouldSkipBackup(): Boolean = _isRestoring.value || _isWiping.value
+
+    private fun BackupItemStatus.shouldBackup() = this.isRequired && !this.running && !shouldSkipBackup()
 
     companion object {
         private const val TAG = "BackupRepo"
