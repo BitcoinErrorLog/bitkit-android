@@ -106,12 +106,16 @@ fun Long.formatToModernDisplay(locale: Locale = Locale.getDefault()): String {
 fun ULong.formatToModernDisplay(locale: Locale = Locale.getDefault()): String = toLong().formatToModernDisplay(locale)
 
 fun Long.formatToClassicDisplay(locale: Locale = Locale.getDefault()): String {
-    val sats = this
     val symbols = DecimalFormatSymbols(locale).apply {
         decimalSeparator = DECIMAL_SEPARATOR
     }
-    val formatter = DecimalFormat("###.########", symbols)
-    return formatter.format(sats.asBtc())
+    val pattern = "0.${"0".repeat(CLASSIC_DECIMALS)}"
+    val formatter = DecimalFormat(pattern, symbols).apply {
+        minimumFractionDigits = CLASSIC_DECIMALS
+        maximumFractionDigits = CLASSIC_DECIMALS
+        isGroupingUsed = false
+    }
+    return formatter.format(asBtc())
 }
 
 fun BigDecimal.formatCurrency(decimalPlaces: Int = FIAT_DECIMALS, locale: Locale = Locale.getDefault()): String? {
