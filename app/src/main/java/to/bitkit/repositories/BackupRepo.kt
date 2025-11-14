@@ -84,6 +84,9 @@ class BackupRepo @Inject constructor(
     }
 
     fun setWiping(isWiping: Boolean) = _isWiping.update { isWiping }
+    private fun currentTimeMillis(): Long = nowMillis(clock)
+    private fun shouldSkipBackup(): Boolean = _isRestoring.value || _isWiping.value
+    private fun BackupItemStatus.shouldBackup() = this.isRequired && !this.running && !shouldSkipBackup()
 
     fun startObservingBackups() {
         if (isObserving) return
@@ -376,7 +379,7 @@ class BackupRepo @Inject constructor(
 
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll().map { it.toActivityTagsMetadata() }
-            val cacheData = cacheStore.data.first().copy(onchainAddress = "") // Force onchain address rotation
+            val cacheData = cacheStore.data.first()
             // TODO use PreActivityMetadata
             // val preActivityMetadata = activityRepo.getAllPreActivityMetadata().getOrDefault(emptyList())
 
@@ -431,7 +434,7 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
                 cacheStore.update {
-                    parsed.cache.copy(onchainAddress = "") // Fore onchain address rotation
+                    parsed.cache.copy(onchainAddress = "") // Force onchain address rotation
                 }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
@@ -439,7 +442,7 @@ class BackupRepo @Inject constructor(
                 // activityRepo.upsertPreActivityMetadata(parsed.tagMetadata)
                 val tagMetadata = parsed.tagMetadata.map { it.toTagMetadataEntity() }
                 db.tagMetadataDao().upsert(tagMetadata)
-                Logger.debug("Restored caches, ${tagMetadata.size} pre-activity metadata", TAG)
+                Logger.debug("Restored ${tagMetadata.size} pre-activity metadata", TAG)
             }
 
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
@@ -507,12 +510,6 @@ class BackupRepo @Inject constructor(
             it.copy(running = false, synced = now, required = now)
         }
     }
-
-    private fun currentTimeMillis(): Long = nowMillis(clock)
-
-    private fun shouldSkipBackup(): Boolean = _isRestoring.value || _isWiping.value
-
-    private fun BackupItemStatus.shouldBackup() = this.isRequired && !this.running && !shouldSkipBackup()
 
     companion object {
         private const val TAG = "BackupRepo"

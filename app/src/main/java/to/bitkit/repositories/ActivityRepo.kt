@@ -91,8 +91,9 @@ class ActivityRepo @Inject constructor(
                 updateActivitiesMetadata()
                 syncTagsMetadata()
                 boostPendingActivities()
-                transferRepo.syncTransferStates()
-                getAllAvailableTags().map { }.getOrThrow()
+                transferRepo.syncTransferStates().getOrThrow()
+            }.onSuccess {
+                getAllAvailableTags().getOrNull()
             }.getOrThrow()
         }.onFailure { e ->
             if (e is TimeoutCancellationException) {
@@ -332,10 +333,10 @@ class ActivityRepo @Inject constructor(
         }.awaitAll()
     }
 
-    private suspend fun syncTagsMetadata() = withContext(context = bgDispatcher) {
+    private suspend fun syncTagsMetadata(): Result<Unit> = withContext(context = bgDispatcher) {
         runCatching {
-            if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
-            val lastActivities = getActivities(limit = 10u).getOrNull() ?: return@withContext
+            if (db.tagMetadataDao().getAll().isEmpty()) return@runCatching
+            val lastActivities = getActivities(limit = 10u).getOrNull() ?: return@runCatching
             Logger.debug("syncTagsMetadata called")
 
             lastActivities.map { activity ->
@@ -411,6 +412,7 @@ class ActivityRepo @Inject constructor(
                     }
                 }
             }.awaitAll()
+            Result.success(Unit)
         }
     }
 

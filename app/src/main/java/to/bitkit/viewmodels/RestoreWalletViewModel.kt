@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 private const val WORDS_MIN = 12
-private const val WORS_MAX = 24
+private const val WORDS_MAX = 24
 
 @HiltViewModel
 class RestoreWalletViewModel @Inject constructor() : ViewModel() {
@@ -85,7 +85,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         val pastedWords = pastedText
             .split(separators)
             .filter { it.isNotBlank() }
-        if (pastedWords.size == WORDS_MIN || pastedWords.size == WORS_MAX) {
+        if (pastedWords.size == WORDS_MIN || pastedWords.size == WORDS_MAX) {
             val invalidIndices = pastedWords.withIndex()
                 .filter { !isValidBip39Word(it.value) }
                 .map { it.index }
@@ -93,7 +93,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
 
             val newWords = _uiState.value.words.toMutableList().apply {
                 pastedWords.forEachIndexed { index, word -> this[index] = word }
-                for (index in pastedWords.size until WORS_MAX) {
+                for (index in pastedWords.size until WORDS_MAX) {
                     this[index] = ""
                 }
             }
@@ -102,7 +102,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
                 it.copy(
                     words = newWords,
                     invalidWordIndices = invalidIndices,
-                    is24Words = pastedWords.size == WORS_MAX,
+                    is24Words = pastedWords.size == WORDS_MAX,
                     shouldDismissKeyboard = invalidIndices.isEmpty(),
                     focusedIndex = null,
                     suggestions = emptyList(),
@@ -149,7 +149,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
 }
 
 data class RestoreWalletUiState(
-    val words: List<String> = List(WORS_MAX) { "" },
+    val words: List<String> = List(WORDS_MAX) { "" },
     val invalidWordIndices: Set<Int> = emptySet(),
     val suggestions: List<String> = emptyList(),
     val focusedIndex: Int? = null,
@@ -159,7 +159,7 @@ data class RestoreWalletUiState(
     val shouldDismissKeyboard: Boolean = false,
     val scrollToFieldIndex: Int? = null,
 ) {
-    val wordCount: Int get() = if (is24Words) WORS_MAX else WORDS_MIN
+    val wordCount: Int get() = if (is24Words) WORDS_MAX else WORDS_MIN
     val wordsPerColumn: Int get() = if (is24Words) WORDS_MIN else 6
 
     val checksumErrorVisible: Boolean

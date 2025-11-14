@@ -12,9 +12,9 @@ fun TagMetadataEntity.toActivityTagsMetadata() = PreActivityMetadata(
     txId = txId,
     address = address,
     isReceive = isReceive,
-    feeRate = 0u,
-    isTransfer = false,
-    channelId = "",
+    feeRate = 0u, // TODO: update room db entity or drop it in favour of bitkit-core
+    isTransfer = false, // TODO: update room db entity or drop it in favour of bitkit-core
+    channelId = "", // TODO: update room db entity or drop it in favour of bitkit-core
 )
 
 fun PreActivityMetadata.toTagMetadataEntity() = TagMetadataEntity(
