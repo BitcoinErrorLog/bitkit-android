@@ -42,7 +42,7 @@ fun HighBalanceWarningSheet(
             .sheetHeight(isModal = true)
             .gradientBackground()
             .navigationBarsPadding()
-            .testTag("high_balance_intro_screen")
+            .testTag("HighBalanceSheet")
     ) {
         SheetTopBar(stringResource(R.string.other__high_balance__nav_title))
 
@@ -56,7 +56,7 @@ fun HighBalanceWarningSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .testTag("high_balance_image")
+                    .testTag("HighBalanceSheetImage")
             )
 
             Display(
@@ -64,7 +64,7 @@ fun HighBalanceWarningSheet(
                 color = Colors.White,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("high_balance_title")
+                    .testTag("HighBalanceSheetTitle")
             )
             VerticalSpacer(8.dp)
             BodyM(
@@ -74,13 +74,13 @@ fun HighBalanceWarningSheet(
                 ),
                 color = Colors.White64,
                 modifier = Modifier
-                    .testTag("high_balance_description")
+                    .testTag("HighBalanceSheetDescription")
             )
             VerticalSpacer(32.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("buttons_row"),
+                    .testTag("HighBalanceSheetButtons"),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SecondaryButton(
@@ -89,7 +89,7 @@ fun HighBalanceWarningSheet(
                     onClick = learnMoreClick,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("learn_more_button"),
+                        .testTag("HighBalanceSheetCancel"),
                 )
 
                 PrimaryButton(
@@ -98,7 +98,7 @@ fun HighBalanceWarningSheet(
                     onClick = understoodClick,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("understood_button"),
+                        .testTag("HighBalanceSheetContinue"),
                 )
             }
             VerticalSpacer(16.dp)

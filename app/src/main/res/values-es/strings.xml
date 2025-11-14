@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="cards__backupSeedPhrase__title">Copia de seguridad</string>
     <string name="cards__discount__description">Saldo de gastos</string>
     <string name="cards__invite__description">Comparta Bitkit</string>
     <string name="cards__lightning__description">Pagos instantáneos</string>
@@ -353,6 +354,7 @@
     <string name="security__use_pin">Utilizar código PIN</string>
     <string name="security__wiped_title">Datos de Monedero Borrados</string>
     <string name="security__wiped_message">Bitkit ha sido restaurado y todos los datos de monedero han sido borrados.</string>
+    <string name="settings__settings">Ajustes</string>
     <string name="settings__dev_enabled_title">Opciones de desarrollo activadas</string>
     <string name="settings__dev_disabled_title">Opciones de desarrollo desactivadas</string>
     <string name="settings__general_title">General</string>

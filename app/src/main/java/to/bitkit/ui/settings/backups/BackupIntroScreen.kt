@@ -44,7 +44,7 @@ fun BackupIntroScreen(
             .fillMaxSize()
             .gradientBackground()
             .navigationBarsPadding()
-            .testTag("backup_intro_screen")
+            .testTag("BackupIntroView")
     ) {
         SheetTopBar(stringResource(R.string.security__backup_wallet))
 
@@ -58,14 +58,14 @@ fun BackupIntroScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .testTag("backup_image")
+                    .testTag("BackupIntroViewImage")
             )
 
             Display(
                 text = stringResource(R.string.security__backup_title).withAccent(accentColor = Colors.Blue),
                 color = Colors.White,
                 modifier = Modifier
-                    .testTag("backup_title")
+                    .testTag("BackupIntroViewTitle")
             )
             Spacer(Modifier.height(8.dp))
             BodyM(
@@ -76,13 +76,13 @@ fun BackupIntroScreen(
                 },
                 color = Colors.White64,
                 modifier = Modifier
-                    .testTag("backup_description")
+                    .testTag("BackupIntroViewDescription")
             )
             Spacer(Modifier.height(32.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("buttons_row"),
+                    .testTag("BackupIntroViewButtons"),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SecondaryButton(
@@ -91,7 +91,7 @@ fun BackupIntroScreen(
                     onClick = onClose,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("later_button"),
+                        .testTag("BackupIntroViewCancel"),
                 )
 
                 PrimaryButton(
@@ -100,7 +100,7 @@ fun BackupIntroScreen(
                     onClick = onConfirm,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("backup_button"),
+                        .testTag("BackupIntroViewContinue"),
                 )
             }
             Spacer(Modifier.height(16.dp))
