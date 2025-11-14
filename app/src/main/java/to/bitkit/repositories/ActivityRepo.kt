@@ -9,6 +9,7 @@ import com.synonym.bitkitcore.IcJitEntry
 import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
@@ -628,11 +629,33 @@ class ActivityRepo @Inject constructor(
     /**
      * Get all [ActivityTags] for backup
      */
-    suspend fun getAllActivityTags(): Result<List<ActivityTags>> = withContext(bgDispatcher) {
+    suspend fun getAllActivitiesTags(): Result<List<ActivityTags>> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.activity.getAllActivityTags()
+            coreService.activity.getAllActivitiesTags()
         }.onFailure { e ->
             Logger.error("getAllActivityTags error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Get all [PreActivityMetadata] for backup
+     */
+    suspend fun getAllPreActivityMetadata(): Result<List<PreActivityMetadata>> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.getAllPreActivityMetadata()
+        }.onFailure { e ->
+            Logger.error("getAllPreActivityMetadata error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Upsert all [PreActivityMetadata]
+     */
+    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.upsertPreActivityMetadata(list)
+        }.onFailure { e ->
+            Logger.error("upsertPreActivityMetadata error", e, context = TAG)
         }
     }
 
@@ -663,12 +686,19 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    suspend fun restoreFromBackup(backup: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun restoreFromBackup(payload: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.activity.upsertList(backup.activities)
-            coreService.activity.upsertTags(backup.activityTags)
-            coreService.activity.upsertClosedChannelList(backup.closedChannels)
+            coreService.activity.upsertList(payload.activities)
+            coreService.activity.upsertTags(payload.activityTags)
+            coreService.activity.upsertClosedChannelList(payload.closedChannels)
+        }.onSuccess {
+            Logger.debug(
+                "Restored ${payload.activities.size} activities, ${payload.activityTags.size} activity tags, " +
+                    "${payload.closedChannels.size} closed channels",
+                context = TAG,
+            )
         }
+
     }
 
     // MARK: - Development/Testing Methods

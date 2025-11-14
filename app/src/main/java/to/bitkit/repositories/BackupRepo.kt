@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -190,6 +192,7 @@ class BackupRepo @Inject constructor(
         dataListenerJobs.add(tagMetadataJob)
 
         // METADATA - Observe entire CacheStore excluding backup statuses
+        // TODO use PreActivityMetadata
         val cacheMetadataJob = scope.launch {
             cacheStore.data
                 .map { it.copy(backupStatuses = mapOf()) }
@@ -244,7 +247,7 @@ class BackupRepo @Inject constructor(
 
     private fun startPeriodicBackupFailureCheck() {
         periodicCheckJob = scope.launch {
-            while (true) {
+            while (currentCoroutineContext().isActive) {
                 delay(BACKUP_CHECK_INTERVAL)
                 checkForFailedBackups()
             }
@@ -374,6 +377,8 @@ class BackupRepo @Inject constructor(
         BackupCategory.METADATA -> {
             val tagMetadata = db.tagMetadataDao().getAll().map { it.toActivityTagsMetadata() }
             val cacheData = cacheStore.data.first().copy(onchainAddress = "") // Force onchain address rotation
+            // TODO use PreActivityMetadata
+            // val preActivityMetadata = activityRepo.getAllPreActivityMetadata().getOrDefault(emptyList())
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
@@ -400,7 +405,7 @@ class BackupRepo @Inject constructor(
         BackupCategory.ACTIVITY -> {
             val activities = activityRepo.getActivities().getOrDefault(emptyList())
             val closedChannels = activityRepo.getClosedChannels().getOrDefault(emptyList())
-            val activityTags = activityRepo.getAllActivityTags().getOrDefault(emptyList())
+            val activityTags = activityRepo.getAllActivitiesTags().getOrDefault(emptyList())
 
             val payload = ActivityBackupV1(
                 createdAt = currentTimeMillis(),
@@ -430,9 +435,11 @@ class BackupRepo @Inject constructor(
                 }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
+                // TODO use PreActivityMetadata
+                // activityRepo.upsertPreActivityMetadata(parsed.tagMetadata)
                 val tagMetadata = parsed.tagMetadata.map { it.toTagMetadataEntity() }
                 db.tagMetadataDao().upsert(tagMetadata)
-                Logger.debug("Restored caches and ${tagMetadata.size} tags metadata records", TAG)
+                Logger.debug("Restored caches, ${tagMetadata.size} pre-activity metadata", TAG)
             }
 
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
@@ -456,13 +463,7 @@ class BackupRepo @Inject constructor(
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
-                activityRepo.restoreFromBackup(parsed).onSuccess {
-                    Logger.debug(
-                        "Restored ${parsed.activities.size} activities, ${parsed.activityTags.size} activity tags, " +
-                            "${parsed.closedChannels.size} closed channels",
-                        context = TAG,
-                    )
-                }
+                activityRepo.restoreFromBackup(parsed)
             }
 
             Logger.info("Full restore success", context = TAG)

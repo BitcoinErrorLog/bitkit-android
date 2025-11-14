@@ -1,24 +1,31 @@
 package to.bitkit.ext
 
-import com.synonym.bitkitcore.ActivityTagsMetadata
+import com.synonym.bitkitcore.PreActivityMetadata
 import to.bitkit.data.entities.TagMetadataEntity
 
-fun TagMetadataEntity.toActivityTagsMetadata() = ActivityTagsMetadata(
-    id,
-    paymentHash,
-    txId,
-    address,
-    isReceive,
-    tags,
-    createdAt.toULong(),
+// TODO use PreActivityMetadata
+fun TagMetadataEntity.toActivityTagsMetadata() = PreActivityMetadata(
+    paymentId = id,
+    createdAt = createdAt.toULong(),
+    tags = tags,
+    paymentHash = paymentHash,
+    txId = txId,
+    address = address,
+    isReceive = isReceive,
+    feeRate = 0u,
+    isTransfer = false,
+    channelId = "",
 )
 
-fun ActivityTagsMetadata.toTagMetadataEntity() = TagMetadataEntity(
-    id,
-    paymentHash,
-    txId,
-    address,
-    isReceive,
-    tags,
-    createdAt.toLong(),
+fun PreActivityMetadata.toTagMetadataEntity() = TagMetadataEntity(
+    id = paymentId,
+    createdAt = createdAt.toLong(),
+    tags = tags,
+    paymentHash = paymentHash,
+    txId = txId,
+    address = address.orEmpty(),
+    isReceive = isReceive,
+    // feeRate = 0u,
+    // isTransfer = false,
+    // channelId = "",
 )

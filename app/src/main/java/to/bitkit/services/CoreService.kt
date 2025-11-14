@@ -19,6 +19,7 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.SortDirection
 import com.synonym.bitkitcore.WordCount
 import com.synonym.bitkitcore.addTags
@@ -29,7 +30,6 @@ import com.synonym.bitkitcore.estimateOrderFeeFull
 import com.synonym.bitkitcore.getActivities
 import com.synonym.bitkitcore.getActivityById
 import com.synonym.bitkitcore.getAllClosedChannels
-import com.synonym.bitkitcore.getAllTagMetadata
 import com.synonym.bitkitcore.getAllUniqueTags
 import com.synonym.bitkitcore.getCjitEntries
 import com.synonym.bitkitcore.getInfo
@@ -190,7 +190,7 @@ class CoreService @Inject constructor(
 private const val CHUNK_SIZE = 50
 
 class ActivityService(
-    private val coreService: CoreService,
+    @Suppress("unused") private val coreService: CoreService, // used to ensure CoreService inits first
     private val cacheStore: CacheStore,
 ) {
     suspend fun removeAll() {
@@ -296,8 +296,16 @@ class ActivityService(
         com.synonym.bitkitcore.upsertTags(activityTags)
     }
 
-    suspend fun getAllActivityTags(): List<ActivityTags> = ServiceQueue.CORE.background {
-        getAllTagMetadata().map { ActivityTags(it.id, tags = it.tags) }
+    suspend fun getAllActivitiesTags(): List<ActivityTags> = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.getAllActivitiesTags()
+    }
+
+    suspend fun getAllPreActivityMetadata(): List<PreActivityMetadata> = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.getAllPreActivityMetadata()
+    }
+
+    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.upsertPreActivityMetadata(list)
     }
 
     suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
@@ -595,7 +603,7 @@ class ActivityService(
 // region Blocktank
 
 class BlocktankService(
-    private val coreService: CoreService,
+    @Suppress("unused") private val coreService: CoreService, // used to ensure CoreService inits first
     private val lightningService: LightningService,
 ) {
     suspend fun info(refresh: Boolean = true): IBtInfo? {

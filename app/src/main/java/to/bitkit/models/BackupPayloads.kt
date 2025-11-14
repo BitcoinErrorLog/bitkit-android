@@ -2,11 +2,11 @@ package to.bitkit.models
 
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityTags
-import com.synonym.bitkitcore.ActivityTagsMetadata
 import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
+import com.synonym.bitkitcore.PreActivityMetadata
 import kotlinx.serialization.Serializable
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.entities.TransferEntity
@@ -22,7 +22,7 @@ data class WalletBackupV1(
 data class MetadataBackupV1(
     val version: Int = 1,
     val createdAt: Long,
-    val tagMetadata: List<ActivityTagsMetadata>,
+    val tagMetadata: List<PreActivityMetadata>,
     val cache: AppCacheData,
 )
 
