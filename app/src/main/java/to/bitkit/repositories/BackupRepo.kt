@@ -67,8 +67,8 @@ import javax.inject.Singleton
 @Suppress("LongParameterList")
 @Singleton
 class BackupRepo @Inject constructor(
-    @ApplicationContext private val context: Context,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:ApplicationContext private val context: Context,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val cacheStore: CacheStore,
     private val vssBackupClient: VssBackupClient,
     private val settingsStore: SettingsStore,
