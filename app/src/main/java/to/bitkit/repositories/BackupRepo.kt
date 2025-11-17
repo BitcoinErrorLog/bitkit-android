@@ -23,9 +23,7 @@ import kotlinx.datetime.Clock
 import to.bitkit.R
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
-import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.WidgetsData
 import to.bitkit.data.WidgetsStore
 import to.bitkit.data.backup.VssBackupClient
 import to.bitkit.data.resetPin
@@ -48,6 +46,7 @@ import to.bitkit.services.LightningService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import to.bitkit.utils.jsonLogOf
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -72,6 +71,9 @@ class BackupRepo @Inject constructor(
     private val statusObserverJobs = mutableListOf<Job>()
     private val dataListenerJobs = mutableListOf<Job>()
     private var periodicCheckJob: Job? = null
+
+    private val runningBackups = ConcurrentHashMap.newKeySet<BackupCategory>()
+
     private var isObserving = false
     private var lastNotificationTime = 0L
 
@@ -97,6 +99,22 @@ class BackupRepo @Inject constructor(
         Logger.debug("Start observing backup statuses and data store changes", context = TAG)
 
         scope.launch { vssBackupClient.setup() }
+
+        scope.launch {
+            BackupCategory.entries.forEach { category ->
+                if (category !in runningBackups) {
+                    cacheStore.updateBackupStatus(category) { status ->
+                        if (status.running) {
+                            Logger.debug("Clearing stale running flag for: '$category'", context = TAG)
+                            status.copy(running = false)
+                        } else {
+                            status
+                        }
+                    }
+                }
+            }
+        }
+
         startBackupStatusObservers()
         startDataStoreListeners()
         startPeriodicBackupFailureCheck()
@@ -269,27 +287,38 @@ class BackupRepo @Inject constructor(
     }
 
     private fun scheduleBackup(category: BackupCategory) {
-        // Cancel existing backup job for this category
         backupJobs[category]?.cancel()
 
         Logger.verbose("Scheduling backup for: '$category'", context = TAG)
 
         backupJobs[category] = scope.launch {
-            // Set running immediately to prevent UI showing failure during debounce
+            runningBackups += category
             cacheStore.updateBackupStatus(category) {
                 it.copy(running = true)
             }
 
             delay(BACKUP_DEBOUNCE)
 
-            // Double-check if backup is still needed
             val status = cacheStore.backupStatuses.first()[category] ?: BackupItemStatus()
-            if (status.shouldBackup()) {
+            if (status.isRequired && !shouldSkipBackup()) {
                 triggerBackup(category)
             } else {
-                // Backup no longer needed, reset running flag
+                Logger.debug("Backup no longer needed for: '$category'", context = TAG)
+                runningBackups -= category
                 cacheStore.updateBackupStatus(category) {
                     it.copy(running = false)
+                }
+            }
+        }.also { job ->
+            job.invokeOnCompletion { exception ->
+                if (exception != null) {
+                    Logger.debug("Backup job cancelled for: '$category'", context = TAG)
+                    scope.launch {
+                        runningBackups -= category
+                        cacheStore.updateBackupStatus(category) {
+                            it.copy(running = false)
+                        }
+                    }
                 }
             }
         }
@@ -335,12 +364,14 @@ class BackupRepo @Inject constructor(
     suspend fun triggerBackup(category: BackupCategory) = withContext(ioDispatcher) {
         Logger.debug("Backup starting for: '$category'", context = TAG)
 
+        runningBackups += category
         cacheStore.updateBackupStatus(category) {
             it.copy(running = true, required = currentTimeMillis())
         }
 
         vssBackupClient.putObject(key = category.name, data = getBackupDataBytes(category))
             .onSuccess {
+                runningBackups -= category
                 cacheStore.updateBackupStatus(category) {
                     it.copy(
                         running = false,
@@ -350,6 +381,7 @@ class BackupRepo @Inject constructor(
                 Logger.info("Backup succeeded for: '$category'", context = TAG)
             }
             .onFailure { e ->
+                runningBackups -= category
                 cacheStore.updateBackupStatus(category) {
                     it.copy(running = false)
                 }
@@ -452,34 +484,34 @@ class BackupRepo @Inject constructor(
                 val tagMetadata = parsed.tagMetadata.map { it.toTagMetadataEntity() }
                 db.tagMetadataDao().upsert(tagMetadata)
                 Logger.debug("Restored ${tagMetadata.size} pre-activity metadata", TAG)
+                parsed.createdAt
             }
 
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
-                val parsed = json.decodeFromString<SettingsData>(String(dataBytes)).resetPin()
-                settingsStore.update { parsed }
                 val parsed = json.decodeFromString<SettingsBackupV1>(String(dataBytes))
                 settingsStore.restoreFromBackup(parsed)
+                parsed.createdAt
             }
             performRestore(BackupCategory.WIDGETS) { dataBytes ->
-                val parsed = json.decodeFromString<WidgetsData>(String(dataBytes))
-                widgetsStore.update { parsed }
                 val parsed = json.decodeFromString<WidgetsBackupV1>(String(dataBytes))
                 widgetsStore.restoreFromBackup(parsed)
+                parsed.createdAt
             }
             performRestore(BackupCategory.WALLET) { dataBytes ->
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
                 db.transferDao().upsert(parsed.transfers)
                 Logger.debug("Restored ${parsed.transfers.size} transfers", context = TAG)
+                parsed.createdAt
             }
             performRestore(BackupCategory.BLOCKTANK) { dataBytes ->
                 val parsed = json.decodeFromString<BlocktankBackupV1>(String(dataBytes))
-                blocktankRepo.restoreFromBackup(parsed).onSuccess {
-                    Logger.debug("Restored ${parsed.orders.size} orders, ${parsed.cjitEntries.size} CJITs", TAG)
-                }
+                blocktankRepo.restoreFromBackup(parsed)
+                parsed.createdAt
             }
             performRestore(BackupCategory.ACTIVITY) { dataBytes ->
                 val parsed = json.decodeFromString<ActivityBackupV1>(String(dataBytes))
                 activityRepo.restoreFromBackup(parsed)
+                parsed.createdAt
             }
 
             Logger.info("Full restore success", context = TAG)
@@ -503,14 +535,16 @@ class BackupRepo @Inject constructor(
 
     private suspend fun performRestore(
         category: BackupCategory,
-        restoreAction: suspend (ByteArray) -> Unit,
+        restoreAction: suspend (dataBytes: ByteArray) -> Long,
     ): Result<Unit> = runCatching {
+        var createdAtTimestamp = currentTimeMillis()
+
         vssBackupClient.getObject(category.name).map { it?.value }
             .onSuccess { dataBytes ->
                 if (dataBytes == null) {
                     Logger.warn("Restore null for: '$category'", context = TAG)
                 } else {
-                    restoreAction(dataBytes)
+                    createdAtTimestamp = restoreAction(dataBytes)
                     Logger.info("Restore success for: '$category'", context = TAG)
                 }
             }
@@ -518,9 +552,8 @@ class BackupRepo @Inject constructor(
                 Logger.debug("Restore error for: '$category'", context = TAG)
             }
 
-        val now = currentTimeMillis()
         cacheStore.updateBackupStatus(category) {
-            it.copy(running = false, synced = now, required = now)
+            it.copy(running = false, synced = createdAtTimestamp, required = createdAtTimestamp)
         }
     }
 
