@@ -699,6 +699,7 @@ class ActivityRepo @Inject constructor(
                     "${payload.closedChannels.size} closed channels",
                 context = TAG,
             )
+            notifyActivitiesChanged()
         }
 
     }

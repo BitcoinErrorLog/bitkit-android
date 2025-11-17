@@ -87,7 +87,8 @@ class ActivityListViewModel @Inject constructor(
         combine(
             _filters.map { it.searchText }.debounce(300),
             _filters.map { it.copy(searchText = "") },
-        ) { debouncedSearch, filtersWithoutSearch ->
+            activityRepo.activitiesChanged,
+        ) { debouncedSearch, filtersWithoutSearch, _ ->
             fetchFilteredActivities(filtersWithoutSearch.copy(searchText = debouncedSearch))
         }.collect { _filteredActivities.value = it }
     }
