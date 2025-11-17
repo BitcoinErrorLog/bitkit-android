@@ -50,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -72,7 +71,7 @@ import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.RestoreWalletViewModel
 
 @Composable
-fun RestoreWalletView(
+fun RestoreWalletScreen(
     viewModel: RestoreWalletViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onRestoreClick: (mnemonic: String, passphrase: String?) -> Unit,
@@ -337,13 +336,23 @@ fun MnemonicInputField(
     focusRequester: FocusRequester,
     index: Int,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val textFieldValue = TextFieldValue(text = value, selection = TextRange(value.length))
+    var textFieldValue by remember { mutableStateOf(TextFieldValue()) }
+
+    // Sync text from parent while preserving selection
+    LaunchedEffect(value) {
+        if (textFieldValue.text != value) {
+            val selection = textFieldValue.selection
+            textFieldValue = TextFieldValue(value, selection)
+        }
+    }
 
     OutlinedTextField(
         value = textFieldValue,
-        onValueChange = { onValueChanged(it.text) },
-        textStyle = if (isFocused) AppTextStyles.BodySSB else AppTextStyles.BodyS,
+        onValueChange = {
+            textFieldValue = it
+            onValueChanged(it.text)
+        },
+        textStyle = AppTextStyles.BodySSB,
         prefix = {
             Text(
                 text = label,
@@ -376,7 +385,6 @@ fun MnemonicInputField(
             }
             .testTag("Word-$index")
             .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
                 onFocusChanged(focusState.isFocused)
             }
             .onGloballyPositioned { coordinates ->
@@ -390,7 +398,7 @@ fun MnemonicInputField(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        RestoreWalletView(
+        RestoreWalletScreen(
             onBackClick = {},
             onRestoreClick = { _, _ -> },
         )
