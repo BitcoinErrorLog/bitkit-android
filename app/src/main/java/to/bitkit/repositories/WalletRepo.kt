@@ -30,6 +30,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.usecases.DeriveBalanceStateUseCase
+import to.bitkit.usecases.WipeWalletUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
@@ -50,9 +51,7 @@ class WalletRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
-    private val backupRepo: BackupRepo,
-    private val blocktankRepo: BlocktankRepo,
-    private val activityRepo: ActivityRepo,
+    private val wipeWalletUseCase: WipeWalletUseCase,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -238,40 +237,14 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
-        // !order is critical
-        try {
-            backupRepo.setWiping(true)
-            backupRepo.reset()
-
-            keychain.wipe()
-
-            // clear stored state
-            coreService.wipeData()
-            db.clearAllTables()
-            settingsStore.reset()
-            cacheStore.reset()
-
-            // clear cached state
-            blocktankRepo.resetState()
-            activityRepo.resetState()
-            resetState()
-
-            // stop and wipe node caches
-            return@withContext lightningRepo.wipeStorage(walletIndex)
-                .onSuccess {
-                    // trigger nav to onboarding
-                    setWalletExistsState()
-                    Logger.reset()
-                }
-        } catch (e: Throwable) {
-            Logger.error("Wipe wallet error", e)
-            Result.failure(e)
-        } finally {
-            backupRepo.setWiping(false)
-        }
+        return@withContext wipeWalletUseCase(
+            walletIndex = walletIndex,
+            resetWalletState = ::resetState,
+            onSuccess = ::setWalletExistsState,
+        )
     }
 
-    private fun resetState() {
+    fun resetState() {
         _walletState.update { WalletState() }
         _balanceState.update { BalanceState() }
     }

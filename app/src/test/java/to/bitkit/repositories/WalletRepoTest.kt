@@ -26,6 +26,7 @@ import to.bitkit.services.CoreService
 import to.bitkit.services.OnchainService
 import to.bitkit.test.BaseUnitTest
 import to.bitkit.usecases.DeriveBalanceStateUseCase
+import to.bitkit.usecases.WipeWalletUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.AddressInfo
 import to.bitkit.utils.AddressStats
@@ -37,18 +38,16 @@ class WalletRepoTest : BaseUnitTest() {
 
     private lateinit var sut: WalletRepo
 
-    private val db: AppDb = mock()
-    private val keychain: Keychain = mock()
-    private val coreService: CoreService = mock()
-    private val onchainService: OnchainService = mock()
-    private val settingsStore: SettingsStore = mock()
-    private val addressChecker: AddressChecker = mock()
-    private val lightningRepo: LightningRepo = mock()
-    private val cacheStore: CacheStore = mock()
-    private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase = mock()
-    private val backupRepo = mock<BackupRepo>()
-    private val blocktankRepo = mock<BlocktankRepo>()
-    private val activityRepo = mock<ActivityRepo>()
+    private val db = mock<AppDb>()
+    private val keychain = mock<Keychain>()
+    private val coreService = mock<CoreService>()
+    private val onchainService = mock<OnchainService>()
+    private val settingsStore = mock<SettingsStore>()
+    private val addressChecker = mock<AddressChecker>()
+    private val lightningRepo = mock<LightningRepo>()
+    private val cacheStore = mock<CacheStore>()
+    private val deriveBalanceStateUseCase = mock<DeriveBalanceStateUseCase>()
+    private val wipeWalletUseCase = mock<WipeWalletUseCase>()
 
     @Before
     fun setUp() {
@@ -78,9 +77,7 @@ class WalletRepoTest : BaseUnitTest() {
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
         deriveBalanceStateUseCase = deriveBalanceStateUseCase,
-        backupRepo = backupRepo,
-        blocktankRepo = blocktankRepo,
-        activityRepo = activityRepo,
+        wipeWalletUseCase = wipeWalletUseCase,
     )
 
     @Test
@@ -608,6 +605,26 @@ class WalletRepoTest : BaseUnitTest() {
         )
 
         verify(lightningRepo, never()).newAddress()
+    }
+
+    @Test
+    fun `wipeWallet should call use case`() = test {
+        wheneverBlocking { wipeWalletUseCase.invoke(any(), any(), any()) }.thenReturn(Result.success(Unit))
+
+        val result = sut.wipeWallet()
+
+        assertTrue(result.isSuccess)
+        verify(wipeWalletUseCase).invoke(any(), any(), any())
+    }
+
+    @Test
+    fun `wipeWallet should return failure when use case fails`() = test {
+        val error = RuntimeException("Reset failed")
+        wheneverBlocking { wipeWalletUseCase.invoke(any(), any(), any()) }.thenReturn(Result.failure(error))
+
+        val result = sut.wipeWallet()
+
+        assertTrue(result.isFailure)
     }
 }
 
