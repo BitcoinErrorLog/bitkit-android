@@ -102,7 +102,7 @@ class ActivityListViewModel @Inject constructor(
 
     private suspend fun refreshActivityState() {
         val all = activityRepo.getActivities(filter = ActivityFilter.ALL).getOrNull() ?: emptyList()
-        _latestActivities.value = all.take(3)
+        _latestActivities.value = all.take(SIZE_LATEST)
         _lightningActivities.value = all.filter { it is Activity.Lightning }
         _onchainActivities.value = all.filter { it is Activity.Onchain }
     }
@@ -138,7 +138,6 @@ class ActivityListViewModel @Inject constructor(
         }
     }
 
-
     fun setDateRange(startDate: Long?, endDate: Long?) = _filters.update {
         it.copy(startDate = startDate, endDate = endDate)
     }
@@ -159,8 +158,13 @@ class ActivityListViewModel @Inject constructor(
 
     private fun <T> Flow<T>.stateInScope(
         initialValue: T,
-        started: SharingStarted = SharingStarted.WhileSubscribed(5000),
+        started: SharingStarted = SharingStarted.WhileSubscribed(MS_TIMEOUT_SUB),
     ): StateFlow<T> = stateIn(viewModelScope, started, initialValue)
+
+    companion object {
+        private const val SIZE_LATEST = 3
+        private const val MS_TIMEOUT_SUB = 5000L
+    }
 }
 
 data class ActivityFilters(

@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,14 +84,14 @@ fun RestoreWalletScreen(
 
     Content(
         uiState = uiState,
-        onWordChanged = viewModel::onWordChanged,
-        onWordFocusChanged = viewModel::onWordFocusChanged,
-        onPassphraseChanged = viewModel::onPassphraseChanged,
+        onChangeWord = viewModel::onChangeWord,
+        onChangeWordFocus = viewModel::onChangeWordFocus,
+        onChangePassphrase = viewModel::onChangePassphrase,
         onBackspaceInEmpty = viewModel::onBackspaceInEmpty,
-        onSuggestionSelected = viewModel::onSuggestionSelected,
-        onKeyboardDismissed = viewModel::onKeyboardDismissed,
-        onScrollCompleted = viewModel::onScrollCompleted,
-        onAdvanced = viewModel::onAdvancedClick,
+        onSelectSuggestion = viewModel::onSelectSuggestion,
+        onKeyboardDismiss = viewModel::onKeyboardDismiss,
+        onScrollComplete = viewModel::onScrollComplete,
+        onAdvancedClick = viewModel::onAdvancedClick,
         onBack = onBackClick,
         onRestore = onRestoreClick,
         modifier = modifier,
@@ -101,16 +102,16 @@ fun RestoreWalletScreen(
 private fun Content(
     uiState: RestoreWalletUiState,
     modifier: Modifier = Modifier,
-    onWordChanged: (Int, String) -> Unit = { _, _ -> },
-    onWordFocusChanged: (Int, Boolean) -> Unit = { _, _ -> },
-    onAdvanced: () -> Unit = {},
-    onPassphraseChanged: (String) -> Unit = {},
+    onChangeWord: (Int, String) -> Unit = { _, _ -> },
+    onChangeWordFocus: (Int, Boolean) -> Unit = { _, _ -> },
+    onChangePassphrase: (String) -> Unit = {},
     onBackspaceInEmpty: (Int) -> Unit = {},
-    onSuggestionSelected: (String) -> Unit = {},
-    onKeyboardDismissed: () -> Unit = {},
-    onScrollCompleted: () -> Unit = {},
-    onBack: () -> Unit = {},
+    onSelectSuggestion: (String) -> Unit = {},
+    onKeyboardDismiss: () -> Unit = {},
+    onScrollComplete: () -> Unit = {},
+    onAdvancedClick: () -> Unit = {},
     onRestore: (mnemonic: String, passphrase: String?) -> Unit = { _, _ -> },
+    onBack: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
     val inputFieldPositions = remember { mutableMapOf<Int, Int>() }
@@ -118,15 +119,14 @@ private fun Content(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    val onPositionChanged = { index: Int, position: Int ->
-        inputFieldPositions[index] = position
-    }
+    val currentOnKeyboardDismiss by rememberUpdatedState(onKeyboardDismiss)
+    val currentOnScrollComplete by rememberUpdatedState(onScrollComplete)
 
     LaunchedEffect(uiState.shouldDismissKeyboard) {
         if (uiState.shouldDismissKeyboard) {
             focusManager.clearFocus()
             keyboardController?.hide()
-            onKeyboardDismissed()
+            currentOnKeyboardDismiss()
         }
     }
 
@@ -135,7 +135,7 @@ private fun Content(
             inputFieldPositions[index]?.let { position ->
                 scrollState.animateScrollTo(position)
             }
-            onScrollCompleted()
+            currentOnScrollComplete()
         }
     }
 
@@ -186,16 +186,10 @@ private fun Content(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
                                 isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
-                                onValueChanged = { onWordChanged(index, it) },
-                                onFocusChanged = { focused ->
-                                    onWordFocusChanged(index, focused)
-                                },
-                                onPositionChanged = { position ->
-                                    onPositionChanged(index, position)
-                                },
-                                onBackspaceInEmpty = {
-                                    onBackspaceInEmpty(index)
-                                },
+                                onValueChange = { onChangeWord(index, it) },
+                                onFocusChange = { focused -> onChangeWordFocus(index, focused) },
+                                onPositionChange = { position -> inputFieldPositions[index] = position },
+                                onBackspaceInEmpty = { onBackspaceInEmpty(index) },
                                 focusRequester = focusRequesters[index],
                                 index = index,
                             )
@@ -211,16 +205,10 @@ private fun Content(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
                                 isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
-                                onValueChanged = { onWordChanged(index, it) },
-                                onFocusChanged = { focused ->
-                                    onWordFocusChanged(index, focused)
-                                },
-                                onPositionChanged = { position ->
-                                    onPositionChanged(index, position)
-                                },
-                                onBackspaceInEmpty = {
-                                    onBackspaceInEmpty(index)
-                                },
+                                onValueChange = { onChangeWord(index, it) },
+                                onFocusChange = { focused -> onChangeWordFocus(index, focused) },
+                                onPositionChange = { position -> inputFieldPositions[index] = position },
+                                onBackspaceInEmpty = { onBackspaceInEmpty(index) },
                                 focusRequester = focusRequesters[index],
                                 index = index,
                             )
@@ -232,7 +220,7 @@ private fun Content(
                 if (uiState.showingPassphrase) {
                     TextInput(
                         value = uiState.bip39Passphrase,
-                        onValueChange = onPassphraseChanged,
+                        onValueChange = onChangePassphrase,
                         placeholder = stringResource(R.string.onboarding__restore_passphrase_placeholder),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
@@ -286,7 +274,7 @@ private fun Content(
                     AnimatedVisibility(visible = !uiState.showingPassphrase, modifier = Modifier.weight(1f)) {
                         SecondaryButton(
                             text = stringResource(R.string.onboarding__advanced),
-                            onClick = { onAdvanced() },
+                            onClick = { onAdvancedClick() },
                             enabled = uiState.areButtonsEnabled,
                             modifier = Modifier
                                 .weight(1f)
@@ -308,7 +296,7 @@ private fun Content(
 
             SuggestionsRow(
                 suggestions = uiState.suggestions,
-                onSelect = { onSuggestionSelected(it) }
+                onSelect = { onSelectSuggestion(it) }
             )
         }
     }
@@ -362,9 +350,9 @@ fun MnemonicInputField(
     label: String,
     isError: Boolean = false,
     value: String,
-    onValueChanged: (String) -> Unit,
-    onFocusChanged: (Boolean) -> Unit,
-    onPositionChanged: (Int) -> Unit,
+    onValueChange: (String) -> Unit,
+    onFocusChange: (Boolean) -> Unit,
+    onPositionChange: (Int) -> Unit,
     onBackspaceInEmpty: () -> Unit,
     focusRequester: FocusRequester,
     index: Int,
@@ -383,7 +371,7 @@ fun MnemonicInputField(
         value = textFieldValue,
         onValueChange = {
             textFieldValue = it
-            onValueChanged(it.text)
+            onValueChange(it.text)
         },
         textStyle = AppTextStyles.BodySSB,
         prefix = {
@@ -417,12 +405,10 @@ fun MnemonicInputField(
                 }
             }
             .testTag("Word-$index")
-            .onFocusChanged { focusState ->
-                onFocusChanged(focusState.isFocused)
-            }
+            .onFocusChanged { focusState -> onFocusChange(focusState.isFocused) }
             .onGloballyPositioned { coordinates ->
                 val position = coordinates.positionInParent().y.toInt() * 2 // double the scroll to ensure enough space
-                onPositionChanged(position)
+                onPositionChange(position)
             }
     )
 }
@@ -452,6 +438,7 @@ private fun PreviewAdvanced() {
 @Composable
 private fun Preview24Words() {
     AppThemeSurface {
+        @Suppress("MagicNumber")
         Content(
             uiState = RestoreWalletUiState(
                 is24Words = true,

@@ -118,7 +118,6 @@ class WalletViewModel @Inject constructor(
         restoreState = RestoreState.BackupRestoreCompleted
     }
 
-
     fun onRestoreContinue() {
         restoreState = RestoreState.NotRestoring
     }

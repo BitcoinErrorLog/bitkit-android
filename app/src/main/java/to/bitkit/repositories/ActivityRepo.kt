@@ -333,6 +333,7 @@ class ActivityRepo @Inject constructor(
         }.awaitAll()
     }
 
+    @Suppress("LongMethod")
     private suspend fun syncTagsMetadata(): Result<Unit> = withContext(context = bgDispatcher) {
         runCatching {
             if (db.tagMetadataDao().getAll().isEmpty()) return@runCatching
@@ -701,7 +702,6 @@ class ActivityRepo @Inject constructor(
             )
             notifyActivitiesChanged()
         }
-
     }
 
     // MARK: - Development/Testing Methods

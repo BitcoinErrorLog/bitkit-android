@@ -23,7 +23,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(focusedIndex = 0) }
     }
 
-    fun onWordChanged(index: Int, value: String) {
+    fun onChangeWord(index: Int, value: String) {
         if (value.contains(" ")) {
             handlePastedWords(value)
         } else {
@@ -33,7 +33,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun onWordFocusChanged(index: Int, focused: Boolean) {
+    fun onChangeWordFocus(index: Int, focused: Boolean) {
         if (focused) {
             _uiState.update {
                 it.copy(
@@ -52,7 +52,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun onSuggestionSelected(suggestion: String) {
+    fun onSelectSuggestion(suggestion: String) {
         _uiState.value.focusedIndex?.let { index ->
             updateWordValidity(index, suggestion)
             _uiState.update { it.copy(suggestions = emptyList()) }
@@ -68,7 +68,7 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun onPassphraseChanged(passphrase: String) = _uiState.update { it.copy(bip39Passphrase = passphrase) }
+    fun onChangePassphrase(passphrase: String) = _uiState.update { it.copy(bip39Passphrase = passphrase) }
 
     fun onBackspaceInEmpty(index: Int) {
         if (index > 0) {
@@ -76,9 +76,9 @@ class RestoreWalletViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun onKeyboardDismissed() = _uiState.update { it.copy(shouldDismissKeyboard = false) }
+    fun onKeyboardDismiss() = _uiState.update { it.copy(shouldDismissKeyboard = false) }
 
-    fun onScrollCompleted() = _uiState.update { it.copy(scrollToFieldIndex = null) }
+    fun onScrollComplete() = _uiState.update { it.copy(scrollToFieldIndex = null) }
 
     private fun handlePastedWords(pastedText: String) {
         val separators = Regex("\\s+") // any whitespace chars to account for different sources like password managers
@@ -183,8 +183,16 @@ data class RestoreWalletUiState(
 }
 
 private fun List<String>.validBip39Checksum(): Boolean {
-    if (this.size != 12 && this.size != 24) return false
+    if (!MnemonicSize.isValid(this)) return false
     if (this.any { !isValidBip39Word(it) }) return false
 
     return runCatching { validateMnemonic(this.joinToString(" ")) }.isSuccess
+}
+
+private enum class MnemonicSize(val wordCount: Int) {
+    TWELVE(12), TWENTY_FOUR(24);
+
+    companion object {
+        fun isValid(wordList: List<String>): Boolean = entries.any { it.wordCount == wordList.size }
+    }
 }

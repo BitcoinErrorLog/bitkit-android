@@ -13,6 +13,7 @@ import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("LongParameterList")
 @Singleton
 class WipeWalletUseCase @Inject constructor(
     private val backupRepo: BackupRepo,
@@ -25,6 +26,7 @@ class WipeWalletUseCase @Inject constructor(
     private val activityRepo: ActivityRepo,
     private val lightningRepo: LightningRepo,
 ) {
+    @Suppress("TooGenericExceptionCaught")
     suspend operator fun invoke(
         walletIndex: Int = 0,
         resetWalletState: () -> Unit,
