@@ -101,6 +101,10 @@ fun ActivityRow(
                 is Activity.Lightning -> item.v1.message.ifEmpty { formattedTime(timestamp) }
                 is Activity.Onchain -> {
                     when {
+                        !item.v1.doesExist -> {
+                            stringResource(R.string.wallet__activity_removed)
+                        }
+
                         isTransfer && isSent -> {
                             if (item.v1.confirmed) {
                                 stringResource(R.string.wallet__activity_transfer_spending_done)

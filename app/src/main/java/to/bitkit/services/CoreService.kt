@@ -428,11 +428,21 @@ class ActivityService(
         }
 
         val onChain = if (existingActivity is Activity.Onchain) {
-            existingActivity.v1.copy(
+            val wasRemoved = !existingActivity.v1.doesExist
+            val shouldRestore = wasRemoved && isConfirmed
+            val updatedOnChain = existingActivity.v1.copy(
                 confirmed = isConfirmed,
                 confirmTimestamp = confirmedTimestamp,
+                doesExist = if (shouldRestore) true else existingActivity.v1.doesExist,
                 updatedAt = timestamp,
             )
+
+            // If a removed transaction confirms, mark its replacement transactions as removed
+            if (wasRemoved && isConfirmed) {
+                markReplacementTransactionsAsRemoved(originalTxId = kind.txid)
+            }
+
+            updatedOnChain
         } else {
             OnchainActivity(
                 id = payment.id,
@@ -465,6 +475,54 @@ class ActivityService(
             updateActivity(payment.id, Activity.Onchain(onChain))
         } else {
             upsertActivity(Activity.Onchain(onChain))
+        }
+    }
+
+    /**
+     * Marks replacement transactions (with originalTxId in boostTxIds) as doesExist = false when original confirms.
+     * This is called when a removed RBFed transaction gets confirmed.
+     */
+    private suspend fun markReplacementTransactionsAsRemoved(originalTxId: String) {
+        try {
+            val allActivities = getActivities(
+                filter = ActivityFilter.ONCHAIN,
+                txType = null,
+                tags = null,
+                search = null,
+                minDate = null,
+                maxDate = null,
+                limit = null,
+                sortDirection = null
+            )
+
+            for (activity in allActivities) {
+                if (activity !is Activity.Onchain) continue
+
+                val onchainActivity = activity.v1
+                val isReplacement = onchainActivity.boostTxIds.contains(originalTxId) &&
+                    onchainActivity.doesExist &&
+                    !onchainActivity.confirmed
+
+                if (isReplacement) {
+                    Logger.debug(
+                        "Marking replacement transaction ${onchainActivity.txId} as doesExist = false " +
+                            "(original $originalTxId confirmed)",
+                        context = TAG
+                    )
+
+                    val updatedActivity = onchainActivity.copy(
+                        doesExist = false,
+                        updatedAt = System.currentTimeMillis().toULong() / 1000u
+                    )
+                    updateActivity(activityId = onchainActivity.id, activity = Activity.Onchain(updatedActivity))
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(
+                "Error marking replacement transactions as removed for originalTxId: $originalTxId",
+                e,
+                context = TAG
+            )
         }
     }
 
