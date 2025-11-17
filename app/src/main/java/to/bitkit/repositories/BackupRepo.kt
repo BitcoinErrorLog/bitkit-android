@@ -50,6 +50,20 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Manages backup & restore of wallet metadata to a remote VSS server.
+ *
+ * **Backup State Machine:**
+ * ```
+ *  Idle State:          running=false, synced≥required
+ *       ↓ (data changes → markBackupRequired())
+ *   Pending State:       running=false, synced<required
+ *       ↓ (scheduleBackup())
+ *   Running State:       running=true,  synced<required
+ *       ↓ (triggerBackup() succeeds)
+ *   Idle State:          running=false, synced≥required
+ * ```
+ */
 @Suppress("LongParameterList")
 @Singleton
 class BackupRepo @Inject constructor(
@@ -72,7 +86,7 @@ class BackupRepo @Inject constructor(
     private val dataListenerJobs = mutableListOf<Job>()
     private var periodicCheckJob: Job? = null
 
-    private val runningBackups = ConcurrentHashMap.newKeySet<BackupCategory>()
+    private val runningBackups = ConcurrentHashMap.newKeySet<BackupCategory>() // Tracks active jobs since app start
 
     private var isObserving = false
     private var lastNotificationTime = 0L
