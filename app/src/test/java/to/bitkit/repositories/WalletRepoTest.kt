@@ -48,6 +48,7 @@ class WalletRepoTest : BaseUnitTest() {
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase = mock()
     private val backupRepo = mock<BackupRepo>()
     private val blocktankRepo = mock<BlocktankRepo>()
+    private val activityRepo = mock<ActivityRepo>()
 
     @Before
     fun setUp() {
@@ -79,6 +80,7 @@ class WalletRepoTest : BaseUnitTest() {
         deriveBalanceStateUseCase = deriveBalanceStateUseCase,
         backupRepo = backupRepo,
         blocktankRepo = blocktankRepo,
+        activityRepo = activityRepo,
     )
 
     @Test

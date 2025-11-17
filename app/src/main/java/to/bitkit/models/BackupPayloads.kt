@@ -9,6 +9,8 @@ import com.synonym.bitkitcore.IcJitEntry
 import com.synonym.bitkitcore.PreActivityMetadata
 import kotlinx.serialization.Serializable
 import to.bitkit.data.AppCacheData
+import to.bitkit.data.SettingsData
+import to.bitkit.data.WidgetsData
 import to.bitkit.data.entities.TransferEntity
 
 @Serializable
@@ -42,4 +44,18 @@ data class ActivityBackupV1(
     val activities: List<Activity>,
     val activityTags: List<ActivityTags>,
     val closedChannels: List<ClosedChannelDetails>,
+)
+
+@Serializable
+data class SettingsBackupV1(
+    val version: Int = 1,
+    val createdAt: Long,
+    val settings: SettingsData,
+)
+
+@Serializable
+data class WidgetsBackupV1(
+    val version: Int = 1,
+    val createdAt: Long,
+    val widgets: WidgetsData,
 )

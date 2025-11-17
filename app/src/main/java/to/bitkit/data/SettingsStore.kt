@@ -12,6 +12,7 @@ import to.bitkit.env.Env
 import to.bitkit.models.BitcoinDisplayUnit
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.PrimaryDisplay
+import to.bitkit.models.SettingsBackupV1
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.utils.Logger
@@ -30,6 +31,14 @@ class SettingsStore @Inject constructor(
     private val store = context.settingsDataStore
 
     val data: Flow<SettingsData> = store.data
+
+    suspend fun restoreFromBackup(payload: SettingsBackupV1) =
+        runCatching {
+            val data = payload.settings.resetPin()
+            store.updateData { data }
+        }.onSuccess {
+            Logger.debug("Restored settings", TAG)
+        }
 
     suspend fun update(transform: (SettingsData) -> SettingsData) {
         store.updateData(transform)
@@ -62,6 +71,7 @@ class SettingsStore @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "SettingsStore"
         private const val MAX_LAST_USED_TAGS = 10
     }
 }

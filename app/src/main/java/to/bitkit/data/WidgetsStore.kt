@@ -15,6 +15,7 @@ import to.bitkit.data.dto.price.PriceDTO
 import to.bitkit.data.serializers.WidgetsSerializer
 import to.bitkit.models.WidgetType
 import to.bitkit.models.WidgetWithPosition
+import to.bitkit.models.WidgetsBackupV1
 import to.bitkit.models.widget.BlocksPreferences
 import to.bitkit.models.widget.CalculatorValues
 import to.bitkit.models.widget.FactsPreferences
@@ -43,9 +44,13 @@ class WidgetsStore @Inject constructor(
     val weatherFlow: Flow<WeatherDTO?> = data.map { it.weather }
     val priceFlow: Flow<PriceDTO?> = data.map { it.price }
 
-    suspend fun update(transform: (WidgetsData) -> WidgetsData) {
-        store.updateData(transform)
-    }
+    suspend fun restoreFromBackup(payload: WidgetsBackupV1) =
+        runCatching {
+            val data = payload.widgets
+            store.updateData { data }
+        }.onSuccess {
+            Logger.debug("Restored widgets", TAG)
+        }
 
     suspend fun updateCalculatorValues(calculatorValues: CalculatorValues) {
         store.updateData {
@@ -127,16 +132,16 @@ class WidgetsStore @Inject constructor(
     suspend fun addWidget(type: WidgetType) {
         if (store.data.first().widgets.map { it.type }.contains(type)) return
 
-        store.updateData {
-            it.copy(widgets = (it.widgets + WidgetWithPosition(type = type)).sortedBy { it.position })
+        store.updateData { data ->
+            data.copy(widgets = (data.widgets + WidgetWithPosition(type = type)).sortedBy { it.position })
         }
     }
 
     suspend fun deleteWidget(type: WidgetType) {
         if (!store.data.first().widgets.map { it.type }.contains(type)) return
 
-        store.updateData {
-            it.copy(widgets = it.widgets.filterNot { it.type == type })
+        store.updateData { data ->
+            data.copy(widgets = data.widgets.filterNot { it.type == type })
         }
     }
 
@@ -144,6 +149,10 @@ class WidgetsStore @Inject constructor(
         store.updateData {
             it.copy(widgets = widgets)
         }
+    }
+
+    companion object {
+        private const val TAG = "WidgetsStore"
     }
 }
 

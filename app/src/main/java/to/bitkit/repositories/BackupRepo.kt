@@ -40,8 +40,10 @@ import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.BlocktankBackupV1
 import to.bitkit.models.MetadataBackupV1
+import to.bitkit.models.SettingsBackupV1
 import to.bitkit.models.Toast
 import to.bitkit.models.WalletBackupV1
+import to.bitkit.models.WidgetsBackupV1
 import to.bitkit.services.LightningService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
@@ -358,12 +360,20 @@ class BackupRepo @Inject constructor(
     private suspend fun getBackupDataBytes(category: BackupCategory): ByteArray = when (category) {
         BackupCategory.SETTINGS -> {
             val data = settingsStore.data.first().resetPin()
-            json.encodeToString(data).toByteArray()
+            val payload = SettingsBackupV1(
+                createdAt = currentTimeMillis(),
+                settings = data,
+            )
+            json.encodeToString(payload).toByteArray()
         }
 
         BackupCategory.WIDGETS -> {
             val data = widgetsStore.data.first()
-            json.encodeToString(data).toByteArray()
+            val payload = WidgetsBackupV1(
+                createdAt = currentTimeMillis(),
+                widgets = data,
+            )
+            json.encodeToString(payload).toByteArray()
         }
 
         BackupCategory.WALLET -> {
@@ -433,9 +443,8 @@ class BackupRepo @Inject constructor(
         return@withContext try {
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                cacheStore.update {
-                    parsed.cache.copy(onchainAddress = "") // Force onchain address rotation
-                }
+                val cleanedUp = parsed.cache.copy(onchainAddress = "") // Force address rotation
+                cacheStore.update { cleanedUp }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
                 // TODO use PreActivityMetadata
@@ -448,10 +457,14 @@ class BackupRepo @Inject constructor(
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
                 val parsed = json.decodeFromString<SettingsData>(String(dataBytes)).resetPin()
                 settingsStore.update { parsed }
+                val parsed = json.decodeFromString<SettingsBackupV1>(String(dataBytes))
+                settingsStore.restoreFromBackup(parsed)
             }
             performRestore(BackupCategory.WIDGETS) { dataBytes ->
                 val parsed = json.decodeFromString<WidgetsData>(String(dataBytes))
                 widgetsStore.update { parsed }
+                val parsed = json.decodeFromString<WidgetsBackupV1>(String(dataBytes))
+                widgetsStore.restoreFromBackup(parsed)
             }
             performRestore(BackupCategory.WALLET) { dataBytes ->
                 val parsed = json.decodeFromString<WalletBackupV1>(String(dataBytes))
