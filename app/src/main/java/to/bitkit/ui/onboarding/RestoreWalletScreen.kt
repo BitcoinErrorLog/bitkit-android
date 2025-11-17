@@ -84,6 +84,8 @@ fun RestoreWalletScreen(
 
     Content(
         uiState = uiState,
+        checksumErrorVisible = uiState.checksumErrorVisible,
+        areButtonsEnabled = uiState.areButtonsEnabled,
         onChangeWord = viewModel::onChangeWord,
         onChangeWordFocus = viewModel::onChangeWordFocus,
         onChangePassphrase = viewModel::onChangePassphrase,
@@ -101,6 +103,8 @@ fun RestoreWalletScreen(
 @Composable
 private fun Content(
     uiState: RestoreWalletUiState,
+    checksumErrorVisible: Boolean,
+    areButtonsEnabled: Boolean,
     modifier: Modifier = Modifier,
     onChangeWord: (Int, String) -> Unit = { _, _ -> },
     onChangeWordFocus: (Int, Boolean) -> Unit = { _, _ -> },
@@ -257,7 +261,7 @@ private fun Content(
                     )
                 }
 
-                AnimatedVisibility(visible = uiState.checksumErrorVisible) {
+                AnimatedVisibility(visible = checksumErrorVisible) {
                     BodyS(
                         text = stringResource(R.string.onboarding__restore_inv_checksum),
                         color = Colors.Red,
@@ -275,7 +279,7 @@ private fun Content(
                         SecondaryButton(
                             text = stringResource(R.string.onboarding__advanced),
                             onClick = { onAdvancedClick() },
-                            enabled = uiState.areButtonsEnabled,
+                            enabled = areButtonsEnabled,
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("AdvancedButton")
@@ -286,7 +290,7 @@ private fun Content(
                         onClick = {
                             onRestore(uiState.bip39Mnemonic, uiState.bip39Passphrase.takeIf { it.isNotEmpty() })
                         },
-                        enabled = uiState.areButtonsEnabled,
+                        enabled = areButtonsEnabled,
                         modifier = Modifier
                             .weight(1f)
                             .testTag("RestoreButton")
@@ -417,7 +421,11 @@ fun MnemonicInputField(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Content(uiState = RestoreWalletUiState())
+        Content(
+            uiState = RestoreWalletUiState(),
+            checksumErrorVisible = false,
+            areButtonsEnabled = false,
+        )
     }
 }
 
@@ -428,8 +436,39 @@ private fun PreviewAdvanced() {
         Content(
             uiState = RestoreWalletUiState(
                 showingPassphrase = true,
-                bip39Passphrase = "mypassphrase"
-            )
+            ),
+            checksumErrorVisible = false,
+            areButtonsEnabled = false,
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewValid() {
+    AppThemeSurface {
+        Content(
+            uiState = RestoreWalletUiState(
+                words = List(12) { if (it % 2 == 0) "abandon" else "ability" },
+                is24Words = false,
+            ),
+            checksumErrorVisible = false,
+            areButtonsEnabled = true,
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewInvalid() {
+    AppThemeSurface {
+        Content(
+            uiState = RestoreWalletUiState(
+                words = List(12) { if (it % 2 == 0) "rock" else "roll" },
+                is24Words = false,
+            ),
+            checksumErrorVisible = true,
+            areButtonsEnabled = false,
         )
     }
 }
@@ -442,8 +481,10 @@ private fun Preview24Words() {
         Content(
             uiState = RestoreWalletUiState(
                 is24Words = true,
-                words = List(24) { if (it < 20) "word${it + 1}" else "" }
-            )
+                words = List(24) { "word${it + 1}" }
+            ),
+            checksumErrorVisible = false,
+            areButtonsEnabled = false,
         )
     }
 }
