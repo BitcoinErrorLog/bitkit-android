@@ -61,6 +61,7 @@ import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
+import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.theme.AppTextFieldDefaults
@@ -68,27 +69,64 @@ import to.bitkit.ui.theme.AppTextStyles
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.viewmodels.RestoreWalletUiState
 import to.bitkit.viewmodels.RestoreWalletViewModel
 
 @Composable
 fun RestoreWalletScreen(
-    viewModel: RestoreWalletViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onRestoreClick: (mnemonic: String, passphrase: String?) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: RestoreWalletViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    Content(
+        uiState = uiState,
+        onWordChanged = viewModel::onWordChanged,
+        onWordFocusChanged = viewModel::onWordFocusChanged,
+        onPassphraseChanged = viewModel::onPassphraseChanged,
+        onBackspaceInEmpty = viewModel::onBackspaceInEmpty,
+        onSuggestionSelected = viewModel::onSuggestionSelected,
+        onKeyboardDismissed = viewModel::onKeyboardDismissed,
+        onScrollCompleted = viewModel::onScrollCompleted,
+        onAdvanced = viewModel::onAdvancedClick,
+        onBack = onBackClick,
+        onRestore = onRestoreClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun Content(
+    uiState: RestoreWalletUiState,
+    modifier: Modifier = Modifier,
+    onWordChanged: (Int, String) -> Unit = { _, _ -> },
+    onWordFocusChanged: (Int, Boolean) -> Unit = { _, _ -> },
+    onAdvanced: () -> Unit = {},
+    onPassphraseChanged: (String) -> Unit = {},
+    onBackspaceInEmpty: (Int) -> Unit = {},
+    onSuggestionSelected: (String) -> Unit = {},
+    onKeyboardDismissed: () -> Unit = {},
+    onScrollCompleted: () -> Unit = {},
+    onBack: () -> Unit = {},
+    onRestore: (mnemonic: String, passphrase: String?) -> Unit = { _, _ -> },
+) {
     val scrollState = rememberScrollState()
     val inputFieldPositions = remember { mutableMapOf<Int, Int>() }
-    val focusRequesters = remember { List(24) { FocusRequester() } }
+    val focusRequesters = remember(uiState.wordCount) { List(uiState.wordCount) { FocusRequester() } }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+
+    val onPositionChanged = { index: Int, position: Int ->
+        inputFieldPositions[index] = position
+    }
 
     LaunchedEffect(uiState.shouldDismissKeyboard) {
         if (uiState.shouldDismissKeyboard) {
             focusManager.clearFocus()
             keyboardController?.hide()
-            viewModel.onKeyboardDismissed()
+            onKeyboardDismissed()
         }
     }
 
@@ -97,7 +135,7 @@ fun RestoreWalletScreen(
             inputFieldPositions[index]?.let { position ->
                 scrollState.animateScrollTo(position)
             }
-            viewModel.onScrollCompleted()
+            onScrollCompleted()
         }
     }
 
@@ -111,9 +149,10 @@ fun RestoreWalletScreen(
         topBar = {
             AppTopBar(
                 titleText = null,
-                onBackClick = onBackClick,
+                onBackClick = onBack,
             )
-        }
+        },
+        modifier = modifier,
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -147,15 +186,15 @@ fun RestoreWalletScreen(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
                                 isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
-                                onValueChanged = { viewModel.onWordChanged(index, it) },
+                                onValueChanged = { onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
-                                    viewModel.onWordFocusChanged(index, focused)
+                                    onWordFocusChanged(index, focused)
                                 },
                                 onPositionChanged = { position ->
-                                    inputFieldPositions[index] = position
+                                    onPositionChanged(index, position)
                                 },
                                 onBackspaceInEmpty = {
-                                    viewModel.onBackspaceInEmpty(index)
+                                    onBackspaceInEmpty(index)
                                 },
                                 focusRequester = focusRequesters[index],
                                 index = index,
@@ -172,15 +211,15 @@ fun RestoreWalletScreen(
                                 label = "${index + 1}.",
                                 value = uiState.words[index],
                                 isError = index in uiState.invalidWordIndices && uiState.focusedIndex != index,
-                                onValueChanged = { viewModel.onWordChanged(index, it) },
+                                onValueChanged = { onWordChanged(index, it) },
                                 onFocusChanged = { focused ->
-                                    viewModel.onWordFocusChanged(index, focused)
+                                    onWordFocusChanged(index, focused)
                                 },
                                 onPositionChanged = { position ->
-                                    inputFieldPositions[index] = position
+                                    onPositionChanged(index, position)
                                 },
                                 onBackspaceInEmpty = {
-                                    viewModel.onBackspaceInEmpty(index)
+                                    onBackspaceInEmpty(index)
                                 },
                                 focusRequester = focusRequesters[index],
                                 index = index,
@@ -191,16 +230,10 @@ fun RestoreWalletScreen(
 
                 // Passphrase
                 if (uiState.showingPassphrase) {
-                    OutlinedTextField(
+                    TextInput(
                         value = uiState.bip39Passphrase,
-                        onValueChange = { viewModel.onPassphraseChanged(it) },
-                        placeholder = {
-                            Text(
-                                text = stringResource(R.string.onboarding__restore_passphrase_placeholder)
-                            )
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = AppTextFieldDefaults.semiTransparent,
+                        onValueChange = onPassphraseChanged,
+                        placeholder = stringResource(R.string.onboarding__restore_passphrase_placeholder),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             autoCorrectEnabled = false,
@@ -253,7 +286,7 @@ fun RestoreWalletScreen(
                     AnimatedVisibility(visible = !uiState.showingPassphrase, modifier = Modifier.weight(1f)) {
                         SecondaryButton(
                             text = stringResource(R.string.onboarding__advanced),
-                            onClick = { viewModel.onAdvancedClick() },
+                            onClick = { onAdvanced() },
                             enabled = uiState.areButtonsEnabled,
                             modifier = Modifier
                                 .weight(1f)
@@ -263,7 +296,7 @@ fun RestoreWalletScreen(
                     PrimaryButton(
                         text = stringResource(R.string.onboarding__restore),
                         onClick = {
-                            onRestoreClick(uiState.bip39Mnemonic, uiState.bip39Passphrase.takeIf { it.isNotEmpty() })
+                            onRestore(uiState.bip39Mnemonic, uiState.bip39Passphrase.takeIf { it.isNotEmpty() })
                         },
                         enabled = uiState.areButtonsEnabled,
                         modifier = Modifier
@@ -275,7 +308,7 @@ fun RestoreWalletScreen(
 
             SuggestionsRow(
                 suggestions = uiState.suggestions,
-                onSelect = { viewModel.onSuggestionSelected(it) }
+                onSelect = { onSuggestionSelected(it) }
             )
         }
     }
@@ -398,9 +431,32 @@ fun MnemonicInputField(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        RestoreWalletScreen(
-            onBackClick = {},
-            onRestoreClick = { _, _ -> },
+        Content(uiState = RestoreWalletUiState())
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun PreviewAdvanced() {
+    AppThemeSurface {
+        Content(
+            uiState = RestoreWalletUiState(
+                showingPassphrase = true,
+                bip39Passphrase = "mypassphrase"
+            )
+        )
+    }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun Preview24Words() {
+    AppThemeSurface {
+        Content(
+            uiState = RestoreWalletUiState(
+                is24Words = true,
+                words = List(24) { if (it < 20) "word${it + 1}" else "" }
+            )
         )
     }
 }
