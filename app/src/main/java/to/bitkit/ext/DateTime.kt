@@ -4,7 +4,11 @@ package to.bitkit.ext
 
 import android.icu.text.DateFormat
 import android.icu.text.DisplayContext
+import android.icu.text.NumberFormat
 import android.icu.text.RelativeDateTimeFormatter
+import android.icu.text.RelativeDateTimeFormatter.AbsoluteUnit
+import android.icu.text.RelativeDateTimeFormatter.Direction
+import android.icu.text.RelativeDateTimeFormatter.RelativeUnit
 import android.icu.util.ULocale
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -62,67 +66,33 @@ fun Long.toRelativeTimeString(
     val now = nowMillis(clock)
     val diffMillis = now - this
 
+    val uLocale = ULocale.forLocale(locale)
+    val numberFormat = NumberFormat.getNumberInstance(uLocale)?.apply { maximumFractionDigits = 0 }
+
     val formatter = RelativeDateTimeFormatter.getInstance(
-        ULocale.forLocale(locale),
-        null,
+        uLocale,
+        numberFormat,
         RelativeDateTimeFormatter.Style.LONG,
-        DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE,
+        DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,
     ) ?: return toLocalizedTimestamp()
 
-    val seconds = diffMillis / Constants.MILLIS_TO_SECONDS
-    val minutes = (seconds / Constants.SECONDS_TO_MINUTES).toInt()
-    val hours = (minutes / Constants.MINUTES_TO_HOURS).toInt()
-    val days = (hours / Constants.HOURS_TO_DAYS).toInt()
-    val weeks = (days / Constants.DAYS_TO_WEEKS).toInt()
-    val months = (days / Constants.DAYS_TO_MONTHS).toInt()
-    val years = (days / Constants.DAYS_TO_YEARS).toInt()
+    val seconds = diffMillis / Factor.MILLIS_TO_SECONDS
+    val minutes = seconds / Factor.SECONDS_TO_MINUTES
+    val hours = minutes / Factor.MINUTES_TO_HOURS
+    val days = hours / Factor.HOURS_TO_DAYS
+    val weeks = days / Factor.DAYS_TO_WEEKS
+    val months = days / Factor.DAYS_TO_MONTHS
+    val years = days / Factor.DAYS_TO_YEARS
 
     return when {
-        seconds < Constants.SECONDS_THRESHOLD -> formatter.format(
-            RelativeDateTimeFormatter.Direction.PLAIN,
-            RelativeDateTimeFormatter.AbsoluteUnit.NOW,
-        )
-
-        minutes < Constants.MINUTES_THRESHOLD -> formatter.format(
-            minutes.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.MINUTES,
-        )
-
-        hours < Constants.HOURS_THRESHOLD -> formatter.format(
-            hours.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.HOURS,
-        )
-
-        days < Constants.YESTERDAY_THRESHOLD -> formatter.format(
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.AbsoluteUnit.DAY,
-        )
-
-        days < Constants.DAYS_THRESHOLD -> formatter.format(
-            days.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.DAYS,
-        )
-
-        weeks < Constants.WEEKS_THRESHOLD -> formatter.format(
-            weeks.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.WEEKS,
-        )
-
-        months < Constants.MONTHS_THRESHOLD -> formatter.format(
-            months.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.MONTHS,
-        )
-
-        else -> formatter.format(
-            years.toDouble(),
-            RelativeDateTimeFormatter.Direction.LAST,
-            RelativeDateTimeFormatter.RelativeUnit.YEARS,
-        )
+        seconds < Threshold.SECONDS -> formatter.format(Direction.PLAIN, AbsoluteUnit.NOW)
+        minutes < Threshold.MINUTES -> formatter.format(minutes, Direction.LAST, RelativeUnit.MINUTES)
+        hours < Threshold.HOURS -> formatter.format(hours, Direction.LAST, RelativeUnit.HOURS)
+        days < Threshold.YESTERDAY -> formatter.format(Direction.LAST, AbsoluteUnit.DAY)
+        days < Threshold.DAYS -> formatter.format(days, Direction.LAST, RelativeUnit.DAYS)
+        weeks < Threshold.WEEKS -> formatter.format(weeks, Direction.LAST, RelativeUnit.WEEKS)
+        months < Threshold.MONTHS -> formatter.format(months, Direction.LAST, RelativeUnit.MONTHS)
+        else -> formatter.format(years, Direction.LAST, RelativeUnit.YEARS)
     }
 }
 
@@ -158,41 +128,43 @@ fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
 }
 
 fun isLeapYear(year: Int): Boolean {
-    return (year % Constants.LEAP_YEAR_DIVISOR_4 == 0 && year % Constants.LEAP_YEAR_DIVISOR_100 != 0) || (year % Constants.LEAP_YEAR_DIVISOR_400 == 0)
+    return (year % Constants.LEAP_YEAR_DIVISOR_4 == 0 && year % Constants.LEAP_YEAR_DIVISOR_100 != 0) ||
+        (year % Constants.LEAP_YEAR_DIVISOR_400 == 0)
 }
 
-fun isDateInRange(dateMillis: Long, startMillis: Long?, endMillis: Long?): Boolean {
+fun isDateInRange(
+    dateMillis: Long,
+    startMillis: Long?,
+    endMillis: Long?,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+): Boolean {
     if (startMillis == null) return false
     val end = endMillis ?: startMillis
 
-    val normalizedDate =
-        kotlinx.datetime.Instant.fromEpochMilliseconds(dateMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val normalizedStart = kotlinx.datetime.Instant.fromEpochMilliseconds(startMillis)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val normalizedEnd =
-        kotlinx.datetime.Instant.fromEpochMilliseconds(end).toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val normalizedDate = kotlinx.datetime.Instant.fromEpochMilliseconds(dateMillis).toLocalDateTime(zone).date
+    val normalizedStart = kotlinx.datetime.Instant.fromEpochMilliseconds(startMillis).toLocalDateTime(zone).date
+    val normalizedEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(end).toLocalDateTime(zone).date
 
-    return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
+    return normalizedDate in normalizedStart..normalizedEnd
 }
 
-fun LocalDate.toMonthYearString(): String {
-    val formatter = SimpleDateFormat(DatePattern.MONTH_YEAR_FORMAT, Locale.getDefault())
+fun LocalDate.toMonthYearString(locale: Locale = Locale.getDefault()): String {
+    val formatter = SimpleDateFormat(DatePattern.MONTH_YEAR_FORMAT, locale)
     val calendar = Calendar.getInstance()
     calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, Constants.FIRST_DAY_OF_MONTH)
     return formatter.format(calendar.time)
 }
 
 fun LocalDate.minusMonths(months: Int): LocalDate =
-    this.toJavaLocalDate().minusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
+    toJavaLocalDate().minusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
         .toKotlinLocalDate()
 
 fun LocalDate.plusMonths(months: Int): LocalDate =
-    this.toJavaLocalDate().plusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
+    toJavaLocalDate().plusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
         .toKotlinLocalDate()
 
-fun LocalDate.endOfDay(): Long {
-    return this.atStartOfDayIn(TimeZone.currentSystemDefault()).plus(1.days).minus(1.milliseconds).toEpochMilliseconds()
-}
+fun LocalDate.endOfDay(zone: TimeZone = TimeZone.currentSystemDefault()): Long =
+    atStartOfDayIn(zone).plus(1.days).minus(1.milliseconds).toEpochMilliseconds()
 
 fun utcDateFormatterOf(pattern: String) = SimpleDateFormat(pattern, Locale.US).apply {
     timeZone = java.util.TimeZone.getTimeZone("UTC")
@@ -215,24 +187,6 @@ object DatePattern {
 }
 
 private object Constants {
-    // Time conversion factors
-    const val MILLIS_TO_SECONDS = 1000.0
-    const val SECONDS_TO_MINUTES = 60.0
-    const val MINUTES_TO_HOURS = 60.0
-    const val HOURS_TO_DAYS = 24.0
-    const val DAYS_TO_WEEKS = 7.0
-    const val DAYS_TO_MONTHS = 30.0
-    const val DAYS_TO_YEARS = 365.0
-
-    // Time unit thresholds
-    const val SECONDS_THRESHOLD = 60
-    const val MINUTES_THRESHOLD = 60
-    const val HOURS_THRESHOLD = 24
-    const val YESTERDAY_THRESHOLD = 2
-    const val DAYS_THRESHOLD = 7
-    const val WEEKS_THRESHOLD = 4
-    const val MONTHS_THRESHOLD = 12
-
     // Calendar
     const val FIRST_DAY_OF_MONTH = 1
 
@@ -240,6 +194,26 @@ private object Constants {
     const val LEAP_YEAR_DIVISOR_4 = 4
     const val LEAP_YEAR_DIVISOR_100 = 100
     const val LEAP_YEAR_DIVISOR_400 = 400
+}
+
+private object Factor {
+    const val MILLIS_TO_SECONDS = 1000.0
+    const val SECONDS_TO_MINUTES = 60.0
+    const val MINUTES_TO_HOURS = 60.0
+    const val HOURS_TO_DAYS = 24.0
+    const val DAYS_TO_WEEKS = 7.0
+    const val DAYS_TO_MONTHS = 30.0
+    const val DAYS_TO_YEARS = 365.0
+}
+
+private object Threshold {
+    const val SECONDS = 60
+    const val MINUTES = 60
+    const val HOURS = 24
+    const val YESTERDAY = 2
+    const val DAYS = 7
+    const val WEEKS = 4
+    const val MONTHS = 12
 }
 
 object CalendarConstants {
