@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
@@ -156,7 +158,7 @@ android {
     applicationVariants.all {
         val variant = this
         outputs
-            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .map { it as BaseVariantOutputImpl }
             .forEach { output ->
                 val apkName = "bitkit-android-${defaultConfig.versionCode}-${variant.name}.apk"
                 output.outputFileName = apkName
@@ -170,17 +172,6 @@ composeCompiler {
         ComposeFeatureFlag.OptimizeNonSkippingGroups,
     )
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
-}
-
-tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-    ignoreFailures = true
-    reports {
-        html.required.set(true)
-        sarif.required.set(true)
-        md.required.set(false)
-        txt.required.set(false)
-        xml.required.set(false)
-    }
 }
 
 dependencies {
@@ -284,6 +275,19 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// region Tasks
+
+tasks.withType<Detekt>().configureEach {
+    ignoreFailures = true
+    reports {
+        html.required.set(true)
+        sarif.required.set(true)
+        md.required.set(false)
+        txt.required.set(false)
+        xml.required.set(false)
+    }
+}
+
 tasks.withType<Test> {
     testLogging {
         events(
@@ -300,3 +304,12 @@ tasks.withType<Test> {
         showStackTraces = true
     }
 }
+
+// JDK 21+ prints warnings when ByteBuddy loads a dynamic Java agent during tests.
+// Our test stack triggers this automatically.
+// Explicitly enabling dynamic agent loading silences the warning without altering behavior.
+tasks.withType<Test>().configureEach {
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+}
+
+// endregion
