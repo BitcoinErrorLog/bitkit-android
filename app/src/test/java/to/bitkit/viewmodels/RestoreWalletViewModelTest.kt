@@ -17,9 +17,9 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class RestoreWalletViewModelTest : BaseUnitTest() {
 
-    private lateinit var viewModel: RestoreWalletViewModel
-
     private val bip39Service = mock<Bip39Service>()
+
+    private lateinit var viewModel: RestoreWalletViewModel
 
     @Before
     fun setup() = runBlocking {

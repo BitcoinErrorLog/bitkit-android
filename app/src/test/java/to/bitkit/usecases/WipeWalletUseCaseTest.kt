@@ -21,8 +21,6 @@ import kotlin.test.assertTrue
 
 class WipeWalletUseCaseTest : BaseUnitTest() {
 
-    private lateinit var sut: WipeWalletUseCase
-
     private val backupRepo = mock<BackupRepo>()
     private val keychain = mock<Keychain>()
     private val coreService = mock<CoreService>()
@@ -32,6 +30,8 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
     private val blocktankRepo = mock<BlocktankRepo>()
     private val activityRepo = mock<ActivityRepo>()
     private val lightningRepo = mock<LightningRepo>()
+
+    private lateinit var sut: WipeWalletUseCase
 
     private var onWipeCalled = false
     private var onSetWalletExistsStateCalled = false
