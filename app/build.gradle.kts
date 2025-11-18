@@ -34,6 +34,8 @@ val keystoreProperties by lazy {
     keystoreProperties
 }
 
+val locales = listOf("en", "ar", "ca", "cs", "de", "el", "es", "fr", "it", "nl", "pl", "pt", "ru")
+
 android {
     namespace = "to.bitkit"
     compileSdk = 35
@@ -49,6 +51,7 @@ android {
         }
         buildConfigField("boolean", "E2E", System.getenv("E2E")?.toBoolean()?.toString() ?: "false")
         buildConfigField("boolean", "GEO", System.getenv("GEO")?.toBoolean()?.toString() ?: "true")
+        buildConfigField("String", "LOCALES", "\"${locales.joinToString(",")}\"")
     }
 
     flavorDimensions += "network"
@@ -131,7 +134,7 @@ android {
     }
     androidResources {
         @Suppress("UnstableApiUsage")
-        localeFilters.addAll(listOf("en", "ar", "ca", "cs", "de", "el", "es", "fr", "it", "nl", "pl", "pt", "ru"))
+        localeFilters.addAll(locales)
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }

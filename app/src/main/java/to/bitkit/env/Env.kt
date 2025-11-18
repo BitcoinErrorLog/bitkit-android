@@ -18,6 +18,7 @@ internal object Env {
     const val isE2eTest = BuildConfig.E2E
     const val isGeoblockingEnabled = BuildConfig.GEO
     val network = Network.valueOf(BuildConfig.NETWORK)
+    val locales = BuildConfig.LOCALES.split(",")
     val walletSyncIntervalSecs = 10_uL // TODO review
     val platform = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     const val version = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"

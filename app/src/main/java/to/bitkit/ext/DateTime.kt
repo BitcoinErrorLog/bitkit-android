@@ -1,8 +1,10 @@
-@file:Suppress("TooManyFunctions")
+@file:Suppress("TooManyFunctions", "MagicNumber")
 
 package to.bitkit.ext
 
 import android.icu.text.DateFormat
+import android.icu.text.DisplayContext
+import android.icu.text.RelativeDateTimeFormatter
 import android.icu.util.ULocale
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -48,7 +50,80 @@ fun Long.toDateUTC(): String {
 fun Long.toLocalizedTimestamp(): String {
     val uLocale = ULocale.forLocale(Locale.US)
     val formatter = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.SHORT, uLocale)
+        ?: return SimpleDateFormat("MMMM d, yyyy 'at' h:mm a", Locale.US).format(Date(this))
     return formatter.format(Date(this))
+}
+
+@Suppress("LongMethod")
+fun Long.toRelativeTimeString(
+    locale: Locale = Locale.getDefault(),
+    clock: Clock = Clock.System,
+): String {
+    val now = nowMillis(clock)
+    val diffMillis = now - this
+
+    val formatter = RelativeDateTimeFormatter.getInstance(
+        ULocale.forLocale(locale),
+        null,
+        RelativeDateTimeFormatter.Style.LONG,
+        DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE,
+    ) ?: return toLocalizedTimestamp()
+
+    val seconds = diffMillis / 1000.0
+    val minutes = (seconds / 60.0).toInt()
+    val hours = (minutes / 60.0).toInt()
+    val days = (hours / 24.0).toInt()
+    val weeks = (days / 7.0).toInt()
+    val months = (days / 30.0).toInt()
+    val years = (days / 365.0).toInt()
+
+    return when {
+        seconds < 60 -> formatter.format(
+            RelativeDateTimeFormatter.Direction.PLAIN,
+            RelativeDateTimeFormatter.AbsoluteUnit.NOW,
+        )
+
+        minutes < 60 -> formatter.format(
+            minutes.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.MINUTES,
+        )
+
+        hours < 24 -> formatter.format(
+            hours.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.HOURS,
+        )
+
+        days < 2 -> formatter.format(
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.AbsoluteUnit.DAY,
+        )
+
+        days < 7 -> formatter.format(
+            days.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.DAYS,
+        )
+
+        weeks < 4 -> formatter.format(
+            weeks.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.WEEKS,
+        )
+
+        months < 12 -> formatter.format(
+            months.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.MONTHS,
+        )
+
+        else -> formatter.format(
+            years.toDouble(),
+            RelativeDateTimeFormatter.Direction.LAST,
+            RelativeDateTimeFormatter.RelativeUnit.YEARS,
+        )
+    }
 }
 
 fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
