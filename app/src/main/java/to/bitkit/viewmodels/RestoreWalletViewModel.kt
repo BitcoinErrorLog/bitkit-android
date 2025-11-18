@@ -40,7 +40,7 @@ class RestoreWalletViewModel @Inject constructor(
     }
 
     fun onChangeWord(index: Int, value: String) {
-        if (value.contains(" ")) {
+        if (value.contains(Regex("\\s"))) {
             handlePastedWords(value)
         } else {
             updateWordValidity(index, value)

@@ -169,6 +169,56 @@ class RestoreWalletViewModelTest : BaseUnitTest() {
     }
 
     @Test
+    fun `handlePastedWords should parse 12 words separated by tabs only`() {
+        val words = "w1\tw2\tw3\tw4\tw5\tw6\tw7\tw8\tw9\tw10\tw11\tw12"
+
+        viewModel.onChangeWord(0, words)
+
+        val state = viewModel.uiState.value
+        assertEquals("w1", state.words[0])
+        assertEquals("w2", state.words[1])
+        assertEquals("w12", state.words[11])
+        assertFalse(state.is24Words)
+    }
+
+    @Test
+    fun `handlePastedWords should parse 24 words separated by tabs only`() {
+        val words = List(24) { "w${it + 1}" }.joinToString("\t")
+
+        viewModel.onChangeWord(0, words)
+
+        val state = viewModel.uiState.value
+        assertEquals("w1", state.words[0])
+        assertEquals("w24", state.words[23])
+        assertTrue(state.is24Words)
+    }
+
+    @Test
+    fun `handlePastedWords should parse 12 words separated by newlines only`() {
+        val words = "w1\nw2\nw3\nw4\nw5\nw6\nw7\nw8\nw9\nw10\nw11\nw12"
+
+        viewModel.onChangeWord(0, words)
+
+        val state = viewModel.uiState.value
+        assertEquals("w1", state.words[0])
+        assertEquals("w2", state.words[1])
+        assertEquals("w12", state.words[11])
+        assertFalse(state.is24Words)
+    }
+
+    @Test
+    fun `handlePastedWords should parse 24 words separated by newlines only`() {
+        val words = List(24) { "w${it + 1}" }.joinToString("\n")
+
+        viewModel.onChangeWord(0, words)
+
+        val state = viewModel.uiState.value
+        assertEquals("w1", state.words[0])
+        assertEquals("w24", state.words[23])
+        assertTrue(state.is24Words)
+    }
+
+    @Test
     fun `handlePastedWords should clear excess slots when pasting 12 words`() {
         // First manually set all 24 words
         for (i in 0 until 24) {
