@@ -203,7 +203,5 @@ data class RestoreWalletUiState(
     val wordCount: Int get() = if (is24Words) WORDS_MAX else WORDS_MIN
     val wordsPerColumn: Int get() = if (is24Words) WORDS_MIN else 6
 
-    val bip39Mnemonic: String
-        get() = words.subList(0, wordCount).joinToString(" ").trim()
-
+    val bip39Mnemonic: String get() = words.subList(0, wordCount).joinToString(" ").trim()
 }

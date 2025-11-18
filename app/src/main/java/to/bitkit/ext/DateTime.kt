@@ -1,4 +1,4 @@
-@file:Suppress("TooManyFunctions", "MagicNumber")
+@file:Suppress("TooManyFunctions")
 
 package to.bitkit.ext
 
@@ -69,50 +69,50 @@ fun Long.toRelativeTimeString(
         DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE,
     ) ?: return toLocalizedTimestamp()
 
-    val seconds = diffMillis / 1000.0
-    val minutes = (seconds / 60.0).toInt()
-    val hours = (minutes / 60.0).toInt()
-    val days = (hours / 24.0).toInt()
-    val weeks = (days / 7.0).toInt()
-    val months = (days / 30.0).toInt()
-    val years = (days / 365.0).toInt()
+    val seconds = diffMillis / Constants.MILLIS_TO_SECONDS
+    val minutes = (seconds / Constants.SECONDS_TO_MINUTES).toInt()
+    val hours = (minutes / Constants.MINUTES_TO_HOURS).toInt()
+    val days = (hours / Constants.HOURS_TO_DAYS).toInt()
+    val weeks = (days / Constants.DAYS_TO_WEEKS).toInt()
+    val months = (days / Constants.DAYS_TO_MONTHS).toInt()
+    val years = (days / Constants.DAYS_TO_YEARS).toInt()
 
     return when {
-        seconds < 60 -> formatter.format(
+        seconds < Constants.SECONDS_THRESHOLD -> formatter.format(
             RelativeDateTimeFormatter.Direction.PLAIN,
             RelativeDateTimeFormatter.AbsoluteUnit.NOW,
         )
 
-        minutes < 60 -> formatter.format(
+        minutes < Constants.MINUTES_THRESHOLD -> formatter.format(
             minutes.toDouble(),
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.RelativeUnit.MINUTES,
         )
 
-        hours < 24 -> formatter.format(
+        hours < Constants.HOURS_THRESHOLD -> formatter.format(
             hours.toDouble(),
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.RelativeUnit.HOURS,
         )
 
-        days < 2 -> formatter.format(
+        days < Constants.YESTERDAY_THRESHOLD -> formatter.format(
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.AbsoluteUnit.DAY,
         )
 
-        days < 7 -> formatter.format(
+        days < Constants.DAYS_THRESHOLD -> formatter.format(
             days.toDouble(),
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.RelativeUnit.DAYS,
         )
 
-        weeks < 4 -> formatter.format(
+        weeks < Constants.WEEKS_THRESHOLD -> formatter.format(
             weeks.toDouble(),
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.RelativeUnit.WEEKS,
         )
 
-        months < 12 -> formatter.format(
+        months < Constants.MONTHS_THRESHOLD -> formatter.format(
             months.toDouble(),
             RelativeDateTimeFormatter.Direction.LAST,
             RelativeDateTimeFormatter.RelativeUnit.MONTHS,
@@ -127,7 +127,7 @@ fun Long.toRelativeTimeString(
 }
 
 fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
-    val firstDayOfMonth = LocalDate(month.year, month.month, CalendarConstants.FIRST_DAY_OF_MONTH)
+    val firstDayOfMonth = LocalDate(month.year, month.month, Constants.FIRST_DAY_OF_MONTH)
     val daysInMonth = month.month.length(isLeapYear(month.year))
 
     // Get the day of week for the first day (1 = Monday, 7 = Sunday)
@@ -145,7 +145,7 @@ fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
     }
 
     // Add all days of the month
-    for (day in CalendarConstants.FIRST_DAY_OF_MONTH..daysInMonth) {
+    for (day in Constants.FIRST_DAY_OF_MONTH..daysInMonth) {
         days.add(LocalDate(month.year, month.month, day))
     }
 
@@ -158,20 +158,19 @@ fun getDaysInMonth(month: LocalDate): List<LocalDate?> {
 }
 
 fun isLeapYear(year: Int): Boolean {
-    return (year % CalendarConstants.LEAP_YEAR_DIVISOR_4 == 0 && year % CalendarConstants.LEAP_YEAR_DIVISOR_100 != 0) ||
-        (year % CalendarConstants.LEAP_YEAR_DIVISOR_400 == 0)
+    return (year % Constants.LEAP_YEAR_DIVISOR_4 == 0 && year % Constants.LEAP_YEAR_DIVISOR_100 != 0) || (year % Constants.LEAP_YEAR_DIVISOR_400 == 0)
 }
 
 fun isDateInRange(dateMillis: Long, startMillis: Long?, endMillis: Long?): Boolean {
     if (startMillis == null) return false
     val end = endMillis ?: startMillis
 
-    val normalizedDate = kotlinx.datetime.Instant.fromEpochMilliseconds(dateMillis)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val normalizedDate =
+        kotlinx.datetime.Instant.fromEpochMilliseconds(dateMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date
     val normalizedStart = kotlinx.datetime.Instant.fromEpochMilliseconds(startMillis)
         .toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val normalizedEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(end)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val normalizedEnd =
+        kotlinx.datetime.Instant.fromEpochMilliseconds(end).toLocalDateTime(TimeZone.currentSystemDefault()).date
 
     return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
 }
@@ -179,27 +178,20 @@ fun isDateInRange(dateMillis: Long, startMillis: Long?, endMillis: Long?): Boole
 fun LocalDate.toMonthYearString(): String {
     val formatter = SimpleDateFormat(DatePattern.MONTH_YEAR_FORMAT, Locale.getDefault())
     val calendar = Calendar.getInstance()
-    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, CalendarConstants.FIRST_DAY_OF_MONTH)
+    calendar.set(year, monthNumber - CalendarConstants.MONTH_INDEX_OFFSET, Constants.FIRST_DAY_OF_MONTH)
     return formatter.format(calendar.time)
 }
 
 fun LocalDate.minusMonths(months: Int): LocalDate =
-    this.toJavaLocalDate()
-        .minusMonths(months.toLong())
-        .withDayOfMonth(1) // Always use first day of month for display
+    this.toJavaLocalDate().minusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
         .toKotlinLocalDate()
 
 fun LocalDate.plusMonths(months: Int): LocalDate =
-    this.toJavaLocalDate()
-        .plusMonths(months.toLong())
-        .withDayOfMonth(1) // Always use first day of month for display
+    this.toJavaLocalDate().plusMonths(months.toLong()).withDayOfMonth(1) // Always use first day of month for display
         .toKotlinLocalDate()
 
 fun LocalDate.endOfDay(): Long {
-    return this.atStartOfDayIn(TimeZone.currentSystemDefault())
-        .plus(1.days)
-        .minus(1.milliseconds)
-        .toEpochMilliseconds()
+    return this.atStartOfDayIn(TimeZone.currentSystemDefault()).plus(1.days).minus(1.milliseconds).toEpochMilliseconds()
 }
 
 fun utcDateFormatterOf(pattern: String) = SimpleDateFormat(pattern, Locale.US).apply {
@@ -222,11 +214,37 @@ object DatePattern {
     const val WEEKDAY_FORMAT = "EEE"
 }
 
-object CalendarConstants {
+private object Constants {
+    // Time conversion factors
+    const val MILLIS_TO_SECONDS = 1000.0
+    const val SECONDS_TO_MINUTES = 60.0
+    const val MINUTES_TO_HOURS = 60.0
+    const val HOURS_TO_DAYS = 24.0
+    const val DAYS_TO_WEEKS = 7.0
+    const val DAYS_TO_MONTHS = 30.0
+    const val DAYS_TO_YEARS = 365.0
 
+    // Time unit thresholds
+    const val SECONDS_THRESHOLD = 60
+    const val MINUTES_THRESHOLD = 60
+    const val HOURS_THRESHOLD = 24
+    const val YESTERDAY_THRESHOLD = 2
+    const val DAYS_THRESHOLD = 7
+    const val WEEKS_THRESHOLD = 4
+    const val MONTHS_THRESHOLD = 12
+
+    // Calendar
+    const val FIRST_DAY_OF_MONTH = 1
+
+    // Leap year calculation
+    const val LEAP_YEAR_DIVISOR_4 = 4
+    const val LEAP_YEAR_DIVISOR_100 = 100
+    const val LEAP_YEAR_DIVISOR_400 = 400
+}
+
+object CalendarConstants {
     // Calendar grid
     const val DAYS_IN_WEEK = 7
-    const val FIRST_DAY_OF_MONTH = 1
 
     // Date formatting
     const val WEEKDAY_ABBREVIATION_LENGTH = 3
@@ -235,12 +253,4 @@ object CalendarConstants {
     const val DAYS_IN_WEEK_MOD = 7
     const val CALENDAR_WEEK_OFFSET = 1
     const val MONTH_INDEX_OFFSET = 1
-
-    // Leap year calculation
-    const val LEAP_YEAR_DIVISOR_4 = 4
-    const val LEAP_YEAR_DIVISOR_100 = 100
-    const val LEAP_YEAR_DIVISOR_400 = 400
-
-    // Preview
-    const val PREVIEW_DAYS_AGO = 7
 }
