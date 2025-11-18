@@ -51,6 +51,7 @@ import to.bitkit.utils.LdkError
 import to.bitkit.utils.LdkLogWriter
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.path.Path
@@ -73,7 +74,7 @@ class LightningService @Inject constructor(
 
     private lateinit var trustedPeers: List<PeerDetails>
 
-    private val channelCache = mutableMapOf<String, ChannelDetails>()
+    private val channelCache = ConcurrentHashMap<String, ChannelDetails>()
 
     suspend fun setup(
         walletIndex: Int,
@@ -250,9 +251,7 @@ class LightningService @Inject constructor(
     private suspend fun registerClosedChannel(channelId: String, reason: String?) {
         try {
             val channel = ServiceQueue.LDK.background {
-                channelCache[channelId]?.also {
-                    channelCache.remove(channelId)
-                }
+                channelCache[channelId]
             } ?: run {
                 Logger.error(
                     "Could not find channel details for closed channel: channelId=$channelId",
@@ -261,14 +260,17 @@ class LightningService @Inject constructor(
                 return@registerClosedChannel
             }
 
-            val channelName = channel.inboundScidAlias?.toString()
-                ?: channel.channelId.take(10) + "…"
-
             val fundingTxo = channel.fundingTxo
             if (fundingTxo == null) {
-                Logger.error("Channel has no funding transaction", context = TAG)
-                return
+                Logger.error(
+                    "Channel has no funding transaction, cannot persist closed channel: channelId=$channelId",
+                    context = TAG
+                )
+                return@registerClosedChannel
             }
+
+            val channelName = channel.inboundScidAlias?.toString()
+                ?: channel.channelId.take(CHANNEL_ID_PREVIEW_LENGTH) + "…"
 
             val closedAt = (System.currentTimeMillis() / 1000L).toULong()
 
@@ -286,12 +288,17 @@ class LightningService @Inject constructor(
                 forwardingFeeProportionalMillionths = channel.config.forwardingFeeProportionalMillionths,
                 forwardingFeeBaseMsat = channel.config.forwardingFeeBaseMsat,
                 channelName = channelName,
-                channelClosureReason = reason ?: ""
+                channelClosureReason = reason.orEmpty()
             )
 
             ServiceQueue.CORE.background {
                 upsertClosedChannel(closedChannel)
             }
+
+            ServiceQueue.LDK.background {
+                channelCache.remove(channelId)
+            }
+
             Logger.info("Registered closed channel: ${channel.userChannelId}", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to register closed channel: $e", e, context = TAG)
@@ -860,6 +867,7 @@ class LightningService @Inject constructor(
 
     companion object {
         private const val TAG = "LightningService"
+        private const val CHANNEL_ID_PREVIEW_LENGTH = 10
     }
 }
 

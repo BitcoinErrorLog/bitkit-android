@@ -198,7 +198,7 @@ private fun Content(
                         Caption13Up(stringResource(R.string.lightning__conn_closed), color = Colors.White64)
                         ChannelList(
                             status = ChannelStatusUi.CLOSED,
-                            channels = uiState.closedChannels.reversed(),
+                            channels = uiState.closedChannels,
                             onClickChannel = onClickChannel,
                         )
                     }

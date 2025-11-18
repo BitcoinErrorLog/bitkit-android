@@ -86,7 +86,7 @@ class LightningConnectionsViewModel @Inject constructor(
                                 closedChannel.toChannelUi(
                                     baseIndex = openChannels.size + pendingConnections.size + index
                                 )
-                            }
+                            }.reversed()
                         )
                     }
                 }
