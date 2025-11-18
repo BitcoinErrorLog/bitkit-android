@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.BtOrderState2
+import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IBtOrder
+import com.synonym.bitkitcore.SortDirection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,6 +27,7 @@ import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.filterPending
 import to.bitkit.models.Toast
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LogsRepo
@@ -36,6 +39,7 @@ import to.bitkit.utils.Logger
 import to.bitkit.utils.TxDetails
 import javax.inject.Inject
 
+@Suppress("LongParameterList")
 @HiltViewModel
 class LightningConnectionsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -46,6 +50,7 @@ class LightningConnectionsViewModel @Inject constructor(
     private val addressChecker: AddressChecker,
     private val ldkNodeEventBus: LdkNodeEventBus,
     private val walletRepo: WalletRepo,
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LightningConnectionsUiState())
@@ -63,6 +68,32 @@ class LightningConnectionsViewModel @Inject constructor(
     init {
         observeState()
         observeLdkEvents()
+        loadClosedChannels()
+    }
+
+    private fun loadClosedChannels() {
+        viewModelScope.launch(bgDispatcher) {
+            activityRepo.getClosedChannels(SortDirection.DESC)
+                .onSuccess { closedChannels ->
+                    val channels = lightningRepo.lightningState.value.channels
+                    val openChannels = channels.filterOpen()
+                    val pendingConnections =
+                        getPendingConnections(channels, blocktankRepo.blocktankState.value.paidOrders)
+
+                    _uiState.update { state ->
+                        state.copy(
+                            closedChannels = closedChannels.mapIndexed { index, closedChannel ->
+                                closedChannel.toChannelUi(
+                                    baseIndex = openChannels.size + pendingConnections.size + index
+                                )
+                            }
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    Logger.error("Failed to load closed channels", e, context = TAG)
+                }
+        }
     }
 
     private fun observeState() {
@@ -97,6 +128,9 @@ class LightningConnectionsViewModel @Inject constructor(
                 if (event is Event.ChannelPending || event is Event.ChannelReady || event is Event.ChannelClosed) {
                     Logger.debug("Channel event received: ${event::class.simpleName}, triggering refresh")
                     refreshObservedState()
+                    if (event is Event.ChannelClosed) {
+                        loadClosedChannels()
+                    }
                 }
             }
         }
@@ -104,8 +138,18 @@ class LightningConnectionsViewModel @Inject constructor(
 
     private fun refreshSelectedChannelIfNeeded(channels: List<ChannelDetails>) {
         val currentSelectedChannel = _selectedChannel.value ?: return
-        val updatedChannel = findUpdatedChannel(currentSelectedChannel.details, channels)
 
+        // Filter out closed channels from the list
+        val closedChannelIds = _uiState.value.closedChannels.map { it.details.channelId }.toSet()
+        val activeChannels = channels.filterNot { it.channelId in closedChannelIds }
+
+        // Don't refresh if the selected channel is closed
+        if (currentSelectedChannel.details.channelId in closedChannelIds) {
+            return
+        }
+
+        // Try to find updated version in active channels
+        val updatedChannel = findUpdatedChannel(currentSelectedChannel.details, activeChannels)
         _selectedChannel.update { updatedChannel?.mapToUiModel() }
     }
 
@@ -167,6 +211,28 @@ class LightningConnectionsViewModel @Inject constructor(
     suspend fun refreshObservedState() {
         lightningRepo.sync()
         blocktankRepo.refreshOrders()
+        loadClosedChannels()
+    }
+
+    private fun ClosedChannelDetails.toChannelUi(baseIndex: Int): ChannelUi {
+        val channelDetails = createChannelDetails().copy(
+            channelId = this.channelId,
+            counterpartyNodeId = this.counterpartyNodeId,
+            fundingTxo = OutPoint(txid = this.fundingTxoTxid, vout = this.fundingTxoIndex),
+            channelValueSats = this.channelValueSats,
+            outboundCapacityMsat = this.outboundCapacityMsat,
+            inboundCapacityMsat = this.inboundCapacityMsat,
+            unspendablePunishmentReserve = this.unspendablePunishmentReserve,
+            counterpartyUnspendablePunishmentReserve = this.counterpartyUnspendablePunishmentReserve,
+            isChannelReady = false,
+            isUsable = false,
+        )
+        val connectionText = context.getString(R.string.lightning__connection)
+        return ChannelUi(
+            name = "$connectionText ${baseIndex + 1}",
+            details = channelDetails,
+            closureReason = this.channelClosureReason.takeIf { it.isNotEmpty() }
+        )
     }
 
     private fun ChannelDetails.mapToUiModel(): ChannelUi = ChannelUi(
@@ -361,6 +427,7 @@ data class LightningConnectionsUiState(
     val openChannels: List<ChannelUi> = emptyList(),
     val pendingConnections: List<ChannelUi> = emptyList(),
     val failedOrders: List<ChannelUi> = emptyList(),
+    val closedChannels: List<ChannelUi> = emptyList(),
     val localBalance: ULong = 0u,
     val remoteBalance: ULong = 0u,
 )
@@ -368,6 +435,7 @@ data class LightningConnectionsUiState(
 data class ChannelUi(
     val name: String,
     val details: ChannelDetails,
+    val closureReason: String? = null,
 )
 
 data class CloseConnectionUiState(

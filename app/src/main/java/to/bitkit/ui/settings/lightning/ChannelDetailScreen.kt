@@ -97,6 +97,8 @@ fun ChannelDetailScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val paidOrders by viewModel.blocktankRepo.blocktankState.collectAsStateWithLifecycle()
+
+    val isClosedChannel = uiState.closedChannels.any { it.details.channelId == channel.details.channelId }
     val txDetails by viewModel.txDetails.collectAsStateWithLifecycle()
     val walletState by wallet.uiState.collectAsStateWithLifecycle()
 
@@ -113,6 +115,7 @@ fun ChannelDetailScreen(
         cjitEntries = paidOrders.cjitEntries,
         txDetails = txDetails,
         isRefreshing = uiState.isRefreshing,
+        isClosedChannel = isClosedChannel,
         onBack = { navController.popBackStack() },
         onClose = { navController.navigateToHome() },
         onRefresh = {
@@ -137,6 +140,7 @@ fun ChannelDetailScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("CyclomaticComplexMethod")
 @Composable
 private fun Content(
     channel: ChannelUi,
@@ -144,6 +148,7 @@ private fun Content(
     cjitEntries: List<IcJitEntry> = emptyList(),
     txDetails: TxDetails? = null,
     isRefreshing: Boolean = false,
+    isClosedChannel: Boolean = false,
     onBack: () -> Unit = {},
     onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -201,7 +206,7 @@ private fun Content(
                     capacity = capacity,
                     localBalance = localBalance,
                     remoteBalance = remoteBalance,
-                    status = getChannelStatus(channel, blocktankOrder),
+                    status = getChannelStatus(channel, blocktankOrder, isClosedChannel),
                 )
                 VerticalSpacer(32.dp)
                 HorizontalDivider()
@@ -211,6 +216,7 @@ private fun Content(
                 ChannelStatusView(
                     channel = channel,
                     blocktankOrder = blocktankOrder,
+                    isClosedChannel = isClosedChannel,
                 )
                 VerticalSpacer(16.dp)
                 HorizontalDivider()
@@ -447,16 +453,15 @@ private fun Content(
                     onClick = { onCopyText(channel.details.counterpartyNodeId) }
                 )
 
-                // TODO add closure reason when tracking closed channels
-                // val channelClosureReason: String? = null
-                // if (channelClosureReason != null) {
-                //     SectionRow(
-                //         name = stringResource(R.string.lightning__closure_reason),
-                //         valueContent = {
-                //             CaptionB(text = channelClosureReason)
-                //         },
-                //     )
-                // }
+                // Closure reason for closed channels
+                channel.closureReason?.let { closureReason ->
+                    SectionRow(
+                        name = stringResource(R.string.lightning__closure_reason),
+                        valueContent = {
+                            CaptionB(text = closureReason)
+                        },
+                    )
+                }
 
                 // Action Buttons
                 FillHeight()
@@ -526,7 +531,12 @@ private fun SectionRow(
 private fun getChannelStatus(
     channel: ChannelUi,
     blocktankOrder: IBtOrder?,
+    isClosedChannel: Boolean = false,
 ): ChannelStatusUi {
+    if (isClosedChannel) {
+        return ChannelStatusUi.CLOSED
+    }
+
     blocktankOrder?.let { order ->
         when {
             order.state2 == BtOrderState2.EXPIRED ||

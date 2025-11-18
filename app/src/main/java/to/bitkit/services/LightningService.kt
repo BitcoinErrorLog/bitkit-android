@@ -1,5 +1,7 @@
 package to.bitkit.services
 
+import com.synonym.bitkitcore.ClosedChannelDetails
+import com.synonym.bitkitcore.upsertClosedChannel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -57,6 +59,7 @@ import kotlin.time.Duration.Companion.seconds
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
+@Suppress("LargeClass")
 @Singleton
 class LightningService @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -69,6 +72,8 @@ class LightningService @Inject constructor(
     var node: Node? = null
 
     private lateinit var trustedPeers: List<PeerDetails>
+
+    private val channelCache = mutableMapOf<String, ChannelDetails>()
 
     suspend fun setup(
         walletIndex: Int,
@@ -190,6 +195,7 @@ class LightningService @Inject constructor(
             }
         }
 
+        refreshChannelCache()
         Logger.info("Node started")
     }
 
@@ -225,7 +231,71 @@ class LightningService @Inject constructor(
             node.syncWallets()
             // launch { setMaxDustHtlcExposureForCurrentChannels() }
         }
+        refreshChannelCache()
+
         Logger.debug("LDK synced")
+    }
+
+    private suspend fun refreshChannelCache() {
+        val node = this.node ?: return
+
+        ServiceQueue.LDK.background {
+            val channels = node.listChannels()
+            channels.forEach { channel ->
+                channelCache[channel.channelId] = channel
+            }
+        }
+    }
+
+    private suspend fun registerClosedChannel(channelId: String, reason: String?) {
+        try {
+            val channel = ServiceQueue.LDK.background {
+                channelCache[channelId]?.also {
+                    channelCache.remove(channelId)
+                }
+            } ?: run {
+                Logger.error(
+                    "Could not find channel details for closed channel: channelId=$channelId",
+                    context = TAG
+                )
+                return@registerClosedChannel
+            }
+
+            val channelName = channel.inboundScidAlias?.toString()
+                ?: channel.channelId.take(10) + "…"
+
+            val fundingTxo = channel.fundingTxo
+            if (fundingTxo == null) {
+                Logger.error("Channel has no funding transaction", context = TAG)
+                return
+            }
+
+            val closedAt = (System.currentTimeMillis() / 1000L).toULong()
+
+            val closedChannel = ClosedChannelDetails(
+                channelId = channel.channelId,
+                counterpartyNodeId = channel.counterpartyNodeId,
+                fundingTxoTxid = fundingTxo.txid,
+                fundingTxoIndex = fundingTxo.vout,
+                channelValueSats = channel.channelValueSats,
+                closedAt = closedAt,
+                outboundCapacityMsat = channel.outboundCapacityMsat,
+                inboundCapacityMsat = channel.inboundCapacityMsat,
+                counterpartyUnspendablePunishmentReserve = channel.counterpartyUnspendablePunishmentReserve,
+                unspendablePunishmentReserve = channel.unspendablePunishmentReserve ?: 0u,
+                forwardingFeeProportionalMillionths = channel.config.forwardingFeeProportionalMillionths,
+                forwardingFeeBaseMsat = channel.config.forwardingFeeBaseMsat,
+                channelName = channelName,
+                channelClosureReason = reason ?: ""
+            )
+
+            ServiceQueue.CORE.background {
+                upsertClosedChannel(closedChannel)
+            }
+            Logger.info("Registered closed channel: ${channel.userChannelId}", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to register closed channel: $e", e, context = TAG)
+        }
     }
 
     // private fun setMaxDustHtlcExposureForCurrentChannels() {
@@ -738,6 +808,9 @@ class LightningService @Inject constructor(
                 Logger.info(
                     "⏳ Channel pending: channelId: $channelId userChannelId: $userChannelId formerTemporaryChannelId: $formerTemporaryChannelId counterpartyNodeId: $counterpartyNodeId fundingTxo: $fundingTxo"
                 )
+                launch {
+                    refreshChannelCache()
+                }
             }
 
             is Event.ChannelReady -> {
@@ -747,16 +820,22 @@ class LightningService @Inject constructor(
                 Logger.info(
                     "👐 Channel ready: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId"
                 )
+                launch {
+                    refreshChannelCache()
+                }
             }
 
             is Event.ChannelClosed -> {
                 val channelId = event.channelId
                 val userChannelId = event.userChannelId
                 val counterpartyNodeId = event.counterpartyNodeId ?: "?"
-                val reason = event.reason
+                val reason = event.reason?.toString() ?: ""
                 Logger.info(
                     "⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason"
                 )
+                launch {
+                    registerClosedChannel(channelId, reason)
+                }
             }
         }
     }

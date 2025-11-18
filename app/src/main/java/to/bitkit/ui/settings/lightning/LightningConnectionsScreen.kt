@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -62,6 +63,8 @@ import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.shareZipFile
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+
+private const val CLOSED_CHANNEL_ALPHA = 0.64f
 
 object LightningConnectionsTestTags {
     const val SCREEN = "lightning_connections_screen"
@@ -188,8 +191,21 @@ private fun Content(
                     }
                 }
 
+                // Closed Channels Section
+                AnimatedVisibility(visible = showClosed && uiState.closedChannels.isNotEmpty()) {
+                    Column {
+                        VerticalSpacer(16.dp)
+                        Caption13Up(stringResource(R.string.lightning__conn_closed), color = Colors.White64)
+                        ChannelList(
+                            status = ChannelStatusUi.CLOSED,
+                            channels = uiState.closedChannels.reversed(),
+                            onClickChannel = onClickChannel,
+                        )
+                    }
+                }
+
                 // Show/Hide Closed Channels Button
-                if (uiState.failedOrders.isNotEmpty()) {
+                if (uiState.failedOrders.isNotEmpty() || uiState.closedChannels.isNotEmpty()) {
                     VerticalSpacer(16.dp)
                     TertiaryButton(
                         text = stringResource(
@@ -295,6 +311,13 @@ private fun ChannelItem(
             .fillMaxWidth()
             .clickableAlpha { onClick() }
             .testTag("Channel")
+            .then(
+                if (status == ChannelStatusUi.CLOSED) {
+                    Modifier.alpha(CLOSED_CHANNEL_ALPHA)
+                } else {
+                    Modifier
+                }
+            )
     ) {
         VerticalSpacer(16.dp)
         Row(
