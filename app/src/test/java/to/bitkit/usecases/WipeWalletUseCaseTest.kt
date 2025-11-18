@@ -3,6 +3,7 @@ package to.bitkit.usecases
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -63,19 +64,30 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
         )
 
         assertTrue(result.isSuccess)
-        verify(backupRepo).setWiping(true)
-        verify(backupRepo).reset()
-        verify(keychain).wipe()
-        verify(coreService).wipeData()
-        verify(db).clearAllTables()
-        verify(settingsStore).reset()
-        verify(cacheStore).reset()
-        verify(blocktankRepo).resetState()
-        verify(activityRepo).resetState()
+        val inOrder = inOrder(
+            backupRepo,
+            keychain,
+            coreService,
+            db,
+            settingsStore,
+            cacheStore,
+            blocktankRepo,
+            activityRepo,
+            lightningRepo
+        )
+        inOrder.verify(backupRepo).setWiping(true)
+        inOrder.verify(backupRepo).reset()
+        inOrder.verify(keychain).wipe()
+        inOrder.verify(coreService).wipeData()
+        inOrder.verify(db).clearAllTables()
+        inOrder.verify(settingsStore).reset()
+        inOrder.verify(cacheStore).reset()
+        inOrder.verify(blocktankRepo).resetState()
+        inOrder.verify(activityRepo).resetState()
         assertTrue(onWipeCalled)
-        verify(lightningRepo).wipeStorage(0)
+        inOrder.verify(lightningRepo).wipeStorage(0)
         assertTrue(onSetWalletExistsStateCalled)
-        verify(backupRepo).setWiping(false)
+        inOrder.verify(backupRepo).setWiping(false)
     }
 
     @Test
