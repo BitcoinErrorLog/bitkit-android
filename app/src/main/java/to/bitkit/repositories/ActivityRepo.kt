@@ -272,6 +272,7 @@ class ActivityRepo @Inject constructor(
                     )
                     cacheStore.addActivityToPendingDelete(activityId = activityIdToDelete)
                 }
+                Result.success(Unit)
             },
             onFailure = { e ->
                 Logger.error(
