@@ -283,7 +283,7 @@ class BoostTransactionViewModel @Inject constructor(
     /**
      * Updates activity based on boost type:
      * - RBF: Updates current activity with boost data, then replaces with new transaction
-     * - CPFP: Simply updates the current activity
+     * - CPFP: Updates the current activity and appends child txId to parent's boostTxIds
      */
     private suspend fun updateActivity(newTxId: Txid, isRBF: Boolean): Result<Unit> {
         Logger.debug("Updating activity for txId: $newTxId. isRBF: $isRBF", context = TAG)
@@ -294,17 +294,20 @@ class BoostTransactionViewModel @Inject constructor(
         return if (isRBF) {
             handleRBFUpdate(newTxId, currentActivity)
         } else {
-            handleCPFPUpdate(currentActivity)
+            handleCPFPUpdate(currentActivity, newTxId)
         }
     }
 
     /**
-     * Handles CPFP (Child Pays For Parent) update by simply updating the current activity
+     * Handles CPFP (Child Pays For Parent) update by updating the current activity
+     * and appending the child transaction ID to the parent's boostTxIds
      */
-    private suspend fun handleCPFPUpdate(currentActivity: OnchainActivity): Result<Unit> {
+    private suspend fun handleCPFPUpdate(currentActivity: OnchainActivity, childTxId: Txid): Result<Unit> {
+        val updatedBoostTxIds = currentActivity.boostTxIds + childTxId
         val updatedActivity = Activity.Onchain(
             v1 = currentActivity.copy(
                 isBoosted = true,
+                boostTxIds = updatedBoostTxIds,
                 updatedAt = nowTimestamp().toEpochMilli().toULong()
             )
         )
@@ -317,6 +320,8 @@ class BoostTransactionViewModel @Inject constructor(
 
     /**
      * Handles RBF (Replace By Fee) update by updating current activity and replacing with new one
+     * For RBF, we need to store the parent txId (currentActivity.txId) so it can be added to
+     * the replacement activity's boostTxIds when it syncs
      */
     private suspend fun handleRBFUpdate(
         newTxId: Txid,
@@ -338,7 +343,7 @@ class BoostTransactionViewModel @Inject constructor(
         )
 
         // Then find and replace with the new activity
-        return findAndReplaceWithNewActivity(newTxId, currentActivity.id)
+        return findAndReplaceWithNewActivity(newTxId, currentActivity.id, currentActivity.txId)
     }
 
     /**
@@ -347,6 +352,7 @@ class BoostTransactionViewModel @Inject constructor(
     private suspend fun findAndReplaceWithNewActivity(
         newTxId: Txid,
         oldActivityId: String,
+        parentTxId: String,
     ): Result<Unit> {
         return activityRepo.findActivityByPaymentId(
             paymentHashOrTxId = newTxId,
@@ -354,30 +360,34 @@ class BoostTransactionViewModel @Inject constructor(
             txType = PaymentType.SENT
         ).fold(
             onSuccess = { newActivity ->
-                replaceActivityWithNewOne(newActivity, oldActivityId, newTxId)
+                replaceActivityWithNewOne(newActivity, oldActivityId, newTxId, parentTxId)
             },
             onFailure = { error ->
-                handleActivityNotFound(error, newTxId, oldActivityId)
+                handleActivityNotFound(error, newTxId, oldActivityId, parentTxId)
             }
         )
     }
 
     /**
      * Replaces the old activity with the new boosted one
+     * For RBF, adds the parent txId to the new activity's boostTxIds
      */
     private suspend fun replaceActivityWithNewOne(
         newActivity: Activity,
         oldActivityId: String,
         newTxId: Txid,
+        parentTxId: String,
     ): Result<Unit> {
         Logger.debug("Activity found: $newActivity", context = TAG)
 
         val newOnChainActivity = newActivity as? Activity.Onchain
             ?: return Result.failure(Exception("Activity is not onchain type"))
 
+        val updatedBoostTxIds = newOnChainActivity.v1.boostTxIds + parentTxId
         val updatedNewActivity = Activity.Onchain(
             v1 = newOnChainActivity.v1.copy(
                 isBoosted = true,
+                boostTxIds = updatedBoostTxIds,
                 feeRate = _uiState.value.feeRate,
                 updatedAt = nowTimestamp().toEpochMilli().toULong()
             )
@@ -388,7 +398,7 @@ class BoostTransactionViewModel @Inject constructor(
             activityIdToDelete = oldActivityId,
             activity = updatedNewActivity,
         ).onFailure {
-            cachePendingBoostActivity(newTxId, oldActivityId)
+            cachePendingBoostActivity(newTxId, oldActivityId, parentTxId)
         }
     }
 
@@ -399,6 +409,7 @@ class BoostTransactionViewModel @Inject constructor(
         error: Throwable,
         newTxId: Txid,
         oldActivityId: String?,
+        parentTxId: String,
     ): Result<Unit> {
         Logger.error(
             "Activity $newTxId not found. Caching data to try again on next sync",
@@ -406,19 +417,24 @@ class BoostTransactionViewModel @Inject constructor(
             context = TAG
         )
 
-        cachePendingBoostActivity(newTxId, oldActivityId)
+        cachePendingBoostActivity(newTxId, oldActivityId, parentTxId)
         return Result.failure(error)
     }
 
     /**
      * Caches activity data for pending boost operation
      */
-    private suspend fun cachePendingBoostActivity(newTxId: Txid, activityToDelete: String?) {
+    private suspend fun cachePendingBoostActivity(
+        newTxId: Txid,
+        activityToDelete: String?,
+        parentTxId: String? = null
+    ) {
         activityRepo.addActivityToPendingBoost(
             PendingBoostActivity(
                 txId = newTxId,
                 updatedAt = nowTimestamp().toEpochMilli().toULong(),
-                activityToDelete = activityToDelete
+                activityToDelete = activityToDelete,
+                parentTxId = parentTxId
             )
         )
     }

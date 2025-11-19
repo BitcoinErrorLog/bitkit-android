@@ -3,7 +3,7 @@ package to.bitkit.ui.screens.wallets.activity.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +24,7 @@ import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import to.bitkit.R
+import to.bitkit.ext.doesExist
 import to.bitkit.ext.isBoosted
 import to.bitkit.ext.isFinished
 import to.bitkit.ext.isTransfer
@@ -46,7 +47,7 @@ fun ActivityIcon(
     val arrowIcon = painterResource(if (txType == PaymentType.SENT) R.drawable.ic_sent else R.drawable.ic_received)
 
     when {
-        activity.isBoosted() && !activity.isFinished() -> {
+        activity.isBoosted() && !activity.isFinished() && activity.doesExist() -> {
             CircularIcon(
                 icon = painterResource(R.drawable.ic_timer_alt),
                 iconColor = Colors.Yellow,
@@ -90,9 +91,14 @@ fun ActivityIcon(
             }
         }
 
+        // onchain
         else -> {
             CircularIcon(
-                icon = if (activity.isTransfer()) painterResource(R.drawable.ic_transfer) else arrowIcon,
+                icon = when {
+                    !activity.doesExist() -> painterResource(R.drawable.ic_x)
+                    activity.isTransfer() -> painterResource(R.drawable.ic_transfer)
+                    else -> arrowIcon
+                },
                 iconColor = Colors.Brand,
                 backgroundColor = Colors.Brand16,
                 size = size,
@@ -129,8 +135,8 @@ fun CircularIcon(
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(16.dp),
         ) {
             // Lightning Sent Succeeded
@@ -285,6 +291,32 @@ private fun Preview() {
                         boostTxIds = emptyList(),
                         isTransfer = true,
                         doesExist = true,
+                        confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        channelId = null,
+                        transferTxId = "transferTxId",
+                        createdAt = null,
+                        updatedAt = null,
+                    )
+                )
+            )
+
+            // Onchain Removed
+            ActivityIcon(
+                activity = Activity.Onchain(
+                    v1 = OnchainActivity(
+                        id = "test-onchain-2",
+                        txType = PaymentType.SENT,
+                        txId = "abc123",
+                        value = 100000uL,
+                        fee = 500uL,
+                        feeRate = 8uL,
+                        address = "bc1...",
+                        confirmed = true,
+                        timestamp = (System.currentTimeMillis() / 1000).toULong(),
+                        isBoosted = true,
+                        boostTxIds = emptyList(),
+                        isTransfer = false,
+                        doesExist = false,
                         confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
                         channelId = null,
                         transferTxId = "transferTxId",
