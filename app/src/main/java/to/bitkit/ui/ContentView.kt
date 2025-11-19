@@ -311,7 +311,7 @@ fun ContentView(
 
         LaunchedEffect(balance) {
             // Anytime we receive a balance update, we should sync the payments to activity list
-            activityListViewModel.syncLdkNodePayments()
+            activityListViewModel.resync()
         }
 
         // Keep backups in sync

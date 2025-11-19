@@ -1,12 +1,15 @@
 package to.bitkit.repositories
 
+import androidx.annotation.VisibleForTesting
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.ActivityTags
 import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IcJitEntry
 import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
@@ -28,6 +31,7 @@ import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.matchesPaymentId
+import to.bitkit.ext.nowMillis
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.ext.rawId
 import to.bitkit.models.ActivityBackupV1
@@ -53,53 +57,56 @@ class ActivityRepo @Inject constructor(
 ) {
     val isSyncingLdkNodePayments = MutableStateFlow(false)
 
+    private val _state = MutableStateFlow(ActivityState())
+    val state: StateFlow<ActivityState> = _state
+
     private val _activitiesChanged = MutableStateFlow(0L)
     val activitiesChanged: StateFlow<Long> = _activitiesChanged
 
-    private fun notifyActivitiesChanged() = _activitiesChanged.update { clock.now().toEpochMilliseconds() }
+    private fun notifyActivitiesChanged() = _activitiesChanged.update { nowMillis(clock) }
+
+    suspend fun resetState() = withContext(bgDispatcher) {
+        _state.update { ActivityState() }
+        isSyncingLdkNodePayments.update { false }
+        notifyActivitiesChanged()
+        Logger.debug("Activity state reset", context = TAG)
+    }
 
     suspend fun syncActivities(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("syncActivities called", context = TAG)
 
-        return@withContext runCatching {
+        val result = runCatching {
             withTimeout(SYNC_TIMEOUT_MS) {
                 Logger.debug("isSyncingLdkNodePayments = ${isSyncingLdkNodePayments.value}", context = TAG)
                 isSyncingLdkNodePayments.first { !it }
             }
 
-            isSyncingLdkNodePayments.value = true
+            isSyncingLdkNodePayments.update { true }
 
             deletePendingActivities()
-            return@withContext lightningRepo.getPayments()
-                .onSuccess { payments ->
-                    Logger.debug("Got payments with success, syncing activities", context = TAG)
-                    syncLdkNodePayments(payments = payments).onFailure { e ->
-                        return@withContext Result.failure(e)
-                    }
-                    updateActivitiesMetadata()
-                    syncTagsMetadata()
-                    boostPendingActivities()
-                    transferRepo.syncTransferStates()
-                    isSyncingLdkNodePayments.value = false
-                    return@withContext Result.success(Unit)
-                }.onFailure { e ->
-                    Logger.error("Failed to sync ldk-node payments", e, context = TAG)
-                    isSyncingLdkNodePayments.value = false
-                    return@withContext Result.failure(e)
-                }.map { Unit }
-        }.onFailure { e ->
-            when (e) {
-                is TimeoutCancellationException -> {
-                    isSyncingLdkNodePayments.value = false
-                    Logger.warn("Timeout waiting for sync to complete, forcing reset", context = TAG)
-                }
 
-                else -> {
-                    isSyncingLdkNodePayments.value = false
-                    Logger.error("syncActivities error", e, context = TAG)
-                }
+            lightningRepo.getPayments().mapCatching { payments ->
+                Logger.debug("Got payments with success, syncing activities", context = TAG)
+                syncLdkNodePayments(payments).getOrThrow()
+                updateActivitiesMetadata()
+                syncTagsMetadata()
+                boostPendingActivities()
+                transferRepo.syncTransferStates().getOrThrow()
+            }.onSuccess {
+                getAllAvailableTags().getOrNull()
+            }.getOrThrow()
+        }.onFailure { e ->
+            if (e is TimeoutCancellationException) {
+                Logger.warn("syncActivities timeout, forcing reset", context = TAG)
+            } else {
+                Logger.error("Failed to sync activities", e, context = TAG)
             }
         }
+
+        isSyncingLdkNodePayments.update { false }
+        notifyActivitiesChanged()
+
+        return@withContext result
     }
 
     /**
@@ -329,10 +336,11 @@ class ActivityRepo @Inject constructor(
         }.awaitAll()
     }
 
-    private suspend fun syncTagsMetadata() = withContext(context = bgDispatcher) {
+    @Suppress("LongMethod")
+    private suspend fun syncTagsMetadata(): Result<Unit> = withContext(context = bgDispatcher) {
         runCatching {
-            if (db.tagMetadataDao().getAll().isEmpty()) return@withContext
-            val lastActivities = getActivities(limit = 10u).getOrNull() ?: return@withContext
+            if (db.tagMetadataDao().getAll().isEmpty()) return@runCatching
+            val lastActivities = getActivities(limit = 10u).getOrNull() ?: return@runCatching
             Logger.debug("syncTagsMetadata called")
 
             lastActivities.map { activity ->
@@ -408,6 +416,7 @@ class ActivityRepo @Inject constructor(
                     }
                 }
             }.awaitAll()
+            Result.success(Unit)
         }
     }
 
@@ -577,10 +586,11 @@ class ActivityRepo @Inject constructor(
         cacheStore.addActivityToPendingBoost(pendingBoostActivity)
     }
 
-    /**
-     * Adds tags to an activity with business logic validation
-     */
-    suspend fun addTagsToActivity(activityId: String, tags: List<String>): Result<Unit> = withContext(bgDispatcher) {
+    @VisibleForTesting
+    suspend fun addTagsToActivity(
+        activityId: String,
+        tags: List<String>,
+    ): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
             checkNotNull(coreService.activity.getActivity(activityId)) { "Activity with ID $activityId not found" }
 
@@ -613,11 +623,9 @@ class ActivityRepo @Inject constructor(
             paymentHashOrTxId = paymentHashOrTxId,
             type = type,
             txType = txType
-        ).onSuccess { activity ->
-            addTagsToActivity(activity.rawId(), tags = tags)
-        }.onFailure { e ->
-            return@withContext Result.failure(e)
-        }.map { Unit }
+        ).mapCatching { activity ->
+            addTagsToActivity(activity.rawId(), tags = tags).getOrThrow()
+        }
     }
 
     /**
@@ -647,14 +655,46 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    /**
-     * Gets all possible tags across all activities
-     */
     suspend fun getAllAvailableTags(): Result<List<String>> = withContext(bgDispatcher) {
         return@withContext runCatching {
             coreService.activity.allPossibleTags()
+        }.onSuccess { tags ->
+            _state.update { it.copy(tags = tags) }
         }.onFailure { e ->
             Logger.error("getAllAvailableTags error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Get all [ActivityTags] for backup
+     */
+    suspend fun getAllActivitiesTags(): Result<List<ActivityTags>> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.getAllActivitiesTags()
+        }.onFailure { e ->
+            Logger.error("getAllActivityTags error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Get all [PreActivityMetadata] for backup
+     */
+    suspend fun getAllPreActivityMetadata(): Result<List<PreActivityMetadata>> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.getAllPreActivityMetadata()
+        }.onFailure { e ->
+            Logger.error("getAllPreActivityMetadata error", e, context = TAG)
+        }
+    }
+
+    /**
+     * Upsert all [PreActivityMetadata]
+     */
+    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.upsertPreActivityMetadata(list)
+        }.onFailure { e ->
+            Logger.error("upsertPreActivityMetadata error", e, context = TAG)
         }
     }
 
@@ -685,10 +725,18 @@ class ActivityRepo @Inject constructor(
         }
     }
 
-    suspend fun restoreFromBackup(backup: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun restoreFromBackup(payload: ActivityBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.activity.upsertList(backup.activities)
-            coreService.activity.upsertClosedChannelList(backup.closedChannels)
+            coreService.activity.upsertList(payload.activities)
+            coreService.activity.upsertTags(payload.activityTags)
+            coreService.activity.upsertClosedChannelList(payload.closedChannels)
+        }.onSuccess {
+            Logger.debug(
+                "Restored ${payload.activities.size} activities, ${payload.activityTags.size} activity tags, " +
+                    "${payload.closedChannels.size} closed channels",
+                context = TAG,
+            )
+            notifyActivitiesChanged()
         }
     }
 
@@ -728,3 +776,7 @@ class ActivityRepo @Inject constructor(
         private const val TAG = "ActivityRepo"
     }
 }
+
+data class ActivityState(
+    val tags: List<String> = emptyList(),
+)

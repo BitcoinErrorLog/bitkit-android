@@ -50,9 +50,9 @@ enum class BackupCategory(
 }
 
 /**
- * @property running In progress
- * @property synced Timestamp in ms of last time this backup was synced
- * @property required Timestamp in ms of last time this backup was required
+ * @property running Backup is currently in progress
+ * @property synced Timestamp in millis of last time this backup succeeded
+ * @property required Timestamp in millis of last time the data changed
  */
 @Serializable
 data class BackupItemStatus(

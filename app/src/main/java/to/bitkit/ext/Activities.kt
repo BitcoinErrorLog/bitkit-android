@@ -9,6 +9,11 @@ fun Activity.rawId(): String = when (this) {
     is Activity.Onchain -> v1.id
 }
 
+fun Activity.txType(): PaymentType = when (this) {
+    is Activity.Lightning -> v1.txType
+    is Activity.Onchain -> v1.txType
+}
+
 /**
  * Calculates the total value of an activity based on its type.
  *

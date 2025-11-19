@@ -14,7 +14,6 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -34,12 +33,13 @@ import kotlin.test.assertTrue
 
 class ActivityRepoTest : BaseUnitTest() {
 
-    private val coreService: CoreService = mock()
-    private val lightningRepo: LightningRepo = mock()
-    private val cacheStore: CacheStore = mock()
-    private val addressChecker: AddressChecker = mock()
-    private val db: AppDb = mock()
-    private val clock: Clock = mock()
+    private val coreService = mock<CoreService>()
+    private val lightningRepo = mock<LightningRepo>()
+    private val transferRepo = mock<TransferRepo>()
+    private val cacheStore = mock<CacheStore>()
+    private val addressChecker = mock<AddressChecker>()
+    private val db = mock<AppDb>()
+    private val clock = mock<Clock>()
 
     private lateinit var sut: ActivityRepo
 
@@ -131,7 +131,7 @@ class ActivityRepoTest : BaseUnitTest() {
             cacheStore = cacheStore,
             addressChecker = addressChecker,
             db = db,
-            transferRepo = mock(),
+            transferRepo = transferRepo,
             clock = clock,
         )
     }
@@ -164,13 +164,15 @@ class ActivityRepoTest : BaseUnitTest() {
         val payments = listOf(testPaymentDetails)
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(payments))
         wheneverBlocking { coreService.activity.getActivity(any()) }.thenReturn(null)
-        wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(any(), eq(false)) }.thenReturn(Unit)
+        wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(payments) }.thenReturn(Unit)
+        wheneverBlocking { transferRepo.syncTransferStates() }.thenReturn(Result.success(Unit))
+        wheneverBlocking { coreService.activity.allPossibleTags() }.thenReturn(emptyList())
 
         val result = sut.syncActivities()
 
         assertTrue(result.isSuccess)
         verify(lightningRepo).getPayments()
-        verify(coreService.activity).syncLdkNodePaymentsToActivities(payments, forceUpdate = false)
+        verify(coreService.activity).syncLdkNodePaymentsToActivities(payments)
         assertFalse(sut.isSyncingLdkNodePayments.value)
     }
 

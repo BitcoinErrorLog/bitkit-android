@@ -2,6 +2,7 @@ package to.bitkit.services
 
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
+import com.synonym.bitkitcore.ActivityTags
 import com.synonym.bitkitcore.BtOrderState2
 import com.synonym.bitkitcore.CJitStateEnum
 import com.synonym.bitkitcore.ClosedChannelDetails
@@ -18,6 +19,7 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.SortDirection
 import com.synonym.bitkitcore.WordCount
 import com.synonym.bitkitcore.addTags
@@ -44,10 +46,10 @@ import com.synonym.bitkitcore.updateBlocktankUrl
 import com.synonym.bitkitcore.upsertActivities
 import com.synonym.bitkitcore.upsertActivity
 import com.synonym.bitkitcore.upsertCjitEntries
-import com.synonym.bitkitcore.upsertClosedChannel
 import com.synonym.bitkitcore.upsertClosedChannels
 import com.synonym.bitkitcore.upsertInfo
 import com.synonym.bitkitcore.upsertOrders
+import com.synonym.bitkitcore.wipeAllDatabases
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -167,6 +169,19 @@ class CoreService @Inject constructor(
 
         return Pair(geoBlocked, shouldBlockLightningReceive)
     }
+
+    suspend fun wipeData(): Result<Unit> = ServiceQueue.CORE.background {
+        runCatching {
+            val result = wipeAllDatabases()
+            Logger.info("Core DB wipe: $result", context = TAG)
+        }.onFailure { e ->
+            Logger.error("Core DB wipe error", e, context = TAG)
+        }
+    }
+
+    companion object {
+        private const val TAG = "CoreService"
+    }
 }
 
 // endregion
@@ -175,7 +190,7 @@ class CoreService @Inject constructor(
 private const val CHUNK_SIZE = 50
 
 class ActivityService(
-    private val coreService: CoreService,
+    @Suppress("unused") private val coreService: CoreService, // used to ensure CoreService inits first
     private val cacheStore: CacheStore,
 ) {
     suspend fun removeAll() {
@@ -213,14 +228,6 @@ class ActivityService(
 
     suspend fun upsertList(activities: List<Activity>) = ServiceQueue.CORE.background {
         upsertActivities(activities)
-    }
-
-    suspend fun upsertClosedChannelItem(closedChannel: ClosedChannelDetails) = ServiceQueue.CORE.background {
-        upsertClosedChannel(closedChannel)
-    }
-
-    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
-        upsertClosedChannels(closedChannels)
     }
 
     suspend fun getActivity(id: String): Activity? {
@@ -283,6 +290,26 @@ class ActivityService(
         return ServiceQueue.CORE.background {
             getAllUniqueTags()
         }
+    }
+
+    suspend fun upsertTags(activityTags: List<ActivityTags>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.upsertTags(activityTags)
+    }
+
+    suspend fun getAllActivitiesTags(): List<ActivityTags> = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.getAllActivitiesTags()
+    }
+
+    suspend fun getAllPreActivityMetadata(): List<PreActivityMetadata> = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.getAllPreActivityMetadata()
+    }
+
+    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.upsertPreActivityMetadata(list)
+    }
+
+    suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
+        upsertClosedChannels(closedChannels)
     }
 
     suspend fun closedChannels(
@@ -634,7 +661,7 @@ class ActivityService(
 // region Blocktank
 
 class BlocktankService(
-    private val coreService: CoreService,
+    @Suppress("unused") private val coreService: CoreService, // used to ensure CoreService inits first
     private val lightningService: LightningService,
 ) {
     suspend fun info(refresh: Boolean = true): IBtInfo? {

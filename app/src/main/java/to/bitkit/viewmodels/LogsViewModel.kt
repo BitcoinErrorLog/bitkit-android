@@ -23,7 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LogsViewModel @Inject constructor(
     private val application: Application,
-    private val logsRepo: LogsRepo
+    private val logsRepo: LogsRepo,
 ) : AndroidViewModel(application) {
     private val _logs = MutableStateFlow<List<LogFile>>(emptyList())
     val logs: StateFlow<List<LogFile>> = _logs.asStateFlow()
@@ -33,12 +33,8 @@ class LogsViewModel @Inject constructor(
 
     fun loadLogs() {
         viewModelScope.launch {
-            logsRepo.getLogs()
-                .onSuccess { logList ->
-                    _logs.update { logList }
-                }.onFailure { e ->
-                    _logs.update { emptyList() }
-                }
+            val logFiles = logsRepo.getLogs().getOrDefault(emptyList())
+            _logs.update { logFiles }
         }
     }
 
@@ -83,17 +79,8 @@ class LogsViewModel @Inject constructor(
 
     fun deleteAllLogs() {
         viewModelScope.launch {
-            try {
-                val logDir = runCatching { File(Env.logDir) }.getOrElse { return@launch }
-                logDir.listFiles { file ->
-                    file.extension == "log"
-                }?.forEach { file ->
-                    file.delete()
-                }
-                loadLogs()
-            } catch (e: Exception) {
-                Logger.error("Failed to delete logs", e)
-            }
+            Logger.reset()
+            loadLogs()
         }
     }
 }
