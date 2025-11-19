@@ -12,8 +12,10 @@ import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -22,6 +24,7 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
+import to.bitkit.data.dao.TagMetadataDao
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.services.CoreService
 import to.bitkit.test.BaseUnitTest
@@ -139,26 +142,17 @@ class ActivityRepoTest : BaseUnitTest() {
     }
 
     private fun setupSyncActivitiesMocks(
-        cacheData: AppCacheData,
-        activities: List<Activity> = emptyList()
+        cacheData: AppCacheData
     ) {
+        val tagMetadataDao = mock<TagMetadataDao>()
+        whenever(db.tagMetadataDao()).thenReturn(tagMetadataDao)
+        wheneverBlocking { tagMetadataDao.getAll() }.thenReturn(emptyList())
+
         whenever(cacheStore.data).thenReturn(flowOf(cacheData))
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(emptyList()))
         wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(any(), eq(false)) }.thenReturn(Unit)
-        if (activities.isNotEmpty()) {
-            wheneverBlocking {
-                coreService.activity.get(
-                    filter = ActivityFilter.ONCHAIN,
-                    txType = PaymentType.SENT,
-                    tags = null,
-                    search = null,
-                    minDate = null,
-                    maxDate = null,
-                    limit = 10u,
-                    sortDirection = null
-                )
-            }.thenReturn(activities)
-        }
+        wheneverBlocking { transferRepo.syncTransferStates() }.thenReturn(Result.success(Unit))
+        wheneverBlocking { coreService.activity.allPossibleTags() }.thenReturn(emptyList())
     }
 
     @Test
@@ -581,6 +575,18 @@ class ActivityRepoTest : BaseUnitTest() {
 
         val cacheData = AppCacheData(activitiesPendingDelete = listOf(activityId))
         setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = anyOrNull(),
+                txType = anyOrNull(),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = anyOrNull(),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(emptyList())
         wheneverBlocking { coreService.activity.getActivity(activityId) }.thenReturn(onchainActivity)
         wheneverBlocking { coreService.activity.update(eq(activityId), any()) }.thenReturn(Unit)
         wheneverBlocking { cacheStore.removeActivityFromPendingDelete(activityId) }.thenReturn(Unit)
@@ -623,7 +629,19 @@ class ActivityRepoTest : BaseUnitTest() {
         )
 
         val cacheData = AppCacheData(pendingBoostActivities = listOf(pendingBoost))
-        setupSyncActivitiesMocks(cacheData, listOf(existingActivity))
+        setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = eq(ActivityFilter.ONCHAIN),
+                txType = eq(PaymentType.SENT),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = eq(10u),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(listOf(existingActivity))
         wheneverBlocking { coreService.activity.update(eq(activityId), any()) }.thenReturn(Unit)
         wheneverBlocking { cacheStore.removeActivityFromPendingBoost(pendingBoost) }.thenReturn(Unit)
 
@@ -663,7 +681,19 @@ class ActivityRepoTest : BaseUnitTest() {
         )
 
         val cacheData = AppCacheData(pendingBoostActivities = listOf(pendingBoost))
-        setupSyncActivitiesMocks(cacheData, listOf(existingActivity))
+        setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = eq(ActivityFilter.ONCHAIN),
+                txType = eq(PaymentType.SENT),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = eq(10u),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(listOf(existingActivity))
         wheneverBlocking { coreService.activity.update(eq(activityId), any()) }.thenReturn(Unit)
         wheneverBlocking { cacheStore.removeActivityFromPendingBoost(pendingBoost) }.thenReturn(Unit)
 
@@ -703,7 +733,19 @@ class ActivityRepoTest : BaseUnitTest() {
         )
 
         val cacheData = AppCacheData(pendingBoostActivities = listOf(pendingBoost))
-        setupSyncActivitiesMocks(cacheData, listOf(existingActivity))
+        setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = eq(ActivityFilter.ONCHAIN),
+                txType = eq(PaymentType.SENT),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = eq(10u),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(listOf(existingActivity))
         wheneverBlocking { coreService.activity.update(eq(activityId), any()) }.thenReturn(Unit)
         wheneverBlocking { cacheStore.removeActivityFromPendingBoost(pendingBoost) }.thenReturn(Unit)
 
@@ -752,7 +794,19 @@ class ActivityRepoTest : BaseUnitTest() {
         )
 
         val cacheData = AppCacheData(pendingBoostActivities = listOf(pendingBoost))
-        setupSyncActivitiesMocks(cacheData, listOf(existingActivity))
+        setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = eq(ActivityFilter.ONCHAIN),
+                txType = eq(PaymentType.SENT),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = eq(10u),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(listOf(existingActivity))
         wheneverBlocking { coreService.activity.update(eq(activityId), any()) }.thenReturn(Unit)
         wheneverBlocking { coreService.activity.getActivity(activityId) }.thenReturn(existingActivity)
         wheneverBlocking { coreService.activity.getActivity(activityToDeleteId) }.thenReturn(onchainActivityToDelete)
@@ -796,7 +850,19 @@ class ActivityRepoTest : BaseUnitTest() {
         )
 
         val cacheData = AppCacheData(pendingBoostActivities = listOf(pendingBoost))
-        setupSyncActivitiesMocks(cacheData, listOf(existingActivity))
+        setupSyncActivitiesMocks(cacheData)
+        wheneverBlocking {
+            coreService.activity.get(
+                filter = eq(ActivityFilter.ONCHAIN),
+                txType = eq(PaymentType.SENT),
+                tags = anyOrNull(),
+                search = anyOrNull(),
+                minDate = anyOrNull(),
+                maxDate = anyOrNull(),
+                limit = eq(10u),
+                sortDirection = anyOrNull()
+            )
+        }.thenReturn(listOf(existingActivity))
         wheneverBlocking { cacheStore.removeActivityFromPendingBoost(pendingBoost) }.thenReturn(Unit)
 
         val result = sut.syncActivities()

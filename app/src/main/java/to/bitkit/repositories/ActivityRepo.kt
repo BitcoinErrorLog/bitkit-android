@@ -43,8 +43,8 @@ import javax.inject.Singleton
 
 private const val SYNC_TIMEOUT_MS = 40_000L
 
-@Suppress("LongParameterList")
 @Singleton
+@Suppress("LargeClass", "LongParameterList")
 class ActivityRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
