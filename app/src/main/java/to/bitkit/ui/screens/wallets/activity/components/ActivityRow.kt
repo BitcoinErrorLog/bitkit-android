@@ -99,31 +99,23 @@ fun ActivityRow(
                 is Activity.Lightning -> item.v1.message.ifEmpty { formattedTime(timestamp) }
                 is Activity.Onchain -> {
                     when {
-                        !item.v1.doesExist -> {
-                            stringResource(R.string.wallet__activity_removed)
+                        !item.v1.doesExist -> stringResource(R.string.wallet__activity_removed)
+
+                        isTransfer && isSent -> if (item.v1.confirmed) {
+                            stringResource(R.string.wallet__activity_transfer_spending_done)
+                        } else {
+                            stringResource(R.string.wallet__activity_transfer_spending_pending)
+                                .replace("{duration}", "1h") // TODO: calculate confirmsIn text
                         }
 
-                        isTransfer && isSent -> {
-                            if (item.v1.confirmed) {
-                                stringResource(R.string.wallet__activity_transfer_spending_done)
-                            } else {
-                                stringResource(R.string.wallet__activity_transfer_spending_pending)
-                                    .replace("{duration}", "1h") // TODO: calculate confirmsIn text
-                            }
+                        isTransfer && !isSent -> if (item.v1.confirmed) {
+                            stringResource(R.string.wallet__activity_transfer_savings_done)
+                        } else {
+                            stringResource(R.string.wallet__activity_transfer_savings_pending)
+                                .replace("{duration}", "1h") // TODO: calculate confirmsIn text
                         }
 
-                        isTransfer && !isSent -> {
-                            if (item.v1.confirmed) {
-                                stringResource(R.string.wallet__activity_transfer_savings_done)
-                            } else {
-                                stringResource(R.string.wallet__activity_transfer_savings_pending)
-                                    .replace("{duration}", "1h") // TODO: calculate confirmsIn text
-                            }
-                        }
-
-                        confirmed == true -> {
-                            formattedTime(timestamp)
-                        }
+                        confirmed == true -> formattedTime(timestamp)
 
                         else -> {
                             // TODO: calculate confirmsIn text
