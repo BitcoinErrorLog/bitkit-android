@@ -23,7 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.utils.bip39Words
 
 @Composable
 fun MnemonicWordsGrid(
@@ -98,12 +97,14 @@ private fun WordItem(
     }
 }
 
+private val previewWords = List(8) { "word${it + 1}" }
+
 @Preview
 @Composable
 private fun Preview() {
     AppThemeSurface {
         MnemonicWordsGrid(
-            actualWords = bip39Words.take(n = 12),
+            actualWords = previewWords,
             showMnemonic = true,
         )
     }
@@ -114,7 +115,7 @@ private fun Preview() {
 private fun PreviewHidden() {
     AppThemeSurface {
         MnemonicWordsGrid(
-            actualWords = bip39Words.take(n = 12),
+            actualWords = previewWords,
             showMnemonic = false,
         )
     }

@@ -155,7 +155,7 @@ fun ActivityDetailScreen(
                             title = context.getString(R.string.wallet__boost_success_title),
                             description = context.getString(R.string.wallet__boost_success_msg)
                         )
-                        listViewModel.fetchLatestActivities()
+                        listViewModel.resync()
                         onCloseClick()
                     },
                     onFailure = {

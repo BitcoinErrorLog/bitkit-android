@@ -36,7 +36,7 @@ import to.bitkit.ui.components.ToastOverlay
 import to.bitkit.ui.onboarding.CreateWalletWithPassphraseScreen
 import to.bitkit.ui.onboarding.IntroScreen
 import to.bitkit.ui.onboarding.OnboardingSlidesScreen
-import to.bitkit.ui.onboarding.RestoreWalletView
+import to.bitkit.ui.onboarding.RestoreWalletScreen
 import to.bitkit.ui.onboarding.TermsOfUseScreen
 import to.bitkit.ui.onboarding.WarningMultipleDevicesScreen
 import to.bitkit.ui.screens.SplashScreen
@@ -151,7 +151,8 @@ class MainActivity : FragmentActivity() {
                     }
                 )
 
-                if (appViewModel.showNewTransaction) {
+                val showNewTransaction by appViewModel.showNewTransaction.collectAsStateWithLifecycle()
+                if (showNewTransaction) {
                     NewTransactionSheet(
                         appViewModel = appViewModel,
                         currencyViewModel = currencyViewModel,
@@ -235,14 +236,12 @@ private fun OnboardingNav(
             )
         }
         composableWithDefaultTransitions<StartupRoutes.Restore> {
-            RestoreWalletView(
+            RestoreWalletScreen(
                 onBackClick = { startupNavController.popBackStack() },
                 onRestoreClick = { mnemonic, passphrase ->
                     scope.launch {
                         runCatching {
                             appViewModel.resetIsAuthenticatedState()
-                            walletViewModel.setInitNodeLifecycleState()
-                            walletViewModel.setRestoringWalletState()
                             walletViewModel.restoreWallet(mnemonic, passphrase)
                         }.onFailure {
                             appViewModel.toast(it)
@@ -258,7 +257,6 @@ private fun OnboardingNav(
                     scope.launch {
                         runCatching {
                             appViewModel.resetIsAuthenticatedState()
-                            walletViewModel.setInitNodeLifecycleState()
                             walletViewModel.createWallet(bip39Passphrase = passphrase)
                         }.onFailure {
                             appViewModel.toast(it)

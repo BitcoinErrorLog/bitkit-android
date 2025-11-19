@@ -28,7 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
 import to.bitkit.env.Env
-import to.bitkit.ext.toLocalizedTimestamp
+import to.bitkit.ext.toRelativeTimeString
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.ui.Routes
@@ -156,13 +156,18 @@ private fun BackupStatusItem(
 ) {
     val status = uiState.status
 
-    val subtitle = when {
-        status.running -> "Running" // TODO add missing localized text
-        !status.isRequired -> stringResource(R.string.settings__backup__status_success)
-            .replace("{time}", status.synced.toLocalizedTimestamp())
+    val timeString = if (status.synced == 0L) {
+        stringResource(R.string.common__never)
+    } else {
+        status.synced.toRelativeTimeString()
+    }
 
+    val subtitle = when {
+        status.running -> stringResource(R.string.settings__backup__status_running)
+        !status.isRequired -> stringResource(R.string.settings__backup__status_success)
+            .replace("{time}", timeString)
         else -> stringResource(R.string.settings__backup__status_failed)
-            .replace("{time}", status.synced.toLocalizedTimestamp())
+            .replace("{time}", timeString)
     }
 
     Row(

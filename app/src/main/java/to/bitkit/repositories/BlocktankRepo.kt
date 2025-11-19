@@ -373,13 +373,14 @@ class BlocktankRepo @Inject constructor(
 
     suspend fun resetState() = withContext(bgDispatcher) {
         _blocktankState.update { BlocktankState() }
+        Logger.debug("Blocktank state reset", context = TAG)
     }
 
-    suspend fun restoreFromBackup(backup: BlocktankBackupV1): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun restoreFromBackup(payload: BlocktankBackupV1): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
-            coreService.blocktank.upsertOrderList(backup.orders)
-            coreService.blocktank.upsertCjitList(backup.cjitEntries)
-            backup.info?.let { info ->
+            coreService.blocktank.upsertOrderList(payload.orders)
+            coreService.blocktank.upsertCjitList(payload.cjitEntries)
+            payload.info?.let { info ->
                 coreService.blocktank.setInfo(info)
             }
 
@@ -388,11 +389,13 @@ class BlocktankRepo @Inject constructor(
 
             _blocktankState.update {
                 it.copy(
-                    orders = backup.orders,
-                    cjitEntries = backup.cjitEntries,
-                    info = backup.info,
+                    orders = payload.orders,
+                    cjitEntries = payload.cjitEntries,
+                    info = payload.info,
                 )
             }
+        }.onSuccess {
+            Logger.debug("Restored ${payload.orders.size} orders, ${payload.cjitEntries.size} CJITs", TAG)
         }
     }
 

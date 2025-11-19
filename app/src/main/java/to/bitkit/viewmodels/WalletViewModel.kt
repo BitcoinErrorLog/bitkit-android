@@ -118,10 +118,6 @@ class WalletViewModel @Inject constructor(
         restoreState = RestoreState.BackupRestoreCompleted
     }
 
-    fun setRestoringWalletState() {
-        restoreState = RestoreState.RestoringWallet
-    }
-
     fun onRestoreContinue() {
         restoreState = RestoreState.NotRestoring
     }
@@ -136,9 +132,7 @@ class WalletViewModel @Inject constructor(
         }
     }
 
-    fun setInitNodeLifecycleState() {
-        lightningRepo.setInitNodeLifecycleState()
-    }
+    fun setInitNodeLifecycleState() = lightningRepo.setInitNodeLifecycleState()
 
     fun start(walletIndex: Int = 0) {
         if (!walletExists) return
@@ -245,6 +239,7 @@ class WalletViewModel @Inject constructor(
     }
 
     suspend fun createWallet(bip39Passphrase: String?) {
+        setInitNodeLifecycleState()
         walletRepo.createWallet(bip39Passphrase)
             .onSuccess {
                 backupRepo.scheduleFullBackup()
@@ -255,9 +250,12 @@ class WalletViewModel @Inject constructor(
     }
 
     suspend fun restoreWallet(mnemonic: String, bip39Passphrase: String?) {
+        setInitNodeLifecycleState()
+        restoreState = RestoreState.RestoringWallet
+
         walletRepo.restoreWallet(
             mnemonic = mnemonic,
-            bip39Passphrase = bip39Passphrase
+            bip39Passphrase = bip39Passphrase,
         ).onFailure { error ->
             ToastEventBus.send(error)
         }

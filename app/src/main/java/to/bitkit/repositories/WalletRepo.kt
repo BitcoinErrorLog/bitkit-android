@@ -18,7 +18,6 @@ import org.lightningdevkit.ldknode.Event
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.backup.VssStoreIdProvider
 import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
@@ -31,6 +30,7 @@ import to.bitkit.models.BalanceState
 import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.usecases.DeriveBalanceStateUseCase
+import to.bitkit.usecases.WipeWalletUseCase
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
@@ -51,8 +51,7 @@ class WalletRepo @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
-    private val vssStoreIdProvider: VssStoreIdProvider,
-    private val backupRepo: BackupRepo,
+    private val wipeWalletUseCase: WipeWalletUseCase,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -238,25 +237,16 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun wipeWallet(walletIndex: Int = 0): Result<Unit> = withContext(bgDispatcher) {
-        try {
-            backupRepo.reset()
+        return@withContext wipeWalletUseCase(
+            walletIndex = walletIndex,
+            resetWalletState = ::resetState,
+            onSuccess = ::setWalletExistsState,
+        )
+    }
 
-            _walletState.update { WalletState() }
-            _balanceState.update { BalanceState() }
-
-            keychain.wipe()
-            db.clearAllTables()
-            settingsStore.reset()
-            cacheStore.reset()
-            // TODO CLEAN ACTIVITY'S AND UPDATE STATE. CHECK ActivityListViewModel.removeAllActivities
-            coreService.activity.removeAll()
-            setWalletExistsState()
-
-            return@withContext lightningRepo.wipeStorage(walletIndex = walletIndex)
-        } catch (e: Throwable) {
-            Logger.error("Wipe wallet error", e)
-            Result.failure(e)
-        }
+    fun resetState() {
+        _walletState.update { WalletState() }
+        _balanceState.update { BalanceState() }
     }
 
     // Blockchain address management

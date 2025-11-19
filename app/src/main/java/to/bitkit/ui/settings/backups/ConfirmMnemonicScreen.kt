@@ -37,7 +37,6 @@ import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.utils.bip39Words
 
 @Composable
 fun ConfirmMnemonicScreen(
@@ -226,7 +225,7 @@ private fun SelectedWordItem(
         BodyMSB(text = "$number.", color = Colors.White64)
         Spacer(modifier = Modifier.width(4.dp))
         BodyMSB(
-            text = if (word.isEmpty()) "" else word,
+            text = word.ifEmpty { "" },
             color = if (word.isEmpty()) Colors.White64 else if (isCorrect) Colors.Green else Colors.Red
         )
     }
@@ -235,7 +234,7 @@ private fun SelectedWordItem(
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
-    val testWords = bip39Words.take(12)
+    val testWords = List(12) { "word${it + 1}" }
     AppThemeSurface {
         ConfirmMnemonicContent(
             originalSeed = testWords,
@@ -253,7 +252,7 @@ private fun Preview() {
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview2() {
-    val testWords = bip39Words.take(12)
+    val testWords = List(12) { "word${it + 1}" }
     val half = testWords.size / 2
     AppThemeSurface {
         ConfirmMnemonicContent(
@@ -272,7 +271,7 @@ private fun Preview2() {
 @Preview(showSystemUi = true)
 @Composable
 private fun Preview24Words() {
-    val testWords = bip39Words.take(24)
+    val testWords = List(24) { "word${it + 1}" }
     val half = testWords.size / 2
     AppThemeSurface {
         ConfirmMnemonicContent(

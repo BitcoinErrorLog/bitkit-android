@@ -647,7 +647,7 @@ private fun PreviewWithSelection() {
         BottomSheetPreview {
             Content(
                 initialStartDate = Clock.System.now()
-                    .minus(CalendarConstants.PREVIEW_DAYS_AGO.days)
+                    .minus(CalendarConstants.DAYS_IN_WEEK.days)
                     .toEpochMilliseconds(),
                 initialEndDate = Clock.System.now().toEpochMilliseconds(),
             )
