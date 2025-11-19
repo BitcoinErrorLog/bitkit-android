@@ -31,6 +31,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass")
 class ActivityRepoTest : BaseUnitTest() {
 
     private val coreService = mock<CoreService>()
@@ -76,6 +77,7 @@ class ActivityRepoTest : BaseUnitTest() {
         updatedAt = null
     )
 
+    @Suppress("LongParameterList")
     private fun createOnchainActivity(
         id: String = baseOnchainActivity.id,
         txId: String = baseOnchainActivity.txId,
@@ -860,5 +862,4 @@ class ActivityRepoTest : BaseUnitTest() {
         // Verify it was added to pending delete when marking failed
         verify(cacheStore).addActivityToPendingDelete(activityToDeleteId)
     }
-
 }
