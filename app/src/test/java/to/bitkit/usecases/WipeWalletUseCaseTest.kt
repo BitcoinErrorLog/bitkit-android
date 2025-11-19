@@ -11,6 +11,7 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.WidgetsStore
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BackupRepo
@@ -28,6 +29,7 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
     private val db = mock<AppDb>()
     private val settingsStore = mock<SettingsStore>()
     private val cacheStore = mock<CacheStore>()
+    private val widgetsStore = mock<WidgetsStore>()
     private val blocktankRepo = mock<BlocktankRepo>()
     private val activityRepo = mock<ActivityRepo>()
     private val lightningRepo = mock<LightningRepo>()
@@ -50,6 +52,7 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
             db = db,
             settingsStore = settingsStore,
             cacheStore = cacheStore,
+            widgetsStore = widgetsStore,
             blocktankRepo = blocktankRepo,
             activityRepo = activityRepo,
             lightningRepo = lightningRepo,
@@ -71,6 +74,7 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
             db,
             settingsStore,
             cacheStore,
+            widgetsStore,
             blocktankRepo,
             activityRepo,
             lightningRepo
@@ -82,6 +86,7 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
         inOrder.verify(db).clearAllTables()
         inOrder.verify(settingsStore).reset()
         inOrder.verify(cacheStore).reset()
+        inOrder.verify(widgetsStore).reset()
         inOrder.verify(blocktankRepo).resetState()
         inOrder.verify(activityRepo).resetState()
         assertTrue(onWipeCalled)

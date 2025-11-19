@@ -3,6 +3,7 @@ package to.bitkit.usecases
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
+import to.bitkit.data.WidgetsStore
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BackupRepo
@@ -22,6 +23,7 @@ class WipeWalletUseCase @Inject constructor(
     private val db: AppDb,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
+    private val widgetsStore: WidgetsStore,
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
     private val lightningRepo: LightningRepo,
@@ -40,8 +42,10 @@ class WipeWalletUseCase @Inject constructor(
 
             coreService.wipeData()
             db.clearAllTables()
+
             settingsStore.reset()
             cacheStore.reset()
+            widgetsStore.reset()
 
             blocktankRepo.resetState()
             activityRepo.resetState()
