@@ -50,6 +50,9 @@ class GiftViewModel @Inject constructor(
     private var isClaiming: Boolean = false
 
     fun initialize(code: String, amount: ULong) {
+        require(code.isNotBlank()) { "Gift code cannot be blank" }
+        require(amount > 0u) { "Gift amount must be positive" }
+
         if (!isClaiming) {
             viewModelScope.launch {
                 _navigationEvent.emit(GiftRoute.Loading)
