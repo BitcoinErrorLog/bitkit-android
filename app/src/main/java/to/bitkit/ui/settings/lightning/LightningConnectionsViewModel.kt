@@ -21,6 +21,7 @@ import org.lightningdevkit.ldknode.OutPoint
 import to.bitkit.R
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.amountOnClose
+import to.bitkit.ext.calculateRemoteBalance
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.filterPending
@@ -82,7 +83,7 @@ class LightningConnectionsViewModel @Inject constructor(
                         .map { it.mapToUiModel() },
                     failedOrders = getFailedOrdersAsChannels(blocktankState.paidOrders).map { it.mapToUiModel() },
                     localBalance = calculateLocalBalance(channels),
-                    remoteBalance = calculateRemoteBalance(channels),
+                    remoteBalance = channels.calculateRemoteBalance(),
                 )
             }.collect { newState ->
                 _uiState.update { newState }
@@ -261,12 +262,6 @@ class LightningConnectionsViewModel @Inject constructor(
         return channels
             .filterOpen()
             .sumOf { it.amountOnClose }
-    }
-
-    private fun calculateRemoteBalance(channels: List<ChannelDetails>): ULong {
-        return channels
-            .filterOpen()
-            .sumOf { it.inboundCapacityMsat / 1000u }
     }
 
     fun zipLogsForSharing(onReady: (Uri) -> Unit) {

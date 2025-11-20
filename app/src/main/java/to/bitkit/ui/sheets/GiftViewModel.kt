@@ -14,23 +14,25 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import to.bitkit.async.ServiceQueue
 import to.bitkit.di.BgDispatcher
+import to.bitkit.ext.calculateRemoteBalance
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
-import to.bitkit.services.CoreService
 import to.bitkit.services.LightningService
 import to.bitkit.utils.Logger
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class GiftViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningRepo: LightningRepo,
     private val lightningService: LightningService,
-    private val coreService: CoreService,
     private val blocktankRepo: BlocktankRepo,
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
 
     private val _navigationEvent = MutableSharedFlow<GiftRoute>(extraBufferCapacity = 1)
@@ -62,10 +64,17 @@ class GiftViewModel @Inject constructor(
 
         isClaiming = true
         runCatching {
-            waitForPeers()
+            lightningRepo.executeWhenNodeRunning(
+                operationName = "waitForNodeRunning",
+                waitTimeout = NODE_STARTUP_TIMEOUT_MS.milliseconds,
+            ) {
+                Result.success(Unit)
+            }.getOrThrow()
+
+            delay(PEER_CONNECTION_DELAY_MS)
 
             val channels = lightningRepo.lightningState.value.channels
-            val maxInboundCapacity = channels.sumOf { it.inboundCapacityMsat / 1000u }
+            val maxInboundCapacity = channels.calculateRemoteBalance()
 
             if (maxInboundCapacity >= amount) {
                 claimWithLiquidity()
@@ -76,22 +85,6 @@ class GiftViewModel @Inject constructor(
             isClaiming = false
             handleGiftClaimError(e)
         }
-    }
-
-    private suspend fun waitForPeers() {
-        val nodeLifecycleState = lightningRepo.lightningState.value.nodeLifecycleState
-        if (!nodeLifecycleState.isRunning()) {
-            val startTime = System.currentTimeMillis()
-            while (!lightningRepo.lightningState.value.nodeLifecycleState.isRunning()) {
-                if (System.currentTimeMillis() - startTime > NODE_STARTUP_TIMEOUT_MS) {
-                    Logger.warn("Timeout waiting for node to be running", context = TAG)
-                    error("Timeout waiting for node to be running")
-                }
-                delay(NODE_STATE_CHECK_INTERVAL_MS)
-            }
-        }
-
-        delay(PEER_CONNECTION_DELAY_MS)
     }
 
     private suspend fun claimWithLiquidity() {
@@ -144,7 +137,7 @@ class GiftViewModel @Inject constructor(
                 updatedAt = null,
             )
 
-            coreService.activity.insert(Activity.Lightning(lightningActivity))
+            activityRepo.insertActivity(Activity.Lightning(lightningActivity)).getOrThrow()
 
             isClaiming = false
             _successEvent.emit(
@@ -190,6 +183,5 @@ class GiftViewModel @Inject constructor(
         private const val TAG = "GiftViewModel"
         private const val NODE_STARTUP_TIMEOUT_MS = 30_000L
         private const val PEER_CONNECTION_DELAY_MS = 2_000L
-        private const val NODE_STATE_CHECK_INTERVAL_MS = 500L
     }
 }

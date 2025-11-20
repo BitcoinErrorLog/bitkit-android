@@ -3,7 +3,6 @@ package to.bitkit.ui.sheets
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -24,6 +23,7 @@ import to.bitkit.models.formatToModernDisplay
 import to.bitkit.ui.LocalCurrencies
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.MoneySSB
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.VerticalSpacer
@@ -127,7 +127,7 @@ private fun Content(
             color = Colors.White64,
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        FillHeight()
 
         Image(
             painter = painterResource(R.drawable.gift),
