@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import to.bitkit.async.ServiceQueue
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.calculateRemoteBalance
@@ -44,6 +45,8 @@ class GiftViewModel @Inject constructor(
     private var code: String = ""
     var amount: ULong = 0uL
         private set
+
+    @Volatile
     private var isClaiming: Boolean = false
 
     fun initialize(code: String, amount: ULong) {
@@ -54,16 +57,17 @@ class GiftViewModel @Inject constructor(
         }
         this.code = code
         this.amount = amount
-        claimGift()
+        viewModelScope.launch(bgDispatcher) {
+            claimGift()
+        }
     }
 
-    private fun claimGift() = viewModelScope.launch(bgDispatcher) {
-        if (isClaiming) {
-            return@launch
-        }
-
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun claimGift() = withContext(bgDispatcher) {
+        if (isClaiming) return@withContext
         isClaiming = true
-        runCatching {
+
+        try {
             lightningRepo.executeWhenNodeRunning(
                 operationName = "waitForNodeRunning",
                 waitTimeout = NODE_STARTUP_TIMEOUT_MS.milliseconds,
@@ -81,9 +85,10 @@ class GiftViewModel @Inject constructor(
             } else {
                 claimWithoutLiquidity()
             }
-        }.onFailure { e ->
-            isClaiming = false
+        } catch (e: Exception) {
             handleGiftClaimError(e)
+        } finally {
+            isClaiming = false
         }
     }
 
@@ -99,10 +104,8 @@ class GiftViewModel @Inject constructor(
                 giftPay(invoice = invoice)
             }
 
-            isClaiming = false
             _navigationEvent.emit(GiftRoute.Success)
         }.onFailure { e ->
-            isClaiming = false
             handleGiftClaimError(e)
         }
     }
@@ -139,7 +142,6 @@ class GiftViewModel @Inject constructor(
 
             activityRepo.insertActivity(Activity.Lightning(lightningActivity)).getOrThrow()
 
-            isClaiming = false
             _successEvent.emit(
                 NewTransactionSheetDetails(
                     type = NewTransactionSheetType.LIGHTNING,
@@ -150,7 +152,6 @@ class GiftViewModel @Inject constructor(
             )
             _navigationEvent.emit(GiftRoute.Success)
         }.onFailure { e ->
-            isClaiming = false
             handleGiftClaimError(e)
         }
     }
