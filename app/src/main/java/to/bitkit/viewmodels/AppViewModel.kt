@@ -533,6 +533,7 @@ class AppViewModel @Inject constructor(
             is Scanner.LnurlAuth -> onScanLnurlAuth(scan.data)
             is Scanner.LnurlChannel -> onScanLnurlChannel(scan.data)
             is Scanner.NodeId -> onScanNodeId(scan)
+            is Scanner.Gift -> onScanGift(scan.code, scan.amount)
             else -> {
                 Logger.warn("Unhandled scan data: $scan", context = TAG)
                 toast(
@@ -802,6 +803,11 @@ class AppViewModel @Inject constructor(
         hideSheet() // hide scan sheet if opened
         val nextRoute = Routes.ExternalConnection(data.url)
         mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
+    }
+
+    private fun onScanGift(code: String, amount: ULong) {
+        hideSheet() // hide scan sheet if opened
+        showSheet(Sheet.Gift(code = code, amount = amount))
     }
 
     private suspend fun handleQuickPayIfApplicable(

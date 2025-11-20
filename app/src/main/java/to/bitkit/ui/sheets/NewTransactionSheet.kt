@@ -140,7 +140,7 @@ fun NewTransactionSheetView(
             val titleText = when (details.type) {
                 NewTransactionSheetType.LIGHTNING -> when (details.direction) {
                     NewTransactionSheetDirection.SENT -> stringResource(R.string.wallet__send_sent)
-                    else -> stringResource(R.string.wallet__payment_received)
+                    else -> stringResource(R.string.wallet__instant_payment_received)
                 }
 
                 NewTransactionSheetType.ONCHAIN -> when (details.direction) {
