@@ -116,13 +116,6 @@ fun ActivityExploreScreen(
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 context.startActivity(intent)
             },
-            onClickParent = { id ->
-                app.toast(
-                    type = Toast.ToastType.WARNING,
-                    title = "TODO",
-                    description = "Navigate to Activity Detail for: $id",
-                )
-            },
         )
     }
 }
@@ -133,7 +126,6 @@ private fun ActivityExploreContent(
     txDetails: TxDetails? = null,
     onCopy: (String) -> Unit = {},
     onClickExplore: (String) -> Unit = {},
-    onClickParent: (String) -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -164,7 +156,6 @@ private fun ActivityExploreContent(
                     onchain = item,
                     onCopy = onCopy,
                     txDetails = txDetails,
-                    onClickParent = onClickParent,
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 PrimaryButton(
@@ -226,7 +217,6 @@ private fun ColumnScope.OnchainDetails(
     onchain: Activity.Onchain,
     onCopy: (String) -> Unit,
     txDetails: TxDetails?,
-    onClickParent: (String) -> Unit,
 ) {
     val txId = onchain.v1.txId
     Section(
@@ -271,29 +261,33 @@ private fun ColumnScope.OnchainDetails(
                 .size(16.dp)
                 .align(Alignment.CenterHorizontally)
         )
-    } // TODO use real boosted parents from bitkit-core/ldk-node when available
-    val boostedParents = listOfNotNull(
-        "todo_first_parent_txid".takeIf { onchain.isBoosted() && !onchain.v1.confirmed },
-        "todo_second_parent_txid".takeIf { onchain.isBoosted() && onchain.v1.confirmed },
-    )
+    }
 
-    boostedParents.forEachIndexed { index, parent ->
+    // Display boosted transaction IDs from boostTxIds
+    // For CPFP (RECEIVED): shows child transaction IDs that boosted this parent
+    // For RBF (SENT): shows parent transaction IDs that this replacement replaced
+    val boostTxIds = onchain.v1.boostTxIds
+    if (boostTxIds.isNotEmpty()) {
         val isRbf = onchain.boostType() == BoostType.RBF
-        Section(
-            title = stringResource(
-                if (isRbf) R.string.wallet__activity_boosted_rbf else R.string.wallet__activity_boosted_cpfp
-            ).replace("{num}", "${index + 1}"),
-            valueContent = {
-                Column {
-                    BodySSB(text = parent, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
-                }
-            },
-            modifier = Modifier
-                .clickableAlpha {
-                    onClickParent(parent)
-                }
-                .testTag(if (isRbf) "RBFBoosted" else "CPFPBoosted")
-        )
+        boostTxIds.forEachIndexed { index, boostedTxId ->
+            Section(
+                title = stringResource(
+                    if (isRbf) R.string.wallet__activity_boosted_rbf else R.string.wallet__activity_boosted_cpfp
+                ).replace("{num}", "${index + 1}"),
+                valueContent = {
+                    Column {
+                        BodySSB(text = boostedTxId, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                    }
+                },
+                modifier = Modifier
+                    .clickableAlpha(
+                        onClick = copyToClipboard(boostedTxId) {
+                            onCopy(it)
+                        }
+                    )
+                    .testTag(if (isRbf) "RBFBoosted" else "CPFPBoosted")
+            )
+        }
     }
 }
 

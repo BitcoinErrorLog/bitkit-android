@@ -43,8 +43,8 @@ import javax.inject.Singleton
 
 private const val SYNC_TIMEOUT_MS = 40_000L
 
-@Suppress("LongParameterList")
 @Singleton
+@Suppress("LargeClass", "LongParameterList")
 class ActivityRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
@@ -248,7 +248,8 @@ class ActivityRepo @Inject constructor(
     }
 
     /**
-     * Updates an activity and delete other one. In case of failure in the update or deletion, the data will be cached
+     * Updates an activity and marks the old one as removed from mempool (for RBF).
+     * In case of failure in the update or marking as removed, the data will be cached
      * to try again on the next sync
      */
     suspend fun replaceActivity(
@@ -262,21 +263,23 @@ class ActivityRepo @Inject constructor(
         ).fold(
             onSuccess = {
                 Logger.debug(
-                    "Activity $id updated with success. new data: $activity. Deleting activity $activityIdToDelete",
+                    "Activity $id updated with success. new data: $activity. " +
+                        "Marking activity $activityIdToDelete as removed from mempool",
                     context = TAG
                 )
 
                 val tags = coreService.activity.tags(activityIdToDelete)
                 addTagsToActivity(activityId = id, tags = tags)
 
-                deleteActivity(activityIdToDelete).onFailure { e ->
+                markActivityAsRemovedFromMempool(activityIdToDelete).onFailure { e ->
                     Logger.warn(
-                        "Failed to delete $activityIdToDelete caching to retry on next sync",
+                        "Failed to mark $activityIdToDelete as removed from mempool, caching to retry on next sync",
                         e = e,
                         context = TAG
                     )
                     cacheStore.addActivityToPendingDelete(activityId = activityIdToDelete)
                 }
+                Result.success(Unit)
             },
             onFailure = { e ->
                 Logger.error(
@@ -293,7 +296,7 @@ class ActivityRepo @Inject constructor(
     private suspend fun deletePendingActivities() = withContext(bgDispatcher) {
         cacheStore.data.first().activitiesPendingDelete.map { activityId ->
             async {
-                deleteActivity(id = activityId).onSuccess {
+                markActivityAsRemovedFromMempool(activityId).onSuccess {
                     cacheStore.removeActivityFromPendingDelete(activityId)
                 }
             }
@@ -434,9 +437,16 @@ class ActivityRepo @Inject constructor(
                         return@onSuccess
                     }
 
+                    val updatedBoostTxIds = if (pendingBoostActivity.parentTxId != null) {
+                        newOnChainActivity.v1.boostTxIds + pendingBoostActivity.parentTxId
+                    } else {
+                        newOnChainActivity.v1.boostTxIds
+                    }
+
                     val updatedActivity = Activity.Onchain(
                         v1 = newOnChainActivity.v1.copy(
                             isBoosted = true,
+                            boostTxIds = updatedBoostTxIds,
                             updatedAt = pendingBoostActivity.updatedAt
                         )
                     )
@@ -460,6 +470,32 @@ class ActivityRepo @Inject constructor(
                 }
             }
         }.awaitAll()
+    }
+
+    /**
+     * Marks an activity as removed from mempool (sets doesExist = false).
+     * Used for RBFed transactions that are replaced.
+     */
+    private suspend fun markActivityAsRemovedFromMempool(activityId: String): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            val existingActivity = getActivity(activityId).getOrNull()
+                ?: return@withContext Result.failure(Exception("Activity $activityId not found"))
+
+            if (existingActivity is Activity.Onchain) {
+                val updatedActivity = Activity.Onchain(
+                    v1 = existingActivity.v1.copy(
+                        doesExist = false,
+                        updatedAt = nowTimestamp().toEpochMilli().toULong()
+                    )
+                )
+                updateActivity(id = activityId, activity = updatedActivity, forceUpdate = true).getOrThrow()
+                notifyActivitiesChanged()
+            } else {
+                return@withContext Result.failure(Exception("Activity $activityId is not an onchain activity"))
+            }
+        }.onFailure { e ->
+            Logger.error("markActivityAsRemovedFromMempool error for ID: $activityId", e, context = TAG)
+        }
     }
 
     /**

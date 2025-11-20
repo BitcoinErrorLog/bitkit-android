@@ -60,6 +60,8 @@ fun Activity.matchesPaymentId(paymentHashOrTxId: String): Boolean = when (this) 
 
 fun Activity.isTransfer() = this is Activity.Onchain && this.v1.isTransfer
 
+fun Activity.doesExist() = this is Activity.Onchain && this.v1.doesExist
+
 fun Activity.Onchain.boostType() = when (this.v1.txType) {
     PaymentType.SENT -> BoostType.RBF
     PaymentType.RECEIVED -> BoostType.CPFP

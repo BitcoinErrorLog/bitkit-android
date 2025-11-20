@@ -583,6 +583,7 @@ private fun StatusSection(item: Activity) {
                         statusIcon = painterResource(R.drawable.ic_x)
                         statusColor = Colors.Red
                         statusText = stringResource(R.string.wallet__activity_removed)
+                        statusTestTag = "StatusRemoved"
                     }
 
                     StatusRow(statusIcon, statusText, statusColor, statusTestTag)

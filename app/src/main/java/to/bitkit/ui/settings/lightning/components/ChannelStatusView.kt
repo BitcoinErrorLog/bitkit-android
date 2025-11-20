@@ -32,12 +32,13 @@ import to.bitkit.ui.theme.Colors
 fun ChannelStatusView(
     channel: ChannelUi,
     blocktankOrder: IBtOrder?,
+    isClosedChannel: Boolean = false,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
-        val statusInfo = getStatusInfo(channel, blocktankOrder)
+        val statusInfo = getStatusInfo(channel, blocktankOrder, isClosedChannel)
 
         Box(
             contentAlignment = Alignment.Center,
@@ -64,7 +65,19 @@ fun ChannelStatusView(
 private fun getStatusInfo(
     channel: ChannelUi,
     blocktankOrder: IBtOrder?,
+    isClosedChannel: Boolean = false,
 ): StatusInfo {
+    // Check if it's a closed channel first
+    if (isClosedChannel) {
+        return StatusInfo(
+            iconRes = R.drawable.ic_lightning,
+            backgroundColor = Colors.White10,
+            iconColor = Colors.White64,
+            statusText = stringResource(R.string.lightning__order_state__closed),
+            statusColor = Colors.White64
+        )
+    }
+
     // Use open/closed status from LDK if available
     when {
         // open
@@ -88,18 +101,6 @@ private fun getStatusInfo(
                 statusColor = Colors.Yellow,
             )
         }
-
-        // closed
-        // TODO: handle closed channels marking & detection
-        // else -> {
-        //     return StatusInfo(
-        //         iconRes = R.drawable.ic_lightning,
-        //         backgroundColor = Colors.White10,
-        //         iconColor = Colors.White64,
-        //         statusText = stringResource(R.string.lightning__order_state__closed),
-        //         statusColor = Colors.White64,
-        //     )
-        // }
     }
 
     blocktankOrder?.let { order ->
@@ -179,24 +180,12 @@ private fun getStatusInfo(
     }
 
     // fallback for pending channels without order
-    if (!channel.details.isChannelReady) {
-        return StatusInfo(
-            iconRes = R.drawable.ic_hourglass_simple,
-            backgroundColor = Colors.Purple16,
-            iconColor = Colors.Purple,
-            statusText = stringResource(R.string.lightning__order_state__opening),
-            statusColor = Colors.Purple
-        )
-    }
-
-    // closed
-    // TODO: handle closed channels marking & detection
     return StatusInfo(
-        iconRes = R.drawable.ic_lightning,
-        backgroundColor = Colors.White10,
-        iconColor = Colors.White64,
-        statusText = stringResource(R.string.lightning__order_state__closed),
-        statusColor = Colors.White64
+        iconRes = R.drawable.ic_hourglass_simple,
+        backgroundColor = Colors.Purple16,
+        iconColor = Colors.Purple,
+        statusText = stringResource(R.string.lightning__order_state__opening),
+        statusColor = Colors.Purple
     )
 }
 

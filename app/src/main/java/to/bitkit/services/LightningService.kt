@@ -57,6 +57,7 @@ import kotlin.time.Duration.Companion.seconds
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
+@Suppress("LargeClass")
 @Singleton
 class LightningService @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
@@ -225,6 +226,7 @@ class LightningService @Inject constructor(
             node.syncWallets()
             // launch { setMaxDustHtlcExposureForCurrentChannels() }
         }
+
         Logger.debug("LDK synced")
     }
 
@@ -753,7 +755,7 @@ class LightningService @Inject constructor(
                 val channelId = event.channelId
                 val userChannelId = event.userChannelId
                 val counterpartyNodeId = event.counterpartyNodeId ?: "?"
-                val reason = event.reason
+                val reason = event.reason?.toString() ?: ""
                 Logger.info(
                     "⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason"
                 )

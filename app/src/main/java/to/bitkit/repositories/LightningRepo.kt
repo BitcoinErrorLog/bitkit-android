@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
 import com.synonym.bitkitcore.Scanner
@@ -27,6 +28,7 @@ import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
+import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
@@ -57,6 +59,7 @@ import to.bitkit.services.NodeEventHandler
 import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -84,6 +87,8 @@ class LightningRepo @Inject constructor(
     private var cachedEventHandler: NodeEventHandler? = null
     private val _isRecoveryMode = MutableStateFlow(false)
     val isRecoveryMode = _isRecoveryMode.asStateFlow()
+
+    private val channelCache = ConcurrentHashMap<String, ChannelDetails>()
 
     /**
      * Executes the provided operation only if the node is running.
@@ -203,12 +208,16 @@ class LightningRepo @Inject constructor(
             if (getStatus()?.isRunning == true) {
                 Logger.info("LDK node already running", context = TAG)
                 _lightningState.update { it.copy(nodeLifecycleState = NodeLifecycleState.Running) }
-                lightningService.listenForEvents(onEvent = eventHandler)
+                lightningService.listenForEvents(onEvent = { event ->
+                    handleLdkEvent(event)
+                    eventHandler?.invoke(event)
+                })
                 return@withContext Result.success(Unit)
             }
 
             // Start the node service
             lightningService.start(timeout) { event ->
+                handleLdkEvent(event)
                 eventHandler?.invoke(event)
                 ldkNodeEventBus.emit(event)
             }
@@ -220,6 +229,7 @@ class LightningRepo @Inject constructor(
             // Initial state sync
             syncState()
             updateGeoBlockState()
+            refreshChannelCache()
 
             // Perform post-startup tasks
             connectToTrustedPeers().onFailure { e ->
@@ -296,10 +306,94 @@ class LightningRepo @Inject constructor(
 
         _lightningState.update { it.copy(isSyncingWallet = true) }
         lightningService.sync()
+        refreshChannelCache()
         syncState()
         _lightningState.update { it.copy(isSyncingWallet = false) }
 
         Result.success(Unit)
+    }
+
+    private suspend fun refreshChannelCache() = withContext(bgDispatcher) {
+        val channels = lightningService.channels ?: return@withContext
+        channels.forEach { channel ->
+            channelCache[channel.channelId] = channel
+        }
+    }
+
+    private fun handleLdkEvent(event: Event) {
+        when (event) {
+            is Event.ChannelPending -> {
+                scope.launch {
+                    refreshChannelCache()
+                }
+            }
+            is Event.ChannelReady -> {
+                scope.launch {
+                    refreshChannelCache()
+                }
+            }
+            is Event.ChannelClosed -> {
+                val channelId = event.channelId
+                val reason = event.reason?.toString() ?: ""
+                scope.launch {
+                    registerClosedChannel(channelId, reason)
+                }
+            }
+            else -> {
+                // Other events don't need special handling
+            }
+        }
+    }
+
+    private suspend fun registerClosedChannel(channelId: String, reason: String?) = withContext(bgDispatcher) {
+        try {
+            val channel = channelCache[channelId] ?: run {
+                Logger.error(
+                    "Could not find channel details for closed channel: channelId=$channelId",
+                    context = TAG
+                )
+                return@withContext
+            }
+
+            val fundingTxo = channel.fundingTxo
+            if (fundingTxo == null) {
+                Logger.error(
+                    "Channel has no funding transaction, cannot persist closed channel: channelId=$channelId",
+                    context = TAG
+                )
+                return@withContext
+            }
+
+            val channelName = channel.inboundScidAlias?.toString()
+                ?: channel.channelId.take(CHANNEL_ID_PREVIEW_LENGTH) + "…"
+
+            val closedAt = (System.currentTimeMillis() / 1000L).toULong()
+
+            val closedChannel = ClosedChannelDetails(
+                channelId = channel.channelId,
+                counterpartyNodeId = channel.counterpartyNodeId,
+                fundingTxoTxid = fundingTxo.txid,
+                fundingTxoIndex = fundingTxo.vout,
+                channelValueSats = channel.channelValueSats,
+                closedAt = closedAt,
+                outboundCapacityMsat = channel.outboundCapacityMsat,
+                inboundCapacityMsat = channel.inboundCapacityMsat,
+                counterpartyUnspendablePunishmentReserve = channel.counterpartyUnspendablePunishmentReserve,
+                unspendablePunishmentReserve = channel.unspendablePunishmentReserve ?: 0u,
+                forwardingFeeProportionalMillionths = channel.config.forwardingFeeProportionalMillionths,
+                forwardingFeeBaseMsat = channel.config.forwardingFeeBaseMsat,
+                channelName = channelName,
+                channelClosureReason = reason.orEmpty()
+            )
+
+            coreService.activity.upsertClosedChannelList(listOf(closedChannel))
+
+            channelCache.remove(channelId)
+
+            Logger.info("Registered closed channel: ${channel.userChannelId}", context = TAG)
+        } catch (e: Throwable) {
+            Logger.error("Failed to register closed channel: $e", e, context = TAG)
+        }
     }
 
     suspend fun wipeStorage(walletIndex: Int): Result<Unit> = withContext(bgDispatcher) {
@@ -867,6 +961,7 @@ class LightningRepo @Inject constructor(
     companion object {
         private const val TAG = "LightningRepo"
         private const val SYNC_TIMEOUT_MS = 20_000L
+        private const val CHANNEL_ID_PREVIEW_LENGTH = 10
     }
 }
 
