@@ -67,9 +67,11 @@ import to.bitkit.data.CacheStore
 import to.bitkit.env.Env
 import to.bitkit.ext.amountSats
 import to.bitkit.models.toCoreNetwork
+import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import to.bitkit.utils.TxDetails
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -81,10 +83,18 @@ class CoreService @Inject constructor(
     private val lightningService: LightningService,
     private val httpClient: HttpClient,
     private val cacheStore: CacheStore,
+    private val addressChecker: AddressChecker,
 ) {
     private var walletIndex: Int = 0
 
-    val activity: ActivityService by lazy { ActivityService(coreService = this, cacheStore = cacheStore) }
+    val activity: ActivityService by lazy {
+        ActivityService(
+            coreService = this,
+            cacheStore = cacheStore,
+            addressChecker = addressChecker,
+            lightningService = lightningService
+        )
+    }
     val blocktank: BlocktankService by lazy {
         BlocktankService(
             coreService = this,
@@ -192,6 +202,8 @@ private const val CHUNK_SIZE = 50
 class ActivityService(
     @Suppress("unused") private val coreService: CoreService, // used to ensure CoreService inits first
     private val cacheStore: CacheStore,
+    private val addressChecker: AddressChecker,
+    private val lightningService: LightningService,
 ) {
     suspend fun removeAll() {
         ServiceQueue.CORE.background {
@@ -308,6 +320,33 @@ class ActivityService(
         com.synonym.bitkitcore.upsertPreActivityMetadata(list)
     }
 
+    suspend fun addPreActivityMetadata(preActivityMetadata: PreActivityMetadata) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.addPreActivityMetadata(preActivityMetadata = preActivityMetadata)
+    }
+
+    suspend fun addPreActivityMetadataTags(paymentId: String, tags: List<String>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.addPreActivityMetadataTags(paymentId = paymentId, tags = tags)
+    }
+
+    suspend fun removePreActivityMetadataTags(paymentId: String, tags: List<String>) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.removePreActivityMetadataTags(paymentId = paymentId, tags = tags)
+    }
+
+    suspend fun resetPreActivityMetadataTags(paymentId: String) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.resetPreActivityMetadataTags(paymentId = paymentId)
+    }
+
+    suspend fun getPreActivityMetadata(
+        searchKey: String,
+        searchByAddress: Boolean = false,
+    ): PreActivityMetadata? = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.getPreActivityMetadata(searchKey = searchKey, searchByAddress = searchByAddress)
+    }
+
+    suspend fun deletePreActivityMetadata(paymentId: String) = ServiceQueue.CORE.background {
+        com.synonym.bitkitcore.deletePreActivityMetadata(paymentId = paymentId)
+    }
+
     suspend fun upsertClosedChannelList(closedChannels: List<ClosedChannelDetails>) = ServiceQueue.CORE.background {
         upsertClosedChannels(closedChannels)
     }
@@ -330,8 +369,13 @@ class ActivityService(
      *
      * @param payments The list of `PaymentDetails` from the LDK node to be processed.
      * @param forceUpdate If true, it will also update activities previously marked as deleted.
+     * @param channelIdsByTxId Map of transaction IDs to channel IDs for identifying transfer activities.
      */
-    suspend fun syncLdkNodePaymentsToActivities(payments: List<PaymentDetails>, forceUpdate: Boolean = false) {
+    suspend fun syncLdkNodePaymentsToActivities(
+        payments: List<PaymentDetails>,
+        forceUpdate: Boolean = false,
+        channelIdsByTxId: Map<String, String> = emptyMap(),
+    ) {
         ServiceQueue.CORE.background {
             val allResults = mutableListOf<Result<String>>()
 
@@ -339,7 +383,7 @@ class ActivityService(
                 val results = chunk.map { payment ->
                     async {
                         runCatching {
-                            processSinglePayment(payment, forceUpdate)
+                            processSinglePayment(payment, forceUpdate, channelIdsByTxId)
                             payment.id
                         }.onFailure { e ->
                             Logger.error("Error syncing payment with id: ${payment.id}:", e, context = TAG)
@@ -356,7 +400,11 @@ class ActivityService(
         }
     }
 
-    private suspend fun processSinglePayment(payment: PaymentDetails, forceUpdate: Boolean) {
+    private suspend fun processSinglePayment(
+        payment: PaymentDetails,
+        forceUpdate: Boolean,
+        channelIdsByTxId: Map<String, String>,
+    ) {
         val state = when (payment.status) {
             PaymentStatus.FAILED -> PaymentState.FAILED
             PaymentStatus.PENDING -> PaymentState.PENDING
@@ -365,7 +413,13 @@ class ActivityService(
 
         when (val kind = payment.kind) {
             is PaymentKind.Onchain -> {
-                processOnchainPayment(kind = kind, payment = payment, forceUpdate = forceUpdate)
+                val channelId = channelIdsByTxId[kind.txid]
+                processOnchainPayment(
+                    kind = kind,
+                    payment = payment,
+                    forceUpdate = forceUpdate,
+                    channelId = channelId,
+                )
             }
 
             is PaymentKind.Bolt11 -> {
@@ -425,11 +479,53 @@ class ActivityService(
         }
     }
 
-    private suspend fun processOnchainPayment(
+    /**
+     * Check pre-activity metadata for addresses in the transaction
+     * Returns the first address found in pre-activity metadata that matches a transaction output
+     */
+    private suspend fun findAddressInPreActivityMetadata(txDetails: TxDetails): String? {
+        for (output in txDetails.vout) {
+            val address = output.scriptpubkey_address ?: continue
+            val metadata = coreService.activity.getPreActivityMetadata(searchKey = address, searchByAddress = true)
+            if (metadata != null && metadata.isReceive) {
+                return address
+            }
+        }
+        return null
+    }
+
+    private suspend fun resolveAddressForInboundPayment(
         kind: PaymentKind.Onchain,
+        existingActivity: Activity?,
         payment: PaymentDetails,
-        forceUpdate: Boolean,
-    ) {
+    ): String? {
+        if (existingActivity != null || payment.direction != PaymentDirection.INBOUND) {
+            return null
+        }
+
+        return try {
+            val txDetails = addressChecker.getTransaction(kind.txid)
+            findAddressInPreActivityMetadata(txDetails)
+        } catch (e: Exception) {
+            Logger.verbose(
+                "Failed to get transaction details for address lookup: ${kind.txid}",
+                e,
+                context = TAG
+            )
+            null
+        }
+    }
+
+    private data class ConfirmationData(
+        val isConfirmed: Boolean,
+        val confirmedTimestamp: ULong?,
+        val timestamp: ULong,
+    )
+
+    private suspend fun getConfirmationStatus(
+        kind: PaymentKind.Onchain,
+        timestamp: ULong,
+    ): ConfirmationData {
         var isConfirmed = false
         var confirmedTimestamp: ULong? = null
 
@@ -439,12 +535,85 @@ class ActivityService(
             confirmedTimestamp = status.timestamp
         }
 
-        // Ensure confirmTimestamp is at least equal to timestamp when confirmed
-        val timestamp = payment.latestUpdateTimestamp
-
         if (isConfirmed && confirmedTimestamp != null && confirmedTimestamp < timestamp) {
             confirmedTimestamp = timestamp
         }
+
+        return ConfirmationData(isConfirmed, confirmedTimestamp, timestamp)
+    }
+
+    private suspend fun buildUpdatedOnchainActivity(
+        existingActivity: Activity.Onchain,
+        confirmationData: ConfirmationData,
+        txid: String,
+        channelId: String? = null,
+    ): OnchainActivity {
+        val wasRemoved = !existingActivity.v1.doesExist
+        val shouldRestore = wasRemoved && confirmationData.isConfirmed
+
+        var preservedIsTransfer = existingActivity.v1.isTransfer
+        var preservedChannelId = existingActivity.v1.channelId
+
+        if ((preservedChannelId == null || !preservedIsTransfer) && channelId != null) {
+            preservedChannelId = channelId
+            preservedIsTransfer = true
+        }
+
+        val updatedOnChain = existingActivity.v1.copy(
+            confirmed = confirmationData.isConfirmed,
+            confirmTimestamp = confirmationData.confirmedTimestamp,
+            doesExist = if (shouldRestore) true else existingActivity.v1.doesExist,
+            updatedAt = confirmationData.timestamp,
+            isTransfer = preservedIsTransfer,
+            channelId = preservedChannelId,
+        )
+
+        if (wasRemoved && confirmationData.isConfirmed) {
+            markReplacementTransactionsAsRemoved(originalTxId = txid)
+        }
+
+        return updatedOnChain
+    }
+
+    private suspend fun buildNewOnchainActivity(
+        payment: PaymentDetails,
+        kind: PaymentKind.Onchain,
+        confirmationData: ConfirmationData,
+        resolvedAddress: String?,
+        channelId: String? = null,
+    ): OnchainActivity {
+        val isTransfer = channelId != null
+
+        return OnchainActivity(
+            id = payment.id,
+            txType = payment.direction.toPaymentType(),
+            txId = kind.txid,
+            value = payment.amountSats ?: 0u,
+            fee = (payment.feePaidMsat ?: 0u) / 1000u,
+            feeRate = 1u,
+            address = resolvedAddress ?: "Loading...",
+            confirmed = confirmationData.isConfirmed,
+            timestamp = confirmationData.timestamp,
+            isBoosted = false,
+            boostTxIds = emptyList(),
+            isTransfer = isTransfer,
+            doesExist = true,
+            confirmTimestamp = confirmationData.confirmedTimestamp,
+            channelId = channelId,
+            transferTxId = null,
+            createdAt = confirmationData.timestamp,
+            updatedAt = confirmationData.timestamp,
+        )
+    }
+
+    private suspend fun processOnchainPayment(
+        kind: PaymentKind.Onchain,
+        payment: PaymentDetails,
+        forceUpdate: Boolean,
+        channelId: String? = null,
+    ) {
+        val timestamp = payment.latestUpdateTimestamp
+        val confirmationData = getConfirmationStatus(kind, timestamp)
 
         val existingActivity = getActivityById(payment.id)
         if (existingActivity != null &&
@@ -454,42 +623,22 @@ class ActivityService(
             return
         }
 
+        val resolvedAddress = resolveAddressForInboundPayment(kind, existingActivity, payment)
+
         val onChain = if (existingActivity is Activity.Onchain) {
-            val wasRemoved = !existingActivity.v1.doesExist
-            val shouldRestore = wasRemoved && isConfirmed
-            val updatedOnChain = existingActivity.v1.copy(
-                confirmed = isConfirmed,
-                confirmTimestamp = confirmedTimestamp,
-                doesExist = if (shouldRestore) true else existingActivity.v1.doesExist,
-                updatedAt = timestamp,
+            buildUpdatedOnchainActivity(
+                existingActivity = existingActivity,
+                confirmationData = confirmationData,
+                txid = kind.txid,
+                channelId = channelId,
             )
-
-            // If a removed transaction confirms, mark its replacement transactions as removed
-            if (wasRemoved && isConfirmed) {
-                markReplacementTransactionsAsRemoved(originalTxId = kind.txid)
-            }
-
-            updatedOnChain
         } else {
-            OnchainActivity(
-                id = payment.id,
-                txType = payment.direction.toPaymentType(),
-                txId = kind.txid,
-                value = payment.amountSats ?: 0u,
-                fee = (payment.feePaidMsat ?: 0u) / 1000u,
-                feeRate = 1u,
-                address = "Loading...",
-                confirmed = isConfirmed,
-                timestamp = timestamp,
-                isBoosted = false,
-                boostTxIds = emptyList(),
-                isTransfer = false,
-                doesExist = true,
-                confirmTimestamp = confirmedTimestamp,
-                channelId = null,
-                transferTxId = null,
-                createdAt = timestamp,
-                updatedAt = timestamp,
+            buildNewOnchainActivity(
+                payment = payment,
+                kind = kind,
+                confirmationData = confirmationData,
+                resolvedAddress = resolvedAddress,
+                channelId = channelId,
             )
         }
 

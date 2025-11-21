@@ -3,15 +3,18 @@ package to.bitkit.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.IBtOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.rawId
+import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
@@ -24,6 +27,7 @@ class ActivityDetailViewModel @Inject constructor(
     private val addressChecker: AddressChecker,
     private val coreService: CoreService,
     private val settingsStore: SettingsStore,
+    private val blocktankRepo: BlocktankRepo,
 ) : ViewModel() {
     private val _txDetails = MutableStateFlow<TxDetails?>(null)
     val txDetails = _txDetails.asStateFlow()
@@ -103,6 +107,30 @@ class ActivityDetailViewModel @Inject constructor(
 
     fun onDismissBoostSheet() {
         _boostSheetVisible.update { false }
+    }
+
+    suspend fun findOrderForTransfer(
+        channelId: String?,
+        txId: String?,
+    ): IBtOrder? = withContext(bgDispatcher) {
+        try {
+            val orders = blocktankRepo.blocktankState.value.orders
+
+            if (channelId != null) {
+                orders.find { it.id == channelId }?.let { return@withContext it }
+            }
+
+            if (txId != null) {
+                orders.firstOrNull { order ->
+                    order.payment?.onchain?.transactions?.any { it.txId == txId } == true
+                }?.let { return@withContext it }
+            }
+
+            null
+        } catch (e: Exception) {
+            Logger.warn("Failed to find order for transfer: channelId=$channelId, txId=$txId", e, context = TAG)
+            null
+        }
     }
 
     private companion object {

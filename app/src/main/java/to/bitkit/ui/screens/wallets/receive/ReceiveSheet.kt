@@ -44,6 +44,7 @@ fun ReceiveSheet(
     val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
+        wallet.resetPreActivityMetadataTagsForCurrentInvoice()
         wallet.refreshReceiveState()
     }
 

@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.createChannelRequestUrl
 import com.synonym.bitkitcore.createWithdrawCallbackUrl
@@ -41,10 +42,10 @@ import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.getSatsPerVByteFor
+import to.bitkit.ext.nowTimestamp
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.OpenChannelResult
-import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toCoinSelectAlgorithm
 import to.bitkit.models.toCoreNetwork
@@ -67,6 +68,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @Singleton
+@Suppress("LongParameterList")
 class LightningRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningService: LightningService,
@@ -78,6 +80,7 @@ class LightningRepo @Inject constructor(
     private val keychain: Keychain,
     private val lnurlService: LnurlService,
     private val cacheStore: CacheStore,
+    private val preActivityMetadataRepo: PreActivityMetadataRepo,
 ) {
     private val _lightningState = MutableStateFlow(LightningState())
     val lightningState = _lightningState.asStateFlow()
@@ -629,6 +632,7 @@ class LightningRepo @Inject constructor(
         isTransfer: Boolean = false,
         channelId: String? = null,
         isMaxAmount: Boolean = false,
+        tags: List<String> = emptyList(),
     ): Result<Txid> =
         executeWhenNodeRunning("sendOnChain") {
             require(address.isNotEmpty()) { "Send address cannot be empty" }
@@ -651,15 +655,22 @@ class LightningRepo @Inject constructor(
                 utxosToSpend = finalUtxosToSpend,
                 isMaxAmount = isMaxAmount
             )
-            cacheStore.addTransactionMetadata(
-                TransactionMetadata(
-                    txId = txId,
-                    feeRate = satsPerVByte,
-                    address = address,
-                    isTransfer = isTransfer,
-                    channelId = channelId,
-                )
+
+            val addressString = address.toString()
+            val preActivityMetadata = PreActivityMetadata(
+                paymentId = txId,
+                createdAt = nowTimestamp().toEpochMilli().toULong(),
+                tags = tags,
+                paymentHash = null,
+                txId = txId,
+                address = addressString,
+                isReceive = false,
+                feeRate = satsPerVByte.toULong(),
+                isTransfer = isTransfer,
+                channelId = channelId ?: "",
             )
+            preActivityMetadataRepo.upsertPreActivityMetadata(listOf(preActivityMetadata))
+
             syncState()
             Result.success(txId)
         }

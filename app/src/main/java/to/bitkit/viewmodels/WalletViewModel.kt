@@ -263,16 +263,24 @@ class WalletViewModel @Inject constructor(
 
     // region debug methods
 
-    fun addTagToSelected(newTag: String) {
-        viewModelScope.launch(bgDispatcher) {
-            walletRepo.addTagToSelected(newTag)
+    fun addTagToSelected(newTag: String) = viewModelScope.launch {
+        walletRepo.addTagToSelected(newTag).onFailure { e ->
+            ToastEventBus.send(e)
         }
     }
 
-    fun removeTag(tag: String) {
-        viewModelScope.launch(bgDispatcher) {
-            walletRepo.removeTag(tag)
+    fun removeTag(tag: String) = viewModelScope.launch {
+        walletRepo.removeTag(tag).onFailure { e ->
+            ToastEventBus.send(e)
         }
+    }
+
+    fun resetPreActivityMetadataTagsForCurrentInvoice() = viewModelScope.launch {
+        walletRepo.resetPreActivityMetadataTagsForCurrentInvoice()
+    }
+
+    fun loadTagsForCurrentInvoice() = viewModelScope.launch {
+        walletRepo.loadTagsForCurrentInvoice()
     }
 
     fun updateBip21Description(newText: String) {

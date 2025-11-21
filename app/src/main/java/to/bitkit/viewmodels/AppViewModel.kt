@@ -68,6 +68,7 @@ import to.bitkit.ext.minWithdrawableSat
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
+import to.bitkit.ext.toHex
 import to.bitkit.ext.totalValue
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.FeeRate
@@ -87,6 +88,7 @@ import to.bitkit.repositories.ConnectivityState
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.HealthRepo
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
 import to.bitkit.services.LdkNodeEventBus
@@ -113,6 +115,7 @@ class AppViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
+    private val preActivityMetadataRepo: PreActivityMetadataRepo,
     private val blocktankRepo: BlocktankRepo,
     private val connectivityRepo: ConnectivityRepo,
     private val healthRepo: HealthRepo,
@@ -968,16 +971,10 @@ class AppViewModel @Inject constructor(
                         return
                     }
 
-                sendOnchain(validatedAddress.address, amount)
+                val tags = _sendUiState.value.selectedTags
+
+                sendOnchain(validatedAddress.address, amount, tags = tags)
                     .onSuccess { txId ->
-                        val tags = _sendUiState.value.selectedTags
-                        activityRepo.saveTagsMetadata(
-                            id = txId,
-                            txId = txId,
-                            address = validatedAddress.address,
-                            isReceive = false,
-                            tags = tags
-                        )
                         Logger.info("Onchain send result txid: $txId", context = TAG)
                         handlePaymentSuccess(
                             NewTransactionSheetDetails(
@@ -1006,25 +1003,40 @@ class AppViewModel @Inject constructor(
                 // Determine if we should override amount
                 val paymentAmount = decodedInvoice.amountSatoshis.takeIf { it > 0uL } ?: amount
 
-                sendLightning(bolt11, paymentAmount).onSuccess { paymentHash ->
-                    Logger.info("Lightning send result payment hash: $paymentHash", context = TAG)
-                    val tags = _sendUiState.value.selectedTags
-                    activityRepo.saveTagsMetadata(
+                val tags = _sendUiState.value.selectedTags
+                var createdMetadataPaymentId: String? = null
+
+                // Extract payment hash from invoice for pre-activity metadata
+                val paymentHash = decodedInvoice.paymentHash.toHex()
+
+                // Create pre-activity metadata before sending
+                if (tags.isNotEmpty()) {
+                    preActivityMetadataRepo.savePreActivityMetadata(
                         id = paymentHash,
                         paymentHash = paymentHash,
                         address = _sendUiState.value.address,
                         isReceive = false,
-                        tags = tags
-                    )
+                        tags = tags,
+                    ).onSuccess {
+                        createdMetadataPaymentId = paymentHash
+                    }
+                }
+
+                sendLightning(bolt11, paymentAmount).onSuccess { actualPaymentHash ->
+                    Logger.info("Lightning send result payment hash: $actualPaymentHash", context = TAG)
                     handlePaymentSuccess(
                         NewTransactionSheetDetails(
                             type = NewTransactionSheetType.LIGHTNING,
                             direction = NewTransactionSheetDirection.SENT,
-                            paymentHashOrTxId = paymentHash,
+                            paymentHashOrTxId = actualPaymentHash,
                             sats = paymentAmount.toLong(), // TODO Add fee when available
                         ),
                     )
                 }.onFailure { e ->
+                    // Delete pre-activity metadata on failure
+                    if (createdMetadataPaymentId != null) {
+                        preActivityMetadataRepo.deletePreActivityMetadata(createdMetadataPaymentId)
+                    }
                     Logger.error("Error sending lightning payment", e, context = TAG)
                     toast(e)
                     hideSheet()
@@ -1130,14 +1142,19 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun sendOnchain(address: String, amount: ULong): Result<Txid> {
+    private suspend fun sendOnchain(
+        address: String,
+        amount: ULong,
+        tags: List<String> = emptyList(),
+    ): Result<Txid> {
         return lightningRepo.sendOnChain(
             address = address,
             sats = amount,
             speed = _sendUiState.value.speed,
             utxosToSpend = _sendUiState.value.selectedUtxos,
             isMaxAmount = _sendUiState.value.payMethod == SendMethod.ONCHAIN &&
-                amount == walletRepo.balanceState.value.maxSendOnchainSats
+                amount == walletRepo.balanceState.value.maxSendOnchainSats,
+            tags = tags,
         )
     }
 
