@@ -3,7 +3,6 @@ package to.bitkit.ui.sheets
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -17,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SheetSize
 import to.bitkit.ui.components.VerticalSpacer
@@ -63,7 +63,7 @@ private fun Content(
             color = Colors.White64,
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        FillHeight()
 
         Image(
             painter = painterResource(R.drawable.exclamation_mark),
@@ -74,7 +74,7 @@ private fun Content(
                 .align(Alignment.CenterHorizontally)
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        FillHeight()
 
         PrimaryButton(
             text = stringResource(R.string.common__ok),

@@ -812,6 +812,10 @@ class LightningRepo @Inject constructor(
         Result.success(checkNotNull(lightningService.balances))
     }
 
+    suspend fun getChannelsAsync(): Result<List<ChannelDetails>> = executeWhenNodeRunning("getChannelsAsync") {
+        Result.success(checkNotNull(lightningService.channels))
+    }
+
     fun getStatus(): NodeStatus? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.status else null
 

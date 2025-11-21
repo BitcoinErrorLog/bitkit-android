@@ -3,26 +3,22 @@ package to.bitkit.ui.sheets
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
-import com.synonym.bitkitcore.giftOrder
-import com.synonym.bitkitcore.giftPay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import to.bitkit.async.ServiceQueue
 import to.bitkit.di.BgDispatcher
-import to.bitkit.ext.calculateRemoteBalance
+import to.bitkit.ext.nowTimestamp
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
-import to.bitkit.repositories.LightningRepo
-import to.bitkit.services.LightningService
+import to.bitkit.repositories.GiftClaimResult
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -30,8 +26,6 @@ import kotlin.time.Duration.Companion.milliseconds
 @HiltViewModel
 class GiftViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
-    private val lightningRepo: LightningRepo,
-    private val lightningService: LightningService,
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
 ) : ViewModel() {
@@ -65,98 +59,62 @@ class GiftViewModel @Inject constructor(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught")
     private suspend fun claimGift() = withContext(bgDispatcher) {
         if (isClaiming) return@withContext
         isClaiming = true
 
         try {
-            lightningRepo.executeWhenNodeRunning(
-                operationName = "waitForNodeRunning",
+            blocktankRepo.claimGiftCode(
+                code = code,
+                amount = amount,
                 waitTimeout = NODE_STARTUP_TIMEOUT_MS.milliseconds,
-            ) {
-                Result.success(Unit)
-            }.getOrThrow()
-
-            delay(PEER_CONNECTION_DELAY_MS)
-
-            val channels = lightningRepo.lightningState.value.channels
-            val maxInboundCapacity = channels.calculateRemoteBalance()
-
-            if (maxInboundCapacity >= amount) {
-                claimWithLiquidity()
-            } else {
-                claimWithoutLiquidity()
-            }
-        } catch (e: Exception) {
-            handleGiftClaimError(e)
+            ).fold(
+                onSuccess = { result ->
+                    when (result) {
+                        is GiftClaimResult.SuccessWithLiquidity -> {
+                            _navigationEvent.emit(GiftRoute.Success)
+                        }
+                        is GiftClaimResult.SuccessWithoutLiquidity -> {
+                            insertGiftActivity(result)
+                            _successEvent.emit(
+                                NewTransactionSheetDetails(
+                                    type = NewTransactionSheetType.LIGHTNING,
+                                    direction = NewTransactionSheetDirection.RECEIVED,
+                                    paymentHashOrTxId = result.paymentHashOrTxId,
+                                    sats = result.sats,
+                                )
+                            )
+                            _navigationEvent.emit(GiftRoute.Success)
+                        }
+                    }
+                },
+                onFailure = { error ->
+                    handleGiftClaimError(error)
+                }
+            )
         } finally {
             isClaiming = false
         }
     }
 
-    private suspend fun claimWithLiquidity() {
-        runCatching {
-            val invoice = lightningService.receive(
-                sat = null,
-                description = "blocktank-gift-code:$code",
-                expirySecs = 3600u,
-            )
+    private suspend fun insertGiftActivity(result: GiftClaimResult.SuccessWithoutLiquidity) {
+        val nowTimestamp = nowTimestamp().epochSecond.toULong()
 
-            ServiceQueue.CORE.background {
-                giftPay(invoice = invoice)
-            }
+        val lightningActivity = com.synonym.bitkitcore.LightningActivity(
+            id = result.paymentHashOrTxId,
+            txType = PaymentType.RECEIVED,
+            status = PaymentState.SUCCEEDED,
+            value = result.sats.toULong(),
+            fee = 0u,
+            invoice = result.invoice,
+            message = result.code,
+            timestamp = nowTimestamp,
+            preimage = null,
+            createdAt = nowTimestamp,
+            updatedAt = null,
+        )
 
-            _navigationEvent.emit(GiftRoute.Success)
-        }.onFailure { e ->
-            handleGiftClaimError(e)
-        }
-    }
-
-    private suspend fun claimWithoutLiquidity() {
-        runCatching {
-            check(lightningService.nodeId != null) { "Node not started" }
-            val nodeId = lightningService.nodeId!!
-
-            val order = ServiceQueue.CORE.background {
-                giftOrder(clientNodeId = nodeId, code = "blocktank-gift-code:$code")
-            }
-
-            check(order.orderId != null) { "Order ID is nil" }
-            val orderId = order.orderId!!
-
-            val openedOrder = blocktankRepo.openChannel(orderId).getOrThrow()
-
-            val nowTimestamp = (System.currentTimeMillis() / 1000).toULong()
-
-            val lightningActivity = com.synonym.bitkitcore.LightningActivity(
-                id = openedOrder.channel?.fundingTx?.id ?: orderId,
-                txType = PaymentType.RECEIVED,
-                status = com.synonym.bitkitcore.PaymentState.SUCCEEDED,
-                value = amount,
-                fee = 0u,
-                invoice = openedOrder.payment?.bolt11Invoice?.request ?: "",
-                message = code,
-                timestamp = nowTimestamp,
-                preimage = null,
-                createdAt = nowTimestamp,
-                updatedAt = null,
-            )
-
-            activityRepo.insertActivity(Activity.Lightning(lightningActivity)).getOrThrow()
-
-            _successEvent.emit(
-                NewTransactionSheetDetails(
-                    type = NewTransactionSheetType.LIGHTNING,
-                    direction = NewTransactionSheetDirection.RECEIVED,
-                    paymentHashOrTxId = openedOrder.channel?.fundingTx?.id ?: orderId,
-                    sats = amount.toLong(),
-                )
-            )
-            _navigationEvent.emit(GiftRoute.Success)
-        }.onFailure { e ->
-            handleGiftClaimError(e)
-        }
+        activityRepo.insertActivity(Activity.Lightning(lightningActivity)).getOrThrow()
     }
 
     private suspend fun handleGiftClaimError(error: Throwable) {
@@ -186,6 +144,5 @@ class GiftViewModel @Inject constructor(
     companion object {
         private const val TAG = "GiftViewModel"
         private const val NODE_STARTUP_TIMEOUT_MS = 30_000L
-        private const val PEER_CONNECTION_DELAY_MS = 2_000L
     }
 }

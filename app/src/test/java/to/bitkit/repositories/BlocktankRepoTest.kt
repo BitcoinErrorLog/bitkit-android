@@ -27,6 +27,7 @@ class BlocktankRepoTest : BaseUnitTest() {
     private val lightningService: LightningService = mock()
     private val currencyRepo: CurrencyRepo = mock()
     private val cacheStore: CacheStore = mock()
+    private val lightningRepo: LightningRepo = mock()
 
     private lateinit var sut: BlocktankRepo
 
@@ -56,6 +57,7 @@ class BlocktankRepoTest : BaseUnitTest() {
             currencyRepo = currencyRepo,
             cacheStore = cacheStore,
             enablePolling = false,
+            lightningRepo = lightningRepo,
         )
     }
 
