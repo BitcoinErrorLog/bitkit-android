@@ -93,7 +93,7 @@ fun PinPromptScreen(
                         onClick = onLater,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("SecureWallet-button-continue")
+                            .testTag("SecureWalletContinue")
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -104,7 +104,7 @@ fun PinPromptScreen(
                     onClick = onContinue,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("SecureWallet-button-continue")
+                        .testTag("SecureWalletContinue")
                 )
             }
 
