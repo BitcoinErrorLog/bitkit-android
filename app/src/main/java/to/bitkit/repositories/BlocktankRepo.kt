@@ -411,6 +411,9 @@ class BlocktankRepo @Inject constructor(
         waitTimeout: kotlin.time.Duration = kotlin.time.Duration.parse("30s"),
     ): Result<GiftClaimResult> = withContext(bgDispatcher) {
         runCatching {
+            require(code.isNotBlank()) { "Gift code cannot be blank" }
+            require(amount > 0u) { "Gift amount must be positive" }
+
             lightningRepo.executeWhenNodeRunning(
                 operationName = "claimGiftCode",
                 waitTimeout = waitTimeout,
