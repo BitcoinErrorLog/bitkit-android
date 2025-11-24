@@ -14,8 +14,8 @@ import kotlinx.coroutines.withContext
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.rawId
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
-import to.bitkit.services.CoreService
 import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
 import to.bitkit.utils.TxDetails
@@ -25,7 +25,7 @@ import javax.inject.Inject
 class ActivityDetailViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val addressChecker: AddressChecker,
-    private val coreService: CoreService,
+    private val activityRepo: ActivityRepo,
     private val settingsStore: SettingsStore,
     private val blocktankRepo: BlocktankRepo,
 ) : ViewModel() {
@@ -48,40 +48,41 @@ class ActivityDetailViewModel @Inject constructor(
     fun loadTags() {
         val id = activity?.rawId() ?: return
         viewModelScope.launch(bgDispatcher) {
-            try {
-                val activityTags = coreService.activity.tags(forActivityId = id)
-                _tags.value = activityTags
-            } catch (e: Exception) {
-                Logger.error("Failed to load tags for activity $id", e, TAG)
-                _tags.value = emptyList()
-            }
+            activityRepo.getActivityTags(id)
+                .onSuccess { activityTags ->
+                    _tags.value = activityTags
+                }
+                .onFailure { e ->
+                    Logger.error("Failed to load tags for activity $id", e, TAG)
+                    _tags.value = emptyList()
+                }
         }
     }
 
     fun removeTag(tag: String) {
         val id = activity?.rawId() ?: return
         viewModelScope.launch(bgDispatcher) {
-            try {
-                coreService.activity.dropTags(fromActivityId = id, tags = listOf(tag))
-                loadTags()
-            } catch (e: Exception) {
-                Logger.error("Failed to remove tag $tag from activity $id", e, TAG)
-            }
+            activityRepo.removeTagsFromActivity(id, listOf(tag))
+                .onSuccess {
+                    loadTags()
+                }
+                .onFailure { e ->
+                    Logger.error("Failed to remove tag $tag from activity $id", e, TAG)
+                }
         }
     }
 
     fun addTag(tag: String) {
         val id = activity?.rawId() ?: return
         viewModelScope.launch(bgDispatcher) {
-            try {
-                val result = coreService.activity.appendTags(toActivityId = id, tags = listOf(tag))
-                if (result.isSuccess) {
+            activityRepo.addTagsToActivity(id, listOf(tag))
+                .onSuccess {
                     settingsStore.addLastUsedTag(tag)
                     loadTags()
                 }
-            } catch (e: Exception) {
-                Logger.error("Failed to add tag $tag to activity $id", e, TAG)
-            }
+                .onFailure { e ->
+                    Logger.error("Failed to add tag $tag to activity $id", e, TAG)
+                }
         }
     }
 
