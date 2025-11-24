@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import to.bitkit.di.BgDispatcher
+import to.bitkit.di.IoDispatcher
 import to.bitkit.ext.nowMillis
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.services.CoreService
@@ -18,7 +18,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PreActivityMetadataRepo @Inject constructor(
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
     private val clock: Clock,
 ) {
@@ -27,7 +27,7 @@ class PreActivityMetadataRepo @Inject constructor(
 
     private fun notifyChanged() = _preActivityMetadataChanged.update { nowMillis(clock) }
 
-    suspend fun getAllPreActivityMetadata(): Result<List<PreActivityMetadata>> = withContext(bgDispatcher) {
+    suspend fun getAllPreActivityMetadata(): Result<List<PreActivityMetadata>> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.getAllPreActivityMetadata()
         }.onFailure { e ->
@@ -35,7 +35,7 @@ class PreActivityMetadataRepo @Inject constructor(
         }
     }
 
-    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun upsertPreActivityMetadata(list: List<PreActivityMetadata>): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.upsertPreActivityMetadata(list)
             notifyChanged()
@@ -44,7 +44,7 @@ class PreActivityMetadataRepo @Inject constructor(
         }
     }
 
-    suspend fun addPreActivityMetadata(metadata: PreActivityMetadata): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun addPreActivityMetadata(metadata: PreActivityMetadata): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.addPreActivityMetadata(metadata)
             notifyChanged()
@@ -56,7 +56,7 @@ class PreActivityMetadataRepo @Inject constructor(
     suspend fun addPreActivityMetadataTags(
         paymentId: String,
         tags: List<String>,
-    ): Result<Unit> = withContext(bgDispatcher) {
+    ): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.addPreActivityMetadataTags(paymentId, tags)
             notifyChanged()
@@ -69,7 +69,7 @@ class PreActivityMetadataRepo @Inject constructor(
     suspend fun removePreActivityMetadataTags(
         paymentId: String,
         tags: List<String>,
-    ): Result<Unit> = withContext(bgDispatcher) {
+    ): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.removePreActivityMetadataTags(paymentId, tags)
             notifyChanged()
@@ -79,7 +79,7 @@ class PreActivityMetadataRepo @Inject constructor(
         }
     }
 
-    suspend fun resetPreActivityMetadataTags(paymentId: String): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun resetPreActivityMetadataTags(paymentId: String): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.resetPreActivityMetadataTags(paymentId)
             notifyChanged()
@@ -92,7 +92,7 @@ class PreActivityMetadataRepo @Inject constructor(
     suspend fun getPreActivityMetadata(
         searchKey: String,
         searchByAddress: Boolean = false,
-    ): Result<PreActivityMetadata?> = withContext(bgDispatcher) {
+    ): Result<PreActivityMetadata?> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.getPreActivityMetadata(searchKey, searchByAddress)
         }.onFailure { e ->
@@ -104,7 +104,7 @@ class PreActivityMetadataRepo @Inject constructor(
         }
     }
 
-    suspend fun deletePreActivityMetadata(paymentId: String): Result<Unit> = withContext(bgDispatcher) {
+    suspend fun deletePreActivityMetadata(paymentId: String): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             coreService.activity.deletePreActivityMetadata(paymentId)
             notifyChanged()
@@ -125,7 +125,7 @@ class PreActivityMetadataRepo @Inject constructor(
         feeRate: ULong? = null,
         isTransfer: Boolean = false,
         channelId: String? = null,
-    ): Result<Unit> = withContext(bgDispatcher) {
+    ): Result<Unit> = withContext(ioDispatcher) {
         return@withContext runCatching {
             require(tags.isNotEmpty() || isTransfer)
 

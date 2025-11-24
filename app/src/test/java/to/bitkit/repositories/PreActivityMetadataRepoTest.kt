@@ -57,7 +57,7 @@ class PreActivityMetadataRepoTest : BaseUnitTest() {
         }
 
         sut = PreActivityMetadataRepo(
-            bgDispatcher = testDispatcher,
+            ioDispatcher = testDispatcher,
             coreService = coreService,
             clock = clock,
         )
