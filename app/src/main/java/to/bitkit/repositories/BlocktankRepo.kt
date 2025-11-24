@@ -420,19 +420,17 @@ class BlocktankRepo @Inject constructor(
                 operationName = "claimGiftCode",
                 waitTimeout = waitTimeout,
             ) {
-                Result.success(Unit)
+                delay(PEER_CONNECTION_DELAY_MS)
+
+                val channels = lightningRepo.getChannelsAsync().getOrThrow()
+                val maxInboundCapacity = channels.calculateRemoteBalance()
+
+                if (maxInboundCapacity >= amount) {
+                    Result.success(claimGiftCodeWithLiquidity(code))
+                } else {
+                    Result.success(claimGiftCodeWithoutLiquidity(code, amount))
+                }
             }.getOrThrow()
-
-            delay(PEER_CONNECTION_DELAY_MS)
-
-            val channels = lightningRepo.getChannelsAsync().getOrThrow()
-            val maxInboundCapacity = channels.calculateRemoteBalance()
-
-            if (maxInboundCapacity >= amount) {
-                claimGiftCodeWithLiquidity(code)
-            } else {
-                claimGiftCodeWithoutLiquidity(code, amount)
-            }
         }.onFailure { e ->
             Logger.error("Failed to claim gift code", e, context = TAG)
         }
