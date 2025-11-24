@@ -90,14 +90,6 @@ class MainActivity : FragmentActivity() {
         )
         appViewModel.handleDeeplinkIntent(intent)
 
-        // Start foreground service only if conditions are met
-        if (shouldStartForegroundService()) {
-            Logger.debug("Starting LightningNodeService", context = "MainActivity")
-            startForegroundService(Intent(this, LightningNodeService::class.java))
-        } else {
-            Logger.debug("Not starting LightningNodeService - conditions not met", context = "MainActivity")
-        }
-
         installSplashScreen()
         enableAppEdgeToEdge()
         setContent {
