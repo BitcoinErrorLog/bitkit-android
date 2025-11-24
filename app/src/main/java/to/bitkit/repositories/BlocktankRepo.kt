@@ -47,6 +47,8 @@ import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.math.ceil
 import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @Singleton
 @Suppress("LongParameterList")
@@ -408,7 +410,7 @@ class BlocktankRepo @Inject constructor(
     suspend fun claimGiftCode(
         code: String,
         amount: ULong,
-        waitTimeout: kotlin.time.Duration = kotlin.time.Duration.parse("30s"),
+        waitTimeout: Duration = TIMEOUT_GIFT_CODE,
     ): Result<GiftClaimResult> = withContext(bgDispatcher) {
         runCatching {
             require(code.isNotBlank()) { "Gift code cannot be blank" }
@@ -457,7 +459,7 @@ class BlocktankRepo @Inject constructor(
             giftOrder(clientNodeId = nodeId, code = "blocktank-gift-code:$code")
         }
 
-        val orderId = checkNotNull(order.orderId) { "Order ID is nil" }
+        val orderId = checkNotNull(order.orderId) { "Order ID is null" }
 
         val openedOrder = openChannel(orderId).getOrThrow()
 
@@ -474,6 +476,7 @@ class BlocktankRepo @Inject constructor(
         private const val DEFAULT_CHANNEL_EXPIRY_WEEKS = 6u
         private const val DEFAULT_SOURCE = "bitkit-android"
         private const val PEER_CONNECTION_DELAY_MS = 2_000L
+        private val TIMEOUT_GIFT_CODE = 30.seconds
     }
 }
 

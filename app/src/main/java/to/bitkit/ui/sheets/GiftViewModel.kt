@@ -3,6 +3,7 @@ package to.bitkit.ui.sheets
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.Activity
+import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -97,7 +98,7 @@ class GiftViewModel @Inject constructor(
     private suspend fun insertGiftActivity(result: GiftClaimResult.SuccessWithoutLiquidity) {
         val nowTimestamp = nowTimestamp().epochSecond.toULong()
 
-        val lightningActivity = com.synonym.bitkitcore.LightningActivity(
+        val lightningActivity = LightningActivity(
             id = result.paymentHashOrTxId,
             txType = PaymentType.RECEIVED,
             status = PaymentState.SUCCEEDED,
