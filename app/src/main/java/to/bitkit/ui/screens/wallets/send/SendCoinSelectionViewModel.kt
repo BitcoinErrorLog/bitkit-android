@@ -14,8 +14,8 @@ import org.lightningdevkit.ldknode.SpendableUtxo
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
 import to.bitkit.ext.rawId
+import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.LightningRepo
-import to.bitkit.services.CoreService
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -24,7 +24,7 @@ import javax.inject.Inject
 class SendCoinSelectionViewModel @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningRepo: LightningRepo,
-    private val coreService: CoreService,
+    private val activityRepo: ActivityRepo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CoinSelectionUiState())
@@ -74,17 +74,19 @@ class SendCoinSelectionViewModel @Inject constructor(
         if (_tagsByTxId.value.containsKey(txId)) return
 
         viewModelScope.launch(bgDispatcher) {
-            runCatching {
-                // find activity by txId
-                onchainActivities.firstOrNull { (it as? Onchain)?.v1?.txId == txId }?.let { activity ->
-                    // get tags by activity id
-                    coreService.activity.tags(forActivityId = activity.rawId())
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { tags ->
+            // find activity by txId
+            onchainActivities.firstOrNull { (it as? Onchain)?.v1?.txId == txId }?.let { activity ->
+                // get tags by activity id
+                activityRepo.getActivityTags(activity.rawId())
+                    .onSuccess { tags ->
+                        if (tags.isNotEmpty()) {
                             // add map entry linking tags to utxo.outpoint.txid
                             _tagsByTxId.update { currentMap -> currentMap + (txId to tags) }
                         }
-                }
+                    }
+                    .onFailure { e ->
+                        Logger.error("Failed to load tags for utxo $txId", e)
+                    }
             }
         }
     }

@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import to.bitkit.R
 import to.bitkit.ext.amountOnClose
 import to.bitkit.ext.createChannelDetails
@@ -65,6 +66,7 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
 private const val CLOSED_CHANNEL_ALPHA = 0.64f
+private const val CHANNEL_SELECTION_DELAY_MS = 200L
 
 object LightningConnectionsTestTags {
     const val SCREEN = "lightning_connections_screen"
@@ -86,6 +88,20 @@ fun LightningConnectionsScreen(
         viewModel.refreshObservedState()
         viewModel.clearSelectedChannel()
         viewModel.clearTransactionDetails()
+    }
+
+    LaunchedEffect(navController.currentBackStackEntry) {
+        val selectedChannelId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("selectedChannelId")
+        if (selectedChannelId == null) return@LaunchedEffect
+
+        navController.previousBackStackEntry?.savedStateHandle?.remove<String>("selectedChannelId")
+        delay(CHANNEL_SELECTION_DELAY_MS)
+        if (viewModel.findAndSelectChannel(selectedChannelId)) {
+            navController.navigate(Routes.ChannelDetail) {
+                launchSingleTop = true
+                popUpTo(Routes.ConnectionsNav) { inclusive = false }
+            }
+        }
     }
 
     Content(
