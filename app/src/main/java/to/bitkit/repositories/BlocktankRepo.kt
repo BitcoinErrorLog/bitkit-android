@@ -7,6 +7,8 @@ import com.synonym.bitkitcore.IBtEstimateFeeResponse2
 import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
+import com.synonym.bitkitcore.giftOrder
+import com.synonym.bitkitcore.giftPay
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -27,9 +29,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.ChannelDetails
+import to.bitkit.async.ServiceQueue
 import to.bitkit.data.CacheStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
+import to.bitkit.ext.calculateRemoteBalance
 import to.bitkit.ext.nowTimestamp
 import to.bitkit.models.BlocktankBackupV1
 import to.bitkit.models.EUR_CURRENCY
@@ -43,8 +47,11 @@ import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.math.ceil
 import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @Singleton
+@Suppress("LongParameterList")
 class BlocktankRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val coreService: CoreService,
@@ -52,6 +59,7 @@ class BlocktankRepo @Inject constructor(
     private val currencyRepo: CurrencyRepo,
     private val cacheStore: CacheStore,
     @Named("enablePolling") private val enablePolling: Boolean,
+    private val lightningRepo: LightningRepo,
 ) {
     private val repoScope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -399,10 +407,74 @@ class BlocktankRepo @Inject constructor(
         }
     }
 
+    suspend fun claimGiftCode(
+        code: String,
+        amount: ULong,
+        waitTimeout: Duration = TIMEOUT_GIFT_CODE,
+    ): Result<GiftClaimResult> = withContext(bgDispatcher) {
+        runCatching {
+            require(code.isNotBlank()) { "Gift code cannot be blank" }
+            require(amount > 0u) { "Gift amount must be positive" }
+
+            lightningRepo.executeWhenNodeRunning(
+                operationName = "claimGiftCode",
+                waitTimeout = waitTimeout,
+            ) {
+                delay(PEER_CONNECTION_DELAY_MS)
+
+                val channels = lightningRepo.getChannelsAsync().getOrThrow()
+                val maxInboundCapacity = channels.calculateRemoteBalance()
+
+                if (maxInboundCapacity >= amount) {
+                    Result.success(claimGiftCodeWithLiquidity(code))
+                } else {
+                    Result.success(claimGiftCodeWithoutLiquidity(code, amount))
+                }
+            }.getOrThrow()
+        }.onFailure { e ->
+            Logger.error("Failed to claim gift code", e, context = TAG)
+        }
+    }
+
+    private suspend fun claimGiftCodeWithLiquidity(code: String): GiftClaimResult {
+        val invoice = lightningRepo.createInvoice(
+            amountSats = null,
+            description = "blocktank-gift-code:$code",
+            expirySeconds = 3600u,
+        ).getOrThrow()
+
+        ServiceQueue.CORE.background {
+            giftPay(invoice = invoice)
+        }
+
+        return GiftClaimResult.SuccessWithLiquidity
+    }
+
+    private suspend fun claimGiftCodeWithoutLiquidity(code: String, amount: ULong): GiftClaimResult {
+        val nodeId = lightningService.nodeId ?: throw ServiceError.NodeNotStarted
+
+        val order = ServiceQueue.CORE.background {
+            giftOrder(clientNodeId = nodeId, code = "blocktank-gift-code:$code")
+        }
+
+        val orderId = checkNotNull(order.orderId) { "Order ID is null" }
+
+        val openedOrder = openChannel(orderId).getOrThrow()
+
+        return GiftClaimResult.SuccessWithoutLiquidity(
+            paymentHashOrTxId = openedOrder.channel?.fundingTx?.id ?: orderId,
+            sats = amount.toLong(),
+            invoice = openedOrder.payment?.bolt11Invoice?.request ?: "",
+            code = code,
+        )
+    }
+
     companion object {
         private const val TAG = "BlocktankRepo"
         private const val DEFAULT_CHANNEL_EXPIRY_WEEKS = 6u
         private const val DEFAULT_SOURCE = "bitkit-android"
+        private const val PEER_CONNECTION_DELAY_MS = 2_000L
+        private val TIMEOUT_GIFT_CODE = 30.seconds
     }
 }
 
@@ -413,3 +485,13 @@ data class BlocktankState(
     val info: IBtInfo? = null,
     val minCjitSats: Int? = null,
 )
+
+sealed class GiftClaimResult {
+    object SuccessWithLiquidity : GiftClaimResult()
+    data class SuccessWithoutLiquidity(
+        val paymentHashOrTxId: String,
+        val sats: Long,
+        val invoice: String,
+        val code: String,
+    ) : GiftClaimResult()
+}

@@ -39,6 +39,13 @@ fun List<ChannelDetails>?.totalNextOutboundHtlcLimitSats(): ULong {
         ?: 0u
 }
 
+/** Calculates the total remote balance (inbound capacity) from open channels. */
+fun List<ChannelDetails>.calculateRemoteBalance(): ULong {
+    return this
+        .filterOpen()
+        .sumOf { it.inboundCapacityMsat / 1000u }
+}
+
 fun createChannelDetails(): ChannelDetails {
     return ChannelDetails(
         channelId = "channelId",

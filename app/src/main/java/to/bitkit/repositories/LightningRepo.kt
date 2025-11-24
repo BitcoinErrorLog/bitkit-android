@@ -102,7 +102,7 @@ class LightningRepo @Inject constructor(
      * @param operation Lambda to execute when the node is running
      * @return Result of the operation, or failure if node isn't running or operation fails
      */
-    private suspend fun <T> executeWhenNodeRunning(
+    suspend fun <T> executeWhenNodeRunning(
         operationName: String,
         waitTimeout: Duration = 1.minutes,
         operation: suspend () -> Result<T>,
@@ -821,6 +821,10 @@ class LightningRepo @Inject constructor(
 
     suspend fun getBalancesAsync(): Result<BalanceDetails> = executeWhenNodeRunning("getBalancesAsync") {
         Result.success(checkNotNull(lightningService.balances))
+    }
+
+    suspend fun getChannelsAsync(): Result<List<ChannelDetails>> = executeWhenNodeRunning("getChannelsAsync") {
+        Result.success(checkNotNull(lightningService.channels))
     }
 
     fun getStatus(): NodeStatus? =
