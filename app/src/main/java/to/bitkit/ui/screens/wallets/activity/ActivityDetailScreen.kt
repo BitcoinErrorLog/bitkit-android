@@ -88,6 +88,7 @@ fun ActivityDetailScreen(
     onExploreClick: (String) -> Unit,
     onBackClick: () -> Unit,
     onCloseClick: () -> Unit,
+    onChannelClick: ((String) -> Unit)? = null,
 ) {
     val activities by listViewModel.filteredActivities.collectAsStateWithLifecycle()
     val item = activities?.find { it.rawId() == route.id }
@@ -125,15 +126,17 @@ fun ActivityDetailScreen(
                 tags = tags,
                 onRemoveTag = { detailViewModel.removeTag(it) },
                 onAddTagClick = { showAddTagSheet = true },
+                onClickBoost = detailViewModel::onClickBoost,
                 onExploreClick = onExploreClick,
+                onChannelClick = onChannelClick,
+                detailViewModel = detailViewModel,
                 onCopy = { text ->
                     app.toast(
                         type = Toast.ToastType.SUCCESS,
                         title = copyToastTitle,
                         description = text.ellipsisMiddle(40)
                     )
-                },
-                onClickBoost = detailViewModel::onClickBoost
+                }
             )
             if (showAddTagSheet) {
                 ActivityAddTagSheet(
@@ -194,11 +197,22 @@ private fun ActivityDetailContent(
     onAddTagClick: () -> Unit,
     onClickBoost: () -> Unit,
     onExploreClick: (String) -> Unit,
+    onChannelClick: ((String) -> Unit)?,
+    detailViewModel: ActivityDetailViewModel? = null,
     onCopy: (String) -> Unit,
 ) {
     val isLightning = item is Activity.Lightning
-    val accentColor = if (isLightning) Colors.Purple else Colors.Brand
     val isSent = item.isSent()
+    val isTransfer = item.isTransfer()
+    val isTransferFromSpending = isTransfer && !isSent
+    val isTransferToSpending = isTransfer && isSent
+
+    val accentColor = when {
+        isTransferFromSpending -> Colors.Purple
+        isLightning -> Colors.Purple
+        else -> Colors.Brand
+    }
+
     val amountPrefix = if (isSent) "-" else "+"
     val timestamp = when (item) {
         is Activity.Lightning -> item.v1.timestamp
@@ -211,12 +225,33 @@ private fun ActivityDetailContent(
         is Activity.Lightning -> item.v1.value
         is Activity.Onchain -> item.v1.value
     }
-    val fee = when (item) {
+    val baseFee = when (item) {
         is Activity.Lightning -> item.v1.fee
         is Activity.Onchain -> item.v1.fee
     }
     val isSelfSend = isSent && paymentValue == 0uL
-    val isTransfer = item.isTransfer()
+    val channelId = (item as? Activity.Onchain)?.v1?.channelId
+    val txId = (item as? Activity.Onchain)?.v1?.txId
+
+    var order by remember { mutableStateOf<com.synonym.bitkitcore.IBtOrder?>(null) }
+
+    LaunchedEffect(item, isTransferToSpending, detailViewModel) {
+        order = if (isTransferToSpending && detailViewModel != null) {
+            detailViewModel.findOrderForTransfer(channelId, txId)
+        } else {
+            null
+        }
+    }
+
+    val orderServiceFee: ULong? = order?.let { it.feeSat - it.clientBalanceSat }
+    val transferAmount: ULong? = order?.clientBalanceSat
+
+    val fee: ULong? = when {
+        isTransferToSpending && orderServiceFee != null && baseFee != null -> baseFee + orderServiceFee
+        else -> baseFee
+    }
+
+    val displayAmount: ULong = transferAmount?.takeIf { isTransferToSpending } ?: paymentValue
 
     Column(
         modifier = Modifier
@@ -241,7 +276,7 @@ private fun ActivityDetailContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        StatusSection(item)
+        StatusSection(item, accentColor)
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
 
         // Timestamp section: date and time
@@ -291,7 +326,7 @@ private fun ActivityDetailContent(
                 HorizontalDivider()
             }
         }
-        if (isSent) {
+        if (isSent || isTransfer) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -299,7 +334,8 @@ private fun ActivityDetailContent(
                 Column(modifier = Modifier.weight(1f)) {
                     Caption13Up(
                         text = when {
-                            isTransfer -> stringResource(R.string.wallet__activity_transfer_to_spending)
+                            isTransferToSpending -> stringResource(R.string.wallet__activity_transfer_to_spending)
+                            isTransferFromSpending -> stringResource(R.string.wallet__activity_transfer_to_savings)
                             isSelfSend -> "Sent to myself" // TODO add missing localized text
                             else -> stringResource(R.string.wallet__activity_payment)
                         },
@@ -312,7 +348,8 @@ private fun ActivityDetailContent(
                     ) {
                         Icon(
                             painter = when {
-                                isTransfer -> painterResource(R.drawable.ic_lightning)
+                                isTransferToSpending -> painterResource(R.drawable.ic_lightning)
+                                isTransferFromSpending -> painterResource(R.drawable.ic_bitcoin)
                                 else -> painterResource(R.drawable.ic_user)
                             },
                             contentDescription = null,
@@ -320,7 +357,7 @@ private fun ActivityDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        MoneySSB(sats = paymentValue.toLong())
+                        MoneySSB(sats = displayAmount.toLong())
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider()
@@ -328,7 +365,11 @@ private fun ActivityDetailContent(
                 if (fee != null) {
                     Column(modifier = Modifier.weight(1f)) {
                         Caption13Up(
-                            text = stringResource(R.string.wallet__activity_fee),
+                            text = if (isTransferFromSpending) {
+                                stringResource(R.string.wallet__activity_fee_prepaid)
+                            } else {
+                                stringResource(R.string.wallet__activity_fee)
+                            },
                             color = Colors.White64,
                             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                         )
@@ -337,7 +378,7 @@ private fun ActivityDetailContent(
                             modifier = Modifier.testTag("ActivityFee")
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_speed_normal),
+                                painter = painterResource(R.drawable.ic_timer),
                                 contentDescription = null,
                                 tint = accentColor,
                                 modifier = Modifier.size(16.dp)
@@ -492,29 +533,48 @@ private fun ActivityDetailContent(
                             }
                         )
                 )
-                PrimaryButton(
-                    text = stringResource(R.string.wallet__activity_explore),
-                    size = ButtonSize.Small,
-                    onClick = { onExploreClick(item.rawId()) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_git_branch),
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("ActivityTxDetails")
-                )
+                if (isTransfer && channelId != null && onChannelClick != null) {
+                    PrimaryButton(
+                        text = stringResource(R.string.lightning__connection),
+                        size = ButtonSize.Small,
+                        onClick = { onChannelClick(channelId) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_lightning),
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ChannelButton")
+                    )
+                } else {
+                    PrimaryButton(
+                        text = stringResource(R.string.wallet__activity_explore),
+                        size = ButtonSize.Small,
+                        onClick = { onExploreClick(item.rawId()) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_git_branch),
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ActivityTxDetails")
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatusSection(item: Activity) {
+private fun StatusSection(item: Activity, accentColor: Color) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Caption13Up(
             text = stringResource(R.string.wallet__activity_status),
@@ -554,7 +614,7 @@ private fun StatusSection(item: Activity) {
                 is Activity.Onchain -> {
                     // Default status is confirming
                     var statusIcon = painterResource(R.drawable.ic_hourglass_simple)
-                    var statusColor = Colors.Brand
+                    var statusColor = accentColor // Use accent color for transfers
                     var statusText = stringResource(R.string.wallet__activity_confirming)
                     var statusTestTag: String? = null
 
@@ -671,6 +731,7 @@ private fun PreviewLightningSent() {
             onRemoveTag = {},
             onAddTagClick = {},
             onExploreClick = {},
+            onChannelClick = null,
             onCopy = {},
             onClickBoost = {}
         )
@@ -708,6 +769,7 @@ private fun PreviewOnchain() {
             onRemoveTag = {},
             onAddTagClick = {},
             onExploreClick = {},
+            onChannelClick = null,
             onCopy = {},
             onClickBoost = {},
         )
@@ -741,6 +803,7 @@ private fun PreviewSheetSmallScreen() {
                 onRemoveTag = {},
                 onAddTagClick = {},
                 onExploreClick = {},
+                onChannelClick = null,
                 onCopy = {},
                 onClickBoost = {},
             )

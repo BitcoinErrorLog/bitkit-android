@@ -204,9 +204,11 @@ class TransferViewModel @Inject constructor(
     /** Pays for the order and start watching it for state updates */
     fun onTransferToSpendingConfirm(order: IBtOrder, speed: TransactionSpeed? = null) {
         viewModelScope.launch {
+            val address = order.payment?.onchain?.address.orEmpty()
+
             lightningRepo
                 .sendOnChain(
-                    address = order.payment?.onchain?.address.orEmpty(),
+                    address = address,
                     sats = order.feeSat,
                     speed = speed,
                     isTransfer = true,

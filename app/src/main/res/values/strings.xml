@@ -993,6 +993,7 @@
     <string name="wallet__activity_transfer_spending_pending">From Savings (±{duration})</string>
     <string name="wallet__activity_transfer_spending_done">From Savings</string>
     <string name="wallet__activity_transfer_to_spending">To Spending</string>
+    <string name="wallet__activity_transfer_to_savings">To Savings</string>
     <string name="wallet__activity_transfer_pending">Transfer (±{duration})</string>
     <string name="wallet__activity_confirms_in">Confirms in {feeRateDescription}</string>
     <string name="wallet__activity_confirms_in_boosted">Boosting. Confirms in {feeRateDescription}</string>
@@ -1009,6 +1010,7 @@
     <string name="wallet__activity_removed_msg">Please check your activity list. The {count} impacted transaction(s) will be highlighted in red.</string>
     <string name="wallet__activity_boosting">Boosting</string>
     <string name="wallet__activity_fee">Fee</string>
+    <string name="wallet__activity_fee_prepaid">Fee (prepaid)</string>
     <string name="wallet__activity_payment">Payment</string>
     <string name="wallet__activity_status">Status</string>
     <string name="wallet__activity_date">Date</string>

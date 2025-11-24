@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import com.synonym.bitkitcore.AddressType
+import com.synonym.bitkitcore.PreActivityMetadata
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.decode
 import kotlinx.coroutines.CoroutineDispatcher
@@ -13,12 +14,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.Event
-import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
-import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.di.BgDispatcher
 import to.bitkit.env.Env
@@ -37,19 +35,18 @@ import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.days
 
 @Suppress("LongParameterList")
 @Singleton
 class WalletRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
-    private val db: AppDb,
     private val keychain: Keychain,
     private val coreService: CoreService,
     private val settingsStore: SettingsStore,
     private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
+    private val preActivityMetadataRepo: PreActivityMetadataRepo,
     private val deriveBalanceStateUseCase: DeriveBalanceStateUseCase,
     private val wipeWalletUseCase: WipeWalletUseCase,
 ) {
@@ -98,14 +95,62 @@ class WalletRepo @Inject constructor(
     suspend fun refreshBip21(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("Refreshing bip21", context = TAG)
 
+        // Get old payment ID and tags before refreshing (which may change payment ID)
+        val oldPaymentId = paymentId()
+        val tagsToMigrate = if (oldPaymentId != null && oldPaymentId.isNotEmpty()) {
+            preActivityMetadataRepo
+                .getPreActivityMetadata(oldPaymentId, searchByAddress = false)
+                .getOrNull()
+                ?.tags ?: emptyList()
+        } else {
+            emptyList()
+        }
+
         val (_, shouldBlockLightningReceive) = coreService.checkGeoBlock()
         _walletState.update {
             it.copy(receiveOnSpendingBalance = !shouldBlockLightningReceive)
         }
-        clearBip21State()
+        clearBip21State(clearTags = false)
         refreshAddressIfNeeded()
         updateBip21Invoice()
+
+        val newPaymentId = paymentId()
+        val newBip21Url = _walletState.value.bip21
+        if (newPaymentId != null && newPaymentId.isNotEmpty() && newBip21Url.isNotEmpty()) {
+            persistPreActivityMetadata(newPaymentId, tagsToMigrate, newBip21Url)
+        }
+
         return@withContext Result.success(Unit)
+    }
+
+    private suspend fun persistPreActivityMetadata(
+        paymentId: String,
+        tags: List<String>,
+        bip21Url: String,
+    ) {
+        val onChainAddress = getOnchainAddress()
+        val paymentHash = runCatching {
+            when (val decoded = decode(bip21Url)) {
+                is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
+                is Scanner.OnChain -> decoded.extractLightningHash()
+                else -> null
+            }
+        }.getOrNull()
+
+        val preActivityMetadata = PreActivityMetadata(
+            paymentId = paymentId,
+            createdAt = nowTimestamp().toEpochMilli().toULong(),
+            tags = tags,
+            paymentHash = paymentHash,
+            txId = null,
+            address = onChainAddress,
+            isReceive = true,
+            feeRate = 0u,
+            isTransfer = false,
+            channelId = "",
+        )
+
+        preActivityMetadataRepo.addPreActivityMetadata(preActivityMetadata)
     }
 
     suspend fun observeLdkWallet() = withContext(bgDispatcher) {
@@ -336,11 +381,11 @@ class WalletRepo @Inject constructor(
 
     fun setBip21Description(description: String) = _walletState.update { it.copy(bip21Description = description) }
 
-    fun clearBip21State() {
+    fun clearBip21State(clearTags: Boolean = true) {
         _walletState.update {
             it.copy(
                 bip21 = "",
-                selectedTags = emptyList(),
+                selectedTags = if (clearTags) emptyList() else it.selectedTags,
                 bip21AmountSats = null,
                 bip21Description = "",
             )
@@ -357,30 +402,116 @@ class WalletRepo @Inject constructor(
         return@withContext Result.success(Unit)
     }
 
-    // Tags
-    suspend fun addTagToSelected(newTag: String) {
-        _walletState.update {
-            it.copy(
-                selectedTags = (it.selectedTags + newTag).distinct()
-            )
-        }
-        settingsStore.addLastUsedTag(newTag)
+    // Payment ID management
+    private suspend fun paymentHash(): String? = withContext(bgDispatcher) {
+        val bolt11 = getBolt11()
+        if (bolt11.isEmpty()) return@withContext null
+        return@withContext runCatching {
+            when (val decoded = decode(bolt11)) {
+                is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
+                else -> null
+            }
+        }.onFailure { e ->
+            Logger.error("Error extracting payment hash from bolt11", e, context = TAG)
+        }.getOrNull()
     }
 
-    fun removeTag(tag: String) {
-        _walletState.update {
-            it.copy(
-                selectedTags = it.selectedTags.filterNot { tagItem -> tagItem == tag }
+    suspend fun paymentId(): String? = withContext(bgDispatcher) {
+        val hash = paymentHash()
+        if (hash != null) return@withContext hash
+        val address = getOnchainAddress()
+        return@withContext if (address.isEmpty()) null else address
+    }
+
+    // Pre-activity metadata tag management
+    suspend fun addTagToSelected(newTag: String): Result<Unit> = withContext(bgDispatcher) {
+        val paymentId = paymentId()
+        if (paymentId == null || paymentId.isEmpty()) {
+            Logger.warn("Cannot add tag: payment ID not available", context = TAG)
+            return@withContext Result.failure(
+                IllegalStateException("Cannot add tag: payment ID not available")
             )
+        }
+
+        return@withContext preActivityMetadataRepo.addPreActivityMetadataTags(paymentId, listOf(newTag))
+            .onSuccess {
+                _walletState.update {
+                    it.copy(
+                        selectedTags = (it.selectedTags + newTag).distinct()
+                    )
+                }
+                settingsStore.addLastUsedTag(newTag)
+            }.onFailure { e ->
+                Logger.error("Failed to add tag to pre-activity metadata", e, context = TAG)
+            }
+    }
+
+    suspend fun removeTag(tag: String): Result<Unit> = withContext(bgDispatcher) {
+        val paymentId = paymentId()
+        if (paymentId == null || paymentId.isEmpty()) {
+            Logger.warn("Cannot remove tag: payment ID not available", context = TAG)
+            return@withContext Result.failure(
+                IllegalStateException("Cannot remove tag: payment ID not available")
+            )
+        }
+
+        return@withContext preActivityMetadataRepo.removePreActivityMetadataTags(paymentId, listOf(tag))
+            .onSuccess {
+                _walletState.update {
+                    it.copy(
+                        selectedTags = it.selectedTags.filterNot { tagItem -> tagItem == tag }
+                    )
+                }
+            }.onFailure { e ->
+                Logger.error("Failed to remove tag from pre-activity metadata", e, context = TAG)
+            }
+    }
+
+    suspend fun resetPreActivityMetadataTagsForCurrentInvoice() = withContext(bgDispatcher) {
+        val paymentId = paymentId()
+        if (paymentId == null || paymentId.isEmpty()) return@withContext
+
+        preActivityMetadataRepo.resetPreActivityMetadataTags(paymentId).onSuccess {
+            _walletState.update { it.copy(selectedTags = emptyList()) }
+        }.onFailure { e ->
+            Logger.error("Failed to reset tags for pre-activity metadata", e, context = TAG)
         }
     }
 
-    // BIP21 invoice creation
+    suspend fun loadTagsForCurrentInvoice() {
+        val paymentId = paymentId()
+        if (paymentId == null || paymentId.isEmpty()) {
+            _walletState.update { it.copy(selectedTags = emptyList()) }
+            return
+        }
+
+        preActivityMetadataRepo.getPreActivityMetadata(paymentId, searchByAddress = false)
+            .onSuccess { metadata ->
+                _walletState.update {
+                    it.copy(selectedTags = metadata?.tags ?: emptyList())
+                }
+            }
+            .onFailure { e ->
+                Logger.error("Failed to load tags for current invoice", e, context = TAG)
+            }
+    }
+
+    // BIP21 invoice creation and persistence
     suspend fun updateBip21Invoice(
         amountSats: ULong? = walletState.value.bip21AmountSats,
         description: String = walletState.value.bip21Description,
     ): Result<Unit> = withContext(bgDispatcher) {
-        try {
+        return@withContext runCatching {
+            val oldPaymentId = paymentId()
+            val tagsToMigrate = if (oldPaymentId != null && oldPaymentId.isNotEmpty()) {
+                preActivityMetadataRepo
+                    .getPreActivityMetadata(oldPaymentId, searchByAddress = false)
+                    .getOrNull()
+                    ?.tags ?: emptyList()
+            } else {
+                emptyList()
+            }
+
             setBip21AmountSats(amountSats)
             setBip21Description(description)
 
@@ -393,11 +524,15 @@ class WalletRepo @Inject constructor(
                 setBolt11("")
             }
             val newBip21Url = updateBip21Url(amountSats, description)
-            persistTagsMetadata(newBip21Url)
-            Result.success(Unit)
-        } catch (e: Throwable) {
+            setBip21(newBip21Url)
+
+            // Persist metadata with migrated tags
+            val newPaymentId = paymentId()
+            if (newPaymentId != null && newPaymentId.isNotEmpty() && newBip21Url.isNotEmpty()) {
+                persistPreActivityMetadata(newPaymentId, tagsToMigrate, newBip21Url)
+            }
+        }.onFailure { e ->
             Logger.error("Update BIP21 invoice error", e, context = TAG)
-            Result.failure(e)
         }
     }
 
@@ -416,45 +551,6 @@ class WalletRepo @Inject constructor(
         } catch (e: Exception) {
             Logger.error("shouldRequestAdditionalLiquidity error", e, context = TAG)
             Result.failure(e)
-        }
-    }
-
-    private suspend fun persistTagsMetadata(bip21Url: String) =
-        withContext(bgDispatcher) {
-            val tags = _walletState.value.selectedTags
-            if (tags.isEmpty()) return@withContext
-
-            val onChainAddress = getOnchainAddress()
-
-            try {
-                deleteExpiredTagMetadata()
-                val paymentHash = when (val decoded = decode(bip21Url)) {
-                    is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
-                    is Scanner.OnChain -> decoded.extractLightningHash()
-                    else -> null
-                }
-
-                val entity = TagMetadataEntity(
-                    id = paymentHash ?: onChainAddress,
-                    paymentHash = paymentHash,
-                    tags = tags,
-                    address = onChainAddress,
-                    isReceive = true,
-                    createdAt = nowTimestamp().toEpochMilli()
-                )
-                db.tagMetadataDao().insert(tagMetadata = entity)
-                Logger.debug("Tag metadata saved: $entity", context = TAG)
-            } catch (e: Throwable) {
-                Logger.error("Error persisting tag metadata", e, context = TAG)
-            }
-        }
-
-    private suspend fun deleteExpiredTagMetadata() = withContext(bgDispatcher) {
-        try {
-            val twoDaysAgoMillis = Clock.System.now().minus(2.days).toEpochMilliseconds()
-            db.tagMetadataDao().deleteExpired(expirationTimeStamp = twoDaysAgoMillis)
-        } catch (e: Throwable) {
-            Logger.error("Error deleting expired tag metadata records", e, context = TAG)
         }
     }
 

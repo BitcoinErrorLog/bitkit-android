@@ -16,17 +16,16 @@ import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
-import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.parse
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.Toast
-import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.TransferType
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
@@ -44,8 +43,8 @@ class ExternalNodeViewModel @Inject constructor(
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
-    private val cacheStore: CacheStore,
     private val transferRepo: to.bitkit.repositories.TransferRepo,
+    private val preActivityMetadataRepo: to.bitkit.repositories.PreActivityMetadataRepo,
     private val addressChecker: AddressChecker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
@@ -172,21 +171,26 @@ class ExternalNodeViewModel @Inject constructor(
                 channelAmountSats = _uiState.value.amount.sats.toULong(),
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
+                    val txId = event.fundingTxo.txid
                     val address = addressChecker.getOutputAddress(event.fundingTxo).getOrDefault("")
-                    cacheStore.addTransactionMetadata(
-                        TransactionMetadata(
-                            txId = event.fundingTxo.txid,
-                            feeRate = _uiState.value.customFeeRate ?: 0u,
-                            isTransfer = true,
-                            channelId = event.channelId,
-                            address = address,
-                        )
+                    val feeRate = _uiState.value.customFeeRate ?: 0u
+
+                    preActivityMetadataRepo.savePreActivityMetadata(
+                        id = txId,
+                        txId = txId,
+                        address = address,
+                        isReceive = false,
+                        tags = emptyList(),
+                        feeRate = feeRate.toULong(),
+                        isTransfer = true,
+                        channelId = event.channelId,
                     )
+
                     transferRepo.createTransfer(
                         type = TransferType.MANUAL_SETUP,
                         amountSats = result.channelAmountSats.toLong(),
                         channelId = event.channelId,
-                        fundingTxId = event.fundingTxo.txid,
+                        fundingTxId = txId,
                     )
                 }.getOrThrow()
             }.onSuccess {
