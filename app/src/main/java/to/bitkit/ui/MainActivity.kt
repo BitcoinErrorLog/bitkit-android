@@ -9,17 +9,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -99,37 +91,15 @@ class MainActivity : FragmentActivity() {
                 }
             ) {
                 val scope = rememberCoroutineScope()
-                val context = LocalContext.current
-                val lifecycleOwner = LocalLifecycleOwner.current
                 val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
-
-                // Track notification permission state
-                var notificationsEnabled by remember {
-                    mutableStateOf(NotificationUtils.areNotificationsEnabled(context))
-                }
-
-                // Monitor notification permission changes on resume
-                DisposableEffect(lifecycleOwner) {
-                    val observer = LifecycleEventObserver { _, event ->
-                        if (event == Lifecycle.Event.ON_RESUME) {
-                            val currentState = NotificationUtils.areNotificationsEnabled(context)
-                            if (currentState != notificationsEnabled) {
-                                notificationsEnabled = currentState
-                                Logger.debug(
-                                    "Notification permission changed to: $currentState",
-                                    context = "MainActivity"
-                                )
-                            }
-                        }
-                    }
-                    lifecycleOwner.lifecycle.addObserver(observer)
-                    onDispose {
-                        lifecycleOwner.lifecycle.removeObserver(observer)
-                    }
-                }
+                val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
 
                 // Monitor wallet state and notification permission changes
-                LaunchedEffect(walletViewModel.walletExists, isRecoveryMode, notificationsEnabled) {
+                LaunchedEffect(
+                    walletViewModel.walletExists,
+                    isRecoveryMode,
+                    notificationsGranted
+                ) {
                     if (walletViewModel.walletExists && !isRecoveryMode && shouldStartForegroundService()) {
                         tryStartForegroundService()
                     }
