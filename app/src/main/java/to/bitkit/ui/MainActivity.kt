@@ -9,9 +9,17 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -43,8 +51,11 @@ import to.bitkit.ui.screens.SplashScreen
 import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
+import to.bitkit.ui.utils.GooglePlayServicesUtils
+import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.enableAppEdgeToEdge
+import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.BackupsViewModel
@@ -78,7 +89,15 @@ class MainActivity : FragmentActivity() {
             importance = NotificationManager.IMPORTANCE_LOW
         )
         appViewModel.handleDeeplinkIntent(intent)
-        startForegroundService(Intent(this, LightningNodeService::class.java))
+
+        // Start foreground service only if conditions are met
+        if (shouldStartForegroundService()) {
+            Logger.debug("Starting LightningNodeService", context = "MainActivity")
+            startForegroundService(Intent(this, LightningNodeService::class.java))
+        } else {
+            Logger.debug("Not starting LightningNodeService - conditions not met", context = "MainActivity")
+        }
+
         installSplashScreen()
         enableAppEdgeToEdge()
         setContent {
@@ -88,7 +107,42 @@ class MainActivity : FragmentActivity() {
                 }
             ) {
                 val scope = rememberCoroutineScope()
+                val context = LocalContext.current
+                val lifecycleOwner = LocalLifecycleOwner.current
                 val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
+
+                // Track notification permission state
+                var notificationsEnabled by remember {
+                    mutableStateOf(NotificationUtils.areNotificationsEnabled(context))
+                }
+
+                // Monitor notification permission changes on resume
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            val currentState = NotificationUtils.areNotificationsEnabled(context)
+                            if (currentState != notificationsEnabled) {
+                                notificationsEnabled = currentState
+                                Logger.debug(
+                                    "Notification permission changed to: $currentState",
+                                    context = "MainActivity"
+                                )
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
+                // Monitor wallet state and notification permission changes
+                LaunchedEffect(walletViewModel.walletExists, isRecoveryMode, notificationsEnabled) {
+                    if (walletViewModel.walletExists && !isRecoveryMode && shouldStartForegroundService()) {
+                        tryStartForegroundService()
+                    }
+                }
+
                 if (!walletViewModel.walletExists && !isRecoveryMode) {
                     OnboardingNav(
                         startupNavController = rememberNavController(),
@@ -169,6 +223,72 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         appViewModel.handleDeeplinkIntent(intent)
+    }
+
+    /**
+     * Attempts to start the LightningNodeService if it's not already running.
+     */
+    private fun tryStartForegroundService() {
+        runCatching {
+            Logger.debug("Attempting to start LightningNodeService", context = "MainActivity")
+            startForegroundService(Intent(this, LightningNodeService::class.java))
+        }.onFailure { error ->
+            Logger.error("Failed to start LightningNodeService", error, context = "MainActivity")
+        }
+    }
+
+    /**
+     * Determines if the LightningNodeService should be started.
+     * Requirements:
+     * - Wallet must exist
+     * - Must NOT be in recovery mode
+     * - If Google Play Services available: notifications must be enabled
+     * - If no Google Play Services: no notification check needed
+     */
+    private fun shouldStartForegroundService(): Boolean {
+        // Check if wallet exists
+        if (!walletViewModel.walletExists) {
+            Logger.debug(
+                "Not starting service: wallet does not exist",
+                context = "MainActivity.shouldStartForegroundService"
+            )
+            return false
+        }
+
+        // Check if in recovery mode
+        if (walletViewModel.isRecoveryMode.value) {
+            Logger.debug(
+                "Not starting service: in recovery mode",
+                context = "MainActivity.shouldStartForegroundService"
+            )
+            return false
+        }
+
+        // Check Google Play Services availability
+        val hasGooglePlayServices = GooglePlayServicesUtils.isAvailable(this)
+
+        // If Google Play Services are available, check notification permissions
+        if (hasGooglePlayServices) {
+            val notificationsEnabled = NotificationUtils.areNotificationsEnabled(this)
+            if (!notificationsEnabled) {
+                Logger.debug(
+                    "Not starting service: Google Play Services available but notifications not enabled",
+                    context = "MainActivity.shouldStartForegroundService"
+                )
+                return false
+            }
+            Logger.debug(
+                "Service can start: wallet exists, not in recovery mode, Google Play Services available, notifications enabled",
+                context = "MainActivity.shouldStartForegroundService"
+            )
+        } else {
+            Logger.debug(
+                "Service can start: wallet exists, not in recovery mode, no Google Play Services (notification check skipped)",
+                context = "MainActivity.shouldStartForegroundService"
+            )
+        }
+
+        return true
     }
 }
 
