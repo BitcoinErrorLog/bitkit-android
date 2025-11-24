@@ -73,7 +73,11 @@ class WalletRepoTest : BaseUnitTest() {
             .thenReturn(Result.success(null))
         wheneverBlocking { preActivityMetadataRepo.upsertPreActivityMetadata(any()) }
             .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadata(any()) }
+            .thenReturn(Result.success(Unit))
         wheneverBlocking { preActivityMetadataRepo.resetPreActivityMetadataTags(any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.deletePreActivityMetadata(any()) }
             .thenReturn(Result.success(Unit))
         sut = createSut()
     }

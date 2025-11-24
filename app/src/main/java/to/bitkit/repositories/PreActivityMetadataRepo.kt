@@ -44,6 +44,15 @@ class PreActivityMetadataRepo @Inject constructor(
         }
     }
 
+    suspend fun addPreActivityMetadata(metadata: PreActivityMetadata): Result<Unit> = withContext(bgDispatcher) {
+        return@withContext runCatching {
+            coreService.activity.addPreActivityMetadata(metadata)
+            notifyChanged()
+        }.onFailure { e ->
+            Logger.error("addPreActivityMetadata error", e, context = TAG)
+        }
+    }
+
     suspend fun addPreActivityMetadataTags(
         paymentId: String,
         tags: List<String>,

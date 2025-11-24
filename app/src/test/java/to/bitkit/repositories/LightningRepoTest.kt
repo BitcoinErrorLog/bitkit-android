@@ -375,7 +375,7 @@ class LightningRepoTest : BaseUnitTest() {
         whenever(settingsStore.data).thenReturn(flowOf(mockSettingsData))
 
         wheneverBlocking {
-            preActivityMetadataRepo.upsertPreActivityMetadata(any())
+            preActivityMetadataRepo.addPreActivityMetadata(any())
         }.thenReturn(Result.success(Unit))
 
         whenever(
@@ -410,7 +410,7 @@ class LightningRepoTest : BaseUnitTest() {
 
         // Verify pre-activity metadata was saved
         verifyBlocking(preActivityMetadataRepo) {
-            upsertPreActivityMetadata(any())
+            addPreActivityMetadata(any())
         }
     }
 

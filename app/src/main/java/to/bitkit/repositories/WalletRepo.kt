@@ -95,8 +95,16 @@ class WalletRepo @Inject constructor(
     suspend fun refreshBip21(): Result<Unit> = withContext(bgDispatcher) {
         Logger.debug("Refreshing bip21", context = TAG)
 
+        // Get old payment ID and tags before refreshing (which may change payment ID)
         val oldPaymentId = paymentId()
-        val currentTags = _walletState.value.selectedTags
+        val tagsToMigrate = if (oldPaymentId != null && oldPaymentId.isNotEmpty()) {
+            preActivityMetadataRepo
+                .getPreActivityMetadata(oldPaymentId, searchByAddress = false)
+                .getOrNull()
+                ?.tags ?: emptyList()
+        } else {
+            emptyList()
+        }
 
         val (_, shouldBlockLightningReceive) = coreService.checkGeoBlock()
         _walletState.update {
@@ -109,56 +117,40 @@ class WalletRepo @Inject constructor(
         val newPaymentId = paymentId()
         val newBip21Url = _walletState.value.bip21
         if (newPaymentId != null && newPaymentId.isNotEmpty() && newBip21Url.isNotEmpty()) {
-            handlePreActivityMetadataForNewPaymentId(newPaymentId, oldPaymentId, currentTags, newBip21Url)
+            persistPreActivityMetadata(newPaymentId, tagsToMigrate, newBip21Url)
         }
 
         return@withContext Result.success(Unit)
     }
 
-    private suspend fun handlePreActivityMetadataForNewPaymentId(
-        newPaymentId: String,
-        oldPaymentId: String?,
-        currentTags: List<String>,
-        newBip21Url: String,
+    private suspend fun persistPreActivityMetadata(
+        paymentId: String,
+        tags: List<String>,
+        bip21Url: String,
     ) {
         val onChainAddress = getOnchainAddress()
         val paymentHash = runCatching {
-            when (val decoded = decode(newBip21Url)) {
+            when (val decoded = decode(bip21Url)) {
                 is Scanner.Lightning -> decoded.invoice.paymentHash.toHex()
                 is Scanner.OnChain -> decoded.extractLightningHash()
                 else -> null
             }
         }.getOrNull()
 
-        val existingMetadata = preActivityMetadataRepo
-            .getPreActivityMetadata(newPaymentId, searchByAddress = false)
-            .getOrNull()
+        val preActivityMetadata = PreActivityMetadata(
+            paymentId = paymentId,
+            createdAt = nowTimestamp().toEpochMilli().toULong(),
+            tags = tags,
+            paymentHash = paymentHash,
+            txId = null,
+            address = onChainAddress,
+            isReceive = true,
+            feeRate = 0u,
+            isTransfer = false,
+            channelId = "",
+        )
 
-        if (existingMetadata == null) {
-            // Create new metadata with current tags
-            val preActivityMetadata = PreActivityMetadata(
-                paymentId = newPaymentId,
-                createdAt = nowTimestamp().toEpochMilli().toULong(),
-                tags = currentTags,
-                paymentHash = paymentHash,
-                txId = null,
-                address = onChainAddress,
-                isReceive = true,
-                feeRate = 0u,
-                isTransfer = false,
-                channelId = "",
-            )
-            preActivityMetadataRepo.upsertPreActivityMetadata(listOf(preActivityMetadata))
-            Logger.debug("Created pre-activity metadata: paymentId=$newPaymentId, tags=$currentTags", context = TAG)
-        } else if (newPaymentId != oldPaymentId) {
-            if (currentTags.toSet() != existingMetadata.tags.toSet()) {
-                preActivityMetadataRepo.resetPreActivityMetadataTags(newPaymentId)
-                if (currentTags.isNotEmpty()) {
-                    preActivityMetadataRepo.addPreActivityMetadataTags(newPaymentId, currentTags)
-                }
-                Logger.debug("Updated tags for new payment ID: $newPaymentId, tags=$currentTags", context = TAG)
-            }
-        }
+        preActivityMetadataRepo.addPreActivityMetadata(preActivityMetadata)
     }
 
     suspend fun observeLdkWallet() = withContext(bgDispatcher) {
@@ -511,7 +503,14 @@ class WalletRepo @Inject constructor(
     ): Result<Unit> = withContext(bgDispatcher) {
         return@withContext runCatching {
             val oldPaymentId = paymentId()
-            val currentTags = _walletState.value.selectedTags
+            val tagsToMigrate = if (oldPaymentId != null && oldPaymentId.isNotEmpty()) {
+                preActivityMetadataRepo
+                    .getPreActivityMetadata(oldPaymentId, searchByAddress = false)
+                    .getOrNull()
+                    ?.tags ?: emptyList()
+            } else {
+                emptyList()
+            }
 
             setBip21AmountSats(amountSats)
             setBip21Description(description)
@@ -527,10 +526,10 @@ class WalletRepo @Inject constructor(
             val newBip21Url = updateBip21Url(amountSats, description)
             setBip21(newBip21Url)
 
-            // Update metadata with current tags if payment ID changed (e.g., new lightning invoice created)
+            // Persist metadata with migrated tags
             val newPaymentId = paymentId()
             if (newPaymentId != null && newPaymentId.isNotEmpty() && newBip21Url.isNotEmpty()) {
-                handlePreActivityMetadataForNewPaymentId(newPaymentId, oldPaymentId, currentTags, newBip21Url)
+                persistPreActivityMetadata(newPaymentId, tagsToMigrate, newBip21Url)
             }
         }.onFailure { e ->
             Logger.error("Update BIP21 invoice error", e, context = TAG)

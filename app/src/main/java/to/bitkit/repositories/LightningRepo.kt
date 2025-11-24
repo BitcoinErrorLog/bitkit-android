@@ -669,7 +669,7 @@ class LightningRepo @Inject constructor(
                 isTransfer = isTransfer,
                 channelId = channelId ?: "",
             )
-            preActivityMetadataRepo.upsertPreActivityMetadata(listOf(preActivityMetadata))
+            preActivityMetadataRepo.addPreActivityMetadata(preActivityMetadata)
 
             syncState()
             Result.success(txId)
