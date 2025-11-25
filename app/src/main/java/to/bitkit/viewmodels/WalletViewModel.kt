@@ -153,6 +153,18 @@ class WalletViewModel @Inject constructor(
         }
     }
 
+    fun stop() {
+        if (!walletExists) return
+
+        viewModelScope.launch(bgDispatcher) {
+            lightningRepo.stop()
+                .onFailure { error ->
+                    Logger.error("Node stop error", error)
+                    ToastEventBus.send(error)
+                }
+        }
+    }
+
     suspend fun observeLdkWallet() {
         walletRepo.observeLdkWallet()
     }
