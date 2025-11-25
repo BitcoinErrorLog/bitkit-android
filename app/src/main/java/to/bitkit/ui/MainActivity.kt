@@ -43,8 +43,6 @@ import to.bitkit.ui.screens.SplashScreen
 import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
-import to.bitkit.ui.utils.GooglePlayServicesUtils
-import to.bitkit.ui.utils.NotificationUtils
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.enableAppEdgeToEdge
 import to.bitkit.utils.Logger
@@ -100,7 +98,7 @@ class MainActivity : FragmentActivity() {
                     isRecoveryMode,
                     notificationsGranted
                 ) {
-                    if (walletViewModel.walletExists && !isRecoveryMode && shouldStartForegroundService()) {
+                    if (walletViewModel.walletExists && !isRecoveryMode && notificationsGranted) {
                         tryStartForegroundService()
                     }
                 }
@@ -197,60 +195,6 @@ class MainActivity : FragmentActivity() {
         }.onFailure { error ->
             Logger.error("Failed to start LightningNodeService", error, context = "MainActivity")
         }
-    }
-
-    /**
-     * Determines if the LightningNodeService should be started.
-     * Requirements:
-     * - Wallet must exist
-     * - Must NOT be in recovery mode
-     * - If Google Play Services available: notifications must be enabled
-     * - If no Google Play Services: no notification check needed
-     */
-    private fun shouldStartForegroundService(): Boolean {
-        // Check if wallet exists
-        if (!walletViewModel.walletExists) {
-            Logger.debug(
-                "Not starting service: wallet does not exist",
-                context = "MainActivity.shouldStartForegroundService"
-            )
-            return false
-        }
-
-        // Check if in recovery mode
-        if (walletViewModel.isRecoveryMode.value) {
-            Logger.debug(
-                "Not starting service: in recovery mode",
-                context = "MainActivity.shouldStartForegroundService"
-            )
-            return false
-        }
-
-        // Check Google Play Services availability
-        val hasGooglePlayServices = GooglePlayServicesUtils.isAvailable(this)
-
-        // If Google Play Services are available, check notification permissions
-        if (hasGooglePlayServices) {
-            val notificationsEnabled = NotificationUtils.areNotificationsEnabled(this)
-            if (!notificationsEnabled) {
-                Logger.debug(
-                    "Not starting service: Google Play Services available but notifications not enabled",
-                    context = "MainActivity.shouldStartForegroundService"
-                )
-                return false
-            }
-            Logger.debug(
-                "Service can start: wallet exists, not in recovery mode, Google Play Services available, notifications enabled",
-                context = "MainActivity.shouldStartForegroundService"
-            )
-        } else {
-            Logger.debug(
-                "Service can start: wallet exists, not in recovery mode, no Google Play Services (notification check skipped)",
-                context = "MainActivity.shouldStartForegroundService"
-            )
-        }
-
-        return true
     }
 }
 
