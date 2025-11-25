@@ -31,8 +31,6 @@ import to.bitkit.di.IoDispatcher
 import to.bitkit.di.json
 import to.bitkit.ext.formatPlural
 import to.bitkit.ext.nowMillis
-import to.bitkit.ext.toActivityTagsMetadata
-import to.bitkit.ext.toTagMetadataEntity
 import to.bitkit.models.ActivityBackupV1
 import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
@@ -75,6 +73,7 @@ class BackupRepo @Inject constructor(
     private val widgetsStore: WidgetsStore,
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
+    private val preActivityMetadataRepo: PreActivityMetadataRepo,
     private val lightningService: LightningService,
     private val clock: Clock,
     private val db: AppDb,
@@ -216,20 +215,7 @@ class BackupRepo @Inject constructor(
         }
         dataListenerJobs.add(transfersJob)
 
-        // METADATA - Observe tag metadata
-        val tagMetadataJob = scope.launch {
-            db.tagMetadataDao().observeAll()
-                .distinctUntilChanged()
-                .drop(1)
-                .collect {
-                    if (shouldSkipBackup()) return@collect
-                    markBackupRequired(BackupCategory.METADATA)
-                }
-        }
-        dataListenerJobs.add(tagMetadataJob)
-
         // METADATA - Observe entire CacheStore excluding backup statuses
-        // TODO use PreActivityMetadata
         val cacheMetadataJob = scope.launch {
             cacheStore.data
                 .map { it.copy(backupStatuses = mapOf()) }
@@ -241,6 +227,17 @@ class BackupRepo @Inject constructor(
                 }
         }
         dataListenerJobs.add(cacheMetadataJob)
+
+        // METADATA - Observe pre-activity metadata changes
+        val preActivityMetadataJob = scope.launch {
+            preActivityMetadataRepo.preActivityMetadataChanged
+                .drop(1)
+                .collect {
+                    if (shouldSkipBackup()) return@collect
+                    markBackupRequired(BackupCategory.METADATA)
+                }
+        }
+        dataListenerJobs.add(preActivityMetadataJob)
 
         // BLOCKTANK - Observe blocktank state changes (orders, cjitEntries, info)
         val blocktankJob = scope.launch {
@@ -434,14 +431,12 @@ class BackupRepo @Inject constructor(
         }
 
         BackupCategory.METADATA -> {
-            val tagMetadata = db.tagMetadataDao().getAll().map { it.toActivityTagsMetadata() }
+            val preActivityMetadata = preActivityMetadataRepo.getAllPreActivityMetadata().getOrDefault(emptyList())
             val cacheData = cacheStore.data.first()
-            // TODO use PreActivityMetadata
-            // val preActivityMetadata = activityRepo.getAllPreActivityMetadata().getOrDefault(emptyList())
 
             val payload = MetadataBackupV1(
                 createdAt = currentTimeMillis(),
-                tagMetadata = tagMetadata,
+                tagMetadata = preActivityMetadata,
                 cache = cacheData,
             )
 
@@ -493,11 +488,8 @@ class BackupRepo @Inject constructor(
                 cacheStore.update { cleanedUp }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
-                // TODO use PreActivityMetadata
-                // activityRepo.upsertPreActivityMetadata(parsed.tagMetadata)
-                val tagMetadata = parsed.tagMetadata.map { it.toTagMetadataEntity() }
-                db.tagMetadataDao().upsert(tagMetadata)
-                Logger.debug("Restored ${tagMetadata.size} pre-activity metadata", TAG)
+                preActivityMetadataRepo.upsertPreActivityMetadata(parsed.tagMetadata).getOrNull()
+                Logger.debug("Restored ${parsed.tagMetadata.size} pre-activity metadata", TAG)
                 parsed.createdAt
             }
 

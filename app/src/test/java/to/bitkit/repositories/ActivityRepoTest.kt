@@ -6,6 +6,7 @@ import com.synonym.bitkitcore.LightningActivity
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.Clock
 import org.junit.Before
@@ -22,9 +23,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
-import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
-import to.bitkit.data.dao.TagMetadataDao
 import to.bitkit.data.dto.PendingBoostActivity
 import to.bitkit.services.CoreService
 import to.bitkit.test.BaseUnitTest
@@ -39,10 +38,10 @@ class ActivityRepoTest : BaseUnitTest() {
 
     private val coreService = mock<CoreService>()
     private val lightningRepo = mock<LightningRepo>()
+    private val blocktankRepo = mock<BlocktankRepo>()
     private val transferRepo = mock<TransferRepo>()
     private val cacheStore = mock<CacheStore>()
     private val addressChecker = mock<AddressChecker>()
-    private val db = mock<AppDb>()
     private val clock = mock<Clock>()
 
     private lateinit var sut: ActivityRepo
@@ -128,14 +127,16 @@ class ActivityRepoTest : BaseUnitTest() {
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
         whenever(coreService.activity).thenReturn(mock())
         whenever(clock.now()).thenReturn(Clock.System.now())
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
+        whenever(blocktankRepo.blocktankState).thenReturn(MutableStateFlow(BlocktankState()))
 
         sut = ActivityRepo(
             bgDispatcher = testDispatcher,
             coreService = coreService,
             lightningRepo = lightningRepo,
-            cacheStore = cacheStore,
+            blocktankRepo = blocktankRepo,
             addressChecker = addressChecker,
-            db = db,
+            cacheStore = cacheStore,
             transferRepo = transferRepo,
             clock = clock,
         )
@@ -144,13 +145,15 @@ class ActivityRepoTest : BaseUnitTest() {
     private fun setupSyncActivitiesMocks(
         cacheData: AppCacheData
     ) {
-        val tagMetadataDao = mock<TagMetadataDao>()
-        whenever(db.tagMetadataDao()).thenReturn(tagMetadataDao)
-        wheneverBlocking { tagMetadataDao.getAll() }.thenReturn(emptyList())
-
         whenever(cacheStore.data).thenReturn(flowOf(cacheData))
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(emptyList()))
-        wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(any(), eq(false)) }.thenReturn(Unit)
+        wheneverBlocking {
+            coreService.activity.syncLdkNodePaymentsToActivities(
+                any(),
+                eq(false),
+                any()
+            )
+        }.thenReturn(Unit)
         wheneverBlocking { transferRepo.syncTransferStates() }.thenReturn(Result.success(Unit))
         wheneverBlocking { coreService.activity.allPossibleTags() }.thenReturn(emptyList())
     }
@@ -159,8 +162,14 @@ class ActivityRepoTest : BaseUnitTest() {
     fun `syncActivities success flow`() = test {
         val payments = listOf(testPaymentDetails)
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(payments))
-        wheneverBlocking { coreService.activity.getActivity(any()) }.thenReturn(null)
-        wheneverBlocking { coreService.activity.syncLdkNodePaymentsToActivities(payments) }.thenReturn(Unit)
+        wheneverBlocking { coreService.activity.getActivity(any<String>()) }.thenReturn(null)
+        wheneverBlocking {
+            coreService.activity.syncLdkNodePaymentsToActivities(
+                any<List<PaymentDetails>>(),
+                any<Boolean>(),
+                any<Map<String, String>>()
+            )
+        }.thenReturn(Unit)
         wheneverBlocking { transferRepo.syncTransferStates() }.thenReturn(Result.success(Unit))
         wheneverBlocking { coreService.activity.allPossibleTags() }.thenReturn(emptyList())
 
@@ -168,7 +177,7 @@ class ActivityRepoTest : BaseUnitTest() {
 
         assertTrue(result.isSuccess)
         verify(lightningRepo).getPayments()
-        verify(coreService.activity).syncLdkNodePaymentsToActivities(payments)
+        verify(coreService.activity).syncLdkNodePaymentsToActivities(any(), any(), any())
         assertFalse(sut.isSyncingLdkNodePayments.value)
     }
 

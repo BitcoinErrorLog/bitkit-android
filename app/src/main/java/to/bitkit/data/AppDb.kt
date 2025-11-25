@@ -19,25 +19,21 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import to.bitkit.BuildConfig
-import to.bitkit.data.dao.TagMetadataDao
 import to.bitkit.data.dao.TransferDao
 import to.bitkit.data.entities.ConfigEntity
-import to.bitkit.data.entities.TagMetadataEntity
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.data.typeConverters.StringListConverter
 
 @Database(
     entities = [
         ConfigEntity::class,
-        TagMetadataEntity::class,
         TransferEntity::class,
     ],
-    version = 4,
+    version = 5,
 )
 @TypeConverters(StringListConverter::class)
 abstract class AppDb : RoomDatabase() {
     abstract fun configDao(): ConfigDao
-    abstract fun tagMetadataDao(): TagMetadataDao
     abstract fun transferDao(): TransferDao
 
     companion object {

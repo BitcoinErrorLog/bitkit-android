@@ -13,7 +13,6 @@ import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
@@ -34,7 +33,6 @@ import to.bitkit.models.BalanceState
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.OpenChannelResult
-import to.bitkit.models.TransactionMetadata
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.services.BlocktankService
 import to.bitkit.services.CoreService
@@ -61,6 +59,7 @@ class LightningRepoTest : BaseUnitTest() {
     private val firebaseMessaging: FirebaseMessaging = mock()
     private val keychain: Keychain = mock()
     private val cacheStore: CacheStore = mock()
+    private val preActivityMetadataRepo: PreActivityMetadataRepo = mock()
 
     private val lnurlService: LnurlService = mock()
 
@@ -78,6 +77,7 @@ class LightningRepoTest : BaseUnitTest() {
             keychain = keychain,
             lnurlService = lnurlService,
             cacheStore = cacheStore,
+            preActivityMetadataRepo = preActivityMetadataRepo,
         )
     }
 
@@ -374,7 +374,9 @@ class LightningRepoTest : BaseUnitTest() {
         )
         whenever(settingsStore.data).thenReturn(flowOf(mockSettingsData))
 
-        wheneverBlocking { cacheStore.addTransactionMetadata(any()) }.thenReturn(Unit)
+        wheneverBlocking {
+            preActivityMetadataRepo.addPreActivityMetadata(any())
+        }.thenReturn(Result.success(Unit))
 
         whenever(
             lightningService.send(
@@ -406,18 +408,10 @@ class LightningRepoTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         assertEquals("testPaymentId", result.getOrNull())
 
-        // Verify the cache call
-        val captor = argumentCaptor<TransactionMetadata>()
-        verifyBlocking(cacheStore) {
-            addTransactionMetadata(captor.capture())
+        // Verify pre-activity metadata was saved
+        verifyBlocking(preActivityMetadataRepo) {
+            addPreActivityMetadata(any())
         }
-
-        val capturedActivity = captor.firstValue
-        assertEquals("testPaymentId", capturedActivity.txId)
-        assertEquals("test_address", capturedActivity.address)
-        assertEquals(true, capturedActivity.isTransfer)
-        assertEquals("test_channel_id", capturedActivity.channelId)
-        assertEquals(10u, capturedActivity.feeRate)
     }
 
     @Test

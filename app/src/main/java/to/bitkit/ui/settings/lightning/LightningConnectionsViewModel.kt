@@ -23,6 +23,7 @@ import org.lightningdevkit.ldknode.OutPoint
 import to.bitkit.R
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.amountOnClose
+import to.bitkit.ext.calculateRemoteBalance
 import to.bitkit.ext.createChannelDetails
 import to.bitkit.ext.filterOpen
 import to.bitkit.ext.filterPending
@@ -113,7 +114,7 @@ class LightningConnectionsViewModel @Inject constructor(
                         .map { it.mapToUiModel() },
                     failedOrders = getFailedOrdersAsChannels(blocktankState.paidOrders).map { it.mapToUiModel() },
                     localBalance = calculateLocalBalance(channels),
-                    remoteBalance = calculateRemoteBalance(channels),
+                    remoteBalance = channels.calculateRemoteBalance(),
                 )
             }.collect { newState ->
                 _uiState.update { newState }
@@ -329,12 +330,6 @@ class LightningConnectionsViewModel @Inject constructor(
             .sumOf { it.amountOnClose }
     }
 
-    private fun calculateRemoteBalance(channels: List<ChannelDetails>): ULong {
-        return channels
-            .filterOpen()
-            .sumOf { it.inboundCapacityMsat / 1000u }
-    }
-
     fun zipLogsForSharing(onReady: (Uri) -> Unit) {
         viewModelScope.launch {
             logsRepo.zipLogsForSharing()
@@ -354,6 +349,42 @@ class LightningConnectionsViewModel @Inject constructor(
     }
 
     fun clearSelectedChannel() = _selectedChannel.update { null }
+
+    fun findAndSelectChannel(channelId: String): Boolean {
+        val channels = lightningRepo.lightningState.value.channels
+        val blocktankState = blocktankRepo.blocktankState.value
+
+        val channelUi = findChannelUi(channelId, channels, blocktankState)
+        if (channelUi != null) {
+            setSelectedChannel(channelUi)
+            return true
+        }
+
+        return false
+    }
+
+    private fun findChannelUi(
+        channelId: String,
+        channels: List<ChannelDetails>,
+        blocktankState: to.bitkit.repositories.BlocktankState,
+    ): ChannelUi? {
+        return channels.find { it.channelId == channelId }?.mapToUiModel()
+            ?: getPendingOrdersAsChannels(channels, blocktankState.paidOrders)
+                .find { it.channelId == channelId }?.mapToUiModel()
+            ?: getFailedOrdersAsChannels(blocktankState.paidOrders)
+                .find { it.channelId == channelId }?.mapToUiModel()
+            ?: _uiState.value.closedChannels.find { it.details.channelId == channelId }
+            ?: blocktankState.orders.find { it.id == channelId }?.let { order ->
+                createChannelDetails().copy(
+                    channelId = order.id,
+                    counterpartyNodeId = order.lspNode?.pubkey.orEmpty(),
+                    fundingTxo = order.channel?.fundingTx?.let { OutPoint(txid = it.id, vout = it.vout.toUInt()) },
+                    channelValueSats = order.clientBalanceSat + order.lspBalanceSat,
+                    outboundCapacityMsat = order.clientBalanceSat * 1000u,
+                    inboundCapacityMsat = order.lspBalanceSat * 1000u,
+                ).mapToUiModel()
+            }
+    }
 
     fun fetchTransactionDetails(txid: String) {
         viewModelScope.launch(bgDispatcher) {

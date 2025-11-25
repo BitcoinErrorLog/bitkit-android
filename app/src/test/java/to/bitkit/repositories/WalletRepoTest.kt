@@ -16,7 +16,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
-import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
@@ -32,13 +31,13 @@ import to.bitkit.utils.AddressInfo
 import to.bitkit.utils.AddressStats
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class WalletRepoTest : BaseUnitTest() {
 
     private lateinit var sut: WalletRepo
 
-    private val db = mock<AppDb>()
     private val keychain = mock<Keychain>()
     private val coreService = mock<CoreService>()
     private val onchainService = mock<OnchainService>()
@@ -46,17 +45,19 @@ class WalletRepoTest : BaseUnitTest() {
     private val addressChecker = mock<AddressChecker>()
     private val lightningRepo = mock<LightningRepo>()
     private val cacheStore = mock<CacheStore>()
+    private val preActivityMetadataRepo = mock<PreActivityMetadataRepo>()
     private val deriveBalanceStateUseCase = mock<DeriveBalanceStateUseCase>()
     private val wipeWalletUseCase = mock<WipeWalletUseCase>()
 
     @Before
     fun setUp() {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData()))
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(bolt11 = "", onchainAddress = "testAddress")))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
         wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))
+        wheneverBlocking { lightningRepo.canReceive() }.thenReturn(false)
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
         wheneverBlocking { deriveBalanceStateUseCase.invoke() }.thenReturn(Result.success(BalanceState()))
 
@@ -64,18 +65,32 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)).thenReturn(null)
 
         whenever(coreService.onchain).thenReturn(onchainService)
+        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadataTags(any(), any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.removePreActivityMetadataTags(any(), any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.getPreActivityMetadata(any(), any()) }
+            .thenReturn(Result.success(null))
+        wheneverBlocking { preActivityMetadataRepo.upsertPreActivityMetadata(any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadata(any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.resetPreActivityMetadataTags(any()) }
+            .thenReturn(Result.success(Unit))
+        wheneverBlocking { preActivityMetadataRepo.deletePreActivityMetadata(any()) }
+            .thenReturn(Result.success(Unit))
         sut = createSut()
     }
 
     private fun createSut() = WalletRepo(
         bgDispatcher = testDispatcher,
-        db = db,
         keychain = keychain,
         coreService = coreService,
         settingsStore = settingsStore,
         addressChecker = addressChecker,
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
+        preActivityMetadataRepo = preActivityMetadataRepo,
         deriveBalanceStateUseCase = deriveBalanceStateUseCase,
         wipeWalletUseCase = wipeWalletUseCase,
     )
@@ -347,21 +362,89 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `addTagToSelected should add tag and update lastUsedTags`() = test {
         val testTag = "testTag"
+        val testAddress = "bc1qtest"
 
-        sut.addTagToSelected(testTag)
+        // Set address in wallet state so paymentId() returns it
+        sut.setOnchainAddress(testAddress)
 
+        // Now add the tag
+        val result = sut.addTagToSelected(testTag)
+
+        assertTrue(result.isSuccess)
         assertEquals(listOf(testTag), sut.walletState.value.selectedTags)
         verify(settingsStore).addLastUsedTag(testTag)
+        verify(preActivityMetadataRepo).addPreActivityMetadataTags(testAddress, listOf(testTag))
     }
 
     @Test
     fun `removeTag should remove tag`() = test {
         val testTag = "testTag"
-        sut.addTagToSelected(testTag)
+        val testAddress = "bc1qtest"
 
-        sut.removeTag(testTag)
+        // Set address in wallet state so paymentId() returns it
+        sut.setOnchainAddress(testAddress)
+
+        val addResult = sut.addTagToSelected(testTag)
+        assertTrue(addResult.isSuccess)
+
+        val removeResult = sut.removeTag(testTag)
+        assertTrue(removeResult.isSuccess)
 
         assertTrue(sut.walletState.value.selectedTags.isEmpty())
+    }
+
+    @Test
+    fun `addTagToSelected should fail when payment ID is not available`() = test {
+        // Don't set address, so paymentId() returns null
+        val result = sut.addTagToSelected("testTag")
+
+        assertTrue(result.isFailure)
+        assertNotNull(result.exceptionOrNull())
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(sut.walletState.value.selectedTags.isEmpty())
+    }
+
+    @Test
+    fun `removeTag should fail when payment ID is not available`() = test {
+        // Don't set address, so paymentId() returns null
+        val result = sut.removeTag("testTag")
+
+        assertTrue(result.isFailure)
+        assertNotNull(result.exceptionOrNull())
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
+    }
+
+    @Test
+    fun `addTagToSelected should fail when metadata repo fails`() = test {
+        val testTag = "testTag"
+        val testAddress = "bc1qtest"
+        val error = RuntimeException("Repo error")
+
+        sut.setOnchainAddress(testAddress)
+        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadataTags(testAddress, listOf(testTag)) }
+            .thenReturn(Result.failure(error))
+
+        val result = sut.addTagToSelected(testTag)
+
+        assertTrue(result.isFailure)
+        assertEquals(error, result.exceptionOrNull())
+        assertTrue(sut.walletState.value.selectedTags.isEmpty())
+    }
+
+    @Test
+    fun `removeTag should fail when metadata repo fails`() = test {
+        val testTag = "testTag"
+        val testAddress = "bc1qtest"
+        val error = RuntimeException("Repo error")
+
+        sut.setOnchainAddress(testAddress)
+        wheneverBlocking { preActivityMetadataRepo.removePreActivityMetadataTags(testAddress, listOf(testTag)) }
+            .thenReturn(Result.failure(error))
+
+        val result = sut.removeTag(testTag)
+
+        assertTrue(result.isFailure)
+        assertEquals(error, result.exceptionOrNull())
     }
 
     @Test
@@ -453,7 +536,9 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `clearBip21State should clear all bip21 related state`() = test {
-        sut.addTagToSelected("tag1")
+        sut.setOnchainAddress("bc1qtest")
+        val addResult = sut.addTagToSelected("tag1")
+        assertTrue(addResult.isSuccess)
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test")
 
         sut.clearBip21State()
