@@ -424,6 +424,8 @@
     <string name="other__gift__used__title">Used Code</string>
     <string name="other__gift__used__text">This Bitkit gift code has already been used, and the funds have been paid out.</string>
     <string name="other__gift__used__button">OK</string>
+    <string name="other__gift__used_up__title">Out of Gifts</string>
+    <string name="other__gift__used_up__text">Sorry, you\'re too late! All gifts for this code have already been claimed.</string>
     <string name="other__shop__intro__title">Shop</string>
     <string name="other__shop__intro__description">Get your life on the Bitcoin standard. Spend your Bitcoin on digital gift cards, eSIMs, phone refills, and more.</string>
     <string name="other__shop__intro__button">Get Started</string>
@@ -991,6 +993,7 @@
     <string name="wallet__activity_transfer_spending_pending">From Savings (±{duration})</string>
     <string name="wallet__activity_transfer_spending_done">From Savings</string>
     <string name="wallet__activity_transfer_to_spending">To Spending</string>
+    <string name="wallet__activity_transfer_to_savings">To Savings</string>
     <string name="wallet__activity_transfer_pending">Transfer (±{duration})</string>
     <string name="wallet__activity_confirms_in">Confirms in {feeRateDescription}</string>
     <string name="wallet__activity_confirms_in_boosted">Boosting. Confirms in {feeRateDescription}</string>
@@ -1007,6 +1010,7 @@
     <string name="wallet__activity_removed_msg">Please check your activity list. The {count} impacted transaction(s) will be highlighted in red.</string>
     <string name="wallet__activity_boosting">Boosting</string>
     <string name="wallet__activity_fee">Fee</string>
+    <string name="wallet__activity_fee_prepaid">Fee (prepaid)</string>
     <string name="wallet__activity_payment">Payment</string>
     <string name="wallet__activity_status">Status</string>
     <string name="wallet__activity_date">Date</string>

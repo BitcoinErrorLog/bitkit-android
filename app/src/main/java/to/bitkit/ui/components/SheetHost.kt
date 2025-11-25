@@ -17,6 +17,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import to.bitkit.ui.theme.Colors
 
 enum class SheetSize { LARGE, MEDIUM, SMALL, CALENDAR; }
 
+@Stable
 sealed interface Sheet {
     data class Send(val route: SendRoute = SendRoute.Recipient) : Sheet
     data object Receive : Sheet
@@ -39,6 +41,7 @@ sealed interface Sheet {
     data object ActivityTagSelector : Sheet
     data class LnurlAuth(val domain: String, val lnurl: String, val k1: String) : Sheet
     data object ForceTransfer : Sheet
+    data class Gift(val code: String, val amount: ULong) : Sheet
 
     data class TimedSheet(val type: TimedSheetType) : Sheet
 }

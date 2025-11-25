@@ -147,6 +147,7 @@ import to.bitkit.ui.sheets.BackgroundPaymentsIntroSheet
 import to.bitkit.ui.sheets.BackupRoute
 import to.bitkit.ui.sheets.BackupSheet
 import to.bitkit.ui.sheets.ForceTransferSheet
+import to.bitkit.ui.sheets.GiftSheet
 import to.bitkit.ui.sheets.HighBalanceWarningSheet
 import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
@@ -363,6 +364,7 @@ fun ContentView(
                         is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                         Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
+                        is Sheet.Gift -> GiftSheet(sheet, appViewModel)
                         is Sheet.TimedSheet -> {
                             when (sheet.type) {
                                 TimedSheetType.APP_UPDATE -> {
@@ -1025,6 +1027,12 @@ private fun NavGraphBuilder.activityItem(
             listViewModel = activityListViewModel,
             route = it.toRoute(),
             onExploreClick = { id -> navController.navigateToActivityExplore(id) },
+            onChannelClick = { channelId ->
+                navController.currentBackStackEntry?.savedStateHandle?.set("selectedChannelId", channelId)
+                navController.navigate(Routes.ConnectionsNav) {
+                    launchSingleTop = true
+                }
+            },
             onBackClick = { navController.popBackStack() },
             onCloseClick = { navController.navigateToHome() },
         )

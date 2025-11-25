@@ -93,16 +93,21 @@ fun ActivityIcon(
 
         // onchain
         else -> {
+            val isTransfer = activity.isTransfer()
+            val isTransferFromSpending = isTransfer && activity.txType() == PaymentType.RECEIVED
+            val transferIconColor = if (isTransferFromSpending) Colors.Purple else Colors.Brand
+            val transferBackgroundColor = if (isTransferFromSpending) Colors.Purple16 else Colors.Brand16
+
             CircularIcon(
                 icon = when {
                     !activity.doesExist() -> painterResource(R.drawable.ic_x)
-                    activity.isTransfer() -> painterResource(R.drawable.ic_transfer)
+                    isTransfer -> painterResource(R.drawable.ic_transfer)
                     else -> arrowIcon
                 },
-                iconColor = Colors.Brand,
-                backgroundColor = Colors.Brand16,
+                iconColor = if (isTransfer) transferIconColor else Colors.Brand,
+                backgroundColor = if (isTransfer) transferBackgroundColor else Colors.Brand16,
                 size = size,
-                modifier = modifier.testTag(if (activity.isTransfer()) "TransferIcon" else "ActivityIcon"),
+                modifier = modifier.testTag(if (isTransfer) "TransferIcon" else "ActivityIcon"),
             )
         }
     }
