@@ -189,6 +189,15 @@ class MainActivity : FragmentActivity() {
         appViewModel.handleDeeplinkIntent(intent)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!settingsViewModel.notificationsGranted.value) {
+            runCatching {
+                stopService(Intent(this, LightningNodeService::class.java))
+            }
+        }
+    }
+
     /**
      * Attempts to start the LightningNodeService if it's not already running.
      */
