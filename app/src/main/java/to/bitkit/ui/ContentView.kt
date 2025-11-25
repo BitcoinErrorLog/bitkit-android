@@ -281,6 +281,7 @@ fun ContentView(
     var restoreRetryCount by remember { mutableIntStateOf(0) }
 
     if (walletIsInitializing) {
+        // TODO ADAPT THIS LOGIC TO WORK WITH LightningNodeService
         if (nodeLifecycleState is NodeLifecycleState.ErrorStarting) {
             WalletRestoreErrorView(
                 retryCount = restoreRetryCount,

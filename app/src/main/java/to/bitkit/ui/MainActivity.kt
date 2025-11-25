@@ -96,7 +96,6 @@ class MainActivity : FragmentActivity() {
                     .map { it.walletExists }
                     .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
 
-                // Monitor wallet state and notification permission changes
                 LaunchedEffect(
                     walletExists,
                     isRecoveryMode,
