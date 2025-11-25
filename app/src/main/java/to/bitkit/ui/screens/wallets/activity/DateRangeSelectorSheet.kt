@@ -120,7 +120,6 @@ fun DateRangeSelectorSheet() {
         initialEndDate = endDate,
         onClearClick = {
             activityListVM.clearDateRange()
-            app.hideSheet()
         },
         onApplyClick = { start, end ->
             activityListVM.setDateRange(
