@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
@@ -91,14 +92,17 @@ class MainActivity : FragmentActivity() {
                 val scope = rememberCoroutineScope()
                 val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
                 val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+                val walletExists by walletViewModel.walletState
+                    .map { it.walletExists }
+                    .collectAsStateWithLifecycle(initialValue = false)
 
                 // Monitor wallet state and notification permission changes
                 LaunchedEffect(
-                    walletViewModel.walletExists,
+                    walletExists,
                     isRecoveryMode,
                     notificationsGranted
                 ) {
-                    if (walletViewModel.walletExists && !isRecoveryMode && notificationsGranted) {
+                    if (walletExists && !isRecoveryMode && notificationsGranted) {
                         tryStartForegroundService()
                     }
                 }
