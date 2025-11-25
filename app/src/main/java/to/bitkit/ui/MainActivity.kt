@@ -94,7 +94,7 @@ class MainActivity : FragmentActivity() {
                 val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
                 val walletExists by walletViewModel.walletState
                     .map { it.walletExists }
-                    .collectAsStateWithLifecycle(initialValue = false)
+                    .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
 
                 // Monitor wallet state and notification permission changes
                 LaunchedEffect(
