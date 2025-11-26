@@ -52,7 +52,6 @@ fun HeadlinesPreviewScreen(
     val isHeadlinesImplemented by headlinesViewModel.isNewsWidgetEnabled.collectAsStateWithLifecycle()
 
     HeadlinesPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isHeadlinesImplemented = isHeadlinesImplemented,
         headlinePreferences = customHeadlinePreferences,
@@ -72,7 +71,6 @@ fun HeadlinesPreviewScreen(
 
 @Composable
 fun HeadlinesPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -80,7 +78,7 @@ fun HeadlinesPreviewContent(
     showWidgetTitles: Boolean,
     isHeadlinesImplemented: Boolean,
     headlinePreferences: HeadlinePreferences,
-    article: ArticleModel
+    article: ArticleModel,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("headlines_preview_screen")
@@ -205,7 +203,6 @@ fun HeadlinesPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         HeadlinesPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -228,7 +225,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         HeadlinesPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

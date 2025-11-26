@@ -43,6 +43,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
+import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.navigateToSettings
 import to.bitkit.ui.screens.wallets.HomeRoutes
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
@@ -140,7 +141,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
-                rootNavController.navigate(Routes.Home)
+                rootNavController.navigateToHome()
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")

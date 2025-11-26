@@ -18,7 +18,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
 fun AddWidgetsScreen(
-    onClose: () -> Unit,
     onWidgetSelected: (WidgetType) -> Unit,
     fiatSymbol: String,
 ) {
@@ -99,7 +98,6 @@ fun AddWidgetsScreen(
 private fun Preview() {
     AppThemeSurface {
         AddWidgetsScreen(
-            onClose = {},
             onWidgetSelected = {},
             fiatSymbol = "$"
         )

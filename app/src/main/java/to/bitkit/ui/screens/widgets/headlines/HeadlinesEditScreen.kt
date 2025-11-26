@@ -38,7 +38,6 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun HeadlinesEditScreen(
     headlinesViewModel: HeadlinesViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigatePreview: () -> Unit
 ) {
@@ -46,7 +45,6 @@ fun HeadlinesEditScreen(
     val article by headlinesViewModel.currentArticle.collectAsStateWithLifecycle()
 
     HeadlinesEditContent(
-        onClose = onClose,
         onBack = onBack,
         headlinePreferences = customHeadlinePreferences,
         article = article,
@@ -67,7 +65,6 @@ fun HeadlinesEditScreen(
 
 @Composable
 fun HeadlinesEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickTime: () -> Unit,
     onClickReset: () -> Unit,
@@ -248,7 +245,6 @@ fun HeadlinesEditContent(
 private fun Preview() {
     AppThemeSurface {
         HeadlinesEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickTime = {},
@@ -270,7 +266,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         HeadlinesEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickTime = {},

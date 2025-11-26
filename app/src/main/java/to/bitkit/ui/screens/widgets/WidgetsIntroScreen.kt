@@ -26,7 +26,6 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun WidgetsIntroScreen(
-    onClose: () -> Unit,
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
@@ -69,7 +68,6 @@ fun WidgetsIntroScreen(
 private fun Preview() {
     AppThemeSurface {
         WidgetsIntroScreen(
-            onClose = {},
             onContinue = {}
         )
     }

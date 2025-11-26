@@ -60,7 +60,6 @@ private const val SHOP_CARD_SIZE = 164
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopDiscoverScreen(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigateWebView: (String, String) -> Unit, // Page, Title
 ) {
@@ -279,6 +278,6 @@ private fun MapTabContent() {
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ShopDiscoverScreen(onClose = {}, onBack = {}, navigateWebView = { _, _ -> })
+        ShopDiscoverScreen(onBack = {}, navigateWebView = { _, _ -> })
     }
 }

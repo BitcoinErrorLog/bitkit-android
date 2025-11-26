@@ -26,7 +26,6 @@ import to.bitkit.ui.utils.withAccent
 @Composable
 fun QuickPayIntroScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -81,7 +80,6 @@ private fun Preview() {
     AppThemeSurface {
         QuickPayIntroScreen(
             onBack = {},
-            onClose = {},
             onContinue = {}
         )
     }

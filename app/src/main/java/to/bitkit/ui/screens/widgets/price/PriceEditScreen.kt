@@ -40,7 +40,6 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun PriceEditScreen(
     viewModel: PriceViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigatePreview: () -> Unit
 ) {
@@ -50,7 +49,6 @@ fun PriceEditScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     PriceEditContent(
-        onClose = onClose,
         onBack = onBack,
         preferences = customPreferences,
         onClickReset = { viewModel.resetCustomPreferences() },
@@ -75,7 +73,6 @@ fun PriceEditScreen(
 
 @Composable
 fun PriceEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     priceModel: PriceDTO,
     allPeriodsUsd: List<PriceWidgetData>,

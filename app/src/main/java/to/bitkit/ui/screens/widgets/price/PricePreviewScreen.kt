@@ -69,7 +69,6 @@ fun PricePreviewScreen(
     }
 
     PricePreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isPriceWidgetEnabled = isPriceWidgetEnabled,
         pricePreferences = customPricePreferences,
@@ -89,7 +88,6 @@ fun PricePreviewScreen(
 
 @Composable
 fun PricePreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -98,7 +96,7 @@ fun PricePreviewContent(
     isPriceWidgetEnabled: Boolean,
     pricePreferences: PricePreferences,
     priceDTO: PriceDTO?,
-    isLoading: Boolean
+    isLoading: Boolean,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("price_preview_screen")
@@ -224,7 +222,6 @@ fun PricePreviewContent(
 private fun Preview() {
     AppThemeSurface {
         PricePreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -267,7 +264,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         PricePreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

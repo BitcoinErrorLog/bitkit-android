@@ -18,7 +18,6 @@ import com.synonym.bitkitcore.FeeRates
 import to.bitkit.R
 import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsTextButtonRow
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -40,7 +39,6 @@ fun FeeSettingsScreen(
     Content(
         uiState = uiState,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
     )
 }
 
@@ -48,7 +46,6 @@ fun FeeSettingsScreen(
 private fun Content(
     uiState: FeeSettingsUiState,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(

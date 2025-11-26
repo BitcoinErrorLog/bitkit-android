@@ -49,7 +49,6 @@ fun CalculatorPreviewScreen(
     val isCalculatorWidgetEnabled by viewModel.isCalculatorWidgetEnabled.collectAsStateWithLifecycle()
 
     CalculatorPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isCalculatorWidgetEnabled = isCalculatorWidgetEnabled,
         showWidgetTitles = showWidgetTitles,
@@ -67,7 +66,6 @@ fun CalculatorPreviewScreen(
 
 @Composable
 fun CalculatorPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickDelete: () -> Unit,
     onClickSave: () -> Unit,
@@ -180,7 +178,6 @@ fun CalculatorPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         CalculatorPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickDelete = {},

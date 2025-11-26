@@ -25,7 +25,6 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun ProfileIntroScreen(
-    onClose: () -> Unit,
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
@@ -69,7 +68,6 @@ fun ProfileIntroScreen(
 private fun Preview() {
     AppThemeSurface {
         ProfileIntroScreen(
-            onClose = {},
             onContinue = {}
         )
     }

@@ -51,7 +51,6 @@ fun FactsPreviewScreen(
     val isFactsWidgetEnabled by factsViewModel.isFactsWidgetEnabled.collectAsStateWithLifecycle()
 
     FactsPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isFactsWidgetEnabled = isFactsWidgetEnabled,
         factsPreferences = customFactsPreferences,
@@ -71,7 +70,6 @@ fun FactsPreviewScreen(
 
 @Composable
 fun FactsPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -79,7 +77,7 @@ fun FactsPreviewContent(
     showWidgetTitles: Boolean,
     isFactsWidgetEnabled: Boolean,
     factsPreferences: FactsPreferences,
-    fact: String
+    fact: String,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("facts_preview_screen")
@@ -200,7 +198,6 @@ fun FactsPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         FactsPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -218,7 +215,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         FactsPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

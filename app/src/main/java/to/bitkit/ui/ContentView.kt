@@ -453,7 +453,7 @@ fun ContentView(
 
                 DrawerMenu(
                     drawerState = drawerState,
-                    walletNavController = null,
+                    walletNavController = null, // TODO
                     rootNavController = navController,
                     hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                     hasSeenShopIntro = hasSeenShopIntro,
@@ -760,7 +760,6 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.QuickPayIntro> {
         QuickPayIntroScreen(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
             onContinue = {
                 settingsViewModel.setQuickPayIntroSeen(true)
                 navController.navigate(Routes.QuickPaySettings)
@@ -796,7 +795,6 @@ private fun NavGraphBuilder.profile(
 ) {
     composableWithDefaultTransitions<Routes.ProfileIntro> {
         ProfileIntroScreen(
-            onClose = { navController.navigateToHome() },
             onContinue = {
                 settingsViewModel.setHasSeenProfileIntro(true)
                 navController.navigate(Routes.CreateProfile)
@@ -806,7 +804,6 @@ private fun NavGraphBuilder.profile(
     composableWithDefaultTransitions<Routes.CreateProfile> {
         CreateProfileScreen(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
         )
     }
 }
@@ -826,7 +823,6 @@ private fun NavGraphBuilder.shop(
     }
     composableWithDefaultTransitions<Routes.ShopDiscover> {
         ShopDiscoverScreen(
-            onClose = { navController.navigateToHome() },
             onBack = { navController.popBackStack() },
             navigateWebView = { page, title ->
                 navController.navigate(Routes.ShopWebView(page = page, title = title))
@@ -1216,7 +1212,6 @@ private fun NavGraphBuilder.widgets(
 ) {
     composableWithDefaultTransitions<Routes.WidgetsIntro> {
         WidgetsIntroScreen(
-            onClose = { navController.navigateToHome() },
             onContinue = {
                 settingsViewModel.setHasSeenWidgetsIntro(true)
                 navController.navigate(Routes.AddWidget)
@@ -1225,7 +1220,6 @@ private fun NavGraphBuilder.widgets(
     }
     composableWithDefaultTransitions<Routes.AddWidget> {
         AddWidgetsScreen(
-            onClose = { navController.navigateToHome() },
             onWidgetSelected = { widgetType ->
                 when (widgetType) {
                     WidgetType.BLOCK -> navController.navigate(Routes.BlocksPreview)
@@ -1266,7 +1260,6 @@ private fun NavGraphBuilder.widgets(
 
             HeadlinesEditScreen(
                 headlinesViewModel = viewModel,
-                onClose = { navController.navigateToHome() },
                 onBack = { navController.popBackStack() },
                 navigatePreview = {
                     navController.navigate(Routes.HeadlinesPreview)
@@ -1294,7 +1287,6 @@ private fun NavGraphBuilder.widgets(
 
             FactsEditScreen(
                 factsViewModel = viewModel,
-                onClose = { navController.navigateToHome() },
                 onBack = { navController.popBackStack() },
                 navigatePreview = { navController.navigate(Routes.FactsPreview) }
             )
@@ -1346,7 +1338,6 @@ private fun NavGraphBuilder.widgets(
 
             WeatherEditScreen(
                 weatherViewModel = viewModel,
-                onClose = { navController.navigateToHome() },
                 onBack = { navController.popBackStack() },
                 navigatePreview = { navController.navigate(Routes.WeatherPreview) }
             )
@@ -1371,7 +1362,6 @@ private fun NavGraphBuilder.widgets(
             val viewModel = hiltViewModel<PriceViewModel>(parentEntry)
             PriceEditScreen(
                 viewModel = viewModel,
-                onClose = { navController.navigateToHome() },
                 onBack = { navController.popBackStack() },
                 navigatePreview = { navController.navigate(Routes.PricePreview) }
             )

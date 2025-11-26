@@ -54,7 +54,6 @@ fun WeatherPreviewScreen(
     val isWeatherWidgetEnabled by weatherViewModel.isWeatherWidgetEnabled.collectAsStateWithLifecycle()
 
     WeatherPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isWeatherWidgetEnabled = isWeatherWidgetEnabled,
         weatherPreferences = customWeatherPreferences,
@@ -74,7 +73,6 @@ fun WeatherPreviewScreen(
 
 @Composable
 fun WeatherPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -207,7 +205,6 @@ fun WeatherPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         WeatherPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -231,7 +228,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         WeatherPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

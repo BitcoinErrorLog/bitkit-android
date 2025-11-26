@@ -18,7 +18,6 @@ import to.bitkit.ui.theme.Colors
 
 @Composable
 fun CreateProfileScreen(
-    onClose: () -> Unit,
     onBack: () -> Unit,
 ) { // TODO IMPLEMENT
     ScreenColumn {
@@ -47,7 +46,6 @@ fun CreateProfileScreen(
 private fun Preview() {
     AppThemeSurface {
         CreateProfileScreen(
-            onClose = {},
             onBack = {},
         )
     }

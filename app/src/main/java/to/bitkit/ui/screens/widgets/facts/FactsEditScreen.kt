@@ -37,15 +37,13 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun FactsEditScreen(
     factsViewModel: FactsViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
-    navigatePreview: () -> Unit
+    navigatePreview: () -> Unit,
 ) {
     val customPreference by factsViewModel.customPreferences.collectAsStateWithLifecycle()
     val fact by factsViewModel.currentFact.collectAsStateWithLifecycle()
 
     FactsEditContent(
-        onClose = onClose,
         onBack = onBack,
         factsPreferences = customPreference,
         fact = fact,
@@ -61,13 +59,12 @@ fun FactsEditScreen(
 
 @Composable
 fun FactsEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickReset: () -> Unit,
     onClickShowSource: () -> Unit,
     onClickPreview: () -> Unit,
     factsPreferences: FactsPreferences,
-    fact: String
+    fact: String,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("facts_edit_screen")
@@ -209,7 +206,6 @@ fun FactsEditContent(
 private fun Preview() {
     AppThemeSurface {
         FactsEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickReset = {},
@@ -225,7 +221,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         FactsEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickReset = {},
