@@ -426,6 +426,7 @@ fun ContentView(
             ) {
                 RootNavHost(
                     navController = navController,
+                    drawerState = drawerState,
                     walletViewModel = walletViewModel,
                     appViewModel = appViewModel,
                     activityListViewModel = activityListViewModel,
@@ -441,6 +442,7 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
+    drawerState: androidx.compose.material3.DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
     activityListViewModel: ActivityListViewModel,
@@ -451,7 +453,7 @@ private fun RootNavHost(
     val scope = rememberCoroutineScope()
 
     NavHost(navController, startDestination = Routes.Home) {
-        home(walletViewModel, appViewModel, activityListViewModel, settingsViewModel, navController)
+        home(walletViewModel, appViewModel, activityListViewModel, settingsViewModel, navController, drawerState)
         settings(navController, settingsViewModel)
         profile(navController, settingsViewModel)
         shop(navController, settingsViewModel, appViewModel)
@@ -709,6 +711,7 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
+    drawerState: androidx.compose.material3.DrawerState,
 ) {
     composable<Routes.Home> {
         HomeNav(
@@ -717,6 +720,7 @@ private fun NavGraphBuilder.home(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             rootNavController = navController,
+            drawerState = drawerState,
         )
     }
 }
