@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ui.LocalDrawerState
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.theme.AppThemeSurface
 
@@ -92,7 +93,7 @@ fun BackNavIcon(
 fun DrawerNavIcon(
     modifier: Modifier = Modifier,
 ) {
-    val drawerState = to.bitkit.ui.LocalDrawerState.current
+    val drawerState = LocalDrawerState.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     if (drawerState != null) {
