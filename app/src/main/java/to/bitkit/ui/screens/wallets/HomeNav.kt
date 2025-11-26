@@ -43,9 +43,9 @@ fun HomeNav(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     rootNavController: NavController,
+    drawerState: DrawerState,
 ) {
     val uiState: MainUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val hasSeenWidgetsIntro: Boolean by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
     val hasSeenShopIntro: Boolean by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hazeState = rememberHazeState()
