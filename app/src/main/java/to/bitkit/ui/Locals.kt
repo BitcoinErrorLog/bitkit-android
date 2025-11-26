@@ -1,5 +1,6 @@
 package to.bitkit.ui
 
+import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -19,7 +20,7 @@ val LocalBalances = compositionLocalOf { BalanceState() }
 val LocalCurrencies = compositionLocalOf { CurrencyState() }
 
 // Statics
-val LocalDrawerState = staticCompositionLocalOf<androidx.compose.material3.DrawerState?> { null }
+val LocalDrawerState = staticCompositionLocalOf<DrawerState?> { null }
 val LocalAppViewModel = staticCompositionLocalOf<AppViewModel?> { null }
 val LocalWalletViewModel = staticCompositionLocalOf<WalletViewModel?> { null }
 val LocalBlocktankViewModel = staticCompositionLocalOf<BlocktankViewModel?> { null }
@@ -53,5 +54,5 @@ val settingsViewModel: SettingsViewModel?
 val backupsViewModel: BackupsViewModel?
     @Composable get() = LocalBackupsViewModel.current
 
-val drawerState: androidx.compose.material3.DrawerState?
+val drawerState: DrawerState?
     @Composable get() = LocalDrawerState.current

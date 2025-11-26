@@ -43,7 +43,6 @@ import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.navigateToAuthCheck
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -78,7 +77,6 @@ fun BackupSettingsScreen(
         },
         onRetryBackup = { category -> viewModel.retryBackup(category) },
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
     )
 }
 
@@ -89,7 +87,6 @@ private fun BackupSettingsScreenContent(
     onResetAndRestoreClick: () -> Unit,
     onRetryBackup: (BackupCategory) -> Unit,
     onBack: () -> Unit,
-    onClose: () -> Unit,
 ) {
     val allSynced = uiState.categories.all { !it.status.isRequired }
     ScreenColumn {
@@ -166,6 +163,7 @@ private fun BackupStatusItem(
         status.running -> stringResource(R.string.settings__backup__status_running)
         !status.isRequired -> stringResource(R.string.settings__backup__status_success)
             .replace("{time}", timeString)
+
         else -> stringResource(R.string.settings__backup__status_failed)
             .replace("{time}", timeString)
     }
@@ -269,7 +267,6 @@ private fun Preview() {
             onResetAndRestoreClick = {},
             onRetryBackup = {},
             onBack = {},
-            onClose = {},
         )
     }
 }
