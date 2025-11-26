@@ -183,6 +183,7 @@ fun ContentView(
     backupsViewModel: BackupsViewModel,
 ) {
     val navController = rememberNavController()
+    val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -337,6 +338,7 @@ fun ContentView(
             LocalTransferViewModel provides transferViewModel,
             LocalSettingsViewModel provides settingsViewModel,
             LocalBackupsViewModel provides backupsViewModel,
+            LocalDrawerState provides drawerState,
             LocalBalances provides balance,
             LocalCurrencies provides currencies,
         ) {
