@@ -818,7 +818,6 @@ private fun NavGraphBuilder.shop(
 ) {
     composableWithDefaultTransitions<Routes.ShopIntro> {
         ShopIntroScreen(
-            onClose = { navController.navigateToHome() },
             onContinue = {
                 settingsViewModel.setHasSeenShopIntro(true)
                 navController.navigate(Routes.ShopDiscover)

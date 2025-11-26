@@ -88,7 +88,6 @@ fun NodeInfoScreen(
         isDevModeEnabled = isDevModeEnabled,
         balanceDetails = lightningState.balances,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onRefresh = { wallet.onPullToRefresh() },
         onDisconnectPeer = { wallet.disconnectPeer(it) },
         onCopy = { text ->
@@ -108,7 +107,6 @@ private fun Content(
     isDevModeEnabled: Boolean,
     balanceDetails: BalanceDetails? = null,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onDisconnectPeer: (PeerDetails) -> Unit = {},
     onCopy: (String) -> Unit = {},

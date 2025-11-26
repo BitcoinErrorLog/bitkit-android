@@ -59,7 +59,6 @@ fun AppStatusScreen(
     Content(
         uiState = uiState,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onInternetClick = { context.startActivityAppSettings() },
         onElectrumClick = { navController.navigate(Routes.ElectrumConfig) },
         onNodeClick = { navController.navigate(Routes.NodeInfo) },
@@ -72,7 +71,6 @@ fun AppStatusScreen(
 private fun Content(
     uiState: AppStatusUiState = AppStatusUiState(),
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onInternetClick: () -> Unit = {},
     onElectrumClick: () -> Unit = {},
     onNodeClick: () -> Unit = {},

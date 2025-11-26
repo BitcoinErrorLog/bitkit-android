@@ -25,7 +25,6 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun ShopIntroScreen(
-    onClose: () -> Unit,
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
@@ -67,7 +66,6 @@ fun ShopIntroScreen(
 private fun Preview() {
     AppThemeSurface {
         ShopIntroScreen(
-            onClose = {},
             onContinue = {}
         )
     }
