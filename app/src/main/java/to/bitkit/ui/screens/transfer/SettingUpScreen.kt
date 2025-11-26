@@ -46,7 +46,6 @@ import to.bitkit.viewmodels.TransferViewModel
 fun SettingUpScreen(
     viewModel: TransferViewModel,
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val app = appViewModel ?: return
     val lightningSetupStep by viewModel.lightningSetupStep.collectAsState()
@@ -82,7 +81,6 @@ fun SettingUpScreen(
             viewModel.resetSpendingState()
             onContinueClick()
         },
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -90,7 +88,6 @@ fun SettingUpScreen(
 private fun SettingUpScreen(
     lightningSetupStep: Int,
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val inProgress = lightningSetupStep < 3
     ScreenColumn(
@@ -102,7 +99,7 @@ private fun SettingUpScreen(
                 else -> stringResource(R.string.lightning__transfer_success__nav_title)
             },
             onBackClick = null,
-            actions = { if (inProgress) DrawerNavIcon() },
+            actions = { DrawerNavIcon() },
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

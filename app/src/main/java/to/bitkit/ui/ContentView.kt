@@ -616,7 +616,6 @@ private fun RootNavHost(
             composableWithDefaultTransitions<Routes.SettingUp> {
                 SettingUpScreen(
                     viewModel = transferViewModel,
-                    onCloseClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                     onContinueClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                 )
             }
