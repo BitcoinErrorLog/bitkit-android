@@ -191,6 +191,7 @@ fun ContentView(
     backupsViewModel: BackupsViewModel,
 ) {
     val navController = rememberNavController()
+    val walletNavController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -441,6 +442,7 @@ fun ContentView(
                 ) {
                     RootNavHost(
                         navController = navController,
+                        walletNavHostController = walletNavController,
                         drawerState = drawerState,
                         walletViewModel = walletViewModel,
                         appViewModel = appViewModel,
@@ -453,7 +455,7 @@ fun ContentView(
 
                 DrawerMenu(
                     drawerState = drawerState,
-                    walletNavController = null, // TODO
+                    walletNavController = walletNavController,
                     rootNavController = navController,
                     hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                     hasSeenShopIntro = hasSeenShopIntro,
@@ -467,6 +469,7 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
+    walletNavHostController: NavHostController,
     drawerState: DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
@@ -478,7 +481,15 @@ private fun RootNavHost(
     val scope = rememberCoroutineScope()
 
     NavHost(navController, startDestination = Routes.Home) {
-        home(walletViewModel, appViewModel, activityListViewModel, settingsViewModel, navController, drawerState)
+        home(
+            walletViewModel = walletViewModel,
+            appViewModel = appViewModel,
+            activityListViewModel = activityListViewModel,
+            settingsViewModel = settingsViewModel,
+            navController = navController,
+            walletNavController = walletNavHostController,
+            drawerState = drawerState
+        )
         settings(navController, settingsViewModel)
         profile(navController, settingsViewModel)
         shop(navController, settingsViewModel, appViewModel)
@@ -732,6 +743,7 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
+    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
@@ -741,6 +753,7 @@ private fun NavGraphBuilder.home(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             rootNavController = navController,
+            walletNavController = walletNavController,
             drawerState = drawerState,
         )
     }

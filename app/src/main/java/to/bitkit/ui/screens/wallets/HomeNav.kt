@@ -42,6 +42,7 @@ fun HomeNav(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     rootNavController: NavController,
+    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     val uiState: MainUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
@@ -56,7 +57,6 @@ fun HomeNav(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        val walletNavController = rememberNavController()
 
         Box(
             modifier = Modifier
