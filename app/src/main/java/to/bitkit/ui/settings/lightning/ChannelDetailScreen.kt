@@ -117,7 +117,6 @@ fun ChannelDetailScreen(
         isRefreshing = uiState.isRefreshing,
         isClosedChannel = isClosedChannel,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onRefresh = {
             viewModel.onPullToRefresh()
         },
@@ -150,7 +149,6 @@ private fun Content(
     isRefreshing: Boolean = false,
     isClosedChannel: Boolean = false,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onCopyText: (String) -> Unit = {},
     onOpenUrl: (String) -> Unit = {},

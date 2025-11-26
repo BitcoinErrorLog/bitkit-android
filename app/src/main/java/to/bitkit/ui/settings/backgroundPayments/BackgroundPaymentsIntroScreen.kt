@@ -28,7 +28,6 @@ import to.bitkit.viewmodels.SettingsViewModel
 @Composable
 fun BackgroundPaymentsIntroScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),

@@ -59,7 +59,6 @@ import to.bitkit.viewmodels.previewAmountInputViewModel
 fun SpendingAdvancedScreen(
     viewModel: TransferViewModel,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onOrderCreated: () -> Unit = {},
     currencies: CurrencyState = LocalCurrencies.current,
     amountInputViewModel: AmountInputViewModel = hiltViewModel(),
@@ -114,7 +113,6 @@ fun SpendingAdvancedScreen(
         amountInputViewModel = amountInputViewModel,
         currencies = currencies,
         onBack = onBackClick,
-        onClose = onCloseClick,
         onContinue = {
             isLoading = true
             viewModel.onSpendingAdvancedContinue(amountUiState.sats)
@@ -131,7 +129,6 @@ private fun Content(
     isLoading: Boolean,
     amountInputViewModel: AmountInputViewModel,
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onContinue: () -> Unit,
     currencies: CurrencyState = LocalCurrencies.current,
 ) {
@@ -254,7 +251,6 @@ private fun Preview() {
             amountInputViewModel = previewAmountInputViewModel(),
             isLoading = false,
             onBack = {},
-            onClose = {},
             onContinue = {},
         )
     }
@@ -280,7 +276,6 @@ private fun PreviewLoading() {
             amountInputViewModel = previewAmountInputViewModel(),
             isLoading = true,
             onBack = {},
-            onClose = {},
             onContinue = {},
         )
     }

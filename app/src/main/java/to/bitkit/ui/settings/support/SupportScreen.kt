@@ -38,7 +38,6 @@ fun SupportScreen(
 
     Content(
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onClickReportIssue = { navController.navigate(Routes.ReportIssue) },
         onClickHelpCenter = {
             val intent = Intent(Intent.ACTION_VIEW, Env.BITKIT_HELP_CENTER.toUri())
@@ -51,7 +50,6 @@ fun SupportScreen(
 @Composable
 private fun Content(
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onClickReportIssue: () -> Unit = {},
     onClickHelpCenter: () -> Unit = {},
     onClickAppStatus: () -> Unit = {},

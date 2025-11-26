@@ -34,7 +34,6 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -105,7 +104,6 @@ private fun Preview() {
     AppThemeSurface {
         AboutScreen(
             onBack = {},
-            onClose = {}
         )
     }
 }

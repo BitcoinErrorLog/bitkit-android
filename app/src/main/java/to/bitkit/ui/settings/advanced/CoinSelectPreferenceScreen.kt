@@ -47,7 +47,6 @@ fun CoinSelectPreferenceScreen(
     Content(
         uiState = uiState,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onClickManual = { viewModel.setAutoMode(false) },
         onClickAutopilot = { viewModel.setAutoMode(true) },
         onClickCoinSelectionPreference = { preference -> viewModel.setCoinSelectionPreference(preference) },
@@ -58,7 +57,6 @@ fun CoinSelectPreferenceScreen(
 private fun Content(
     uiState: CoinSelectPreferenceUiState,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onClickManual: () -> Unit = {},
     onClickAutopilot: () -> Unit = {},
     onClickCoinSelectionPreference: (CoinSelectionPreference) -> Unit = {},

@@ -66,7 +66,6 @@ fun AddressViewerScreen(
     AddressViewerContent(
         uiState = uiState,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onSearchTextChanged = viewModel::updateSearchText,
         onAddressSelected = { address -> viewModel.selectAddress(address) },
         onSwitchAddressType = viewModel::switchAddressType,
@@ -92,7 +91,6 @@ fun AddressViewerScreen(
 private fun AddressViewerContent(
     uiState: UiState,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onSearchTextChanged: (String) -> Unit = {},
     onAddressSelected: (AddressModel) -> Unit = {},
     onSwitchAddressType: (Boolean) -> Unit = {},

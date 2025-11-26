@@ -66,7 +66,6 @@ fun LnurlChannelScreen(
     Content(
         uiState = uiState,
         onBack = onBack,
-        onClose = onClose,
         onConnect = { viewModel.onConnect() },
         onCancel = onClose,
     )
@@ -76,7 +75,6 @@ fun LnurlChannelScreen(
 private fun Content(
     uiState: LnurlChannelUiState,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onConnect: () -> Unit = {},
     onCancel: () -> Unit = {},
 ) {

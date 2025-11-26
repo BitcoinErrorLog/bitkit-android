@@ -604,7 +604,6 @@ private fun RootNavHost(
                 SpendingAdvancedScreen(
                     viewModel = transferViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                     onOrderCreated = { navController.popBackStack<Routes.SpendingConfirm>(inclusive = false) },
                 )
             }
@@ -710,7 +709,6 @@ private fun RootNavHost(
                 composableWithDefaultTransitions<Routes.ExternalSuccess> {
                     ExternalSuccessScreen(
                         onContinue = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
-                        onClose = { navController.navigateToHome() },
                     )
                 }
                 composableWithDefaultTransitions<Routes.ExternalFeeCustom> {
@@ -720,7 +718,6 @@ private fun RootNavHost(
                     ExternalFeeCustomScreen(
                         viewModel = viewModel,
                         onBack = { navController.popBackStack() },
-                        onClose = { navController.navigateToHome() },
                     )
                 }
             }
@@ -769,7 +766,6 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.QuickPaySettings> {
         QuickPaySettingsScreen(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
         )
     }
     composableWithDefaultTransitions<Routes.DevSettings> {
@@ -857,14 +853,12 @@ private fun NavGraphBuilder.generalSettings(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.BackgroundPaymentsSettings> {
         BackgroundPaymentsSettings(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
         )
     }
 
     composableWithDefaultTransitions<Routes.BackgroundPaymentsIntro> {
         BackgroundPaymentsIntroScreen(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
             onContinue = {
                 navController.navigate(Routes.BackgroundPaymentsSettings)
             }
@@ -898,9 +892,6 @@ private fun NavGraphBuilder.aboutSettings(navController: NavHostController) {
         AboutScreen(
             onBack = {
                 navController.popBackStack()
-            },
-            onClose = {
-                navController.navigateToHome()
             }
         )
     }

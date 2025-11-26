@@ -58,7 +58,6 @@ fun SettingsScreen(
 
     SettingsScreenContent(
         isDevModeEnabled = isDevModeEnabled,
-        onClose = { navController.popBackStack() },
         onGeneralClick = { navController.navigateToGeneralSettings() },
         onSecurityClick = { navController.navigateToSecuritySettings() },
         onBackupClick = { navController.navigateToBackupSettings() },
@@ -93,7 +92,6 @@ fun SettingsScreen(
 @Composable
 fun SettingsScreenContent(
     isDevModeEnabled: Boolean,
-    onClose: () -> Unit,
     onGeneralClick: () -> Unit,
     onSecurityClick: () -> Unit,
     onBackupClick: () -> Unit,
@@ -180,7 +178,6 @@ private fun Preview() {
     AppThemeSurface {
         SettingsScreenContent(
             isDevModeEnabled = true,
-            onClose = {},
             onGeneralClick = {},
             onSecurityClick = {},
             onBackupClick = {},

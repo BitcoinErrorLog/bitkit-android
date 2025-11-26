@@ -48,7 +48,6 @@ import to.bitkit.ui.utils.withAccent
 fun ExternalFeeCustomScreen(
     viewModel: ExternalNodeViewModel,
     onBack: () -> Unit,
-    onClose: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currency = currencyViewModel ?: return
@@ -103,7 +102,6 @@ fun ExternalFeeCustomScreen(
             onBack()
         },
         onBack = onBack,
-        onClose = onClose,
     )
 }
 
@@ -114,7 +112,6 @@ private fun Content(
     onKeyPress: (String) -> Unit = {},
     onContinue: () -> Unit = {},
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
 ) {
     val feeRate = input.toUIntOrNull() ?: 0u
     val isValid = feeRate != 0u

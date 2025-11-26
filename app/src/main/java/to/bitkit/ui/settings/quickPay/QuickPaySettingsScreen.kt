@@ -33,7 +33,6 @@ import to.bitkit.viewmodels.SettingsViewModel
 @Composable
 fun QuickPaySettingsScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isQuickPayEnabled by settingsViewModel.isQuickpayEnabled.collectAsStateWithLifecycle()
@@ -45,7 +44,6 @@ fun QuickPaySettingsScreen(
         onToggleQuickPay = settingsViewModel::setIsQuickPayEnabled,
         onQuickPayAmountChange = settingsViewModel::setQuickPayAmount,
         onBack = onBack,
-        onClose = onClose,
     )
 }
 
@@ -56,7 +54,6 @@ fun QuickPaySettingsScreenContent(
     onToggleQuickPay: (Boolean) -> Unit = {},
     onQuickPayAmountChange: (Int) -> Unit = {},
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
 ) {
     val sliderSteps = remember { listOf(1, 5, 10, 20, 50) }
 

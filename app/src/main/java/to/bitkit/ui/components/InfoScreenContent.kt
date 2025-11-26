@@ -37,7 +37,6 @@ fun InfoScreenContent(
     showCloseButton: Boolean = true,
     buttonText: String,
     onButtonClick: () -> Unit,
-    onCloseClick: () -> Unit,
     testTag: String,
 ) {
     ScreenColumn {
@@ -100,7 +99,6 @@ private fun Preview() {
             image = painterResource(R.drawable.check),
             buttonText = stringResource(R.string.common__ok),
             onButtonClick = {},
-            onCloseClick = {},
             testTag = "",
         )
     }

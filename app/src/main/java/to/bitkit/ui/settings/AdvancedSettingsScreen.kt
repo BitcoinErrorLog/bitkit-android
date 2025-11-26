@@ -39,7 +39,6 @@ fun AdvancedSettingsScreen(
     Content(
         showResetSuggestionsDialog = showResetSuggestionsDialog,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onCoinSelectionClick = {
             navController.navigate(Routes.CoinSelectPreference)
         },
@@ -72,7 +71,6 @@ fun AdvancedSettingsScreen(
 private fun Content(
     showResetSuggestionsDialog: Boolean,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onCoinSelectionClick: () -> Unit = {},
     onLightningConnectionsClick: () -> Unit = {},
     onLightningNodeClick: () -> Unit = {},

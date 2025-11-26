@@ -36,7 +36,6 @@ import to.bitkit.viewmodels.SettingsViewModel
 @Composable
 fun BackgroundPaymentsSettings(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -52,7 +51,6 @@ fun BackgroundPaymentsSettings(
 
     Content(
         onBack = onBack,
-        onClose = onClose,
         onSystemSettingsClick = {
             NotificationUtils.openNotificationSettings(context)
         },
@@ -65,7 +63,6 @@ fun BackgroundPaymentsSettings(
 @Composable
 private fun Content(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onSystemSettingsClick: () -> Unit,
     toggleNotificationDetails: () -> Unit,
     hasPermission: Boolean,
@@ -159,7 +156,6 @@ private fun Preview1() {
     AppThemeSurface {
         Content(
             onBack = {},
-            onClose = {},
             onSystemSettingsClick = {},
             toggleNotificationDetails = {},
             hasPermission = true,
@@ -174,7 +170,6 @@ private fun Preview2() {
     AppThemeSurface {
         Content(
             onBack = {},
-            onClose = {},
             onSystemSettingsClick = {},
             toggleNotificationDetails = {},
             hasPermission = false,
