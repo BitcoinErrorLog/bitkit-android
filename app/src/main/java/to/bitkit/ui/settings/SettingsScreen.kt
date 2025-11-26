@@ -37,7 +37,7 @@ import to.bitkit.ui.navigateToDevSettings
 import to.bitkit.ui.navigateToGeneralSettings
 import to.bitkit.ui.navigateToSecuritySettings
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -107,7 +107,7 @@ fun SettingsScreenContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__settings),
             onBackClick = null,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

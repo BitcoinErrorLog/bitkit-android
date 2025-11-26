@@ -44,7 +44,7 @@ import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppShapes
@@ -105,7 +105,7 @@ private fun AddressViewerContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__adv__address_viewer),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

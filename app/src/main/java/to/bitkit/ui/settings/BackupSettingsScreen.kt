@@ -45,7 +45,7 @@ import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.navigateToAuthCheck
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -96,7 +96,7 @@ private fun BackupSettingsScreenContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__backup__title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

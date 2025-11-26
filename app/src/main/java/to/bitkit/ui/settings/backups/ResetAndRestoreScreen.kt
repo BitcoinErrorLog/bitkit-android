@@ -33,7 +33,7 @@ import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -79,7 +79,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.security__reset_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
         Spacer(Modifier.height(32.dp))
 

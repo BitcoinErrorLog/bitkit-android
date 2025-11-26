@@ -21,7 +21,7 @@ import to.bitkit.R
 import to.bitkit.env.Env
 import to.bitkit.ext.configureForBasicWebContent
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 
@@ -49,7 +49,7 @@ fun ShopWebViewScreen(
         AppTopBar(
             titleText = "${stringResource(R.string.other__shop__discover__nav_title)} $title",
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Box(modifier = Modifier.weight(1f)) {

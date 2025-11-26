@@ -33,7 +33,7 @@ import to.bitkit.ui.components.BodyMB
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.RectangleButton
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -58,7 +58,7 @@ fun FundingScreen(
         AppTopBar(
             titleText = stringResource(R.string.lightning__funding__nav_title),
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onCloseClick) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

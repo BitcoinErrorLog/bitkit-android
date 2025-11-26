@@ -24,7 +24,7 @@ import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.StepSlider
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -64,7 +64,7 @@ fun QuickPaySettingsScreenContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__quickpay__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

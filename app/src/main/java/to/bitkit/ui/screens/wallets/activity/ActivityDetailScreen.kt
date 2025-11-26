@@ -66,7 +66,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityAddTagSheet
 import to.bitkit.ui.screens.wallets.activity.components.ActivityIcon
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -119,7 +119,7 @@ fun ActivityDetailScreen(
             AppTopBar(
                 titleText = stringResource(item.getScreenTitleRes()),
                 onBackClick = onBackClick,
-                actions = { CloseNavIcon(onClick = onCloseClick) },
+                actions = { DrawerNavIcon() },
             )
             ActivityDetailContent(
                 item = item,

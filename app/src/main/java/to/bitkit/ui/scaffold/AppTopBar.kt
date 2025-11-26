@@ -175,7 +175,7 @@ private fun Preview3() {
             titleText = "Title and Action",
             onBackClick = {},
             actions = {
-                CloseNavIcon(onClick = {})
+                DrawerNavIcon()
             }
         )
     }

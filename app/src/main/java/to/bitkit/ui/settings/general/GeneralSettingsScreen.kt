@@ -33,7 +33,7 @@ import to.bitkit.ui.navigateToTagsSettings
 import to.bitkit.ui.navigateToTransactionSpeedSettings
 import to.bitkit.ui.navigateToWidgetsSettings
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.theme.AppThemeSurface
@@ -104,7 +104,7 @@ private fun GeneralSettingsContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__general_title),
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onClick = onCloseClick) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

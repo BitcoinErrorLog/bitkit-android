@@ -37,7 +37,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.walletViewModel
@@ -57,7 +57,7 @@ fun BlocktankRegtestScreen(
         AppTopBar(
             titleText = "Blocktank Regtest",
             onBackClick = { navController.popBackStack() },
-            actions = { CloseNavIcon(onClick = { navController.navigateToHome() }) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),

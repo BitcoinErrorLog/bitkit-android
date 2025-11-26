@@ -32,7 +32,7 @@ import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
 import to.bitkit.ui.theme.AppThemeSurface
@@ -111,7 +111,7 @@ private fun Content(
             },
             onBackClick = null,
             actions = {
-                if (inProgress) CloseNavIcon(onCloseClick)
+                if (inProgress) DrawerNavIcon()
             },
         )
         Column(
