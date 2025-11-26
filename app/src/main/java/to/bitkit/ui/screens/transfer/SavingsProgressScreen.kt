@@ -88,7 +88,6 @@ fun SavingsProgressScreen(
     Content(
         progressState = progressState,
         onContinueClick = { onContinueClick() },
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -96,7 +95,6 @@ fun SavingsProgressScreen(
 private fun Content(
     progressState: SavingsProgressState,
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
     ScreenColumn(
@@ -111,7 +109,7 @@ private fun Content(
             },
             onBackClick = null,
             actions = {
-                if (inProgress) DrawerNavIcon()
+                DrawerNavIcon()
             },
         )
         Column(
