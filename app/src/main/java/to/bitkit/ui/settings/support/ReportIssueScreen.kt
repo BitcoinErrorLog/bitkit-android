@@ -43,7 +43,6 @@ object ReportIssueTestTags {
 fun ReportIssueScreen(
     viewModel: ReportIssueViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onClose: () -> Unit,
     navigateResultScreen: (Boolean) -> Unit,
 ) {
     LaunchedEffect(Unit) {
@@ -59,7 +58,6 @@ fun ReportIssueScreen(
 
     ReportIssueContent(
         onBack = onBack,
-        onClose = onClose,
         onConfirm = viewModel::sendMessage,
         onUpdateEmail = viewModel::updateEmail,
         onUpdateMessage = viewModel::updateMessage,
@@ -70,7 +68,6 @@ fun ReportIssueScreen(
 @Composable
 fun ReportIssueContent(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onConfirm: () -> Unit,
     onUpdateEmail: (String) -> Unit,
     onUpdateMessage: (String) -> Unit,
@@ -160,7 +157,6 @@ private fun Preview() {
     AppThemeSurface {
         ReportIssueContent(
             onBack = {},
-            onClose = {},
             onConfirm = {},
             onUpdateEmail = {},
             onUpdateMessage = {},

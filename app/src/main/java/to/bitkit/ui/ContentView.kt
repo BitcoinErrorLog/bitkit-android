@@ -1168,7 +1168,6 @@ private fun NavGraphBuilder.support(
     composableWithDefaultTransitions<Routes.ReportIssue> {
         ReportIssueScreen(
             onBack = { navController.popBackStack() },
-            onClose = { navController.navigateToHome() },
             navigateResultScreen = { isSuccess ->
                 if (isSuccess) {
                     navController.navigate(Routes.ReportIssueSuccess)
