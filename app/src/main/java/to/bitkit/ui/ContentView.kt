@@ -1385,6 +1385,16 @@ fun NavController.navigateToHome() {
     }
 }
 
+/**
+ * Navigates to the specified route only if not already on that route.
+ */
+inline fun <reified T : Any> NavController.navigateIfNotCurrent(route: T) {
+    val isOnRoute = currentBackStackEntry?.destination?.hasRoute<T>() ?: false
+    if (!isOnRoute) {
+        navigate(route)
+    }
+}
+
 fun NavController.navigateToSettings() = navigate(
     route = Routes.Settings,
 )
