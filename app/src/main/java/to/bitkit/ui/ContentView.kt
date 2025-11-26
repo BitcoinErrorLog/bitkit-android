@@ -3,6 +3,7 @@ package to.bitkit.ui
 import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
@@ -455,7 +457,7 @@ fun ContentView(
                     rootNavController = navController,
                     hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                     hasSeenShopIntro = hasSeenShopIntro,
-                    modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopEnd),
+                    modifier = Modifier.align(Alignment.TopEnd),
                 )
             }
         }
@@ -465,7 +467,7 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
-    drawerState: androidx.compose.material3.DrawerState,
+    drawerState: DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
     activityListViewModel: ActivityListViewModel,
@@ -654,11 +656,11 @@ private fun RootNavHost(
                 )
             }
             navigationWithDefaultTransitions<Routes.ExternalNav>(
-                startDestination = Routes.ExternalConnection(),
+                startDestination = ExternalConnection(),
             ) {
-                composableWithDefaultTransitions<Routes.ExternalConnection> {
+                composableWithDefaultTransitions<ExternalConnection> {
                     val parentEntry = remember(it) { navController.getBackStackEntry(Routes.ExternalNav) }
-                    val route = it.toRoute<Routes.ExternalConnection>()
+                    val route = it.toRoute<ExternalConnection>()
                     val viewModel = hiltViewModel<ExternalNodeViewModel>(parentEntry)
 
                     ExternalConnectionScreen(
@@ -733,7 +735,7 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
-    drawerState: androidx.compose.material3.DrawerState,
+    drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
         HomeNav(
