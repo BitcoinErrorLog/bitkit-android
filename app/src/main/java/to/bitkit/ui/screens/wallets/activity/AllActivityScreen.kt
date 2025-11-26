@@ -28,6 +28,7 @@ import to.bitkit.R
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListFilter
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
 import to.bitkit.ui.screens.wallets.activity.components.ActivityTab
@@ -97,7 +98,13 @@ private fun AllActivityScreenContent(
     Column(
         modifier = Modifier.screen()
     ) {
-        AppTopBar(stringResource(R.string.wallet__activity_all), onBackClick)
+        AppTopBar(
+            titleText = stringResource(R.string.wallet__activity_all),
+            onBackClick = onBackClick,
+            actions = {
+                DrawerNavIcon()
+            },
+        )
 
         ActivityListFilter(
             searchText = searchText,
