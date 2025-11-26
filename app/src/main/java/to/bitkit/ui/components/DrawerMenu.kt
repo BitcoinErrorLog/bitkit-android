@@ -60,7 +60,7 @@ private val drawerWidth = 200.dp
 @Composable
 fun DrawerMenu(
     drawerState: DrawerState,
-    walletNavController: NavController,
+    walletNavController: NavController?,
     rootNavController: NavController,
     hasSeenWidgetsIntro: Boolean,
     hasSeenShopIntro: Boolean,
@@ -119,7 +119,7 @@ fun DrawerMenu(
 
 @Composable
 private fun Menu(
-    walletNavController: NavController,
+    walletNavController: NavController?,
     rootNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
@@ -140,6 +140,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
+                rootNavController.navigate(Routes.Home)
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")
@@ -149,7 +150,11 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__activity),
             iconRes = R.drawable.ic_heartbeat,
             onClick = {
-                walletNavController.navigate(HomeRoutes.AllActivity)
+                if (walletNavController != null) {
+                    walletNavController.navigate(HomeRoutes.AllActivity)
+                } else {
+                    rootNavController.navigate(Routes.Home)
+                }
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerActivity")

@@ -1,6 +1,10 @@
 package to.bitkit.ui
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -12,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +43,7 @@ import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.Routes.ExternalConnection
 import to.bitkit.ui.components.AuthCheckScreen
+import to.bitkit.ui.components.DrawerMenu
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
 import to.bitkit.ui.components.TimedSheetType
@@ -183,7 +189,7 @@ fun ContentView(
     backupsViewModel: BackupsViewModel,
 ) {
     val navController = rememberNavController()
-    val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -344,95 +350,112 @@ fun ContentView(
         ) {
             AutoReadClipboardHandler()
 
+            val hasSeenWidgetsIntro by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
+            val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
+
             val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
-            SheetHost(
-                shouldExpand = currentSheet != null,
-                onDismiss = { appViewModel.hideSheet() },
-                sheets = {
-                    when (val sheet = currentSheet) {
-                        null -> Unit
-                        is Sheet.Send -> {
-                            SendSheet(
-                                appViewModel = appViewModel,
-                                walletViewModel = walletViewModel,
-                                startDestination = sheet.route,
-                            )
-                        }
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                SheetHost(
+                    shouldExpand = currentSheet != null,
+                    onDismiss = { appViewModel.hideSheet() },
+                    sheets = {
+                        when (val sheet = currentSheet) {
+                            null -> Unit
+                            is Sheet.Send -> {
+                                SendSheet(
+                                    appViewModel = appViewModel,
+                                    walletViewModel = walletViewModel,
+                                    startDestination = sheet.route,
+                                )
+                            }
 
-                        is Sheet.Receive -> {
-                            val walletUiState by walletViewModel.uiState.collectAsState()
-                            ReceiveSheet(
-                                walletState = walletUiState,
-                                navigateToExternalConnection = {
-                                    navController.navigate(ExternalConnection())
-                                    appViewModel.hideSheet()
-                                }
-                            )
-                        }
+                            is Sheet.Receive -> {
+                                val walletUiState by walletViewModel.uiState.collectAsState()
+                                ReceiveSheet(
+                                    walletState = walletUiState,
+                                    navigateToExternalConnection = {
+                                        navController.navigate(ExternalConnection())
+                                        appViewModel.hideSheet()
+                                    }
+                                )
+                            }
 
-                        is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
-                        is Sheet.ActivityTagSelector -> TagSelectorSheet()
-                        is Sheet.Pin -> PinSheet(sheet, appViewModel)
-                        is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
-                        is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                        Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
-                        is Sheet.Gift -> GiftSheet(sheet, appViewModel)
-                        is Sheet.TimedSheet -> {
-                            when (sheet.type) {
-                                TimedSheetType.APP_UPDATE -> {
-                                    UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
-                                }
+                            is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
+                            is Sheet.ActivityTagSelector -> TagSelectorSheet()
+                            is Sheet.Pin -> PinSheet(sheet, appViewModel)
+                            is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
+                            is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
+                            Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
+                            is Sheet.Gift -> GiftSheet(sheet, appViewModel)
+                            is Sheet.TimedSheet -> {
+                                when (sheet.type) {
+                                    TimedSheetType.APP_UPDATE -> {
+                                        UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
+                                    }
 
-                                TimedSheetType.BACKUP -> {
-                                    BackupSheet(
-                                        sheet = Sheet.Backup(BackupRoute.Intro),
-                                        onDismiss = { appViewModel.dismissTimedSheet() }
-                                    )
-                                }
+                                    TimedSheetType.BACKUP -> {
+                                        BackupSheet(
+                                            sheet = Sheet.Backup(BackupRoute.Intro),
+                                            onDismiss = { appViewModel.dismissTimedSheet() }
+                                        )
+                                    }
 
-                                TimedSheetType.NOTIFICATIONS -> {
-                                    BackgroundPaymentsIntroSheet(
-                                        onContinue = {
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
-                                            navController.navigate(Routes.BackgroundPaymentsSettings)
-                                            settingsViewModel.setBgPaymentsIntroSeen(true)
-                                        },
-                                    )
-                                }
+                                    TimedSheetType.NOTIFICATIONS -> {
+                                        BackgroundPaymentsIntroSheet(
+                                            onContinue = {
+                                                appViewModel.dismissTimedSheet(skipQueue = true)
+                                                navController.navigate(Routes.BackgroundPaymentsSettings)
+                                                settingsViewModel.setBgPaymentsIntroSeen(true)
+                                            },
+                                        )
+                                    }
 
-                                TimedSheetType.QUICK_PAY -> {
-                                    QuickPayIntroSheet(
-                                        onContinue = {
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
-                                            navController.navigate(Routes.QuickPaySettings)
-                                        },
-                                    )
-                                }
+                                    TimedSheetType.QUICK_PAY -> {
+                                        QuickPayIntroSheet(
+                                            onContinue = {
+                                                appViewModel.dismissTimedSheet(skipQueue = true)
+                                                navController.navigate(Routes.QuickPaySettings)
+                                            },
+                                        )
+                                    }
 
-                                TimedSheetType.HIGH_BALANCE -> {
-                                    HighBalanceWarningSheet(
-                                        understoodClick = { appViewModel.dismissTimedSheet() },
-                                        learnMoreClick = {
-                                            val intent = Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
-                                            context.startActivity(intent)
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
-                                        }
-                                    )
+                                    TimedSheetType.HIGH_BALANCE -> {
+                                        HighBalanceWarningSheet(
+                                            understoodClick = { appViewModel.dismissTimedSheet() },
+                                            learnMoreClick = {
+                                                val intent =
+                                                    Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
+                                                context.startActivity(intent)
+                                                appViewModel.dismissTimedSheet(skipQueue = true)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                ) {
+                    RootNavHost(
+                        navController = navController,
+                        drawerState = drawerState,
+                        walletViewModel = walletViewModel,
+                        appViewModel = appViewModel,
+                        activityListViewModel = activityListViewModel,
+                        settingsViewModel = settingsViewModel,
+                        currencyViewModel = currencyViewModel,
+                        transferViewModel = transferViewModel,
+                    )
                 }
-            ) {
-                RootNavHost(
-                    navController = navController,
+
+                DrawerMenu(
                     drawerState = drawerState,
-                    walletViewModel = walletViewModel,
-                    appViewModel = appViewModel,
-                    activityListViewModel = activityListViewModel,
-                    settingsViewModel = settingsViewModel,
-                    currencyViewModel = currencyViewModel,
-                    transferViewModel = transferViewModel,
+                    walletNavController = null,
+                    rootNavController = navController,
+                    hasSeenWidgetsIntro = hasSeenWidgetsIntro,
+                    hasSeenShopIntro = hasSeenShopIntro,
+                    modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.TopEnd),
                 )
             }
         }

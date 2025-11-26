@@ -18,7 +18,6 @@ import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
-import to.bitkit.ui.components.DrawerMenu
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.navigateToActivityItem
@@ -46,8 +45,6 @@ fun HomeNav(
     drawerState: DrawerState,
 ) {
     val uiState: MainUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
-    val hasSeenWidgetsIntro: Boolean by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
-    val hasSeenShopIntro: Boolean by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
     val hazeState = rememberHazeState()
 
     RequestNotificationPermissions(
@@ -83,15 +80,6 @@ fun HomeNav(
             onSendClick = { appViewModel.showSheet(Sheet.Send()) },
             onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
             onScanClick = { rootNavController.navigateToScanner() },
-        )
-
-        DrawerMenu(
-            drawerState = drawerState,
-            walletNavController = walletNavController,
-            rootNavController = rootNavController,
-            hasSeenWidgetsIntro = hasSeenWidgetsIntro,
-            hasSeenShopIntro = hasSeenShopIntro,
-            modifier = Modifier.align(Alignment.TopEnd)
         )
     }
 }
