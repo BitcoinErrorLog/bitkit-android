@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.theme.AppThemeSurface
@@ -102,6 +103,27 @@ fun CloseNavIcon(
             contentDescription = stringResource(R.string.common__close),
             modifier = Modifier.size(24.dp)
         )
+    }
+}
+
+@Composable
+fun DrawerNavIcon(
+    modifier: Modifier = Modifier,
+) {
+    val drawerState = to.bitkit.ui.LocalDrawerState.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    if (drawerState != null) {
+        IconButton(
+            onClick = { scope.launch { drawerState.open() } },
+            modifier = modifier.testTag("HeaderMenu")
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_list),
+                contentDescription = stringResource(R.string.settings__settings),
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
