@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -84,23 +83,6 @@ fun BackNavIcon(
         Icon(
             imageVector = Icons.AutoMirrored.Default.ArrowBack,
             contentDescription = stringResource(R.string.common__back),
-            modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-@Composable
-fun CloseNavIcon(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.testTag("NavigationClose")
-    ) {
-        Icon(
-            imageVector = Icons.Default.Close,
-            contentDescription = stringResource(R.string.common__close),
             modifier = Modifier.size(24.dp)
         )
     }
