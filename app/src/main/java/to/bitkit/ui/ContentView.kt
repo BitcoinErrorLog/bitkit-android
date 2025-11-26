@@ -186,16 +186,21 @@ fun ContentView(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
+    val walletUiState by walletViewModel.walletState.collectAsStateWithLifecycle()
+    val lightningState by walletViewModel.lightningState.collectAsStateWithLifecycle()
+    val nodeLifecycleState = lightningState.nodeLifecycleState
+
+    val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
+    val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+    val walletExists = walletUiState.walletExists
+
     // Effects on app entering fg (ON_START) / bg (ON_STOP)
     DisposableEffect(lifecycle) {
-        // TODO ADAPT THIS LOGIC TO WORK WITH LightningNodeService
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> {
-                    try {
+                    if (walletExists && !isRecoveryMode) {
                         walletViewModel.start()
-                    } catch (e: Throwable) {
-                        Logger.error("Failed to start wallet", e)
                     }
 
                     val pendingTransaction = NewTransactionSheetDetails.load(context)
@@ -206,6 +211,14 @@ fun ContentView(
 
                     currencyViewModel.triggerRefresh()
                     blocktankViewModel.refreshOrders()
+                }
+
+                Lifecycle.Event.ON_STOP -> {
+                    if (walletExists && !isRecoveryMode && !notificationsGranted) {
+                        // App backgrounded without notification permission - stop node
+                        walletViewModel.stop()
+                    }
+                    // If notificationsGranted=true, service keeps node running
                 }
 
                 else -> Unit
@@ -241,9 +254,6 @@ fun ContentView(
             }
         }
     }
-
-    val walletUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
-    val nodeLifecycleState = walletUiState.nodeLifecycleState
 
     var walletIsInitializing by remember { mutableStateOf(nodeLifecycleState == NodeLifecycleState.Initializing) }
     var walletInitShouldFinish by remember { mutableStateOf(false) }

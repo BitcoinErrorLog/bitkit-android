@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
@@ -45,6 +46,7 @@ import to.bitkit.ui.sheets.NewTransactionSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.enableAppEdgeToEdge
+import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.BackupsViewModel
@@ -78,7 +80,7 @@ class MainActivity : FragmentActivity() {
             importance = NotificationManager.IMPORTANCE_LOW
         )
         appViewModel.handleDeeplinkIntent(intent)
-        startForegroundService(Intent(this, LightningNodeService::class.java))
+
         installSplashScreen()
         enableAppEdgeToEdge()
         setContent {
@@ -89,6 +91,21 @@ class MainActivity : FragmentActivity() {
             ) {
                 val scope = rememberCoroutineScope()
                 val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
+                val notificationsGranted by settingsViewModel.notificationsGranted.collectAsStateWithLifecycle()
+                val walletExists by walletViewModel.walletState
+                    .map { it.walletExists }
+                    .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
+
+                LaunchedEffect(
+                    walletExists,
+                    isRecoveryMode,
+                    notificationsGranted
+                ) {
+                    if (walletExists && !isRecoveryMode && notificationsGranted) {
+                        tryStartForegroundService()
+                    }
+                }
+
                 if (!walletViewModel.walletExists && !isRecoveryMode) {
                     OnboardingNav(
                         startupNavController = rememberNavController(),
@@ -169,6 +186,27 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         appViewModel.handleDeeplinkIntent(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!settingsViewModel.notificationsGranted.value) {
+            runCatching {
+                stopService(Intent(this, LightningNodeService::class.java))
+            }
+        }
+    }
+
+    /**
+     * Attempts to start the LightningNodeService if it's not already running.
+     */
+    private fun tryStartForegroundService() {
+        runCatching {
+            Logger.debug("Attempting to start LightningNodeService", context = "MainActivity")
+            startForegroundService(Intent(this, LightningNodeService::class.java))
+        }.onFailure { error ->
+            Logger.error("Failed to start LightningNodeService", error, context = "MainActivity")
+        }
     }
 }
 
