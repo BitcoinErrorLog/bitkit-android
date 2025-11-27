@@ -1,8 +1,10 @@
 package to.bitkit.ui
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -33,8 +36,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -48,6 +53,7 @@ import to.bitkit.ui.components.AuthCheckScreen
 import to.bitkit.ui.components.DrawerMenu
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.SheetHost
+import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
@@ -88,6 +94,7 @@ import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen
 import to.bitkit.ui.screens.wallets.HomeNav
 import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
+import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
 import to.bitkit.ui.screens.wallets.activity.AllActivityScreenWithTabBar
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
@@ -358,6 +365,8 @@ fun ContentView(
             val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
 
             val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
+            val hazeState = rememberHazeState()
+
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -454,6 +463,29 @@ fun ContentView(
                     )
                 }
 
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                val showTabBar = currentRoute in listOf(
+                    Routes.Home::class.qualifiedName,
+                    Routes.AllActivity::class.qualifiedName,
+                )
+
+                AnimatedVisibility(
+                    visible = showTabBar && currentSheet == null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                ) {
+                    TabBar(
+                        hazeState = hazeState,
+                        onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+                        onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
+                        onScanClick = { navController.navigateToScanner() },
+                    )
+                }
+
                 DrawerMenu(
                     drawerState = drawerState,
                     walletNavController = walletNavController,
@@ -493,7 +525,6 @@ private fun RootNavHost(
         )
         allActivity(
             activityListViewModel = activityListViewModel,
-            appViewModel = appViewModel,
             navController = navController,
         )
         settings(navController, settingsViewModel)
@@ -767,18 +798,15 @@ private fun NavGraphBuilder.home(
 
 private fun NavGraphBuilder.allActivity(
     activityListViewModel: ActivityListViewModel,
-    appViewModel: AppViewModel,
     navController: NavHostController,
 ) {
     composableWithDefaultTransitions<Routes.AllActivity> {
-        AllActivityScreenWithTabBar(
+        AllActivityScreen(
             viewModel = activityListViewModel,
-            appViewModel = appViewModel,
             onBack = {
                 activityListViewModel.clearFilters()
                 navController.navigateToHome()
             },
-            onScanClick = { navController.navigateToScanner() },
             onActivityItemClick = { id -> navController.navigateToActivityItem(id) },
         )
     }

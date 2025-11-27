@@ -75,12 +75,12 @@ fun HomeNav(
             )
         }
 
-        TabBar(
-            hazeState = hazeState,
-            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
-            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-            onScanClick = { rootNavController.navigateToScanner() },
-        )
+        // TabBar(
+        //     hazeState = hazeState,
+        //     onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+        //     onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
+        //     onScanClick = { rootNavController.navigateToScanner() },
+        // )
     }
 }
 
