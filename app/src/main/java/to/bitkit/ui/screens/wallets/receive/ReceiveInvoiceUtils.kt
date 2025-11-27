@@ -1,7 +1,7 @@
 package to.bitkit.ui.screens.wallets.receive
 
+import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
-import to.bitkit.models.ChannelDetails
 import to.bitkit.models.NodeLifecycleState
 
 /**

@@ -78,6 +78,7 @@ fun ReceiveSheet(
                     cjitInvoice = cjitInvoice,
                     cjitActive = showCreateCjit,
                     walletState = walletState,
+                    lightningState = lightningState,
                     onCjitToggle = { isOn ->
                         when {
                             isOn && lightningState.shouldBlockLightningReceive -> {

@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,9 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -74,6 +72,7 @@ fun ReceiveQrScreen(
     cjitInvoice: MutableState<String?>,
     cjitActive: MutableState<Boolean>,
     walletState: MainUiState,
+    lightningState: to.bitkit.repositories.LightningState,
     onCjitToggle: (Boolean) -> Unit,
     onClickEditInvoice: () -> Unit,
     onClickReceiveOnSpending: () -> Unit,
@@ -81,17 +80,62 @@ fun ReceiveQrScreen(
 ) {
     SetMaxBrightness()
 
-    val qrLogoImageRes by remember(walletState, cjitInvoice.value) {
-        val resId = when {
-            cjitInvoice.value?.isNotEmpty() == true -> R.drawable.ic_ln_circle
-            walletState.bolt11.isNotEmpty() && walletState.onchainAddress.isNotEmpty() -> R.drawable.ic_unified_circle
-            else -> R.drawable.ic_btc_circle
-        }
-        mutableIntStateOf(resId)
+    // Tab selection state
+    var selectedTab by remember {
+        mutableStateOf(
+            if (shouldShowAutoTab(
+                    walletState.channels,
+                    lightningState.shouldBlockLightningReceive,
+                    walletState.nodeLifecycleState.isRunning()
+                )
+            ) ReceiveTab.AUTO
+            else ReceiveTab.SAVINGS
+        )
     }
 
-    val onchainAddress = walletState.onchainAddress
-    val uri = cjitInvoice.value ?: walletState.bip21
+    // QR vs Details toggle state
+    var showDetails by remember { mutableStateOf(false) }
+
+    // Dynamic tab visibility
+    val visibleTabs = remember(walletState, lightningState) {
+        buildList {
+            add(ReceiveTab.SAVINGS) // Always visible
+            if (shouldShowAutoTab(
+                    walletState.channels,
+                    lightningState.shouldBlockLightningReceive,
+                    walletState.nodeLifecycleState.isRunning()
+                )
+            ) {
+                add(ReceiveTab.AUTO)
+            }
+            if (walletState.nodeLifecycleState.isRunning()) {
+                add(ReceiveTab.SPENDING)
+            }
+        }
+    }
+
+    // Auto-correct selected tab if it becomes hidden
+    LaunchedEffect(visibleTabs) {
+        if (selectedTab !in visibleTabs) {
+            selectedTab = visibleTabs.first()
+        }
+    }
+
+    // Current invoice for display
+    val currentInvoice = remember(selectedTab, walletState, cjitInvoice.value) {
+        getInvoiceForTab(
+            tab = selectedTab,
+            bip21 = walletState.bip21,
+            bolt11 = walletState.bolt11,
+            cjitInvoice = cjitInvoice.value,
+            onchainAddress = walletState.onchainAddress
+        )
+    }
+
+    // QR logo based on selected tab
+    val qrLogoRes = remember(selectedTab, cjitInvoice.value) {
+        getQrLogoResource(selectedTab, cjitInvoice.value != null)
+    }
 
     Column(
         modifier = modifier
@@ -104,91 +148,240 @@ fun ReceiveQrScreen(
         Column(
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
+            Spacer(Modifier.height(16.dp))
+
+            // Tab row
+            to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing(
+                tabs = visibleTabs,
+                currentTabIndex = visibleTabs.indexOf(selectedTab),
+                onTabChange = { tab ->
+                    selectedTab = tab
+                    showDetails = false // Reset to QR when switching tabs
+                }
+            )
+
             Spacer(Modifier.height(24.dp))
+
+            // Content area (QR or Details)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                val pagerState = rememberPagerState(initialPage = 0) { 2 }
-                HorizontalPager(
-                    state = pagerState,
-                    pageSpacing = 20.dp,
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("ReceiveSlider")
-                ) {
-                    when (it) {
-                        0 -> ReceiveQrSlide(
-                            uri = uri,
-                            qrLogoPainter = painterResource(qrLogoImageRes),
-                            modifier = Modifier.fillMaxWidth(),
-                            onClickEditInvoice = onClickEditInvoice
-                        )
+                if (showDetails) {
+                    ReceiveDetailsView(
+                        tab = selectedTab,
+                        onchainAddress = walletState.onchainAddress,
+                        bolt11 = walletState.bolt11,
+                        cjitInvoice = cjitInvoice.value,
+                        bip21 = walletState.bip21
+                    )
+                } else {
+                    ReceiveQrView(
+                        uri = currentInvoice,
+                        qrLogoPainter = painterResource(qrLogoRes),
+                        onClickEditInvoice = onClickEditInvoice,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
-                        1 -> CopyValuesSlide(
-                            onchainAddress = onchainAddress,
-                            bolt11 = walletState.bolt11,
-                            cjitInvoice = cjitInvoice.value,
-                            receiveOnSpendingBalance = walletState.receiveOnSpendingBalance
+            Spacer(Modifier.height(24.dp))
+
+            // Toggle button
+            PrimaryButton(
+                text = stringResource(
+                    if (showDetails) R.string.wallet__receive_show_qr
+                    else R.string.wallet__receive_show_details
+                ),
+                onClick = { showDetails = !showDetails },
+                fullWidth = true,
+                modifier = Modifier.testTag("ReceiveToggleButton")
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Node state indicator (simplified from lines 150-190)
+            ReceiveNodeStateIndicator(
+                nodeLifecycleState = walletState.nodeLifecycleState,
+                selectedTab = selectedTab,
+                cjitActive = cjitActive.value
+            )
+
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReceiveQrView(
+    uri: String,
+    qrLogoPainter: Painter,
+    onClickEditInvoice: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val qrButtonTooltipState = rememberTooltipState()
+    val coroutineScope = rememberCoroutineScope()
+    var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        QrCodeImage(
+            content = uri,
+            logoPainter = qrLogoPainter,
+            tipMessage = androidx.compose.ui.res.stringResource(R.string.wallet__receive_copied),
+            onBitmapGenerated = { bitmap -> qrBitmap = bitmap },
+            testTag = "QRCode",
+            modifier = Modifier.weight(1f, fill = false)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            PrimaryButton(
+                text = androidx.compose.ui.res.stringResource(R.string.common__edit),
+                size = ButtonSize.Small,
+                onClick = onClickEditInvoice,
+                fullWidth = false,
+                color = Colors.White10,
+                icon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_pencil_simple),
+                        contentDescription = null,
+                        tint = Colors.Brand,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                modifier = Modifier.testTag("SpecifyInvoiceButton")
+            )
+            Tooltip(
+                text = androidx.compose.ui.res.stringResource(R.string.wallet__receive_copied),
+                tooltipState = qrButtonTooltipState
+            ) {
+                PrimaryButton(
+                    text = androidx.compose.ui.res.stringResource(R.string.common__copy),
+                    size = ButtonSize.Small,
+                    onClick = {
+                        context.setClipboardText(uri)
+                        coroutineScope.launch { qrButtonTooltipState.show() }
+                    },
+                    fullWidth = false,
+                    color = Colors.White10,
+                    icon = {
+                        Icon(
+                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_copy),
+                            contentDescription = null,
+                            tint = Colors.Brand,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    modifier = Modifier.testTag("ReceiveCopyQR")
+                )
+            }
+            PrimaryButton(
+                text = androidx.compose.ui.res.stringResource(R.string.common__share),
+                size = ButtonSize.Small,
+                onClick = {
+                    qrBitmap?.let { bitmap ->
+                        shareQrCode(context, bitmap, uri)
+                    } ?: shareText(context, uri)
+                },
+                fullWidth = false,
+                color = Colors.White10,
+                icon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_share),
+                        contentDescription = null,
+                        tint = Colors.Brand,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ReceiveDetailsView(
+    tab: ReceiveTab,
+    onchainAddress: String,
+    bolt11: String,
+    cjitInvoice: String?,
+    bip21: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Colors.White10),
+        shape = AppShapes.small,
+        modifier = modifier
+    ) {
+        Column {
+            when (tab) {
+                ReceiveTab.SAVINGS -> {
+                    if (onchainAddress.isNotEmpty()) {
+                        CopyAddressCard(
+                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_bitcoin_invoice),
+                            address = onchainAddress,
+                            type = CopyAddressType.ONCHAIN,
+                            testTag = "ReceiveOnchainAddress",
                         )
                     }
                 }
-                @Suppress("DEPRECATION")
-                HorizontalPagerIndicator(
-                    pagerState = pagerState,
-                    pageCount = pagerState.pageCount,
-                    indicatorWidth = 8.dp,
-                    spacing = 8.dp,
-                    activeColor = Colors.White,
-                    inactiveColor = Colors.White32,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                )
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            AnimatedVisibility(walletState.nodeLifecycleState.isRunning() && walletState.channels.isEmpty()) {
-                ReceiveLightningFunds(
-                    cjitInvoice = cjitInvoice,
-                    cjitActive = cjitActive,
-                    onCjitToggle = onCjitToggle,
-                )
-            }
-            AnimatedVisibility(walletState.nodeLifecycleState.isRunning() && walletState.channels.isNotEmpty()) {
-                Column {
-                    AnimatedVisibility(!walletState.receiveOnSpendingBalance) {
-                        Headline(
-                            text = stringResource(
-                                R.string.wallet__receive_text_lnfunds
-                            ).withAccent(accentColor = Colors.Purple)
+                ReceiveTab.AUTO -> {
+                    // Show both onchain AND lightning if available
+                    if (onchainAddress.isNotEmpty()) {
+                        CopyAddressCard(
+                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_bitcoin_invoice),
+                            address = onchainAddress,
+                            type = CopyAddressType.ONCHAIN,
+                            testTag = "ReceiveOnchainAddress",
                         )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BodyM(text = stringResource(R.string.wallet__receive_spending))
-                        Spacer(modifier = Modifier.weight(1f))
-                        AnimatedVisibility(!walletState.receiveOnSpendingBalance) {
-                            Icon(
-                                painter = painterResource(R.drawable.empty_state_arrow_horizontal),
-                                contentDescription = null,
-                                tint = Colors.White64,
-                                modifier = Modifier
-                                    .rotate(17.33f)
-                                    .padding(start = 7.65.dp, end = 13.19.dp)
-                            )
-                        }
-                        Switch(
-                            checked = walletState.receiveOnSpendingBalance,
-                            onCheckedChange = { onClickReceiveOnSpending() },
-                            colors = AppSwitchDefaults.colorsPurple,
-                            modifier = Modifier.testTag("ReceiveInstantlySwitch")
+                    if (cjitInvoice != null || bolt11.isNotEmpty()) {
+                        CopyAddressCard(
+                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_lightning_invoice),
+                            address = cjitInvoice ?: bolt11,
+                            type = CopyAddressType.LIGHTNING,
+                            testTag = "ReceiveLightningAddress",
+                        )
+                    }
+                }
+                ReceiveTab.SPENDING -> {
+                    if (cjitInvoice != null || bolt11.isNotEmpty()) {
+                        CopyAddressCard(
+                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_lightning_invoice),
+                            address = cjitInvoice ?: bolt11,
+                            type = CopyAddressType.LIGHTNING,
+                            testTag = "ReceiveLightningAddress",
                         )
                     }
                 }
             }
-            AnimatedVisibility(walletState.nodeLifecycleState.isStarting()) {
-                BodyM(text = stringResource(R.string.wallet__receive_ldk_init))
-            }
-            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReceiveNodeStateIndicator(
+    nodeLifecycleState: to.bitkit.models.NodeLifecycleState,
+    selectedTab: ReceiveTab,
+    cjitActive: Boolean
+) {
+    when {
+        nodeLifecycleState.isStarting() -> {
+            BodyM(text = androidx.compose.ui.res.stringResource(R.string.wallet__receive_ldk_init))
+        }
+        selectedTab == ReceiveTab.SPENDING && cjitActive -> {
+            BodyS(
+                text = "CJIT Active",
+                color = Colors.Purple
+            )
         }
     }
 }
@@ -453,6 +646,11 @@ private fun Preview() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
+                lightningState = to.bitkit.repositories.LightningState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    shouldBlockLightningReceive = false,
+                    isGeoBlocked = false
+                ),
                 onCjitToggle = {},
                 onClickEditInvoice = {},
                 onClickReceiveOnSpending = {},
@@ -473,6 +671,11 @@ private fun PreviewNodeNotReady() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
+                lightningState = to.bitkit.repositories.LightningState(
+                    nodeLifecycleState = NodeLifecycleState.Starting,
+                    shouldBlockLightningReceive = false,
+                    isGeoBlocked = false
+                ),
                 onCjitToggle = {},
                 onClickEditInvoice = {},
                 onClickReceiveOnSpending = {},
@@ -492,6 +695,11 @@ private fun PreviewSmall() {
                 cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
+                ),
+                lightningState = to.bitkit.repositories.LightningState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    shouldBlockLightningReceive = false,
+                    isGeoBlocked = false
                 ),
                 onCjitToggle = {},
                 onClickEditInvoice = {},
