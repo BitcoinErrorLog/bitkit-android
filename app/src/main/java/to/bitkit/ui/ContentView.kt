@@ -486,7 +486,6 @@ fun ContentView(
 
                 DrawerMenu(
                     drawerState = drawerState,
-                    walletNavController = walletNavController,
                     rootNavController = navController,
                     hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                     hasSeenShopIntro = hasSeenShopIntro,

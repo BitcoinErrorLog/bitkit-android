@@ -45,7 +45,6 @@ import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
-import to.bitkit.ui.navigateToAllActivity
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -62,7 +61,6 @@ private val drawerWidth = 200.dp
 @Composable
 fun DrawerMenu(
     drawerState: DrawerState,
-    walletNavController: NavController?,
     rootNavController: NavController,
     hasSeenWidgetsIntro: Boolean,
     hasSeenShopIntro: Boolean,
@@ -98,7 +96,6 @@ fun DrawerMenu(
         )
     ) {
         Menu(
-            walletNavController = walletNavController,
             rootNavController = rootNavController,
             drawerState = drawerState,
             onClickAddWidget = {
@@ -121,7 +118,6 @@ fun DrawerMenu(
 
 @Composable
 private fun Menu(
-    walletNavController: NavController?,
     rootNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
@@ -307,7 +303,6 @@ private fun Preview() {
         val navController = rememberNavController()
         Box {
             DrawerMenu(
-                walletNavController = navController,
                 rootNavController = navController,
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
                 hasSeenWidgetsIntro = false,
