@@ -964,6 +964,10 @@
     <string name="wallet__receive_lightning_invoice">Lightning invoice</string>
     <string name="wallet__receive_note_placeholder">Optional note to payer</string>
     <string name="wallet__receive_show_qr">Show QR Code</string>
+    <string name="wallet__receive_show_details">Show Details</string>
+    <string name="wallet__receive_tab_savings">Savings</string>
+    <string name="wallet__receive_tab_auto">Auto</string>
+    <string name="wallet__receive_tab_spending">Spending</string>
     <string name="wallet__receive_text_lnfunds">Want to receive &lt;accent&gt;Lightning&lt;/accent&gt; funds?</string>
     <string name="wallet__receive_spending">Receive on Spending Balance</string>
     <string name="wallet__receive_connect_initial">To set up your spending balance, a &lt;accent&gt;{networkFee}&lt;/accent&gt; network fee and &lt;accent&gt;{serviceFee}&lt;/accent&gt; service provider fee will be deducted.</string>
