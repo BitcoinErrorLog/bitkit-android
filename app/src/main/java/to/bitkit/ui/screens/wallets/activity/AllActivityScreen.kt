@@ -23,10 +23,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.synonym.bitkitcore.Activity
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.Sheet
+import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListFilter
@@ -36,6 +39,7 @@ import to.bitkit.ui.screens.wallets.activity.utils.previewActivityItems
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.viewmodels.ActivityListViewModel
+import to.bitkit.viewmodels.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +78,39 @@ fun AllActivityScreen(
         onActivityItemClick = onActivityItemClick,
         onEmptyActivityRowClick = { app.showSheet(Sheet.Receive) },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
+@Composable
+fun AllActivityScreenWithTabBar(
+    viewModel: ActivityListViewModel,
+    appViewModel: AppViewModel,
+    onBack: () -> Unit,
+    onScanClick: () -> Unit,
+    onActivityItemClick: (String) -> Unit,
+) {
+    val hazeState = rememberHazeState()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+        ) {
+            AllActivityScreen(
+                viewModel = viewModel,
+                onBack = onBack,
+                onActivityItemClick = onActivityItemClick,
+            )
+        }
+
+        TabBar(
+            hazeState = hazeState,
+            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
+            onScanClick = onScanClick,
+        )
+    }
 }
 
 @Composable

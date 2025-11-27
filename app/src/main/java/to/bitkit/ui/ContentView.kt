@@ -88,6 +88,7 @@ import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen
 import to.bitkit.ui.screens.wallets.HomeNav
 import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
+import to.bitkit.ui.screens.wallets.activity.AllActivityScreenWithTabBar
 import to.bitkit.ui.screens.wallets.activity.DateRangeSelectorSheet
 import to.bitkit.ui.screens.wallets.activity.TagSelectorSheet
 import to.bitkit.ui.screens.wallets.receive.ReceiveSheet
@@ -490,6 +491,11 @@ private fun RootNavHost(
             walletNavController = walletNavHostController,
             drawerState = drawerState
         )
+        allActivity(
+            activityListViewModel = activityListViewModel,
+            appViewModel = appViewModel,
+            navController = navController,
+        )
         settings(navController, settingsViewModel)
         profile(navController, settingsViewModel)
         shop(navController, settingsViewModel, appViewModel)
@@ -755,6 +761,25 @@ private fun NavGraphBuilder.home(
             rootNavController = navController,
             walletNavController = walletNavController,
             drawerState = drawerState,
+        )
+    }
+}
+
+private fun NavGraphBuilder.allActivity(
+    activityListViewModel: ActivityListViewModel,
+    appViewModel: AppViewModel,
+    navController: NavHostController,
+) {
+    composableWithDefaultTransitions<Routes.AllActivity> {
+        AllActivityScreenWithTabBar(
+            viewModel = activityListViewModel,
+            appViewModel = appViewModel,
+            onBack = {
+                activityListViewModel.clearFilters()
+                navController.navigateToHome()
+            },
+            onScanClick = { navController.navigateToScanner() },
+            onActivityItemClick = { id -> navController.navigateToActivityItem(id) },
         )
     }
 }
@@ -1385,6 +1410,12 @@ fun NavController.navigateToHome() {
     }
 }
 
+fun NavController.navigateToAllActivity() {
+    navigate(Routes.AllActivity) {
+        launchSingleTop = true
+    }
+}
+
 /**
  * Navigates to the specified route only if not already on that route.
  */
@@ -1845,4 +1876,7 @@ sealed interface Routes {
 
     @Serializable
     data object BackgroundPaymentsSettings : Routes
+
+    @Serializable
+    data object AllActivity : Routes
 }

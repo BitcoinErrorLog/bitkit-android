@@ -45,8 +45,8 @@ import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
+import to.bitkit.ui.navigateToAllActivity
 import to.bitkit.ui.navigateToHome
-import to.bitkit.ui.screens.wallets.HomeRoutes
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -156,11 +156,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__activity),
             iconRes = R.drawable.ic_heartbeat,
             onClick = {
-                if (walletNavController != null) {
-                    walletNavController.navigateIfNotCurrent(HomeRoutes.AllActivity)
-                } else {
-                    rootNavController.navigateIfNotCurrent(Routes.Home)
-                }
+                rootNavController.navigateIfNotCurrent(Routes.AllActivity)
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerActivity")

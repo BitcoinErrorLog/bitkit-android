@@ -21,12 +21,12 @@ import kotlinx.serialization.Serializable
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.navigateToActivityItem
+import to.bitkit.ui.navigateToAllActivity
 import to.bitkit.ui.navigateToScanner
 import to.bitkit.ui.navigateToTransferSavingsAvailability
 import to.bitkit.ui.navigateToTransferSavingsIntro
 import to.bitkit.ui.navigateToTransferSpendingAmount
 import to.bitkit.ui.navigateToTransferSpendingIntro
-import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
 import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.ui.utils.Transitions
 import to.bitkit.viewmodels.ActivityListViewModel
@@ -122,7 +122,7 @@ private fun NavContent(
             SavingsWalletScreen(
                 isGeoBlocked = isGeoBlocked,
                 onchainActivities = onchainActivities.orEmpty(),
-                onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
+                onAllActivityButtonClick = { rootNavController.navigateToAllActivity() },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
                 onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
                 onTransferToSpendingClick = {
@@ -144,7 +144,7 @@ private fun NavContent(
             SpendingWalletScreen(
                 uiState = mainUiState,
                 lightningActivities = lightningActivities.orEmpty(),
-                onAllActivityButtonClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
+                onAllActivityButtonClick = { rootNavController.navigateToAllActivity() },
                 onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
                 onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
                 onTransferToSavingsClick = {
@@ -155,19 +155,6 @@ private fun NavContent(
                     }
                 },
                 onBackClick = { walletNavController.popBackStack() },
-            )
-        }
-        composable<HomeRoutes.AllActivity>(
-            enterTransition = { Transitions.slideInHorizontally },
-            exitTransition = { Transitions.slideOutHorizontally },
-        ) {
-            AllActivityScreen(
-                viewModel = activityListViewModel,
-                onBack = {
-                    activityListViewModel.clearFilters()
-                    walletNavController.popBackStack()
-                },
-                onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
             )
         }
     }
@@ -182,7 +169,4 @@ object HomeRoutes {
 
     @Serializable
     data object Spending
-
-    @Serializable
-    data object AllActivity
 }
