@@ -197,7 +197,6 @@ fun ContentView(
     backupsViewModel: BackupsViewModel,
 ) {
     val navController = rememberNavController()
-    val walletNavController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -450,7 +449,6 @@ fun ContentView(
                 ) {
                     RootNavHost(
                         navController = navController,
-                        walletNavHostController = walletNavController,
                         drawerState = drawerState,
                         walletViewModel = walletViewModel,
                         appViewModel = appViewModel,
@@ -499,7 +497,6 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
-    walletNavHostController: NavHostController,
     drawerState: DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
@@ -517,7 +514,6 @@ private fun RootNavHost(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             navController = navController,
-            walletNavController = walletNavHostController,
             drawerState = drawerState
         )
         allActivity(
@@ -777,7 +773,6 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
-    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
@@ -787,7 +782,6 @@ private fun NavGraphBuilder.home(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             rootNavController = navController,
-            walletNavController = walletNavController,
             drawerState = drawerState,
         )
     }

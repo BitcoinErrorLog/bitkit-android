@@ -11,6 +11,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
@@ -36,7 +37,6 @@ fun HomeNav(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     rootNavController: NavController,
-    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     val uiState: MainUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
@@ -47,6 +47,9 @@ fun HomeNav(
             settingsViewModel.setNotificationPreference(granted)
         }
     )
+
+    val walletNavController = rememberNavController()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
