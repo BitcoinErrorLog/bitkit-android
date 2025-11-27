@@ -3,26 +3,20 @@ package to.bitkit.ui.screens.wallets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.navigateToActivityItem
 import to.bitkit.ui.navigateToAllActivity
-import to.bitkit.ui.navigateToScanner
 import to.bitkit.ui.navigateToTransferSavingsAvailability
 import to.bitkit.ui.navigateToTransferSavingsIntro
 import to.bitkit.ui.navigateToTransferSpendingAmount
@@ -53,34 +47,21 @@ fun HomeNav(
             settingsViewModel.setNotificationPreference(granted)
         }
     )
-
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState)
     ) {
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-        ) {
-            NavContent(
-                walletNavController = walletNavController,
-                rootNavController = rootNavController,
-                mainUiState = uiState,
-                drawerState = drawerState,
-                settingsViewModel = settingsViewModel,
-                appViewModel = appViewModel,
-                walletViewModel = walletViewModel,
-                activityListViewModel = activityListViewModel,
-            )
-        }
-
-        // TabBar(
-        //     hazeState = hazeState,
-        //     onSendClick = { appViewModel.showSheet(Sheet.Send()) },
-        //     onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-        //     onScanClick = { rootNavController.navigateToScanner() },
-        // )
+        NavContent(
+            walletNavController = walletNavController,
+            rootNavController = rootNavController,
+            mainUiState = uiState,
+            drawerState = drawerState,
+            settingsViewModel = settingsViewModel,
+            appViewModel = appViewModel,
+            walletViewModel = walletViewModel,
+            activityListViewModel = activityListViewModel,
+        )
     }
 }
 
