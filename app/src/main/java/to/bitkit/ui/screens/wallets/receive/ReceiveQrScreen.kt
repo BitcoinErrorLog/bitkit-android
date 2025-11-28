@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
@@ -75,13 +76,14 @@ fun ReceiveQrScreen(
     lightningState: to.bitkit.repositories.LightningState,
     onClickEditInvoice: () -> Unit,
     modifier: Modifier = Modifier,
+    initialTab: ReceiveTab? = null,
 ) {
     SetMaxBrightness()
 
     // Tab selection state
     var selectedTab by remember {
         mutableStateOf(
-            if (walletState.channels.isNotEmpty()) {
+            initialTab ?: if (walletState.channels.isNotEmpty()) {
                 ReceiveTab.AUTO
             } else {
                 ReceiveTab.SAVINGS
@@ -635,9 +637,10 @@ private fun CopyAddressCard(
     }
 }
 
-@Preview(showSystemUi = true)
+@Suppress("SpellCheckingInspection")
+@Preview(showSystemUi = true, name = "Savings Mode")
 @Composable
-private fun Preview() {
+private fun PreviewSavingsMode() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
@@ -645,6 +648,8 @@ private fun Preview() {
                 cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
+                    onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
+                    channels = emptyList()
                 ),
                 lightningState = to.bitkit.repositories.LightningState(
                     nodeLifecycleState = NodeLifecycleState.Running,
@@ -653,6 +658,104 @@ private fun Preview() {
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
+                initialTab = ReceiveTab.SAVINGS
+            )
+        }
+    }
+}
+
+@Suppress("SpellCheckingInspection")
+@Preview(showSystemUi = true, name = "Auto Mode")
+@Composable
+private fun PreviewAutoMode() {
+    // Mock channel for preview (AUTO tab requires non-empty channels list)
+    val mockChannel = ChannelDetails(
+        channelId = "0".repeat(64),
+        counterpartyNodeId = "0".repeat(66),
+        fundingTxo = null,
+        shortChannelId = null,
+        outboundScidAlias = null,
+        inboundScidAlias = null,
+        channelValueSats = 1000000uL,
+        unspendablePunishmentReserve = null,
+        userChannelId = "0".repeat(32),
+        feerateSatPer1000Weight = 1000u,
+        outboundCapacityMsat = 500000000uL,
+        inboundCapacityMsat = 500000000uL,
+        confirmationsRequired = null,
+        confirmations = null,
+        isOutbound = true,
+        isChannelReady = true,
+        isUsable = true,
+        isAnnounced = false,
+        cltvExpiryDelta = null,
+        counterpartyUnspendablePunishmentReserve = 0uL,
+        counterpartyOutboundHtlcMinimumMsat = null,
+        counterpartyOutboundHtlcMaximumMsat = null,
+        counterpartyForwardingInfoFeeBaseMsat = null,
+        counterpartyForwardingInfoFeeProportionalMillionths = null,
+        counterpartyForwardingInfoCltvExpiryDelta = null,
+        nextOutboundHtlcLimitMsat = 0uL,
+        nextOutboundHtlcMinimumMsat = 0uL,
+        forceCloseSpendDelay = null,
+        inboundHtlcMinimumMsat = 0uL,
+        inboundHtlcMaximumMsat = null,
+        config = org.lightningdevkit.ldknode.ChannelConfig(
+            forwardingFeeProportionalMillionths = 0u,
+            forwardingFeeBaseMsat = 0u,
+            cltvExpiryDelta = 0u,
+            maxDustHtlcExposure = org.lightningdevkit.ldknode.MaxDustHtlcExposure.FeeRateMultiplier(0uL),
+            forceCloseAvoidanceMaxFeeSatoshis = 0uL,
+            acceptUnderpayingHtlcs = false
+        )
+    )
+
+    AppThemeSurface {
+        BottomSheetPreview {
+            ReceiveQrScreen(
+                cjitInvoice = remember { mutableStateOf(null) },
+                cjitActive = remember { mutableStateOf(false) },
+                walletState = MainUiState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
+                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq",
+                    bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
+                    channels = listOf(mockChannel)
+                ),
+                lightningState = to.bitkit.repositories.LightningState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    shouldBlockLightningReceive = false,
+                    isGeoBlocked = false
+                ),
+                onClickEditInvoice = {},
+                modifier = Modifier.sheetHeight(),
+                initialTab = ReceiveTab.AUTO
+            )
+        }
+    }
+}
+
+@Suppress("SpellCheckingInspection")
+@Preview(showSystemUi = true, name = "Spending Mode")
+@Composable
+private fun PreviewSpendingMode() {
+    AppThemeSurface {
+        BottomSheetPreview {
+            ReceiveQrScreen(
+                cjitInvoice = remember { mutableStateOf(null) },
+                cjitActive = remember { mutableStateOf(false) },
+                walletState = MainUiState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
+                ),
+                lightningState = to.bitkit.repositories.LightningState(
+                    nodeLifecycleState = NodeLifecycleState.Running,
+                    shouldBlockLightningReceive = false,
+                    isGeoBlocked = false
+                ),
+                onClickEditInvoice = {},
+                modifier = Modifier.sheetHeight(),
+                initialTab = ReceiveTab.SPENDING
             )
         }
     }
