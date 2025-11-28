@@ -147,7 +147,6 @@ fun ReceiveQrScreen(
                 },
                 onTabChange = { tab ->
                     selectedTab = tab
-                    showDetails = false // Reset to QR when switching tabs
                 }
             )
 
