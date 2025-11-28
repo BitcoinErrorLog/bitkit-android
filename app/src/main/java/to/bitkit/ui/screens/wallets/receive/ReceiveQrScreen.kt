@@ -174,6 +174,7 @@ fun ReceiveQrScreen(
                         uri = currentInvoice,
                         qrLogoPainter = painterResource(qrLogoRes),
                         onClickEditInvoice = onClickEditInvoice,
+                        tab = selectedTab,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -204,6 +205,7 @@ private fun ReceiveQrView(
     qrLogoPainter: Painter,
     onClickEditInvoice: () -> Unit,
     modifier: Modifier = Modifier,
+    tab: ReceiveTab,
 ) {
     val context = LocalContext.current
     val qrButtonTooltipState = rememberTooltipState()
@@ -238,7 +240,11 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
-                        tint = Colors.Brand,
+                        tint = when (tab) {
+                            ReceiveTab.SAVINGS -> Colors.Brand
+                            ReceiveTab.AUTO -> Colors.Brand
+                            ReceiveTab.SPENDING -> Colors.Purple
+                        },
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -261,7 +267,11 @@ private fun ReceiveQrView(
                         Icon(
                             painter = painterResource(R.drawable.ic_copy),
                             contentDescription = null,
-                            tint = Colors.Brand,
+                            tint = when (tab) {
+                                ReceiveTab.SAVINGS -> Colors.Brand
+                                ReceiveTab.AUTO -> Colors.Brand
+                                ReceiveTab.SPENDING -> Colors.Purple
+                            },
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -282,7 +292,11 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_share),
                         contentDescription = null,
-                        tint = Colors.Brand,
+                        tint = when (tab) {
+                            ReceiveTab.SAVINGS -> Colors.Brand
+                            ReceiveTab.AUTO -> Colors.Brand
+                            ReceiveTab.SPENDING -> Colors.Purple
+                        },
                         modifier = Modifier.size(18.dp)
                     )
                 },
