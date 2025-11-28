@@ -144,10 +144,10 @@ fun DevSettingsScreen(
                 }
             )
             SettingsTextButtonRow(
-                "Fake New BG Transaction",
+                "Fake New BG Receive",
                 onClick = {
-                    viewModel.fakeBgTransaction()
-                    app.toast(type = Toast.ToastType.INFO, title = "Restart to see the transaction sheet")
+                    viewModel.fakeBgReceive()
+                    app.toast(type = Toast.ToastType.INFO, title = "Restart app to see the payment received sheet")
                 }
             )
             SettingsTextButtonRow(

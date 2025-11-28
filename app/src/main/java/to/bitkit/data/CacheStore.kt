@@ -14,6 +14,7 @@ import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.BalanceState
 import to.bitkit.models.FxRate
+import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -101,6 +102,14 @@ class CacheStore @Inject constructor(
         store.updateData { it.copy(lastLightningPaymentId = paymentId) }
     }
 
+    suspend fun setBackgroundReceive(details: NewTransactionSheetDetails) = store.updateData {
+        it.copy(backgroundReceive = details)
+    }
+
+    suspend fun clearBackgroundReceive() {
+        store.updateData { it.copy(backgroundReceive = null) }
+    }
+
     suspend fun reset() {
         store.updateData { AppCacheData() }
         Logger.info("Deleted all app cached data.")
@@ -123,4 +132,5 @@ data class AppCacheData(
     val deletedActivities: List<String> = listOf(),
     val lastLightningPaymentId: String? = null,
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
+    val backgroundReceive: NewTransactionSheetDetails? = null,
 )

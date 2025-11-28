@@ -234,7 +234,6 @@ class AppViewModel @Inject constructor(
                 runCatching {
                     when (event) {
                         is Event.BalanceChanged -> handleBalanceChanged()
-                        is Event.SyncCompleted -> handleSyncCompleted()
                         is Event.ChannelClosed -> Unit
                         is Event.ChannelPending -> Unit
                         is Event.ChannelReady -> notifyChannelReady(event)
@@ -248,6 +247,7 @@ class AppViewModel @Inject constructor(
                         is Event.PaymentForwarded -> Unit
                         is Event.PaymentReceived -> handlePaymentReceived(event)
                         is Event.PaymentSuccessful -> handlePaymentSuccessful(event)
+                        is Event.SyncCompleted -> handleSyncCompleted()
                         is Event.SyncProgress -> Unit
                     }
                 }.onFailure { e ->
@@ -257,35 +257,25 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun handleBalanceChanged() {
-        viewModelScope.launch(bgDispatcher) {
-            walletRepo.syncBalances()
-        }
+    private suspend fun handleBalanceChanged() {
+        walletRepo.syncBalances()
     }
 
-    private fun handleSyncCompleted() {
-        viewModelScope.launch(bgDispatcher) {
-            walletRepo.syncNodeAndWallet()
-        }
+    private suspend fun handleSyncCompleted() {
+        walletRepo.syncNodeAndWallet()
     }
 
-    private fun handleOnchainTransactionConfirmed(event: Event.OnchainTransactionConfirmed) {
-        viewModelScope.launch(bgDispatcher) {
-            activityRepo.handleOnchainTransactionConfirmed(event.txid, event.details)
-        }
+    private suspend fun handleOnchainTransactionConfirmed(event: Event.OnchainTransactionConfirmed) {
+        activityRepo.handleOnchainTransactionConfirmed(event.txid, event.details)
     }
 
-    private fun handleOnchainTransactionEvicted(event: Event.OnchainTransactionEvicted) {
-        viewModelScope.launch(bgDispatcher) {
-            activityRepo.handleOnchainTransactionEvicted(event.txid)
-        }
+    private suspend fun handleOnchainTransactionEvicted(event: Event.OnchainTransactionEvicted) {
+        activityRepo.handleOnchainTransactionEvicted(event.txid)
         notifyTransactionRemoved(event)
     }
 
-    private fun handleOnchainTransactionReceived(event: Event.OnchainTransactionReceived) {
-        viewModelScope.launch(bgDispatcher) {
-            activityRepo.handleOnchainTransactionReceived(event.txid, event.details)
-        }
+    private suspend fun handleOnchainTransactionReceived(event: Event.OnchainTransactionReceived) {
+        activityRepo.handleOnchainTransactionReceived(event.txid, event.details)
         if (event.details.amountSats > 0) {
             val sats = event.details.amountSats.toULong()
             viewModelScope.launch {
@@ -298,55 +288,89 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun handleOnchainTransactionReorged(event: Event.OnchainTransactionReorged) {
-        viewModelScope.launch(bgDispatcher) {
-            activityRepo.handleOnchainTransactionReorged(event.txid)
-        }
+    private suspend fun handleOnchainTransactionReorged(event: Event.OnchainTransactionReorged) {
+        activityRepo.handleOnchainTransactionReorged(event.txid)
         notifyTransactionUnconfirmed()
     }
 
-    private fun handleOnchainTransactionReplaced(event: Event.OnchainTransactionReplaced) {
-        viewModelScope.launch(bgDispatcher) {
-            activityRepo.handleOnchainTransactionReplaced(event.txid, event.conflicts)
-        }
+    private suspend fun handleOnchainTransactionReplaced(event: Event.OnchainTransactionReplaced) {
+        activityRepo.handleOnchainTransactionReplaced(event.txid, event.conflicts)
         notifyTransactionReplaced(event)
     }
 
-    private fun handlePaymentFailed(event: Event.PaymentFailed) {
+    private suspend fun handlePaymentFailed(event: Event.PaymentFailed) {
         event.paymentHash?.let { paymentHash ->
-            viewModelScope.launch(bgDispatcher) {
-                activityRepo.handlePaymentEvent(paymentHash)
-            }
+            activityRepo.handlePaymentEvent(paymentHash)
         }
         notifyPaymentFailed()
     }
 
-    private fun handlePaymentReceived(event: Event.PaymentReceived) {
+    private suspend fun handlePaymentReceived(event: Event.PaymentReceived) {
         event.paymentHash?.let { paymentHash ->
-            viewModelScope.launch(bgDispatcher) {
-                activityRepo.handlePaymentEvent(paymentHash)
-            }
+            activityRepo.handlePaymentEvent(paymentHash)
         }
         notifyPaymentReceived(event)
     }
 
-    private fun handlePaymentSuccessful(event: Event.PaymentSuccessful) {
+    private suspend fun handlePaymentSuccessful(event: Event.PaymentSuccessful) {
         event.paymentHash?.let { paymentHash ->
-            viewModelScope.launch(bgDispatcher) {
-                activityRepo.handlePaymentEvent(paymentHash)
-            }
+            activityRepo.handlePaymentEvent(paymentHash)
         }
-        viewModelScope.launch {
-            notifyPaymentSentOnLightning(event)
-        }
+        notifyPaymentSentOnLightning(event)
     }
 
-    private fun notifyPaymentFailed() = toast(
-        type = Toast.ToastType.ERROR,
-        title = context.getString(R.string.wallet__toast_payment_failed_title),
-        description = context.getString(R.string.wallet__toast_payment_failed_description),
-        testTag = "PaymentFailedToast",
-    )
+    // region Notifications
+
+    private suspend fun notifyChannelReady(event: Event.ChannelReady) {
+        val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
+        val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
+        if (cjitEntry != null) {
+            val amount = channel.amountOnClose.toLong()
+            showNewTransactionSheet(
+                NewTransactionSheetDetails(
+                    type = NewTransactionSheetType.LIGHTNING,
+                    direction = NewTransactionSheetDirection.RECEIVED,
+                    sats = amount,
+                ),
+            )
+            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
+            return
+        }
+        toast(
+            type = Toast.ToastType.LIGHTNING,
+            title = context.getString(R.string.lightning__channel_opened_title),
+            description = context.getString(R.string.lightning__channel_opened_msg),
+        )
+    }
+
+    private suspend fun notifyTransactionRemoved(event: Event.OnchainTransactionEvicted) {
+        if (activityRepo.wasTransactionReplaced(event.txid)) return
+        toast(
+            type = Toast.ToastType.WARNING,
+            title = context.getString(R.string.wallet__toast_transaction_removed_title),
+            description = context.getString(R.string.wallet__toast_transaction_removed_description),
+            testTag = "TransactionRemovedToast",
+        )
+    }
+
+    private suspend fun notifyPaymentReceived(event: Event) {
+        val command = NotifyPaymentReceived.Command.from(event) ?: return
+        if (command is NotifyPaymentReceived.Command.Lightning) {
+            val cachedId = cacheStore.data.first().lastLightningPaymentId
+            // Skip if this is a replay by ldk-node on startup
+            if (command.paymentHashOrTxId == cachedId) {
+                Logger.debug("Skipping notification for replayed event: $event", context = TAG)
+                return
+            }
+            // Cache to skip later as needed
+            cacheStore.setLastLightningPayment(command.paymentHashOrTxId)
+        }
+
+        val result = notifyPaymentReceivedHandler(command).getOrNull()
+        if (result !is NotifyPaymentReceived.Result.ShowSheet) return
+
+        showNewTransactionSheet(result.sheet)
+    }
 
     private fun notifyTransactionUnconfirmed() = toast(
         type = Toast.ToastType.WARNING,
@@ -355,34 +379,31 @@ class AppViewModel @Inject constructor(
         testTag = "TransactionUnconfirmedToast",
     )
 
-    private fun notifyTransactionRemoved(event: Event.OnchainTransactionEvicted) = viewModelScope.launch {
-        if (!activityRepo.wasTransactionReplaced(event.txid)) {
-            toast(
-                type = Toast.ToastType.WARNING,
-                title = context.getString(R.string.wallet__toast_transaction_removed_title),
-                description = context.getString(R.string.wallet__toast_transaction_removed_description),
-                testTag = "TransactionRemovedToast",
-            )
-        }
+    private suspend fun notifyTransactionReplaced(event: Event.OnchainTransactionReplaced) {
+        val isReceive = activityRepo.isReceivedTransaction(event.txid)
+        toast(
+            type = Toast.ToastType.INFO,
+            title = when (isReceive) {
+                true -> R.string.wallet__toast_received_transaction_replaced_title
+                else -> R.string.wallet__toast_transaction_replaced_title
+            }.let { context.getString(it) },
+            description = when (isReceive) {
+                true -> R.string.wallet__toast_received_transaction_replaced_description
+                else -> R.string.wallet__toast_transaction_replaced_description
+            }.let { context.getString(it) },
+            testTag = when (isReceive) {
+                true -> "ReceivedTransactionReplacedToast"
+                else -> "TransactionReplacedToast"
+            },
+        )
     }
 
-    private fun notifyTransactionReplaced(event: Event.OnchainTransactionReplaced) = viewModelScope.launch {
-        if (activityRepo.isReceivedTransaction(event.txid)) {
-            toast(
-                type = Toast.ToastType.INFO,
-                title = context.getString(R.string.wallet__toast_received_transaction_replaced_title),
-                description = context.getString(R.string.wallet__toast_received_transaction_replaced_description),
-                testTag = "ReceivedTransactionReplacedToast",
-            )
-        } else {
-            toast(
-                type = Toast.ToastType.INFO,
-                title = context.getString(R.string.wallet__toast_transaction_replaced_title),
-                description = context.getString(R.string.wallet__toast_transaction_replaced_description),
-                testTag = "TransactionReplacedToast",
-            )
-        }
-    }
+    private fun notifyPaymentFailed() = toast(
+        type = Toast.ToastType.ERROR,
+        title = context.getString(R.string.wallet__toast_payment_failed_title),
+        description = context.getString(R.string.wallet__toast_payment_failed_description),
+        testTag = "PaymentFailedToast",
+    )
 
     private suspend fun notifyPaymentSentOnLightning(event: Event.PaymentSuccessful): Result<Activity> {
         val paymentHash = event.paymentHash
@@ -406,49 +427,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun notifyChannelReady(event: Event.ChannelReady): Any {
-        val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-        val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
-        return if (cjitEntry != null) {
-            val amount = channel.amountOnClose.toLong()
-            showNewTransactionSheet(
-                NewTransactionSheetDetails(
-                    type = NewTransactionSheetType.LIGHTNING,
-                    direction = NewTransactionSheetDirection.RECEIVED,
-                    sats = amount,
-                ),
-            )
-            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
-        } else {
-            toast(
-                type = Toast.ToastType.LIGHTNING,
-                title = context.getString(R.string.lightning__channel_opened_title),
-                description = context.getString(R.string.lightning__channel_opened_msg),
-            )
-        }
-    }
-
-    private fun notifyPaymentReceived(event: Event) {
-        val command = NotifyPaymentReceived.Command.from(event) ?: return
-
-        viewModelScope.launch(bgDispatcher) {
-            // Skip lightning payment events replayed by ldk-node on startup
-            if (command is NotifyPaymentReceived.Command.Lightning) {
-                val cachedId = cacheStore.data.first().lastLightningPaymentId
-                if (command.paymentHashOrTxId == cachedId) {
-                    Logger.debug("Skipping replayed Lightning payment: ${command.paymentHashOrTxId}", context = TAG)
-                    return@launch
-                }
-                cacheStore.setLastLightningPayment(command.paymentHashOrTxId)
-            }
-
-            notifyPaymentReceivedHandler(command).onSuccess { result ->
-                if (result is NotifyPaymentReceived.Result.ShowSheet) {
-                    showNewTransactionSheet(result.details)
-                }
-            }
-        }
-    }
+    // endregion
 
     // region send
 
@@ -675,6 +654,7 @@ class AppViewModel @Inject constructor(
         resetSendState()
         resetQuickPayData()
 
+        // TODO: wrap the bindings `decode` fn in a `CoreService` method and call it from here
         val scan = runCatching { decode(result) }
             .onFailure { Logger.error("Failed to decode scan data: '$result'", it, context = TAG) }
             .onSuccess { Logger.info("Handling decoded scan data: $it", context = TAG) }
@@ -1257,7 +1237,7 @@ class AppViewModel @Inject constructor(
         val txType = _newTransaction.value.direction.toTxType()
         val paymentHashOrTxId = _newTransaction.value.paymentHashOrTxId ?: return
         _newTransaction.update { it.copy(isLoadingDetails = true) }
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
                 type = activityType,
@@ -1281,7 +1261,7 @@ class AppViewModel @Inject constructor(
         val txType = _successSendUiState.value.direction.toTxType()
         val paymentHashOrTxId = _successSendUiState.value.paymentHashOrTxId ?: return
         _successSendUiState.update { it.copy(isLoadingDetails = true) }
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
                 type = activityType,
@@ -1519,6 +1499,12 @@ class AppViewModel @Inject constructor(
     }
 
     fun hideNewTransactionSheet() = _showNewTransaction.update { false }
+
+    fun consumePaymentReceivedInBackground() = viewModelScope.launch(bgDispatcher) {
+        val details = cacheStore.data.first().backgroundReceive ?: return@launch
+        cacheStore.clearBackgroundReceive()
+        showNewTransactionSheet(details)
+    }
     // endregion
 
     // region Sheets

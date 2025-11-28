@@ -25,6 +25,8 @@ import org.lightningdevkit.ldknode.Event
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -33,12 +35,14 @@ import org.robolectric.annotation.Config
 import to.bitkit.App
 import to.bitkit.CurrentActivity
 import to.bitkit.R
+import to.bitkit.data.AppCacheData
+import to.bitkit.data.CacheStore
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
-import to.bitkit.models.NotificationState
+import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.LdkNodeEventBus
@@ -71,7 +75,12 @@ class LightningNodeServiceTest : BaseUnitTest() {
     @JvmField
     val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler = mock()
 
+    @BindValue
+    @JvmField
+    val cacheStore: CacheStore = mock()
+
     private val eventsFlow = MutableSharedFlow<Event>()
+    private val cacheDataFlow = MutableSharedFlow<AppCacheData>(replay = 1)
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
@@ -84,19 +93,23 @@ class LightningNodeServiceTest : BaseUnitTest() {
             )
             whenever(lightningRepo.stop()).thenReturn(Result.success(Unit))
 
+            // Set up CacheStore mock
+            cacheDataFlow.emit(AppCacheData())
+            whenever(cacheStore.data).thenReturn(cacheDataFlow)
+
             // Mock NotifyPaymentReceivedHandler to return ShowNotification result
-            val defaultDetails = NewTransactionSheetDetails(
+            val sheet = NewTransactionSheetDetails(
                 type = NewTransactionSheetType.LIGHTNING,
                 direction = NewTransactionSheetDirection.RECEIVED,
                 paymentHashOrTxId = "test_hash",
                 sats = 100L,
             )
-            val defaultNotification = NotificationState(
+            val notification = NotificationDetails(
                 title = context.getString(R.string.notification_received_title),
                 body = "Received ₿ 100 ($0.10)",
             )
             whenever(notifyPaymentReceivedHandler.invoke(any())).thenReturn(
-                Result.success(NotifyPaymentReceived.Result.ShowNotification(defaultDetails, defaultNotification))
+                Result.success(NotifyPaymentReceived.Result.ShowNotification(sheet, notification))
             )
 
             // Grant permissions for notifications
@@ -110,7 +123,6 @@ class LightningNodeServiceTest : BaseUnitTest() {
 
     @After
     fun tearDown() {
-        NewTransactionSheetDetails.clear(context)
         App.currentActivity = null
     }
 
@@ -137,10 +149,13 @@ class LightningNodeServiceTest : BaseUnitTest() {
         }
         assertNotNull("Payment notification should be present", paymentNotification)
 
-        val details = NewTransactionSheetDetails.load(context)
-        assertNotNull(details)
-        assertEquals("test_hash", details?.paymentHashOrTxId)
-        assertEquals(100L, details?.sats)
+        val expected = NewTransactionSheetDetails(
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+            paymentHashOrTxId = "test_hash",
+            sats = 100L,
+        )
+        verify(cacheStore).setBackgroundReceive(expected)
     }
 
     @Test
@@ -170,8 +185,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
 
         assertNull("Payment notification should NOT be present in foreground", paymentNotification)
 
-        val details = NewTransactionSheetDetails.load(context)
-        assertNull(details)
+        verify(cacheStore, never()).setBackgroundReceive(any())
     }
 
     @Test

@@ -1139,9 +1139,22 @@
     <string name="widgets__weather__current_fee">Current average fee</string>
     <string name="widgets__weather__next_block">Next block inclusion</string>
     <string name="widgets__weather__error">Couldn\'t get current fee weather</string>
-    <string name="notification_stop_app">Stop App</string>
-    <string name="notification_running_in_background">Bitkit is running in background so you can receive Lightning payments</string>
-    <string name="notification_received_title">Payment Received</string>
-    <string name="notification_received_body_hidden">Open Bitkit to see details</string>
+    <string name="notification_channel_closed_mutual_body">Balance moved from spending to savings</string>
+    <string name="notification_channel_closed_reason_body">Reason: %s</string>
+    <string name="notification_channel_closed_title">Channel closed</string>
+    <string name="notification_channel_open_bg_failed_title">Channel failed to open in the background</string>
+    <string name="notification_channel_open_failed_title">Channel open failed</string>
+    <string name="notification_channel_opened_title">Channel opened</string>
+    <string name="notification_channel_pending_body">Pending</string>
+    <string name="notification_channel_ready_body">Ready to send</string>
+    <string name="notification_lightning_error_title">Lightning error</string>
+    <string name="notification_payment_failed_title">Payment failed</string>
+    <string name="notification_please_try_again_body">Please try again</string>
     <string name="notification_received_body_amount">Received %s</string>
+    <string name="notification_received_body_hidden">Open Bitkit to see details</string>
+    <string name="notification_received_title">Payment Received</string>
+    <string name="notification_running_in_background">Bitkit is running in background so you can receive Lightning payments</string>
+    <string name="notification_stop_app">Stop App</string>
+    <string name="notification_unknown_error">Unknown error</string>
+    <string name="notification_via_new_channel_body">Via new channel</string>
 </resources>

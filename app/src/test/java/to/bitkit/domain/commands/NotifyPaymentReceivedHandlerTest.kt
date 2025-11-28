@@ -69,11 +69,10 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         val paymentResult = result.getOrThrow()
         assertTrue(paymentResult is NotifyPaymentReceived.Result.ShowSheet)
-        val showResult = paymentResult as NotifyPaymentReceived.Result.ShowSheet
-        assertEquals(NewTransactionSheetType.LIGHTNING, showResult.details.type)
-        assertEquals(NewTransactionSheetDirection.RECEIVED, showResult.details.direction)
-        assertEquals("hash123", showResult.details.paymentHashOrTxId)
-        assertEquals(1000L, showResult.details.sats)
+        assertEquals(NewTransactionSheetType.LIGHTNING, paymentResult.sheet.type)
+        assertEquals(NewTransactionSheetDirection.RECEIVED, paymentResult.sheet.direction)
+        assertEquals("hash123", paymentResult.sheet.paymentHashOrTxId)
+        assertEquals(1000L, paymentResult.sheet.sats)
     }
 
     @Test
@@ -89,11 +88,10 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         val paymentResult = result.getOrThrow()
         assertTrue(paymentResult is NotifyPaymentReceived.Result.ShowNotification)
-        val showResult = paymentResult as NotifyPaymentReceived.Result.ShowNotification
-        assertEquals(NewTransactionSheetType.LIGHTNING, showResult.details.type)
-        assertEquals("hash123", showResult.details.paymentHashOrTxId)
-        assertNotNull(showResult.notification)
-        assertEquals("Payment Received", showResult.notification.title)
+        assertEquals(NewTransactionSheetType.LIGHTNING, paymentResult.sheet.type)
+        assertEquals("hash123", paymentResult.sheet.paymentHashOrTxId)
+        assertNotNull(paymentResult.notification)
+        assertEquals("Payment Received", paymentResult.notification.title)
     }
 
     @Test
@@ -106,11 +104,10 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         val paymentResult = result.getOrThrow()
         assertTrue(paymentResult is NotifyPaymentReceived.Result.ShowSheet)
-        val showResult = paymentResult as NotifyPaymentReceived.Result.ShowSheet
-        assertEquals(NewTransactionSheetType.ONCHAIN, showResult.details.type)
-        assertEquals(NewTransactionSheetDirection.RECEIVED, showResult.details.direction)
-        assertEquals("txid456", showResult.details.paymentHashOrTxId)
-        assertEquals(5000L, showResult.details.sats)
+        assertEquals(NewTransactionSheetType.ONCHAIN, paymentResult.sheet.type)
+        assertEquals(NewTransactionSheetDirection.RECEIVED, paymentResult.sheet.direction)
+        assertEquals("txid456", paymentResult.sheet.paymentHashOrTxId)
+        assertEquals(5000L, paymentResult.sheet.sats)
     }
 
     @Test

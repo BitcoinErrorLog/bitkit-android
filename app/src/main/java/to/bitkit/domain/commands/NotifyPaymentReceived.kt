@@ -2,7 +2,7 @@ package to.bitkit.domain.commands
 
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.models.NewTransactionSheetDetails
-import to.bitkit.models.NotificationState
+import to.bitkit.models.NotificationDetails
 
 sealed interface NotifyPaymentReceived {
 
@@ -50,12 +50,12 @@ sealed interface NotifyPaymentReceived {
 
     sealed interface Result : NotifyPaymentReceived {
         data class ShowSheet(
-            val details: NewTransactionSheetDetails,
+            val sheet: NewTransactionSheetDetails,
         ) : Result
 
         data class ShowNotification(
-            val details: NewTransactionSheetDetails,
-            val notification: NotificationState,
+            val sheet: NewTransactionSheetDetails,
+            val notification: NotificationDetails,
         ) : Result
 
         data object Skip : Result

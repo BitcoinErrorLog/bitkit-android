@@ -14,7 +14,7 @@ import to.bitkit.models.BITCOIN_SYMBOL
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
-import to.bitkit.models.NotificationState
+import to.bitkit.models.NotificationDetails
 import to.bitkit.models.PrimaryDisplay
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.ActivityRepo
@@ -67,7 +67,7 @@ class NotifyPaymentReceivedHandler @Inject constructor(
         }
     }
 
-    private suspend fun buildNotificationContent(sats: Long): NotificationState {
+    private suspend fun buildNotificationContent(sats: Long): NotificationDetails {
         val settings = settingsStore.data.first()
         val title = context.getString(R.string.notification_received_title)
         val body = if (settings.showNotificationDetails) {
@@ -75,7 +75,7 @@ class NotifyPaymentReceivedHandler @Inject constructor(
         } else {
             context.getString(R.string.notification_received_body_hidden)
         }
-        return NotificationState(title, body)
+        return NotificationDetails(title, body)
     }
 
     private fun formatNotificationAmount(sats: Long, settings: SettingsData): String {
@@ -95,6 +95,11 @@ class NotifyPaymentReceivedHandler @Inject constructor(
 
     companion object {
         const val TAG = "NotifyPaymentReceivedHandler"
+
+        /**
+         * Delay before calling `shouldShowPaymentReceived` for onchain transactions to allow ActivityRepo
+         * to sync payments before we check for RBF replacement or channel closure.
+         */
         private const val DELAY_FOR_ACTIVITY_SYNC_MS = 500L
     }
 }

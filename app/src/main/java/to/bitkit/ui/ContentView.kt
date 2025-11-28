@@ -43,7 +43,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.env.Env
-import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
@@ -218,11 +217,7 @@ fun ContentView(
                         walletViewModel.start()
                     }
 
-                    val pendingTransaction = NewTransactionSheetDetails.load(context)
-                    if (pendingTransaction != null) {
-                        appViewModel.showNewTransactionSheet(details = pendingTransaction)
-                        NewTransactionSheetDetails.clear(context)
-                    }
+                    appViewModel.consumePaymentReceivedInBackground()
 
                     currencyViewModel.triggerRefresh()
                     blocktankViewModel.refreshOrders()

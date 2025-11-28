@@ -15,10 +15,11 @@ import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.App
 import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.models.NewTransactionSheetDetails
-import to.bitkit.models.NotificationState
+import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.LdkNodeEventBus
@@ -43,6 +44,9 @@ class LightningNodeService : Service() {
 
     @Inject
     lateinit var notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler
+
+    @Inject
+    lateinit var cacheStore: CacheStore
 
     override fun onCreate() {
         super.onCreate()
@@ -79,20 +83,18 @@ class LightningNodeService : Service() {
         val command = NotifyPaymentReceived.Command.from(event, includeNotification = true) ?: return
 
         notifyPaymentReceivedHandler(command).onSuccess { result ->
-            if (result !is NotifyPaymentReceived.Result.ShowNotification) return@onSuccess
-            if (App.currentActivity?.value != null) return@onSuccess
-
-            showPaymentNotification(result.details, result.notification)
+            if (result !is NotifyPaymentReceived.Result.ShowNotification) return
+            showPaymentNotification(result.sheet, result.notification)
         }
     }
 
     private fun showPaymentNotification(
-        details: NewTransactionSheetDetails,
-        notification: NotificationState,
+        sheet: NewTransactionSheetDetails,
+        notification: NotificationDetails,
     ) {
         if (App.currentActivity?.value != null) return
-        NewTransactionSheetDetails.save(this, details)
-        pushNotification(notification.title, notification.body, context = this)
+        serviceScope.launch { cacheStore.setBackgroundReceive(sheet) }
+        pushNotification(notification.title, notification.body)
     }
 
     private fun createNotification(
