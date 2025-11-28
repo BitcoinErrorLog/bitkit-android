@@ -78,6 +78,10 @@ fun ReceiveSheet(
                     cjitInvoice = cjitInvoice,
                     walletState = walletState,
                     lightningState = lightningState,
+                    onClickReceiveCjit = {
+                        showCreateCjit.value = true
+                        navController.navigate(ReceiveRoute.Amount)
+                    },
                     onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },
                 )
             }

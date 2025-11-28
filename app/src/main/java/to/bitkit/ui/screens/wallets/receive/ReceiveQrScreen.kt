@@ -69,6 +69,7 @@ fun ReceiveQrScreen(
     walletState: MainUiState,
     lightningState: LightningState,
     onClickEditInvoice: () -> Unit,
+    onClickReceiveCjit: () -> Unit,
     modifier: Modifier = Modifier,
     initialTab: ReceiveTab? = null,
 ) {
@@ -203,14 +204,21 @@ fun ReceiveQrScreen(
                     ),
                     icon = {
                         if (showingCjitOnboarding) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_lightning_alt),
-                            tint = Colors.Purple,
-                            contentDescription = null
-                        )
-                            }
+                            Icon(
+                                painter = painterResource(R.drawable.ic_lightning_alt),
+                                tint = Colors.Purple,
+                                contentDescription = null
+                            )
+                        }
                     },
-                    onClick = { showDetails = !showDetails },
+                    onClick = {
+                        if (showingCjitOnboarding) {
+                            onClickReceiveCjit()
+                            showDetails = false
+                        } else {
+                            showDetails = !showDetails
+                        }
+                    },
                     fullWidth = true,
                     modifier = Modifier.testTag("ReceiveToggleButton")
                 )
@@ -494,7 +502,8 @@ private fun PreviewSavingsMode() {
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
-                initialTab = ReceiveTab.SAVINGS
+                initialTab = ReceiveTab.SAVINGS,
+                onClickReceiveCjit = {},
             )
         }
     }
@@ -564,7 +573,8 @@ private fun PreviewAutoMode() {
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
-                initialTab = ReceiveTab.AUTO
+                initialTab = ReceiveTab.AUTO,
+                onClickReceiveCjit = {},
             )
         }
     }
@@ -589,7 +599,8 @@ private fun PreviewSpendingMode() {
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
-                initialTab = ReceiveTab.SPENDING
+                initialTab = ReceiveTab.SPENDING,
+                onClickReceiveCjit = {},
             )
         }
     }
@@ -610,6 +621,7 @@ private fun PreviewNodeNotReady() {
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
                 ),
+                onClickReceiveCjit = {},
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
             )
@@ -634,6 +646,7 @@ private fun PreviewSmall() {
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
+                onClickReceiveCjit = {},
             )
         }
     }
