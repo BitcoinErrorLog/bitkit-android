@@ -1,7 +1,6 @@
 package to.bitkit.ui.screens.wallets.receive
 
 import android.graphics.Bitmap
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +27,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalContext
@@ -45,12 +42,10 @@ import to.bitkit.R
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
-import to.bitkit.ui.components.Headline
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
@@ -62,10 +57,8 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.theme.AppShapes
-import to.bitkit.ui.theme.AppSwitchDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
 
 @Composable
@@ -169,7 +162,7 @@ fun ReceiveQrScreen(
                         onchainAddress = walletState.onchainAddress,
                         bolt11 = walletState.bolt11,
                         cjitInvoice = cjitInvoice.value,
-                        bip21 = walletState.bip21
+                        modifier = Modifier.weight(1f)
                     )
                 } else {
                     ReceiveQrView(
@@ -314,11 +307,10 @@ private fun ReceiveDetailsView(
     onchainAddress: String,
     bolt11: String,
     cjitInvoice: String?,
-    bip21: String,
     modifier: Modifier = Modifier,
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Colors.White10),
+        colors = CardDefaults.cardColors(containerColor = Colors.Black),
         shape = AppShapes.small,
         modifier = modifier
     ) {
@@ -364,194 +356,6 @@ private fun ReceiveDetailsView(
                             testTag = "ReceiveLightningAddress",
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReceiveNodeStateIndicator(
-    selectedTab: ReceiveTab,
-    cjitActive: Boolean,
-) {
-    when {
-        selectedTab == ReceiveTab.SPENDING && cjitActive -> {
-            BodyS(
-                text = "CJIT Active",
-                color = Colors.Purple
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReceiveLightningFunds(
-    cjitInvoice: MutableState<String?>,
-    cjitActive: MutableState<Boolean>,
-    onCjitToggle: (Boolean) -> Unit,
-) {
-    Column {
-        AnimatedVisibility(!cjitActive.value && cjitInvoice.value == null) {
-            Headline(
-                text = stringResource(R.string.wallet__receive_text_lnfunds).withAccent(accentColor = Colors.Purple)
-            )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BodyM(text = stringResource(R.string.wallet__receive_spending))
-            Spacer(modifier = Modifier.weight(1f))
-            AnimatedVisibility(!cjitActive.value && cjitInvoice.value == null) {
-                Icon(
-                    painter = painterResource(R.drawable.empty_state_arrow_horizontal),
-                    contentDescription = null,
-                    tint = Colors.White64,
-                    modifier = Modifier
-                        .rotate(17.33f)
-                        .padding(start = 7.65.dp, end = 13.19.dp)
-                )
-            }
-            Switch(
-                checked = cjitActive.value,
-                onCheckedChange = onCjitToggle,
-                colors = AppSwitchDefaults.colorsPurple,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReceiveQrSlide(
-    uri: String,
-    qrLogoPainter: Painter,
-    modifier: Modifier,
-    onClickEditInvoice: () -> Unit,
-) {
-    val context = LocalContext.current
-
-    val qrButtonTooltipState = rememberTooltipState()
-    val coroutineScope = rememberCoroutineScope()
-
-    var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ) {
-        QrCodeImage(
-            content = uri,
-            logoPainter = qrLogoPainter,
-            tipMessage = stringResource(R.string.wallet__receive_copied),
-            onBitmapGenerated = { bitmap -> qrBitmap = bitmap },
-            testTag = "QRCode",
-            modifier = Modifier.weight(1f, fill = false)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            PrimaryButton(
-                text = stringResource(R.string.common__edit),
-                size = ButtonSize.Small,
-                onClick = onClickEditInvoice,
-                fullWidth = false,
-                color = Colors.White10,
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_pencil_simple),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                modifier = Modifier.testTag("SpecifyInvoiceButton")
-            )
-            Tooltip(
-                text = stringResource(R.string.wallet__receive_copied),
-                tooltipState = qrButtonTooltipState
-            ) {
-                PrimaryButton(
-                    text = stringResource(R.string.common__copy),
-                    size = ButtonSize.Small,
-                    onClick = {
-                        context.setClipboardText(uri)
-                        coroutineScope.launch { qrButtonTooltipState.show() }
-                    },
-                    fullWidth = false,
-                    color = Colors.White10,
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_copy),
-                            contentDescription = null,
-                            tint = Colors.Brand,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    modifier = Modifier.testTag("ReceiveCopyQR")
-                )
-            }
-            PrimaryButton(
-                text = stringResource(R.string.common__share),
-                size = ButtonSize.Small,
-                onClick = {
-                    qrBitmap?.let { bitmap ->
-                        shareQrCode(context, bitmap, uri)
-                    } ?: shareText(context, uri)
-                },
-                fullWidth = false,
-                color = Colors.White10,
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_share),
-                        contentDescription = null,
-                        tint = Colors.Brand,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun CopyValuesBox(
-    onchainAddress: String,
-    bolt11: String,
-    cjitInvoice: String?,
-    selectedTab: ReceiveTab,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Colors.White10),
-        shape = AppShapes.small,
-    ) {
-        Column {
-            if (onchainAddress.isNotEmpty() && cjitInvoice == null) {
-                CopyAddressCard(
-                    title = stringResource(R.string.wallet__receive_bitcoin_invoice),
-                    address = onchainAddress,
-                    type = CopyAddressType.ONCHAIN,
-                    testTag = "ReceiveOnchainAddress",
-                )
-            }
-
-            if (selectedTab == ReceiveTab.AUTO || selectedTab == ReceiveTab.SPENDING) {
-                if (bolt11.isNotEmpty()) {
-                    CopyAddressCard(
-                        title = stringResource(R.string.wallet__receive_lightning_invoice),
-                        address = bolt11,
-                        type = CopyAddressType.LIGHTNING,
-                        testTag = "ReceiveLightningAddress",
-                    )
-                } else if (cjitInvoice != null) {
-                    CopyAddressCard(
-                        title = stringResource(R.string.wallet__receive_lightning_invoice),
-                        address = cjitInvoice,
-                        type = CopyAddressType.LIGHTNING,
-                        testTag = "ReceiveLightningAddress",
-                    )
                 }
             }
         }
@@ -807,21 +611,24 @@ private fun PreviewSmall() {
     }
 }
 
+
 @Suppress("SpellCheckingInspection")
-@Preview(showBackground = true)
+@Preview(showSystemUi = true, name = "Auto Mode")
 @Composable
-private fun PreviewSlide2() {
+private fun PreviewDetailsMode() {
     AppThemeSurface {
         Column(
             modifier = Modifier
                 .gradientBackground()
+                .fillMaxSize()
                 .padding(16.dp)
         ) {
-            CopyValuesBox(
+            ReceiveDetailsView(
+                tab = ReceiveTab.AUTO,
                 onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
                 bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
                 cjitInvoice = null,
-                selectedTab = ReceiveTab.AUTO
+                modifier = Modifier.weight(1f)
             )
         }
     }
