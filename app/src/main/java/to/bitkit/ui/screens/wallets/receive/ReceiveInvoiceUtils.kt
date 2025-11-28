@@ -1,37 +1,6 @@
 package to.bitkit.ui.screens.wallets.receive
 
-import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
-import to.bitkit.models.NodeLifecycleState
-
-/**
- * Strips the Lightning invoice parameter from a BIP21 URI, returning pure onchain address.
- *
- * Example:
- * Input: "bitcoin:bc1q...?amount=0.001&lightning=lnbc..."
- * Output: "bitcoin:bc1q...?amount=0.001"
- *
- * @param bip21 The full BIP21 URI
- * @return BIP21 URI without lightning parameter
- */
-fun stripLightningFromBip21(bip21: String): String {
-    if (bip21.isEmpty()) return bip21
-
-    // Remove lightning parameter and its value
-    // Pattern: &lightning=... or ?lightning=...
-    val lightningParamRegex = Regex("[?&]lightning=[^&]*")
-    var result = bip21.replace(lightningParamRegex, "")
-
-    // If we removed the first param (started with ?), convert & to ?
-    if (result.contains("&") && !result.contains("?")) {
-        result = result.replaceFirst("&", "?")
-    }
-
-    // Clean up trailing ? or &
-    result = result.trimEnd('?', '&')
-
-    return result
-}
 
 /**
  * Returns the appropriate invoice/address for the selected tab.
@@ -53,9 +22,7 @@ fun getInvoiceForTab(
 ): String {
     return when (tab) {
         ReceiveTab.SAVINGS -> {
-            // Pure onchain: strip lightning from BIP21
-            val strippedBip21 = stripLightningFromBip21(bip21)
-            strippedBip21.ifEmpty { onchainAddress }
+            onchainAddress
         }
 
         ReceiveTab.AUTO -> {
@@ -77,15 +44,10 @@ fun getInvoiceForTab(
  * @param hasCjit Whether a CJIT invoice is active
  * @return Drawable resource ID for QR logo
  */
-fun getQrLogoResource(tab: ReceiveTab, hasCjit: Boolean): Int {
+fun getQrLogoResource(tab: ReceiveTab): Int {
     return when (tab) {
         ReceiveTab.SAVINGS -> R.drawable.ic_btc_circle
-        ReceiveTab.AUTO -> {
-            // Unified logo if CJIT or standard unified
-            if (hasCjit) R.drawable.ic_unified_circle
-            else R.drawable.ic_unified_circle
-        }
-
+        ReceiveTab.AUTO -> R.drawable.ic_unified_circle
         ReceiveTab.SPENDING -> R.drawable.ic_ln_circle
     }
 }

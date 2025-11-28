@@ -89,7 +89,7 @@ fun ReceiveQrScreen(
     // Dynamic tab visibility
     val visibleTabs = remember(walletState, lightningState) {
         buildList {
-            add(ReceiveTab.SAVINGS) // Always visible
+            add(ReceiveTab.SAVINGS)
             if (walletState.channels.isNotEmpty()) {
                 add(ReceiveTab.AUTO)
             }
@@ -117,8 +117,8 @@ fun ReceiveQrScreen(
     }
 
     // QR logo based on selected tab
-    val qrLogoRes = remember(selectedTab, cjitInvoice.value) {
-        getQrLogoResource(selectedTab, cjitInvoice.value != null)
+    val qrLogoRes = remember(selectedTab) {
+        getQrLogoResource(selectedTab)
     }
 
     Column(
