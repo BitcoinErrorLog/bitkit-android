@@ -79,8 +79,13 @@ fun ReceiveSheet(
                     walletState = walletState,
                     lightningState = lightningState,
                     onClickReceiveCjit = {
-                        showCreateCjit.value = true
-                        navController.navigate(ReceiveRoute.Amount)
+                        if (lightningState.isGeoBlocked) {
+                            // todo display toast instead
+                            navController.navigate(ReceiveRoute.GeoBlock)
+                        } else {
+                            showCreateCjit.value = true
+                            navController.navigate(ReceiveRoute.Amount)
+                        }
                     },
                     onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },
                 )
