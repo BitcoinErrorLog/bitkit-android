@@ -47,14 +47,12 @@ import to.bitkit.R
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
 import to.bitkit.models.NodeLifecycleState
-import to.bitkit.repositories.LightningState
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.Display
-import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
@@ -76,7 +74,6 @@ import to.bitkit.viewmodels.MainUiState
 fun ReceiveQrScreen(
     cjitInvoice: MutableState<String?>,
     walletState: MainUiState,
-    lightningState: LightningState,
     onClickEditInvoice: () -> Unit,
     onClickReceiveCjit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -84,7 +81,7 @@ fun ReceiveQrScreen(
 ) {
     SetMaxBrightness()
 
-    val hasUsableChannels = lightningState.channels.isNotEmpty()
+    val hasUsableChannels = walletState.channels.isNotEmpty()
 
     // Tab selection state
     var selectedTab by remember {
@@ -99,7 +96,7 @@ fun ReceiveQrScreen(
 
     var showDetails by remember { mutableStateOf(false) }
 
-    val visibleTabs = remember(walletState, lightningState) {
+    val visibleTabs = remember(hasUsableChannels) {
         buildList {
             add(ReceiveTab.SAVINGS)
             if (hasUsableChannels) {
@@ -202,7 +199,7 @@ fun ReceiveQrScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            AnimatedVisibility(visible = lightningState.nodeLifecycleState.isRunning()) {
+            AnimatedVisibility(visible = walletState.nodeLifecycleState.isRunning()) {
                 PrimaryButton(
                     text = stringResource(
                         when {
@@ -363,9 +360,10 @@ fun CjitOnBoardingView(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         )
         VerticalSpacer(32.dp)
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_lightning_alt),
@@ -541,11 +539,6 @@ private fun PreviewSavingsMode() {
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
                     channels = emptyList()
                 ),
-                lightningState = LightningState(
-                    nodeLifecycleState = NodeLifecycleState.Running,
-                    shouldBlockLightningReceive = false,
-                    isGeoBlocked = false
-                ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
                 initialTab = ReceiveTab.SAVINGS,
@@ -607,15 +600,10 @@ private fun PreviewAutoMode() {
                 cjitInvoice = remember { mutableStateOf(null) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
+                    channels = listOf(mockChannel),
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq",
-                    bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
-                    channels = listOf(mockChannel)
-                ),
-                lightningState = LightningState(
-                    nodeLifecycleState = NodeLifecycleState.Running,
-                    shouldBlockLightningReceive = false,
-                    isGeoBlocked = false
+                    bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79..."
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
@@ -638,11 +626,6 @@ private fun PreviewSpendingMode() {
                     nodeLifecycleState = NodeLifecycleState.Running,
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
                 ),
-                lightningState = LightningState(
-                    nodeLifecycleState = NodeLifecycleState.Running,
-                    shouldBlockLightningReceive = false,
-                    isGeoBlocked = false
-                ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
                 initialTab = ReceiveTab.SPENDING,
@@ -662,11 +645,6 @@ private fun PreviewNodeNotReady() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
-                lightningState = LightningState(
-                    nodeLifecycleState = NodeLifecycleState.Starting,
-                    shouldBlockLightningReceive = false,
-                    isGeoBlocked = false
-                ),
                 onClickReceiveCjit = {},
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
@@ -684,11 +662,6 @@ private fun PreviewSmall() {
                 cjitInvoice = remember { mutableStateOf(null) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
-                ),
-                lightningState = LightningState(
-                    nodeLifecycleState = NodeLifecycleState.Running,
-                    shouldBlockLightningReceive = false,
-                    isGeoBlocked = false
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),

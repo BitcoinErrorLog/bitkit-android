@@ -77,7 +77,6 @@ fun ReceiveSheet(
                 ReceiveQrScreen(
                     cjitInvoice = cjitInvoice,
                     walletState = walletState,
-                    lightningState = lightningState,
                     onClickReceiveCjit = {
                         if (lightningState.isGeoBlocked) {
                             // todo display toast instead
