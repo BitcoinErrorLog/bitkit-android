@@ -89,35 +89,6 @@ fun getQrLogoResource(tab: ReceiveTab, hasCjit: Boolean): Int {
 }
 
 /**
- * Determines whether the Auto (unified) tab should be visible.
- *
- * Logic:
- * - Node must be running
- * - If geoblocked: only show if user has existing channels (grandfathered)
- * - If not geoblocked: always show
- *
- * @param channels List of Lightning channels
- * @param isGeoblocked Whether Lightning is geoblocked for this user
- * @param nodeRunning Whether the Lightning node is running
- * @return true if Auto tab should be visible
- */
-fun shouldShowAutoTab(
-    channels: List<ChannelDetails>,
-    isGeoblocked: Boolean,
-    nodeRunning: Boolean
-): Boolean {
-    if (!nodeRunning) return false
-
-    return if (isGeoblocked) {
-        // Geoblocked users can still use Auto if they have existing channels
-        channels.isNotEmpty()
-    } else {
-        // Not geoblocked: always show Auto tab
-        true
-    }
-}
-
-/**
  * Extension: Check if node lifecycle state is running.
  */
 fun NodeLifecycleState.isRunning(): Boolean {

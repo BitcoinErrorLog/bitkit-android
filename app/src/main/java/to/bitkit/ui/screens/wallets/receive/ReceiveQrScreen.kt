@@ -39,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.pager.HorizontalPagerIndicator
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ext.setClipboardText
@@ -83,13 +82,11 @@ fun ReceiveQrScreen(
     // Tab selection state
     var selectedTab by remember {
         mutableStateOf(
-            if (shouldShowAutoTab(
-                    walletState.channels,
-                    lightningState.shouldBlockLightningReceive,
-                    walletState.nodeLifecycleState.isRunning()
-                )
-            ) ReceiveTab.AUTO
-            else ReceiveTab.SAVINGS
+            if (walletState.channels.isNotEmpty()) {
+                ReceiveTab.AUTO
+            } else {
+                ReceiveTab.SAVINGS
+            }
         )
     }
 
@@ -100,17 +97,10 @@ fun ReceiveQrScreen(
     val visibleTabs = remember(walletState, lightningState) {
         buildList {
             add(ReceiveTab.SAVINGS) // Always visible
-            if (shouldShowAutoTab(
-                    walletState.channels,
-                    lightningState.shouldBlockLightningReceive,
-                    walletState.nodeLifecycleState.isRunning()
-                )
-            ) {
+            if (walletState.channels.isNotEmpty()) {
                 add(ReceiveTab.AUTO)
             }
-            if (walletState.nodeLifecycleState.isRunning()) {
-                add(ReceiveTab.SPENDING)
-            }
+            add(ReceiveTab.SPENDING)
         }
     }
 
@@ -200,9 +190,7 @@ fun ReceiveQrScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Node state indicator (simplified from lines 150-190)
             ReceiveNodeStateIndicator(
-                nodeLifecycleState = walletState.nodeLifecycleState,
                 selectedTab = selectedTab,
                 cjitActive = cjitActive.value
             )
@@ -218,7 +206,7 @@ private fun ReceiveQrView(
     uri: String,
     qrLogoPainter: Painter,
     onClickEditInvoice: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val qrButtonTooltipState = rememberTooltipState()
@@ -314,7 +302,7 @@ private fun ReceiveDetailsView(
     bolt11: String,
     cjitInvoice: String?,
     bip21: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Colors.White10),
@@ -333,6 +321,7 @@ private fun ReceiveDetailsView(
                         )
                     }
                 }
+
                 ReceiveTab.AUTO -> {
                     // Show both onchain AND lightning if available
                     if (onchainAddress.isNotEmpty()) {
@@ -352,6 +341,7 @@ private fun ReceiveDetailsView(
                         )
                     }
                 }
+
                 ReceiveTab.SPENDING -> {
                     if (cjitInvoice != null || bolt11.isNotEmpty()) {
                         CopyAddressCard(
@@ -369,14 +359,10 @@ private fun ReceiveDetailsView(
 
 @Composable
 private fun ReceiveNodeStateIndicator(
-    nodeLifecycleState: to.bitkit.models.NodeLifecycleState,
     selectedTab: ReceiveTab,
-    cjitActive: Boolean
+    cjitActive: Boolean,
 ) {
     when {
-        nodeLifecycleState.isStarting() -> {
-            BodyM(text = androidx.compose.ui.res.stringResource(R.string.wallet__receive_ldk_init))
-        }
         selectedTab == ReceiveTab.SPENDING && cjitActive -> {
             BodyS(
                 text = "CJIT Active",
