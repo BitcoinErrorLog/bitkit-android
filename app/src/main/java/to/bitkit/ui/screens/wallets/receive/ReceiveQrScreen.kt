@@ -74,10 +74,12 @@ fun ReceiveQrScreen(
 ) {
     SetMaxBrightness()
 
+    val hasUsableChannels = lightningState.channels.isNotEmpty()
+
     // Tab selection state
     var selectedTab by remember {
         mutableStateOf(
-            initialTab ?: if (walletState.channels.isNotEmpty()) {
+            initialTab ?: if (hasUsableChannels) {
                 ReceiveTab.AUTO
             } else {
                 ReceiveTab.SAVINGS
@@ -92,11 +94,15 @@ fun ReceiveQrScreen(
     val visibleTabs = remember(walletState, lightningState) {
         buildList {
             add(ReceiveTab.SAVINGS)
-            if (walletState.channels.isNotEmpty()) {
+            if (hasUsableChannels) {
                 add(ReceiveTab.AUTO)
             }
             add(ReceiveTab.SPENDING)
         }
+    }
+
+    val showingCjitOnboarding = remember(selectedTab, hasUsableChannels) {
+        selectedTab == ReceiveTab.SPENDING && !hasUsableChannels
     }
 
     // Auto-correct selected tab if it becomes hidden
@@ -157,22 +163,30 @@ fun ReceiveQrScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                if (showDetails) {
-                    ReceiveDetailsView(
-                        tab = selectedTab,
-                        onchainAddress = walletState.onchainAddress,
-                        bolt11 = walletState.bolt11,
-                        cjitInvoice = cjitInvoice.value,
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    ReceiveQrView(
-                        uri = currentInvoice,
-                        qrLogoPainter = painterResource(qrLogoRes),
-                        onClickEditInvoice = onClickEditInvoice,
-                        tab = selectedTab,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                when {
+                    showingCjitOnboarding -> {
+                        CjitOnBoardingView(
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    showDetails -> {
+                        ReceiveDetailsView(
+                            tab = selectedTab,
+                            onchainAddress = walletState.onchainAddress,
+                            bolt11 = walletState.bolt11,
+                            cjitInvoice = cjitInvoice.value,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    else -> {
+                        ReceiveQrView(
+                            uri = currentInvoice,
+                            qrLogoPainter = painterResource(qrLogoRes),
+                            onClickEditInvoice = onClickEditInvoice,
+                            tab = selectedTab,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
@@ -301,6 +315,11 @@ private fun ReceiveQrView(
         }
         Spacer(modifier = Modifier.height(16.dp))
     }
+}
+
+@Composable
+fun CjitOnBoardingView(modifier: Modifier = Modifier) {
+
 }
 
 @Composable
