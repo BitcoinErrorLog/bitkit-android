@@ -33,7 +33,6 @@ import to.bitkit.ui.utils.withAccent
 @Composable
 fun TransferIntroScreen(
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     Box(
         contentAlignment = Alignment.TopCenter,

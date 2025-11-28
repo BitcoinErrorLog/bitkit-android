@@ -64,7 +64,6 @@ fun ExternalConnectionScreen(
     onNodeConnected: () -> Unit,
     onScanClick: () -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -101,7 +100,6 @@ fun ExternalConnectionScreen(
         onPasteClick = { viewModel.parseNodeUri(context.getClipboardText().orEmpty()) },
         onScanClick = onScanClick,
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -112,7 +110,6 @@ private fun ExternalConnectionContent(
     onScanClick: () -> Unit = {},
     onPasteClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     var nodeId by remember(uiState.peer) { mutableStateOf(uiState.peer?.nodeId.orEmpty()) }
     var host by remember(uiState.peer) { mutableStateOf(uiState.peer?.host.orEmpty()) }

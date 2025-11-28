@@ -31,7 +31,6 @@ import to.bitkit.ui.utils.withAccent
 fun SpendingIntroScreen(
     onContinueClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     Box(
         contentAlignment = Alignment.TopCenter,

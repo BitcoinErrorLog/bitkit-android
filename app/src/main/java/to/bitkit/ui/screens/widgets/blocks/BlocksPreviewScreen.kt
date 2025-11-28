@@ -52,7 +52,6 @@ fun BlocksPreviewScreen(
     val isBlocksWidgetEnabled by blocksViewModel.isBlocksWidgetEnabled.collectAsStateWithLifecycle()
 
     BlocksPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isBlocksWidgetEnabled = isBlocksWidgetEnabled,
         blocksPreferences = customBlocksPreferences,
@@ -72,7 +71,6 @@ fun BlocksPreviewScreen(
 
 @Composable
 fun BlocksPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -213,7 +211,6 @@ fun BlocksPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         BlocksPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -238,7 +235,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         BlocksPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

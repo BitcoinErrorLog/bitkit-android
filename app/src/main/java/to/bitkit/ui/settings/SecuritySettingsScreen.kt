@@ -24,7 +24,6 @@ import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.navigateToAuthCheck
 import to.bitkit.ui.navigateToChangePin
 import to.bitkit.ui.navigateToDisablePin
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -105,7 +104,6 @@ fun SecuritySettingsScreen(
             settings.setEnableSendAmountWarning(!enableSendAmountWarning)
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
     )
 }
 
@@ -132,7 +130,6 @@ private fun Content(
     onAutoReadClipboardClick: () -> Unit = {},
     onSendAmountWarningClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn(
         modifier = Modifier

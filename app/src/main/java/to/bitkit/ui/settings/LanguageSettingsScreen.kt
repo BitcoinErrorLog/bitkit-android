@@ -27,7 +27,6 @@ import to.bitkit.viewmodels.LanguageViewModel
 @Composable
 fun LanguageSettingsScreen(
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewmodel: LanguageViewModel = hiltViewModel(),
 ) {
@@ -37,7 +36,6 @@ fun LanguageSettingsScreen(
 
     Content(
         uiState = uiState,
-        onCloseClick = onCloseClick,
         onBackClick = onBackClick,
         onClickLanguage = { selectedLanguage -> viewmodel.selectLanguage(selectedLanguage) },
         modifier = modifier,
@@ -48,7 +46,6 @@ fun LanguageSettingsScreen(
 private fun Content(
     uiState: LanguageUiState,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     onClickLanguage: (Language) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -90,7 +87,6 @@ private fun Preview() {
                 languages = Language.entries
             ),
             onBackClick = {},
-            onCloseClick = {},
             onClickLanguage = {},
         )
     }

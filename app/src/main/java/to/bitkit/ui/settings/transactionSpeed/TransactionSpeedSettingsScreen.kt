@@ -18,7 +18,6 @@ import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.navigateToCustomFeeSettings
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -41,7 +40,6 @@ fun TransactionSpeedSettingsScreen(
         },
         onCustomFeeClick = { navController.navigateToCustomFeeSettings() },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
     )
 }
 
@@ -51,7 +49,6 @@ private fun TransactionSpeedSettingsContent(
     onSpeedSelected: (TransactionSpeed) -> Unit = {},
     onCustomFeeClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn(
         modifier = Modifier.verticalScroll(rememberScrollState())

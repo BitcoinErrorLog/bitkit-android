@@ -561,7 +561,6 @@ private fun RootNavHost(
                         navController.navigateToTransferFunding()
                         settingsViewModel.setHasSeenTransferIntro(true)
                     },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsIntro> {
@@ -571,7 +570,6 @@ private fun RootNavHost(
                         settingsViewModel.setHasSeenSavingsIntro(true)
                     },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsAvailability> {
@@ -586,14 +584,12 @@ private fun RootNavHost(
                     onConfirm = { navController.navigate(Routes.SavingsProgress) },
                     onAdvancedClick = { navController.navigate(Routes.SavingsAdvanced) },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsAdvanced> {
                 SavingsAdvancedScreen(
                     onContinueClick = { navController.popBackStack<Routes.SavingsConfirm>(inclusive = false) },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsProgress> {
@@ -602,7 +598,6 @@ private fun RootNavHost(
                     wallet = walletViewModel,
                     transfer = transferViewModel,
                     onContinueClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
-                    onCloseClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                 )
             }
             composableWithDefaultTransitions<Routes.SpendingIntro> {
@@ -612,14 +607,12 @@ private fun RootNavHost(
                         settingsViewModel.setHasSeenSpendingIntro(true)
                     },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             composableWithDefaultTransitions<Routes.SpendingAmount> {
                 SpendingAmountScreen(
                     viewModel = transferViewModel,
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                     onOrderCreated = { navController.navigate(Routes.SpendingConfirm) },
                     toastException = { appViewModel.toast(it) },
                     toast = { title, description ->
@@ -651,7 +644,6 @@ private fun RootNavHost(
             composableWithDefaultTransitions<Routes.TransferLiquidity> {
                 LiquidityScreen(
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                     onContinueClick = { navController.popBackStack() }
                 )
             }
@@ -683,7 +675,6 @@ private fun RootNavHost(
                     },
                     onAdvanced = { navController.navigate(Routes.FundingAdvanced) },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                     isGeoBlocked = isGeoBlocked,
                 )
             }
@@ -692,7 +683,6 @@ private fun RootNavHost(
                     onLnurl = { navController.navigateToScanner() },
                     onManual = { navController.navigate(Routes.ExternalNav) },
                     onBackClick = { navController.popBackStack() },
-                    onCloseClick = { navController.navigateToHome() },
                 )
             }
             navigationWithDefaultTransitions<Routes.ExternalNav>(
@@ -710,7 +700,6 @@ private fun RootNavHost(
                         onNodeConnected = { navController.navigate(Routes.ExternalAmount) },
                         onScanClick = { navController.navigateToScanner(isCalledForResult = true) },
                         onBackClick = { navController.popBackStack() },
-                        onCloseClick = { navController.navigateToHome() },
                     )
                 }
                 composableWithDefaultTransitions<Routes.ExternalAmount> {
@@ -721,7 +710,6 @@ private fun RootNavHost(
                         viewModel = viewModel,
                         onContinue = { navController.navigate(Routes.ExternalConfirm) },
                         onBackClick = { navController.popBackStack() },
-                        onCloseClick = { navController.navigateToHome() },
                     )
                 }
                 composableWithDefaultTransitions<Routes.ExternalConfirm> {
@@ -736,7 +724,6 @@ private fun RootNavHost(
                         },
                         onNetworkFeeClick = { navController.navigate(Routes.ExternalFeeCustom) },
                         onBackClick = { navController.popBackStack() },
-                        onCloseClick = { navController.navigateToHome() },
                     )
                 }
                 composableWithDefaultTransitions<Routes.LnurlChannel> {
@@ -837,7 +824,6 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.LanguageSettings> {
         LanguageSettingsScreen(
             onBackClick = { navController.popBackStack() },
-            onCloseClick = { navController.navigateToHome() },
         )
     }
 }
@@ -1125,7 +1111,6 @@ private fun NavGraphBuilder.activityItem(
             listViewModel = activityListViewModel,
             route = it.toRoute(),
             onBackClick = { navController.popBackStack() },
-            onCloseClick = { navController.navigateToHome() },
         )
     }
 }
@@ -1359,7 +1344,6 @@ private fun NavGraphBuilder.widgets(
 
             BlocksEditScreen(
                 blocksViewModel = viewModel,
-                onClose = { navController.navigateToHome() },
                 onBack = { navController.popBackStack() },
                 navigatePreview = { navController.navigate(Routes.BlocksPreview) }
             )

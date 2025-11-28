@@ -32,7 +32,6 @@ import to.bitkit.ui.utils.withAccent
 fun SavingsIntroScreen(
     onContinueClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     Box(
         contentAlignment = Alignment.TopCenter,
