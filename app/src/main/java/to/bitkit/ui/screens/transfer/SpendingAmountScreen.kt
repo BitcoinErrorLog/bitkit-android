@@ -53,7 +53,6 @@ import kotlin.math.min
 fun SpendingAmountScreen(
     viewModel: TransferViewModel,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onOrderCreated: () -> Unit = {},
     toastException: (Throwable) -> Unit,
     toast: (title: String, description: String) -> Unit,
@@ -85,7 +84,6 @@ fun SpendingAmountScreen(
         amountInputViewModel = amountInputViewModel,
         currencies = currencies,
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
         onClickQuarter = {
             val quarter = uiState.balanceAfterFeeQuarter()
             val max = uiState.maxAllowedToSend
@@ -116,7 +114,6 @@ private fun Content(
     uiState: TransferToSpendingUiState,
     amountInputViewModel: AmountInputViewModel,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     onClickQuarter: () -> Unit,
     onClickMaxAmount: () -> Unit,
     onConfirmAmount: () -> Unit,
@@ -254,7 +251,6 @@ private fun Preview() {
             amountInputViewModel = previewAmountInputViewModel(),
             currencies = CurrencyState(),
             onBackClick = {},
-            onCloseClick = {},
             onClickQuarter = {},
             onClickMaxAmount = {},
             onConfirmAmount = {},
@@ -272,7 +268,6 @@ private fun PreviewInitializing() {
             amountInputViewModel = previewAmountInputViewModel(),
             currencies = CurrencyState(),
             onBackClick = {},
-            onCloseClick = {},
             onClickQuarter = {},
             onClickMaxAmount = {},
             onConfirmAmount = {},

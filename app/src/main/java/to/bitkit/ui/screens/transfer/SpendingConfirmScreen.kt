@@ -96,7 +96,6 @@ fun SpendingConfirmScreen(
 
     Content(
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
         onLearnMoreClick = onLearnMoreClick,
         onAdvancedClick = onAdvancedClick,
         onConfirm = onConfirm,
@@ -114,7 +113,6 @@ fun SpendingConfirmScreen(
 @Composable
 private fun Content(
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     onLearnMoreClick: () -> Unit,
     onAdvancedClick: () -> Unit,
     onConfirm: () -> Unit,
@@ -273,7 +271,6 @@ private fun Preview() {
     AppThemeSurface {
         Content(
             onBackClick = {},
-            onCloseClick = {},
             onLearnMoreClick = {},
             onAdvancedClick = {},
             onConfirm = {},
@@ -351,7 +348,6 @@ private fun Preview2() {
     AppThemeSurface {
         Content(
             onBackClick = {},
-            onCloseClick = {},
             onLearnMoreClick = {},
             onAdvancedClick = {},
             onConfirm = {},
@@ -429,7 +425,6 @@ private fun Preview3() {
     AppThemeSurface {
         Content(
             onBackClick = {},
-            onCloseClick = {},
             onLearnMoreClick = {},
             onAdvancedClick = {},
             onConfirm = {},
@@ -507,7 +502,6 @@ private fun Preview4() {
     AppThemeSurface {
         Content(
             onBackClick = {},
-            onCloseClick = {},
             onLearnMoreClick = {},
             onAdvancedClick = {},
             onConfirm = {},

@@ -32,7 +32,6 @@ import to.bitkit.ui.utils.withAccent
 fun LiquidityScreen(
     onContinueClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val transfer = transferViewModel ?: return
     val state by transfer.spendingUiState.collectAsStateWithLifecycle()
@@ -47,7 +46,6 @@ fun LiquidityScreen(
         localBalance = localBalance,
         remoteBalance = remoteBalance,
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
         onContinueClick = onContinueClick,
     )
 }
@@ -58,7 +56,6 @@ private fun LiquidityScreen(
     localBalance: Long,
     remoteBalance: Long,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onContinueClick: () -> Unit = {},
 ) {
     ScreenColumn {

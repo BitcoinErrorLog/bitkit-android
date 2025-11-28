@@ -30,7 +30,6 @@ import to.bitkit.ui.components.NumberPad
 import to.bitkit.ui.components.NumberPadType
 import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.navigateToChangePinNew
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -69,7 +68,6 @@ fun ChangePinScreen(
             }
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
         onClickForgotPin = { app.setShowForgotPin(true) },
     )
 }
@@ -80,7 +78,6 @@ private fun ChangePinContent(
     attemptsRemaining: Int,
     onKeyPress: (String) -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     onClickForgotPin: () -> Unit,
 ) {
     val isLastAttempt = attemptsRemaining == 1
@@ -152,7 +149,6 @@ private fun Preview() {
             attemptsRemaining = 8,
             onKeyPress = {},
             onBackClick = {},
-            onCloseClick = {},
             onClickForgotPin = {},
         )
     }
@@ -167,7 +163,6 @@ private fun PreviewAttemptsRemaining() {
             attemptsRemaining = 5,
             onKeyPress = {},
             onBackClick = {},
-            onCloseClick = {},
             onClickForgotPin = {},
         )
     }
@@ -182,7 +177,6 @@ private fun PreviewAttemptsLast() {
             attemptsRemaining = 1,
             onKeyPress = {},
             onBackClick = {},
-            onCloseClick = {},
             onClickForgotPin = {},
         )
     }

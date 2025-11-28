@@ -25,7 +25,6 @@ import to.bitkit.ui.Routes
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.navigateToDefaultUnitSettings
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.navigateToLanguageSettings
 import to.bitkit.ui.navigateToLocalCurrencySettings
 import to.bitkit.ui.navigateToQuickPaySettings
@@ -61,7 +60,6 @@ fun GeneralSettingsScreen(
         defaultTransactionSpeed = defaultTransactionSpeed,
         showTagsButton = lastUsedTags.isNotEmpty(),
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
         onLocalCurrencyClick = { navController.navigateToLocalCurrencySettings() },
         onDefaultUnitClick = { navController.navigateToDefaultUnitSettings() },
         onTransactionSpeedClick = { navController.navigateToTransactionSpeedSettings() },
@@ -90,7 +88,6 @@ private fun GeneralSettingsContent(
     notificationsGranted: Boolean,
     showTagsButton: Boolean = false,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onLocalCurrencyClick: () -> Unit = {},
     onDefaultUnitClick: () -> Unit = {},
     onTransactionSpeedClick: () -> Unit = {},

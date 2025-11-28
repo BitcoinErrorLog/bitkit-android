@@ -39,7 +39,6 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun BlocksEditScreen(
     blocksViewModel: BlocksViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigatePreview: () -> Unit,
 ) {

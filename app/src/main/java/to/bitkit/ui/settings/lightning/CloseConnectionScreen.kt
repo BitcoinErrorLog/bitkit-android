@@ -29,7 +29,6 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -59,7 +58,6 @@ fun CloseConnectionScreen(
     Content(
         isLoading = uiState.isLoading,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onClickClose = { viewModel.closeChannel() },
     )
 }
@@ -68,7 +66,6 @@ fun CloseConnectionScreen(
 private fun Content(
     isLoading: Boolean = false,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onClickClose: () -> Unit = {},
 ) {
     ScreenColumn {
