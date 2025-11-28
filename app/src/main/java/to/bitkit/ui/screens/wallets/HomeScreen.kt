@@ -90,6 +90,7 @@ import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.WalletBalanceView
 import to.bitkit.ui.currencyViewModel
 import to.bitkit.ui.navigateToActivityItem
+import to.bitkit.ui.navigateToAllActivity
 import to.bitkit.ui.navigateToTransferFunding
 import to.bitkit.ui.navigateToTransferIntro
 import to.bitkit.ui.scaffold.AppAlertDialog
@@ -482,7 +483,7 @@ private fun Content(
                     Spacer(modifier = Modifier.height(16.dp))
                     ActivityListSimple(
                         items = latestActivities,
-                        onAllActivityClick = { walletNavController.navigate(HomeRoutes.AllActivity) },
+                        onAllActivityClick = { rootNavController.navigateToAllActivity() },
                         onActivityItemClick = { rootNavController.navigateToActivityItem(it) },
                         onEmptyActivityRowClick = onClickEmptyActivityRow,
                     )

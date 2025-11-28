@@ -14,7 +14,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.theme.AppThemeSurface
@@ -51,7 +51,7 @@ private fun WidgetsSettingsContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__widgets__nav_title),
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onCloseClick) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),

@@ -15,7 +15,6 @@ import to.bitkit.ui.utils.withAccentBoldBright
 @Composable
 fun ExternalSuccessScreen(
     onContinue: () -> Unit,
-    onClose: () -> Unit,
 ) {
     InfoScreenContent(
         navTitle = stringResource(R.string.lightning__external__nav_title),
@@ -24,7 +23,6 @@ fun ExternalSuccessScreen(
         image = painterResource(R.drawable.switch_box),
         buttonText = localizedRandom(R.string.common__ok_random),
         onButtonClick = onContinue,
-        onCloseClick = onClose,
         testTag = "ExternalSuccess",
     )
 }
@@ -35,7 +33,6 @@ private fun ExternalSuccessScreenPreview() {
     AppThemeSurface {
         ExternalSuccessScreen(
             onContinue = {},
-            onClose = {},
         )
     }
 }

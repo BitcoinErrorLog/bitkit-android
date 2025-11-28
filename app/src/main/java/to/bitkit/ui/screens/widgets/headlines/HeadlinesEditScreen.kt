@@ -30,7 +30,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -38,7 +38,6 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun HeadlinesEditScreen(
     headlinesViewModel: HeadlinesViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigatePreview: () -> Unit
 ) {
@@ -46,7 +45,6 @@ fun HeadlinesEditScreen(
     val article by headlinesViewModel.currentArticle.collectAsStateWithLifecycle()
 
     HeadlinesEditContent(
-        onClose = onClose,
         onBack = onBack,
         headlinePreferences = customHeadlinePreferences,
         article = article,
@@ -67,7 +65,6 @@ fun HeadlinesEditScreen(
 
 @Composable
 fun HeadlinesEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickTime: () -> Unit,
     onClickReset: () -> Unit,
@@ -82,7 +79,7 @@ fun HeadlinesEditContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__edit),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -248,7 +245,6 @@ fun HeadlinesEditContent(
 private fun Preview() {
     AppThemeSurface {
         HeadlinesEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickTime = {},
@@ -270,7 +266,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         HeadlinesEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickTime = {},

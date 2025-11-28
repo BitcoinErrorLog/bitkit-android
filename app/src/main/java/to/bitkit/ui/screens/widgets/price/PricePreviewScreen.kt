@@ -41,7 +41,7 @@ import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -69,7 +69,6 @@ fun PricePreviewScreen(
     }
 
     PricePreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isPriceWidgetEnabled = isPriceWidgetEnabled,
         pricePreferences = customPricePreferences,
@@ -89,7 +88,6 @@ fun PricePreviewScreen(
 
 @Composable
 fun PricePreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -98,7 +96,7 @@ fun PricePreviewContent(
     isPriceWidgetEnabled: Boolean,
     pricePreferences: PricePreferences,
     priceDTO: PriceDTO?,
-    isLoading: Boolean
+    isLoading: Boolean,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("price_preview_screen")
@@ -106,7 +104,7 @@ fun PricePreviewContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -224,7 +222,6 @@ fun PricePreviewContent(
 private fun Preview() {
     AppThemeSurface {
         PricePreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -267,7 +264,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         PricePreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

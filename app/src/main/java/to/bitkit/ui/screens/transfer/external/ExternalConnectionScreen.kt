@@ -48,7 +48,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.TextInput
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.scanner.SCAN_RESULT_KEY
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
@@ -124,7 +124,7 @@ private fun ExternalConnectionContent(
         AppTopBar(
             titleText = stringResource(R.string.lightning__external__nav_title),
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onCloseClick) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

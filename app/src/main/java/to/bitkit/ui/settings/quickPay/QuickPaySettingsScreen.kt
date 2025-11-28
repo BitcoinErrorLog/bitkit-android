@@ -24,7 +24,7 @@ import to.bitkit.ui.components.Caption13Up
 import to.bitkit.ui.components.StepSlider
 import to.bitkit.ui.components.settings.SettingsSwitchRow
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -33,7 +33,6 @@ import to.bitkit.viewmodels.SettingsViewModel
 @Composable
 fun QuickPaySettingsScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val isQuickPayEnabled by settingsViewModel.isQuickpayEnabled.collectAsStateWithLifecycle()
@@ -45,7 +44,6 @@ fun QuickPaySettingsScreen(
         onToggleQuickPay = settingsViewModel::setIsQuickPayEnabled,
         onQuickPayAmountChange = settingsViewModel::setQuickPayAmount,
         onBack = onBack,
-        onClose = onClose,
     )
 }
 
@@ -56,7 +54,6 @@ fun QuickPaySettingsScreenContent(
     onToggleQuickPay: (Boolean) -> Unit = {},
     onQuickPayAmountChange: (Int) -> Unit = {},
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
 ) {
     val sliderSteps = remember { listOf(1, 5, 10, 20, 50) }
 
@@ -64,7 +61,7 @@ fun QuickPaySettingsScreenContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__quickpay__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

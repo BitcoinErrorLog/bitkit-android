@@ -31,7 +31,7 @@ import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -41,7 +41,7 @@ fun BlocksEditScreen(
     blocksViewModel: BlocksViewModel,
     onClose: () -> Unit,
     onBack: () -> Unit,
-    navigatePreview: () -> Unit
+    navigatePreview: () -> Unit,
 ) {
     val customPreference by blocksViewModel.customPreferences.collectAsStateWithLifecycle()
     val currentBlock by blocksViewModel.currentBlock.collectAsStateWithLifecycle()
@@ -56,7 +56,6 @@ fun BlocksEditScreen(
     )
 
     BlocksEditContent(
-        onClose = onClose,
         onBack = onBack,
         blocksPreferences = customPreference,
         block = currentBlock ?: blockPlaceholder,
@@ -73,7 +72,6 @@ fun BlocksEditScreen(
 
 @Composable
 fun BlocksEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickShowBlock: () -> Unit,
     onClickShowTime: () -> Unit,
@@ -92,7 +90,7 @@ fun BlocksEditContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__edit),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -206,7 +204,7 @@ private fun BlockEditOptionRow(
     value: String,
     isEnabled: Boolean,
     onClick: () -> Unit,
-    testTagPrefix: String
+    testTagPrefix: String,
 ) {
     Column {
         Row(
@@ -259,7 +257,6 @@ private fun BlockEditOptionRow(
 private fun Preview() {
     AppThemeSurface {
         BlocksEditContent(
-            onClose = {},
             onBack = {},
             onClickShowBlock = {},
             onClickShowTime = {},
@@ -287,7 +284,6 @@ private fun Preview() {
 private fun PreviewWithSomeOptionsEnabled() {
     AppThemeSurface {
         BlocksEditContent(
-            onClose = {},
             onBack = {},
             onClickShowBlock = {},
             onClickShowTime = {},
@@ -322,7 +318,6 @@ private fun PreviewWithSomeOptionsEnabled() {
 private fun PreviewWithAllDisabled() {
     AppThemeSurface {
         BlocksEditContent(
-            onClose = {},
             onBack = {},
             onClickShowBlock = {},
             onClickShowTime = {},

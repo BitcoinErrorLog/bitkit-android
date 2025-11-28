@@ -39,12 +39,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
-import to.bitkit.ui.navigateToSettings
-import to.bitkit.ui.screens.wallets.HomeRoutes
+import to.bitkit.ui.navigateIfNotCurrent
+import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -60,7 +61,6 @@ private val drawerWidth = 200.dp
 @Composable
 fun DrawerMenu(
     drawerState: DrawerState,
-    walletNavController: NavController,
     rootNavController: NavController,
     hasSeenWidgetsIntro: Boolean,
     hasSeenShopIntro: Boolean,
@@ -96,21 +96,20 @@ fun DrawerMenu(
         )
     ) {
         Menu(
-            walletNavController = walletNavController,
             rootNavController = rootNavController,
             drawerState = drawerState,
             onClickAddWidget = {
                 if (!hasSeenWidgetsIntro) {
-                    rootNavController.navigate(Routes.WidgetsIntro)
+                    rootNavController.navigateIfNotCurrent(Routes.WidgetsIntro)
                 } else {
-                    rootNavController.navigate(Routes.AddWidget)
+                    rootNavController.navigateIfNotCurrent(Routes.AddWidget)
                 }
             },
             onClickShop = {
                 if (!hasSeenShopIntro) {
-                    rootNavController.navigate(Routes.ShopIntro)
+                    rootNavController.navigateIfNotCurrent(Routes.ShopIntro)
                 } else {
-                    rootNavController.navigate(Routes.ShopDiscover)
+                    rootNavController.navigateIfNotCurrent(Routes.ShopDiscover)
                 }
             },
         )
@@ -119,7 +118,6 @@ fun DrawerMenu(
 
 @Composable
 private fun Menu(
-    walletNavController: NavController,
     rootNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
@@ -140,6 +138,11 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
+                val isOnHome = rootNavController.currentBackStackEntry
+                    ?.destination?.hasRoute<Routes.Home>() ?: false
+                if (!isOnHome) {
+                    rootNavController.navigateToHome()
+                }
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")
@@ -149,7 +152,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__activity),
             iconRes = R.drawable.ic_heartbeat,
             onClick = {
-                walletNavController.navigate(HomeRoutes.AllActivity)
+                rootNavController.navigateIfNotCurrent(Routes.AllActivity)
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerActivity")
@@ -193,7 +196,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__settings),
             iconRes = R.drawable.ic_settings,
             onClick = {
-                rootNavController.navigateToSettings()
+                rootNavController.navigateIfNotCurrent(Routes.Settings)
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerSettings")
@@ -206,7 +209,7 @@ private fun Menu(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickableAlpha {
-                    rootNavController.navigate(Routes.AppStatus)
+                    rootNavController.navigateIfNotCurrent(Routes.AppStatus)
                     scope.launch { drawerState.close() }
                 }
         ) {
@@ -214,7 +217,9 @@ private fun Menu(
                 showText = true,
                 showReady = true,
                 color = Colors.Black,
-                modifier = Modifier.padding(vertical = 16.dp).testTag("DrawerAppStatus")
+                modifier = Modifier
+                    .padding(vertical = 16.dp)
+                    .testTag("DrawerAppStatus")
             )
         }
     }
@@ -298,7 +303,6 @@ private fun Preview() {
         val navController = rememberNavController()
         Box {
             DrawerMenu(
-                walletNavController = navController,
                 rootNavController = navController,
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
                 hasSeenWidgetsIntro = false,

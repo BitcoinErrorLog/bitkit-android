@@ -37,7 +37,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -66,7 +66,6 @@ fun LnurlChannelScreen(
     Content(
         uiState = uiState,
         onBack = onBack,
-        onClose = onClose,
         onConnect = { viewModel.onConnect() },
         onCancel = onClose,
     )
@@ -76,7 +75,6 @@ fun LnurlChannelScreen(
 private fun Content(
     uiState: LnurlChannelUiState,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onConnect: () -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
@@ -84,7 +82,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.other__lnurl_channel_header),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

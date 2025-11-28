@@ -18,7 +18,7 @@ import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -26,14 +26,13 @@ import to.bitkit.ui.utils.withAccent
 
 @Composable
 fun WidgetsIntroScreen(
-    onClose: () -> Unit,
     onContinue: () -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
             titleText = "",
             onBackClick = null,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -69,7 +68,6 @@ fun WidgetsIntroScreen(
 private fun Preview() {
     AppThemeSurface {
         WidgetsIntroScreen(
-            onClose = {},
             onContinue = {}
         )
     }

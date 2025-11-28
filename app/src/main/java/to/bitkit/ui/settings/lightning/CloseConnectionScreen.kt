@@ -31,7 +31,7 @@ import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -75,7 +75,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.lightning__close_conn),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier

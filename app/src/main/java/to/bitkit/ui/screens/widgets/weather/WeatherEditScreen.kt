@@ -36,7 +36,7 @@ import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.widgets.blocks.WeatherModel
 import to.bitkit.ui.theme.AppThemeSurface
@@ -46,15 +46,13 @@ import to.bitkit.ui.theme.InterFontFamily
 @Composable
 fun WeatherEditScreen(
     weatherViewModel: WeatherViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
-    navigatePreview: () -> Unit
+    navigatePreview: () -> Unit,
 ) {
     val customPreferences by weatherViewModel.customPreferences.collectAsStateWithLifecycle()
     val currentWeather by weatherViewModel.currentWeather.collectAsStateWithLifecycle()
 
     WeatherEditContent(
-        onClose = onClose,
         onBack = onBack,
         weatherPreferences = customPreferences,
         onClickShowTitle = { weatherViewModel.toggleShowTitle() },
@@ -69,7 +67,6 @@ fun WeatherEditScreen(
 
 @Composable
 fun WeatherEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     weather: WeatherModel?,
     onClickShowTitle: () -> Unit,
@@ -86,7 +83,7 @@ fun WeatherEditContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__edit),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -129,7 +126,9 @@ fun WeatherEditContent(
                         fontFamily = InterFontFamily,
                         color = Colors.White,
                     ),
-                    modifier = Modifier.weight(1f).testTag("title_text"),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("title_text"),
                 )
 
                 weather?.icon?.let {
@@ -176,7 +175,9 @@ fun WeatherEditContent(
                 BodyM(
                     text = weather?.description?.let { stringResource(it) }.orEmpty(),
                     color = Colors.White,
-                    modifier = Modifier.weight(1f).testTag("description_text")
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("description_text")
                 )
 
                 IconButton(
@@ -255,7 +256,7 @@ private fun WeatherEditOptionRow(
     value: String,
     isEnabled: Boolean,
     onClick: () -> Unit,
-    testTagPrefix: String
+    testTagPrefix: String,
 ) {
     Column {
         Row(
@@ -308,7 +309,6 @@ private fun WeatherEditOptionRow(
 private fun Preview() {
     AppThemeSurface {
         WeatherEditContent(
-            onClose = {},
             onBack = {},
             onClickShowTitle = {},
             onClickShowDescription = {},
@@ -333,7 +333,6 @@ private fun Preview() {
 private fun PreviewWithSomeOptionsEnabled() {
     AppThemeSurface {
         WeatherEditContent(
-            onClose = {},
             onBack = {},
             onClickShowTitle = {},
             onClickShowDescription = {},
@@ -363,7 +362,6 @@ private fun PreviewWithSomeOptionsEnabled() {
 private fun PreviewWithAllDisabled() {
     AppThemeSurface {
         WeatherEditContent(
-            onClose = {},
             onBack = {},
             onClickShowTitle = {},
             onClickShowDescription = {},

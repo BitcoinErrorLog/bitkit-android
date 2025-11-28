@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -18,12 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import to.bitkit.R
+import to.bitkit.ui.LocalDrawerState
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.theme.AppThemeSurface
 
@@ -89,19 +91,24 @@ fun BackNavIcon(
 }
 
 @Composable
-fun CloseNavIcon(
-    onClick: () -> Unit,
+fun DrawerNavIcon(
     modifier: Modifier = Modifier,
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.testTag("NavigationClose")
-    ) {
-        Icon(
-            imageVector = Icons.Default.Close,
-            contentDescription = stringResource(R.string.common__close),
-            modifier = Modifier.size(24.dp)
-        )
+    val isPreview = LocalInspectionMode.current
+    val drawerState = LocalDrawerState.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    if (drawerState != null || isPreview) {
+        IconButton(
+            onClick = { scope.launch { drawerState?.open() } },
+            modifier = modifier.testTag("HeaderMenu")
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_list),
+                contentDescription = stringResource(R.string.settings__settings),
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
@@ -153,7 +160,7 @@ private fun Preview3() {
             titleText = "Title and Action",
             onBackClick = {},
             actions = {
-                CloseNavIcon(onClick = {})
+                DrawerNavIcon()
             }
         )
     }

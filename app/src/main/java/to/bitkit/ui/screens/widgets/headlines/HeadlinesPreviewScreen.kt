@@ -34,7 +34,7 @@ import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -52,7 +52,6 @@ fun HeadlinesPreviewScreen(
     val isHeadlinesImplemented by headlinesViewModel.isNewsWidgetEnabled.collectAsStateWithLifecycle()
 
     HeadlinesPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isHeadlinesImplemented = isHeadlinesImplemented,
         headlinePreferences = customHeadlinePreferences,
@@ -72,7 +71,6 @@ fun HeadlinesPreviewScreen(
 
 @Composable
 fun HeadlinesPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -80,7 +78,7 @@ fun HeadlinesPreviewContent(
     showWidgetTitles: Boolean,
     isHeadlinesImplemented: Boolean,
     headlinePreferences: HeadlinePreferences,
-    article: ArticleModel
+    article: ArticleModel,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("headlines_preview_screen")
@@ -88,7 +86,7 @@ fun HeadlinesPreviewContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -205,7 +203,6 @@ fun HeadlinesPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         HeadlinesPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -228,7 +225,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         HeadlinesPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

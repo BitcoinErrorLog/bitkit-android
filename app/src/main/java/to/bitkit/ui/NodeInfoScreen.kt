@@ -60,7 +60,7 @@ import to.bitkit.ui.components.rememberMoneyText
 import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsTextButtonRow
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -88,7 +88,6 @@ fun NodeInfoScreen(
         isDevModeEnabled = isDevModeEnabled,
         balanceDetails = lightningState.balances,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onRefresh = { wallet.onPullToRefresh() },
         onDisconnectPeer = { wallet.disconnectPeer(it) },
         onCopy = { text ->
@@ -108,7 +107,6 @@ private fun Content(
     isDevModeEnabled: Boolean,
     balanceDetails: BalanceDetails? = null,
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onDisconnectPeer: (PeerDetails) -> Unit = {},
     onCopy: (String) -> Unit = {},
@@ -117,7 +115,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.lightning__node_info),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,

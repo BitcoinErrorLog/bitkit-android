@@ -21,7 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -37,7 +37,6 @@ fun InfoScreenContent(
     showCloseButton: Boolean = true,
     buttonText: String,
     onButtonClick: () -> Unit,
-    onCloseClick: () -> Unit,
     testTag: String,
 ) {
     ScreenColumn {
@@ -46,7 +45,7 @@ fun InfoScreenContent(
             onBackClick = null,
             actions = {
                 if (showCloseButton) {
-                    CloseNavIcon(onCloseClick)
+                    DrawerNavIcon()
                 }
             },
         )
@@ -100,7 +99,6 @@ private fun Preview() {
             image = painterResource(R.drawable.check),
             buttonText = stringResource(R.string.common__ok),
             onButtonClick = {},
-            onCloseClick = {},
             testTag = "",
         )
     }

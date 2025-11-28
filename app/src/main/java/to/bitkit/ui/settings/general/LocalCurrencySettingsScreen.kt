@@ -24,9 +24,8 @@ import to.bitkit.ui.components.SearchInput
 import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -76,7 +75,6 @@ fun LocalCurrencySettingsScreen(
         selectedCurrency = selectedCurrency,
         onCurrencyClick = { currencyViewModel.setSelectedCurrency(it) },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = navController::navigateToHome,
     )
 }
 
@@ -89,13 +87,12 @@ fun LocalCurrencySettingsContent(
     selectedCurrency: String,
     onCurrencyClick: (String) -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
             titleText = stringResource(R.string.settings__general__currency_local_title),
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onCloseClick) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -219,7 +216,6 @@ private fun Preview() {
             selectedCurrency = "USD",
             onCurrencyClick = {},
             onBackClick = {},
-            onCloseClick = {},
         )
     }
 }

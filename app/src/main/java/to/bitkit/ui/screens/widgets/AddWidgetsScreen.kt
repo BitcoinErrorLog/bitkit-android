@@ -12,13 +12,12 @@ import to.bitkit.R
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 
 @Composable
 fun AddWidgetsScreen(
-    onClose: () -> Unit,
     onWidgetSelected: (WidgetType) -> Unit,
     fiatSymbol: String,
 ) {
@@ -26,7 +25,7 @@ fun AddWidgetsScreen(
         AppTopBar(
             titleText = stringResource(R.string.widgets__add),
             onBackClick = null,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -99,7 +98,6 @@ fun AddWidgetsScreen(
 private fun Preview() {
     AppThemeSurface {
         AddWidgetsScreen(
-            onClose = {},
             onWidgetSelected = {},
             fiatSymbol = "$"
         )

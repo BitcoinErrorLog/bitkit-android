@@ -29,7 +29,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -37,15 +37,13 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun FactsEditScreen(
     factsViewModel: FactsViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
-    navigatePreview: () -> Unit
+    navigatePreview: () -> Unit,
 ) {
     val customPreference by factsViewModel.customPreferences.collectAsStateWithLifecycle()
     val fact by factsViewModel.currentFact.collectAsStateWithLifecycle()
 
     FactsEditContent(
-        onClose = onClose,
         onBack = onBack,
         factsPreferences = customPreference,
         fact = fact,
@@ -61,13 +59,12 @@ fun FactsEditScreen(
 
 @Composable
 fun FactsEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickReset: () -> Unit,
     onClickShowSource: () -> Unit,
     onClickPreview: () -> Unit,
     factsPreferences: FactsPreferences,
-    fact: String
+    fact: String,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("facts_edit_screen")
@@ -75,7 +72,7 @@ fun FactsEditContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__edit),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -209,7 +206,6 @@ fun FactsEditContent(
 private fun Preview() {
     AppThemeSurface {
         FactsEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickReset = {},
@@ -225,7 +221,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         FactsEditContent(
-            onClose = {},
             onBack = {},
             onClickShowSource = {},
             onClickReset = {},

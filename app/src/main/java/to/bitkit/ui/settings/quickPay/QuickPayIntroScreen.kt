@@ -17,7 +17,7 @@ import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -26,7 +26,6 @@ import to.bitkit.ui.utils.withAccent
 @Composable
 fun QuickPayIntroScreen(
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -36,7 +35,7 @@ fun QuickPayIntroScreen(
         AppTopBar(
             titleText = stringResource(R.string.settings__quickpay__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         QuickPayIntroContent(onContinue = onContinue)
@@ -81,7 +80,6 @@ private fun Preview() {
     AppThemeSurface {
         QuickPayIntroScreen(
             onBack = {},
-            onClose = {},
             onContinue = {}
         )
     }

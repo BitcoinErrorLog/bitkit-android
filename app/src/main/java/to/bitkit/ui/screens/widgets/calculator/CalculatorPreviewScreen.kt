@@ -31,7 +31,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.widgets.calculator.components.CalculatorCard
 import to.bitkit.ui.theme.AppThemeSurface
@@ -49,7 +49,6 @@ fun CalculatorPreviewScreen(
     val isCalculatorWidgetEnabled by viewModel.isCalculatorWidgetEnabled.collectAsStateWithLifecycle()
 
     CalculatorPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isCalculatorWidgetEnabled = isCalculatorWidgetEnabled,
         showWidgetTitles = showWidgetTitles,
@@ -67,7 +66,6 @@ fun CalculatorPreviewScreen(
 
 @Composable
 fun CalculatorPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickDelete: () -> Unit,
     onClickSave: () -> Unit,
@@ -81,7 +79,7 @@ fun CalculatorPreviewContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -180,7 +178,6 @@ fun CalculatorPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         CalculatorPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickDelete = {},

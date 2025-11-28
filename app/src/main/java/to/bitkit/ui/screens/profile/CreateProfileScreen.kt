@@ -11,21 +11,20 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.R
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
 @Composable
 fun CreateProfileScreen(
-    onClose: () -> Unit,
     onBack: () -> Unit,
 ) { // TODO IMPLEMENT
     ScreenColumn {
         AppTopBar(
             titleText = stringResource(R.string.slashtags__profile_create),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -47,7 +46,6 @@ fun CreateProfileScreen(
 private fun Preview() {
     AppThemeSurface {
         CreateProfileScreen(
-            onClose = {},
             onBack = {},
         )
     }

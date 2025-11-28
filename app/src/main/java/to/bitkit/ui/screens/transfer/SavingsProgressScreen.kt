@@ -32,7 +32,7 @@ import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.transfer.components.TransferAnimationView
 import to.bitkit.ui.theme.AppThemeSurface
@@ -88,7 +88,6 @@ fun SavingsProgressScreen(
     Content(
         progressState = progressState,
         onContinueClick = { onContinueClick() },
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -96,7 +95,6 @@ fun SavingsProgressScreen(
 private fun Content(
     progressState: SavingsProgressState,
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
     ScreenColumn(
@@ -111,7 +109,7 @@ private fun Content(
             },
             onBackClick = null,
             actions = {
-                if (inProgress) CloseNavIcon(onCloseClick)
+                DrawerNavIcon()
             },
         )
         Column(

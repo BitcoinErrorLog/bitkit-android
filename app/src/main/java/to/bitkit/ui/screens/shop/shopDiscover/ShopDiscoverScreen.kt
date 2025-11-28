@@ -47,7 +47,7 @@ import to.bitkit.ui.components.SuggestionCard
 import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
@@ -60,7 +60,6 @@ private const val SHOP_CARD_SIZE = 164
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopDiscoverScreen(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigateWebView: (String, String) -> Unit, // Page, Title
 ) {
@@ -76,7 +75,7 @@ fun ShopDiscoverScreen(
         AppTopBar(
             titleText = stringResource(R.string.other__shop__discover__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         PrimaryTabRow(
@@ -279,6 +278,6 @@ private fun MapTabContent() {
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        ShopDiscoverScreen(onClose = {}, onBack = {}, navigateWebView = { _, _ -> })
+        ShopDiscoverScreen(onBack = {}, navigateWebView = { _, _ -> })
     }
 }

@@ -17,7 +17,7 @@ import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -58,7 +58,7 @@ private fun Content(
         AppTopBar(
             titleText = "Language", // TODO Transifex
             onBackClick = onBackClick,
-            actions = { CloseNavIcon(onClick = onCloseClick) }
+            actions = { DrawerNavIcon() }
         )
 
         Column(

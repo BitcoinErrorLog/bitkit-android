@@ -35,7 +35,7 @@ import to.bitkit.ui.components.Text13Up
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.widgets.blocks.WeatherModel
 import to.bitkit.ui.theme.AppThemeSurface
@@ -54,7 +54,6 @@ fun WeatherPreviewScreen(
     val isWeatherWidgetEnabled by weatherViewModel.isWeatherWidgetEnabled.collectAsStateWithLifecycle()
 
     WeatherPreviewContent(
-        onClose = onClose,
         onBack = onBack,
         isWeatherWidgetEnabled = isWeatherWidgetEnabled,
         weatherPreferences = customWeatherPreferences,
@@ -74,7 +73,6 @@ fun WeatherPreviewScreen(
 
 @Composable
 fun WeatherPreviewContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     onClickEdit: () -> Unit,
     onClickDelete: () -> Unit,
@@ -90,7 +88,7 @@ fun WeatherPreviewContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(
@@ -207,7 +205,6 @@ fun WeatherPreviewContent(
 private fun Preview() {
     AppThemeSurface {
         WeatherPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = true,
             onClickEdit = {},
@@ -231,7 +228,6 @@ private fun Preview() {
 private fun Preview2() {
     AppThemeSurface {
         WeatherPreviewContent(
-            onClose = {},
             onBack = {},
             showWidgetTitles = false,
             onClickEdit = {},

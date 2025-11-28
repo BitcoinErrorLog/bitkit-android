@@ -33,14 +33,13 @@ import to.bitkit.ui.components.BodySSB
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.Colors
 
 @Composable
 fun PriceEditScreen(
     viewModel: PriceViewModel,
-    onClose: () -> Unit,
     onBack: () -> Unit,
     navigatePreview: () -> Unit
 ) {
@@ -50,7 +49,6 @@ fun PriceEditScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     PriceEditContent(
-        onClose = onClose,
         onBack = onBack,
         preferences = customPreferences,
         onClickReset = { viewModel.resetCustomPreferences() },
@@ -75,7 +73,6 @@ fun PriceEditScreen(
 
 @Composable
 fun PriceEditContent(
-    onClose: () -> Unit,
     onBack: () -> Unit,
     priceModel: PriceDTO,
     allPeriodsUsd: List<PriceWidgetData>,
@@ -93,7 +90,7 @@ fun PriceEditContent(
         AppTopBar(
             titleText = stringResource(R.string.widgets__widget__edit),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

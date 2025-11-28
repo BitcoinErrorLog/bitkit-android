@@ -42,7 +42,7 @@ import to.bitkit.ui.components.NumberPadTextField
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -59,7 +59,6 @@ import to.bitkit.viewmodels.previewAmountInputViewModel
 fun SpendingAdvancedScreen(
     viewModel: TransferViewModel,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onOrderCreated: () -> Unit = {},
     currencies: CurrencyState = LocalCurrencies.current,
     amountInputViewModel: AmountInputViewModel = hiltViewModel(),
@@ -114,7 +113,6 @@ fun SpendingAdvancedScreen(
         amountInputViewModel = amountInputViewModel,
         currencies = currencies,
         onBack = onBackClick,
-        onClose = onCloseClick,
         onContinue = {
             isLoading = true
             viewModel.onSpendingAdvancedContinue(amountUiState.sats)
@@ -131,7 +129,6 @@ private fun Content(
     isLoading: Boolean,
     amountInputViewModel: AmountInputViewModel,
     onBack: () -> Unit,
-    onClose: () -> Unit,
     onContinue: () -> Unit,
     currencies: CurrencyState = LocalCurrencies.current,
 ) {
@@ -139,7 +136,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.lightning__transfer__nav_title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier
@@ -254,7 +251,6 @@ private fun Preview() {
             amountInputViewModel = previewAmountInputViewModel(),
             isLoading = false,
             onBack = {},
-            onClose = {},
             onContinue = {},
         )
     }
@@ -280,7 +276,6 @@ private fun PreviewLoading() {
             amountInputViewModel = previewAmountInputViewModel(),
             isLoading = true,
             onBack = {},
-            onClose = {},
             onContinue = {},
         )
     }

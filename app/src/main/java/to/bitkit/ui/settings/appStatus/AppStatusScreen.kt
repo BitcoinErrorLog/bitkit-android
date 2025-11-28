@@ -41,7 +41,7 @@ import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -59,7 +59,6 @@ fun AppStatusScreen(
     Content(
         uiState = uiState,
         onBack = { navController.popBackStack() },
-        onClose = { navController.navigateToHome() },
         onInternetClick = { context.startActivityAppSettings() },
         onElectrumClick = { navController.navigate(Routes.ElectrumConfig) },
         onNodeClick = { navController.navigate(Routes.NodeInfo) },
@@ -72,7 +71,6 @@ fun AppStatusScreen(
 private fun Content(
     uiState: AppStatusUiState = AppStatusUiState(),
     onBack: () -> Unit = {},
-    onClose: () -> Unit = {},
     onInternetClick: () -> Unit = {},
     onElectrumClick: () -> Unit = {},
     onNodeClick: () -> Unit = {},
@@ -83,7 +81,7 @@ private fun Content(
         AppTopBar(
             titleText = stringResource(R.string.settings__status__title),
             onBackClick = onBack,
-            actions = { CloseNavIcon(onClick = onClose) },
+            actions = { DrawerNavIcon() },
         )
 
         Column(

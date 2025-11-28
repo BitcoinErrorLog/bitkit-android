@@ -37,7 +37,7 @@ import to.bitkit.ui.navigateToDevSettings
 import to.bitkit.ui.navigateToGeneralSettings
 import to.bitkit.ui.navigateToSecuritySettings
 import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.CloseNavIcon
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.settingsViewModel
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -58,7 +58,6 @@ fun SettingsScreen(
 
     SettingsScreenContent(
         isDevModeEnabled = isDevModeEnabled,
-        onClose = { navController.popBackStack() },
         onGeneralClick = { navController.navigateToGeneralSettings() },
         onSecurityClick = { navController.navigateToSecuritySettings() },
         onBackupClick = { navController.navigateToBackupSettings() },
@@ -93,7 +92,6 @@ fun SettingsScreen(
 @Composable
 fun SettingsScreenContent(
     isDevModeEnabled: Boolean,
-    onClose: () -> Unit,
     onGeneralClick: () -> Unit,
     onSecurityClick: () -> Unit,
     onBackupClick: () -> Unit,
@@ -107,7 +105,7 @@ fun SettingsScreenContent(
         AppTopBar(
             titleText = stringResource(R.string.settings__settings),
             onBackClick = null,
-            actions = { CloseNavIcon(onClose) },
+            actions = { DrawerNavIcon() },
         )
         Column(
             modifier = Modifier
@@ -180,7 +178,6 @@ private fun Preview() {
     AppThemeSurface {
         SettingsScreenContent(
             isDevModeEnabled = true,
-            onClose = {},
             onGeneralClick = {},
             onSecurityClick = {},
             onBackupClick = {},
