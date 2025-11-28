@@ -2,10 +2,13 @@ package to.bitkit.ui.screens.wallets.receive
 
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalContext
@@ -44,13 +48,17 @@ import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.repositories.LightningState
+import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Caption13Up
+import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.FillHeight
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
 import to.bitkit.ui.shared.effects.SetMaxBrightness
@@ -61,6 +69,7 @@ import to.bitkit.ui.shared.util.shareText
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
 
 @Composable
@@ -339,7 +348,44 @@ private fun ReceiveQrView(
 
 @Composable
 fun CjitOnBoardingView(modifier: Modifier = Modifier) {
-
+    Column(
+        modifier = modifier
+            .clip(AppShapes.small)
+            .background(color = Colors.Black)
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Display("Receive on <accent>spending balance</accent>".withAccent(accentColor = Colors.Purple))
+        VerticalSpacer(8.dp)
+        BodyM(
+            "Enjoy instant and cheap\ntransactions with friends, family,\nand merchants.",
+            color = Colors.White64,
+            modifier = Modifier.fillMaxWidth()
+        )
+        VerticalSpacer(32.dp)
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_lightning_alt),
+                tint = Colors.Purple,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(64.dp)
+                    .align(Alignment.TopCenter)
+            )
+            Icon(
+                painter = painterResource(R.drawable.arrow),
+                tint = Colors.Purple,
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 32.dp)
+                    .fillMaxHeight()
+            )
+        }
+    }
 }
 
 @Composable
@@ -360,7 +406,7 @@ private fun ReceiveDetailsView(
                 ReceiveTab.SAVINGS -> {
                     if (onchainAddress.isNotEmpty()) {
                         CopyAddressCard(
-                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_bitcoin_invoice),
+                            title = stringResource(R.string.wallet__receive_bitcoin_invoice),
                             address = onchainAddress,
                             type = CopyAddressType.ONCHAIN,
                             testTag = "ReceiveOnchainAddress",
