@@ -963,6 +963,7 @@
     <string name="wallet__receive_bitcoin_invoice">Bitcoin invoice</string>
     <string name="wallet__receive_lightning_invoice">Lightning invoice</string>
     <string name="wallet__receive_note_placeholder">Optional note to payer</string>
+    <string name="wallet__receive__cjit">Receive Lightning funds</string>
     <string name="wallet__receive_show_qr">Show QR Code</string>
     <string name="wallet__receive_show_details">Show Details</string>
     <string name="wallet__receive_tab_savings">Savings</string>

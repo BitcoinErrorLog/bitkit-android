@@ -87,10 +87,8 @@ fun ReceiveQrScreen(
         )
     }
 
-    // QR vs Details toggle state
     var showDetails by remember { mutableStateOf(false) }
 
-    // Dynamic tab visibility
     val visibleTabs = remember(walletState, lightningState) {
         buildList {
             add(ReceiveTab.SAVINGS)
@@ -169,6 +167,7 @@ fun ReceiveQrScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
                     showDetails -> {
                         ReceiveDetailsView(
                             tab = selectedTab,
@@ -178,6 +177,7 @@ fun ReceiveQrScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
                     else -> {
                         ReceiveQrView(
                             uri = currentInvoice,
@@ -195,9 +195,21 @@ fun ReceiveQrScreen(
             AnimatedVisibility(visible = lightningState.nodeLifecycleState.isRunning()) {
                 PrimaryButton(
                     text = stringResource(
-                        if (showDetails) R.string.wallet__receive_show_qr
-                        else R.string.wallet__receive_show_details
+                        when {
+                            showingCjitOnboarding -> R.string.wallet__receive__cjit
+                            showDetails -> R.string.wallet__receive_show_qr
+                            else -> R.string.wallet__receive_show_details
+                        }
                     ),
+                    icon = {
+                        if (showingCjitOnboarding) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_lightning_alt),
+                            tint = Colors.Purple,
+                            contentDescription = null
+                        )
+                            }
+                    },
                     onClick = { showDetails = !showDetails },
                     fullWidth = true,
                     modifier = Modifier.testTag("ReceiveToggleButton")
@@ -475,7 +487,7 @@ private fun PreviewSavingsMode() {
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
                     channels = emptyList()
                 ),
-                lightningState = to.bitkit.repositories.LightningState(
+                lightningState = LightningState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
@@ -545,7 +557,7 @@ private fun PreviewAutoMode() {
                     bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
                     channels = listOf(mockChannel)
                 ),
-                lightningState = to.bitkit.repositories.LightningState(
+                lightningState = LightningState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
@@ -570,7 +582,7 @@ private fun PreviewSpendingMode() {
                     nodeLifecycleState = NodeLifecycleState.Running,
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
                 ),
-                lightningState = to.bitkit.repositories.LightningState(
+                lightningState = LightningState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
@@ -593,7 +605,7 @@ private fun PreviewNodeNotReady() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
-                lightningState = to.bitkit.repositories.LightningState(
+                lightningState = LightningState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
@@ -615,7 +627,7 @@ private fun PreviewSmall() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
-                lightningState = to.bitkit.repositories.LightningState(
+                lightningState = LightningState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
