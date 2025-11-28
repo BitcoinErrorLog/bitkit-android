@@ -243,7 +243,7 @@ private fun ReceiveQrView(
                 color = Colors.White10,
                 icon = {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_pencil_simple),
+                        painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
                         tint = Colors.Brand,
                         modifier = Modifier.size(18.dp)
@@ -266,7 +266,7 @@ private fun ReceiveQrView(
                     color = Colors.White10,
                     icon = {
                         Icon(
-                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_copy),
+                            painter = painterResource(R.drawable.ic_copy),
                             contentDescription = null,
                             tint = Colors.Brand,
                             modifier = Modifier.size(18.dp)
@@ -287,7 +287,7 @@ private fun ReceiveQrView(
                 color = Colors.White10,
                 icon = {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_share),
+                        painter = painterResource(R.drawable.ic_share),
                         contentDescription = null,
                         tint = Colors.Brand,
                         modifier = Modifier.size(18.dp)
