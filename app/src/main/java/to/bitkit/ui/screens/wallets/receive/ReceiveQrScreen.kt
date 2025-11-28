@@ -106,8 +106,8 @@ fun ReceiveQrScreen(
         }
     }
 
-    val showingCjitOnboarding = remember(selectedTab, hasUsableChannels) {
-        selectedTab == ReceiveTab.SPENDING && !hasUsableChannels
+    val showingCjitOnboarding = remember(selectedTab, walletState) {
+        selectedTab == ReceiveTab.SPENDING && !hasUsableChannels && walletState.nodeLifecycleState.isRunning()
     }
 
     // Auto-correct selected tab if it becomes hidden
