@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,7 @@ interface TabItem {
 fun <T : TabItem> CustomTabRowWithSpacing(
     tabs: List<T>,
     currentTabIndex: Int,
+    selectedColor: Color = Colors.Brand,
     onTabChange: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,7 +75,7 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                     )
 
                     val animatedColor by animateColorAsState(
-                        targetValue = if (isSelected) Colors.Brand else Colors.White,
+                        targetValue = if (isSelected) selectedColor else Colors.White,
                         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
                         label = "indicatorColor"
                     )

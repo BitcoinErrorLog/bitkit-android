@@ -143,6 +143,11 @@ fun ReceiveQrScreen(
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
                 currentTabIndex = visibleTabs.indexOf(selectedTab),
+                selectedColor = when (selectedTab) {
+                    ReceiveTab.SAVINGS -> Colors.Brand
+                    ReceiveTab.AUTO -> Colors.White
+                    ReceiveTab.SPENDING -> Colors.Purple
+                },
                 onTabChange = { tab ->
                     selectedTab = tab
                     showDetails = false // Reset to QR when switching tabs
@@ -207,7 +212,7 @@ private fun ReceiveQrView(
     onClickEditInvoice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val qrButtonTooltipState = rememberTooltipState()
     val coroutineScope = rememberCoroutineScope()
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
