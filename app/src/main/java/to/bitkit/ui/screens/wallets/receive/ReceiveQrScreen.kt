@@ -193,13 +193,6 @@ fun ReceiveQrScreen(
             )
 
             Spacer(Modifier.height(16.dp))
-
-            ReceiveNodeStateIndicator(
-                selectedTab = selectedTab,
-                cjitActive = cjitActive.value
-            )
-
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -508,11 +501,11 @@ private fun ReceiveQrSlide(
 }
 
 @Composable
-private fun CopyValuesSlide(
+private fun CopyValuesBox(
     onchainAddress: String,
     bolt11: String,
     cjitInvoice: String?,
-    receiveOnSpendingBalance: Boolean,
+    selectedTab: ReceiveTab,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Colors.White10),
@@ -527,20 +520,23 @@ private fun CopyValuesSlide(
                     testTag = "ReceiveOnchainAddress",
                 )
             }
-            if (bolt11.isNotEmpty() && receiveOnSpendingBalance) {
-                CopyAddressCard(
-                    title = stringResource(R.string.wallet__receive_lightning_invoice),
-                    address = bolt11,
-                    type = CopyAddressType.LIGHTNING,
-                    testTag = "ReceiveLightningAddress",
-                )
-            } else if (cjitInvoice != null) {
-                CopyAddressCard(
-                    title = stringResource(R.string.wallet__receive_lightning_invoice),
-                    address = cjitInvoice,
-                    type = CopyAddressType.LIGHTNING,
-                    testTag = "ReceiveLightningAddress",
-                )
+
+            if (selectedTab == ReceiveTab.AUTO || selectedTab == ReceiveTab.SPENDING) {
+                if (bolt11.isNotEmpty()) {
+                    CopyAddressCard(
+                        title = stringResource(R.string.wallet__receive_lightning_invoice),
+                        address = bolt11,
+                        type = CopyAddressType.LIGHTNING,
+                        testTag = "ReceiveLightningAddress",
+                    )
+                } else if (cjitInvoice != null) {
+                    CopyAddressCard(
+                        title = stringResource(R.string.wallet__receive_lightning_invoice),
+                        address = cjitInvoice,
+                        type = CopyAddressType.LIGHTNING,
+                        testTag = "ReceiveLightningAddress",
+                    )
+                }
             }
         }
     }
@@ -704,11 +700,11 @@ private fun PreviewSlide2() {
                 .gradientBackground()
                 .padding(16.dp)
         ) {
-            CopyValuesSlide(
+            CopyValuesBox(
                 onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
                 bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
                 cjitInvoice = null,
-                true
+                selectedTab = ReceiveTab.AUTO
             )
         }
     }
