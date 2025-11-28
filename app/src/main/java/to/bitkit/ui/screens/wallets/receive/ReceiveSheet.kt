@@ -76,7 +76,6 @@ fun ReceiveSheet(
 
                 ReceiveQrScreen(
                     cjitInvoice = cjitInvoice,
-                    cjitActive = showCreateCjit,
                     walletState = walletState,
                     lightningState = lightningState,
                     onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },

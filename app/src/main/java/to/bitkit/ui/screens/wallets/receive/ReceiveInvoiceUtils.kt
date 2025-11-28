@@ -48,7 +48,8 @@ fun getInvoiceForTab(
     bip21: String,
     bolt11: String,
     cjitInvoice: String?,
-    onchainAddress: String
+    isNodeRunning: Boolean,
+    onchainAddress: String,
 ): String {
     return when (tab) {
         ReceiveTab.SAVINGS -> {
@@ -56,15 +57,15 @@ fun getInvoiceForTab(
             val strippedBip21 = stripLightningFromBip21(bip21)
             strippedBip21.ifEmpty { onchainAddress }
         }
+
         ReceiveTab.AUTO -> {
-            // Unified: prefer CJIT > full BIP21
-            cjitInvoice?.takeIf { it.isNotEmpty() }
-                ?: bip21.ifEmpty { onchainAddress }
+            bip21.takeIf { isNodeRunning }.orEmpty()
         }
+
         ReceiveTab.SPENDING -> {
             // Lightning only: prefer CJIT > bolt11
-            cjitInvoice?.takeIf { it.isNotEmpty() }
-                ?: bolt11.ifEmpty { onchainAddress }
+            cjitInvoice?.takeIf { it.isNotEmpty() && isNodeRunning }
+                ?: bolt11
         }
     }
 }
@@ -84,20 +85,7 @@ fun getQrLogoResource(tab: ReceiveTab, hasCjit: Boolean): Int {
             if (hasCjit) R.drawable.ic_unified_circle
             else R.drawable.ic_unified_circle
         }
+
         ReceiveTab.SPENDING -> R.drawable.ic_ln_circle
     }
-}
-
-/**
- * Extension: Check if node lifecycle state is running.
- */
-fun NodeLifecycleState.isRunning(): Boolean {
-    return this == NodeLifecycleState.Running
-}
-
-/**
- * Extension: Check if node lifecycle state is starting.
- */
-fun NodeLifecycleState.isStarting(): Boolean {
-    return this == NodeLifecycleState.Starting
 }

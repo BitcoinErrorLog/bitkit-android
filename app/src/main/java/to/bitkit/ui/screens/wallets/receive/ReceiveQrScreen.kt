@@ -64,7 +64,6 @@ import to.bitkit.viewmodels.MainUiState
 @Composable
 fun ReceiveQrScreen(
     cjitInvoice: MutableState<String?>,
-    cjitActive: MutableState<Boolean>,
     walletState: MainUiState,
     lightningState: to.bitkit.repositories.LightningState,
     onClickEditInvoice: () -> Unit,
@@ -112,6 +111,7 @@ fun ReceiveQrScreen(
             bip21 = walletState.bip21,
             bolt11 = walletState.bolt11,
             cjitInvoice = cjitInvoice.value,
+            isNodeRunning = walletState.nodeLifecycleState.isRunning(),
             onchainAddress = walletState.onchainAddress
         )
     }
@@ -449,7 +449,6 @@ private fun PreviewSavingsMode() {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
-                cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
@@ -518,7 +517,6 @@ private fun PreviewAutoMode() {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
-                cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
@@ -547,7 +545,6 @@ private fun PreviewSpendingMode() {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
-                cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
@@ -572,7 +569,6 @@ private fun PreviewNodeNotReady() {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
-                cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
@@ -595,7 +591,6 @@ private fun PreviewSmall() {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
-                cjitActive = remember { mutableStateOf(false) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
