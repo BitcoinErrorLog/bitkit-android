@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -112,31 +113,37 @@ fun QrCodeImage(
                 } else {
                     imageComposable()
                 }
-            }
-        }
-
-        logoPainter?.let {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(68.dp)
-                    .background(Color.White, shape = CircleShape)
-                    .align(Alignment.Center)
-            ) {
+            } else {
                 Image(
-                    painter = it,
-                    contentDescription = null,
-                    modifier = Modifier.size(50.dp)
+                    painter = painterResource(R.drawable.qr_placeholder),
+                    contentDescription = content,
+                    contentScale = ContentScale.Inside,
                 )
             }
         }
 
-        if (bitmap == null) {
-            CircularProgressIndicator(
-                color = Colors.Black,
-                strokeWidth = 4.dp,
-                modifier = Modifier.size(68.dp)
-            )
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            logoPainter?.let {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(68.dp)
+                        .background(Color.White, shape = CircleShape)
+                ) {
+                    Image(
+                        painter = it,
+                        contentDescription = null,
+                        modifier = Modifier.size(50.dp)
+                    )
+                }
+            }
+
+            if (bitmap == null) {
+                CaptionB("Generating QR ...", color = Colors.Black)
+            }
         }
     }
 }
