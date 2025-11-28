@@ -46,7 +46,6 @@ fun FundingScreen(
     onFund: () -> Unit = {},
     onAdvanced: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val balances = LocalBalances.current
     val canTransfer = remember(balances.totalOnchainSats) {

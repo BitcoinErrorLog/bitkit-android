@@ -71,7 +71,6 @@ fun ActivityExploreScreen(
     detailViewModel: ActivityDetailViewModel = hiltViewModel(),
     route: Routes.ActivityExplore,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     val activities by listViewModel.filteredActivities.collectAsStateWithLifecycle()
     val item = activities?.find { it.rawId() == route.id } ?: return

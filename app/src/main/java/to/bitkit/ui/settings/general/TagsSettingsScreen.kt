@@ -17,7 +17,6 @@ import androidx.navigation.NavController
 import to.bitkit.R
 import to.bitkit.ui.components.TagButton
 import to.bitkit.ui.components.settings.SectionHeader
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -41,7 +40,6 @@ fun TagsSettingsScreen(
             }
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
     )
 }
 
@@ -50,7 +48,6 @@ private fun TagsSettingsContent(
     tags: List<String>,
     onClickTag: (String) -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(
