@@ -81,7 +81,7 @@ fun ReceiveQrScreen(
 ) {
     SetMaxBrightness()
 
-    val hasUsableChannels = walletState.channels.isNotEmpty()
+    val hasUsableChannels = walletState.channels.any { it.isUsable }
 
     // Tab selection state
     var selectedTab by remember {
