@@ -1,6 +1,7 @@
 package to.bitkit.ui.screens.wallets.receive
 
 import android.graphics.Bitmap
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -177,16 +178,17 @@ fun ReceiveQrScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Toggle button
-            PrimaryButton(
-                text = stringResource(
-                    if (showDetails) R.string.wallet__receive_show_qr
-                    else R.string.wallet__receive_show_details
-                ),
-                onClick = { showDetails = !showDetails },
-                fullWidth = true,
-                modifier = Modifier.testTag("ReceiveToggleButton")
-            )
+            AnimatedVisibility(visible = lightningState.nodeLifecycleState.isRunning()) {
+                PrimaryButton(
+                    text = stringResource(
+                        if (showDetails) R.string.wallet__receive_show_qr
+                        else R.string.wallet__receive_show_details
+                    ),
+                    onClick = { showDetails = !showDetails },
+                    fullWidth = true,
+                    modifier = Modifier.testTag("ReceiveToggleButton")
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
         }
