@@ -43,6 +43,7 @@ import to.bitkit.R
 import to.bitkit.ext.setClipboardText
 import to.bitkit.ext.truncate
 import to.bitkit.models.NodeLifecycleState
+import to.bitkit.repositories.LightningState
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.ButtonSize
@@ -66,7 +67,7 @@ import to.bitkit.viewmodels.MainUiState
 fun ReceiveQrScreen(
     cjitInvoice: MutableState<String?>,
     walletState: MainUiState,
-    lightningState: to.bitkit.repositories.LightningState,
+    lightningState: LightningState,
     onClickEditInvoice: () -> Unit,
     modifier: Modifier = Modifier,
     initialTab: ReceiveTab? = null,
