@@ -54,6 +54,7 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.QrCodeImage
 import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -72,9 +73,7 @@ fun ReceiveQrScreen(
     cjitActive: MutableState<Boolean>,
     walletState: MainUiState,
     lightningState: to.bitkit.repositories.LightningState,
-    onCjitToggle: (Boolean) -> Unit,
     onClickEditInvoice: () -> Unit,
-    onClickReceiveOnSpending: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SetMaxBrightness()
@@ -141,7 +140,7 @@ fun ReceiveQrScreen(
             Spacer(Modifier.height(16.dp))
 
             // Tab row
-            to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing(
+            CustomTabRowWithSpacing(
                 tabs = visibleTabs,
                 currentTabIndex = visibleTabs.indexOf(selectedTab),
                 onTabChange = { tab ->
@@ -637,9 +636,7 @@ private fun Preview() {
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
                 ),
-                onCjitToggle = {},
                 onClickEditInvoice = {},
-                onClickReceiveOnSpending = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -662,9 +659,7 @@ private fun PreviewNodeNotReady() {
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
                 ),
-                onCjitToggle = {},
                 onClickEditInvoice = {},
-                onClickReceiveOnSpending = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
@@ -687,9 +682,7 @@ private fun PreviewSmall() {
                     shouldBlockLightningReceive = false,
                     isGeoBlocked = false
                 ),
-                onCjitToggle = {},
                 onClickEditInvoice = {},
-                onClickReceiveOnSpending = {},
                 modifier = Modifier.sheetHeight(),
             )
         }

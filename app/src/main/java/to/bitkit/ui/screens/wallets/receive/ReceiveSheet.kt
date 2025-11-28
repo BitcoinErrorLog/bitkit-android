@@ -79,25 +79,7 @@ fun ReceiveSheet(
                     cjitActive = showCreateCjit,
                     walletState = walletState,
                     lightningState = lightningState,
-                    onCjitToggle = { isOn ->
-                        when {
-                            isOn && lightningState.shouldBlockLightningReceive -> {
-                                navController.navigate(ReceiveRoute.GeoBlock)
-                            }
-
-                            !isOn -> {
-                                showCreateCjit.value = false
-                                cjitInvoice.value = null
-                            }
-
-                            isOn && cjitInvoice.value == null -> {
-                                showCreateCjit.value = true
-                                navController.navigate(ReceiveRoute.Amount)
-                            }
-                        }
-                    },
                     onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },
-                    onClickReceiveOnSpending = { wallet.toggleReceiveOnSpending() }
                 )
             }
             composableWithDefaultTransitions<ReceiveRoute.Amount> {
