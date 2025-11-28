@@ -618,12 +618,54 @@ private fun PreviewAutoMode() {
 @Preview(showSystemUi = true, name = "Spending Mode")
 @Composable
 private fun PreviewSpendingMode() {
+    val mockChannel = ChannelDetails(
+        channelId = "0".repeat(64),
+        counterpartyNodeId = "0".repeat(66),
+        fundingTxo = null,
+        shortChannelId = null,
+        outboundScidAlias = null,
+        inboundScidAlias = null,
+        channelValueSats = 1000000uL,
+        unspendablePunishmentReserve = null,
+        userChannelId = "0".repeat(32),
+        feerateSatPer1000Weight = 1000u,
+        outboundCapacityMsat = 500000000uL,
+        inboundCapacityMsat = 500000000uL,
+        confirmationsRequired = null,
+        confirmations = null,
+        isOutbound = true,
+        isChannelReady = true,
+        isUsable = true,
+        isAnnounced = false,
+        cltvExpiryDelta = null,
+        counterpartyUnspendablePunishmentReserve = 0uL,
+        counterpartyOutboundHtlcMinimumMsat = null,
+        counterpartyOutboundHtlcMaximumMsat = null,
+        counterpartyForwardingInfoFeeBaseMsat = null,
+        counterpartyForwardingInfoFeeProportionalMillionths = null,
+        counterpartyForwardingInfoCltvExpiryDelta = null,
+        nextOutboundHtlcLimitMsat = 0uL,
+        nextOutboundHtlcMinimumMsat = 0uL,
+        forceCloseSpendDelay = null,
+        inboundHtlcMinimumMsat = 0uL,
+        inboundHtlcMaximumMsat = null,
+        config = org.lightningdevkit.ldknode.ChannelConfig(
+            forwardingFeeProportionalMillionths = 0u,
+            forwardingFeeBaseMsat = 0u,
+            cltvExpiryDelta = 0u,
+            maxDustHtlcExposure = org.lightningdevkit.ldknode.MaxDustHtlcExposure.FeeRateMultiplier(0uL),
+            forceCloseAvoidanceMaxFeeSatoshis = 0uL,
+            acceptUnderpayingHtlcs = false
+        )
+    )
+
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
                 cjitInvoice = remember { mutableStateOf(null) },
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
+                    channels = listOf(mockChannel),
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
                 ),
                 onClickEditInvoice = {},
