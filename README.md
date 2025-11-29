@@ -134,7 +134,45 @@ Increment `versionCode` and `versionName` in `app/build.gradle.kts`, then run:
 APK is generated in `app/build/outputs/apk/_flavor_/release`. (`_flavor_` can be any of 'dev', 'mainnet', 'tnet').
 Example for dev: `app/build/outputs/apk/dev/release`
 
+## Contributing
+
+### AI Code Review with Claude
+
+This repository has Claude Code integrated for on-demand AI assistance on issues and pull requests.
+
+#### How to Use
+
+Mention `@claude` in any PR comment, issue, or review to trigger Claude:
+
+| Command | Description |
+|---------|-------------|
+| `@claude review` | Request a code review of the PR |
+| `@claude /review` | Same as above (slash command) |
+| `@claude review focus on security` | Review with specific focus |
+| `@claude explain this change` | Ask questions about the code |
+| `@claude fix the null pointer issue` | Request Claude to implement a fix |
+| `@claude /help` | Show available commands |
+
+#### Notes
+
+- Claude follows the project guidelines defined in `CLAUDE.md`
+- **Automatic reviews** run on every PR open and push (updates same comment)
+- **On-demand assistance** via `@claude` mentions in comments/issues
+- Claude can read CI results to provide context-aware feedback
+- For implementation requests, Claude will create commits on your branch
+
+#### Example
+
+```
+@claude review
+
+Please focus on:
+- Kotlin idioms and best practices
+- Potential memory leaks
+- Thread safety in coroutines
+```
+
 ## License
 
-This project is licensed under the MIT License.  
+This project is licensed under the MIT License.
 See the [LICENSE](./LICENSE) file for more details.
