@@ -744,6 +744,7 @@ private fun RootNavHost(
 }
 
 // region destinations
+@Suppress("LongParameterList")
 private fun NavGraphBuilder.home(
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,

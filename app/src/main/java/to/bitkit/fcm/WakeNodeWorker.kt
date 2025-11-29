@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import org.lightningdevkit.ldknode.Event
+import to.bitkit.R
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.json
@@ -34,7 +35,6 @@ import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.services.CoreService
-import to.bitkit.R
 import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Logger
 import to.bitkit.utils.withPerformanceLogging
@@ -161,10 +161,12 @@ class WakeNodeWorker @AssistedInject constructor(
                 title = appContext.getString(R.string.notification_channel_closed_title),
                 body = appContext.getString(R.string.notification_channel_closed_mutual_body),
             )
+
             orderPaymentConfirmed -> NotificationDetails(
                 title = appContext.getString(R.string.notification_channel_open_bg_failed_title),
                 body = appContext.getString(R.string.notification_please_try_again_body),
             )
+
             else -> NotificationDetails(
                 title = appContext.getString(R.string.notification_channel_closed_title),
                 body = appContext.getString(R.string.notification_channel_closed_reason_body, event.reason),
