@@ -41,7 +41,6 @@ fun getInvoiceForTab(
  * Returns the appropriate QR code logo resource for the selected tab.
  *
  * @param tab The selected receive tab
- * @param hasCjit Whether a CJIT invoice is active
  * @return Drawable resource ID for QR logo
  */
 fun getQrLogoResource(tab: ReceiveTab): Int {
