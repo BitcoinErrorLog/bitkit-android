@@ -207,7 +207,11 @@ fun ReceiveQrScreen(
                         ReceiveQrView(
                             uri = currentInvoice,
                             qrLogoPainter = painterResource(qrLogoRes),
-                            onClickEditInvoice = onClickEditInvoice,
+                            onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
+                                onClickEditInvoice
+                            } else {
+                                onClickReceiveCjit
+                            },
                             tab = selectedTab,
                             modifier = Modifier.fillMaxWidth()
                         )
