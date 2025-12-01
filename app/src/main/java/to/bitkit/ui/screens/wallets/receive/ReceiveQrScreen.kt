@@ -158,7 +158,7 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = visibleTabs.indexOf(selectedTab),
+                currentTabIndex = currentTabIndex,
                 selectedColor = when (selectedTab) {
                     ReceiveTab.SAVINGS -> Colors.Brand
                     ReceiveTab.AUTO -> Colors.White
