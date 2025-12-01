@@ -89,10 +89,10 @@ fun ReceiveQrScreen(
     // Tab selection state
     var selectedTab by remember {
         mutableStateOf(
-            initialTab ?: if (hasUsableChannels) {
-                ReceiveTab.AUTO
-            } else {
-                ReceiveTab.SAVINGS
+            initialTab ?: when {
+                !cjitInvoice.isNullOrEmpty() -> ReceiveTab.SPENDING  // If CJIT invoice exists, default to SPENDING
+                hasUsableChannels -> ReceiveTab.AUTO
+                else -> ReceiveTab.SAVINGS
             }
         )
     }
@@ -113,8 +113,11 @@ fun ReceiveQrScreen(
         visibleTabs.indexOf(selectedTab)
     }
 
-    val showingCjitOnboarding = remember(selectedTab, walletState) {
-        selectedTab == ReceiveTab.SPENDING && !hasUsableChannels && walletState.nodeLifecycleState.isRunning()
+    val showingCjitOnboarding = remember(selectedTab, walletState, cjitInvoice) {
+        selectedTab == ReceiveTab.SPENDING &&
+            !hasUsableChannels &&
+            walletState.nodeLifecycleState.isRunning() &&
+            cjitInvoice.isNullOrEmpty()  // Only show onboarding if there's no CJIT invoice
     }
 
     // Auto-correct selected tab if it becomes hidden
