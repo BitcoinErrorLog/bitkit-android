@@ -77,7 +77,7 @@ fun ReceiveSheet(
                 }
 
                 ReceiveQrScreen(
-                    cjitInvoice = cjitInvoice,
+                    cjitInvoice = cjitInvoice.value,
                     walletState = walletState,
                     onClickReceiveCjit = {
                         if (lightningState.isGeoBlocked) {

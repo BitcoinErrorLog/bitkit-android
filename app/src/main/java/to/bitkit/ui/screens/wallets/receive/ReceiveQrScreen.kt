@@ -24,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +75,7 @@ import to.bitkit.viewmodels.MainUiState
 
 @Composable
 fun ReceiveQrScreen(
-    cjitInvoice: MutableState<String?>,
+    cjitInvoice: String?,
     walletState: MainUiState,
     onClickEditInvoice: () -> Unit,
     onClickReceiveCjit: () -> Unit,
@@ -126,12 +125,12 @@ fun ReceiveQrScreen(
     }
 
     // Current invoice for display
-    val currentInvoice = remember(selectedTab, walletState, cjitInvoice.value) {
+    val currentInvoice = remember(selectedTab, walletState, cjitInvoice) {
         getInvoiceForTab(
             tab = selectedTab,
             bip21 = walletState.bip21,
             bolt11 = walletState.bolt11,
-            cjitInvoice = cjitInvoice.value,
+            cjitInvoice = cjitInvoice,
             isNodeRunning = walletState.nodeLifecycleState.isRunning(),
             onchainAddress = walletState.onchainAddress
         )
@@ -196,7 +195,7 @@ fun ReceiveQrScreen(
                             tab = selectedTab,
                             onchainAddress = walletState.onchainAddress,
                             bolt11 = walletState.bolt11,
-                            cjitInvoice = cjitInvoice.value,
+                            cjitInvoice = cjitInvoice,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -549,7 +548,7 @@ private fun PreviewSavingsMode() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
-                cjitInvoice = remember { mutableStateOf(null) },
+                cjitInvoice = null,
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
@@ -613,7 +612,7 @@ private fun PreviewAutoMode() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
-                cjitInvoice = remember { mutableStateOf(null) },
+                cjitInvoice = null,
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     channels = listOf(mockChannel),
@@ -678,7 +677,7 @@ private fun PreviewSpendingMode() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
-                cjitInvoice = remember { mutableStateOf(null) },
+                cjitInvoice = null,
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     channels = listOf(mockChannel),
@@ -699,7 +698,7 @@ private fun PreviewNodeNotReady() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
-                cjitInvoice = remember { mutableStateOf(null) },
+                cjitInvoice = null,
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Starting,
                 ),
@@ -717,7 +716,7 @@ private fun PreviewSmall() {
     AppThemeSurface {
         BottomSheetPreview {
             ReceiveQrScreen(
-                cjitInvoice = remember { mutableStateOf(null) },
+                cjitInvoice = null,
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                 ),
@@ -755,7 +754,7 @@ private fun PreviewDetailsMode() {
 private fun Modifier.swipeToChangeTab(
     currentTabIndex: Int,
     tabCount: Int,
-    onTabChange: (Int) -> Unit
+    onTabChange: (Int) -> Unit,
 ) = composed {
     val threshold = remember { 1500f }
     val velocityTracker = remember { VelocityTracker() }
@@ -770,6 +769,7 @@ private fun Modifier.swipeToChangeTab(
                 when {
                     velocity >= threshold && currentTabIndex > 0 ->
                         onTabChange(currentTabIndex - 1)
+
                     velocity <= -threshold && currentTabIndex < tabCount - 1 ->
                         onTabChange(currentTabIndex + 1)
                 }

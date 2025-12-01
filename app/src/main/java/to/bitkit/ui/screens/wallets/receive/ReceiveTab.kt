@@ -6,9 +6,9 @@ import to.bitkit.R
 import to.bitkit.ui.screens.wallets.activity.components.TabItem
 
 enum class ReceiveTab : TabItem {
-    SAVINGS,    // Pure onchain (BIP21 without Lightning)
-    AUTO,       // Unified (BIP21 with Lightning or CJIT invoice)
-    SPENDING;   // Pure Lightning (bolt11 or CJIT invoice)
+    SAVINGS,
+    AUTO,
+    SPENDING;
 
     override val uiText: String
         @Composable
