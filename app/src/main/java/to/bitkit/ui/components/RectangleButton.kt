@@ -25,6 +25,7 @@ import to.bitkit.R
 import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.theme.Shapes
 
 @Composable
 fun RectangleButton(
@@ -37,20 +38,20 @@ fun RectangleButton(
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Colors.White10,
+            containerColor = Colors.Gray6,
         ),
         enabled = enabled,
-        shape = AppShapes.small,
-        contentPadding = PaddingValues(24.dp),
+        shape = Shapes.medium,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
         modifier = modifier
             .alpha(if (enabled) 1f else 0.5f)
             .height(80.dp)
             .fillMaxWidth()
     ) {
         icon()
-        Spacer(modifier = Modifier.width(16.dp))
+        HorizontalSpacer(16.dp)
         BodyMSB(text = label, color = Colors.White)
-        Spacer(modifier = Modifier.weight(1f))
+        FillWidth()
     }
 }
 
