@@ -49,7 +49,6 @@ fun SavingsConfirmScreen(
     onConfirm: () -> Unit,
     onAdvancedClick: () -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     val currency = currencyViewModel ?: return
     val transfer = transferViewModel ?: return
@@ -76,7 +75,6 @@ fun SavingsConfirmScreen(
         hasMultiple = hasMultiple,
         hasSelected = hasSelected,
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
         onAmountClick = { currency.switchUnit() },
         onAdvancedClick = onAdvancedClick,
         onSelectAllClick = { transfer.setSelectedChannelIds(emptySet()) },
@@ -93,7 +91,6 @@ private fun SavingsConfirmContent(
     hasMultiple: Boolean,
     hasSelected: Boolean,
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     onAmountClick: () -> Unit = {},
     onAdvancedClick: () -> Unit = {},
     onSelectAllClick: () -> Unit = {},

@@ -31,7 +31,6 @@ fun FundingAdvancedScreen(
     onLnurl: () -> Unit = {},
     onManual: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(

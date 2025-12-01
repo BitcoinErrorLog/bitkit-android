@@ -52,7 +52,6 @@ fun SavingsProgressScreen(
     transfer: TransferViewModel,
     wallet: WalletViewModel,
     onContinueClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val window = LocalActivity.current?.window
     var progressState by remember { mutableStateOf(SavingsProgressState.PROGRESS) }

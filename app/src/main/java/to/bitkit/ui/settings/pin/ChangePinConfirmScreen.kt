@@ -31,7 +31,6 @@ import to.bitkit.ui.components.NumberPad
 import to.bitkit.ui.components.NumberPadType
 import to.bitkit.ui.components.PinDots
 import to.bitkit.ui.navigateToChangePinResult
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -73,7 +72,6 @@ fun ChangePinConfirmScreen(
             }
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
     )
 }
 
@@ -83,7 +81,6 @@ private fun ChangePinConfirmContent(
     showError: Boolean,
     onKeyPress: (String) -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     ScreenColumn(
         modifier = Modifier.testTag("ChangePIN2")
@@ -141,7 +138,6 @@ private fun Preview() {
             showError = false,
             onKeyPress = {},
             onBackClick = {},
-            onCloseClick = {},
         )
     }
 }
@@ -155,7 +151,6 @@ private fun PreviewRetry() {
             showError = true,
             onKeyPress = {},
             onBackClick = {},
-            onCloseClick = {},
         )
     }
 }

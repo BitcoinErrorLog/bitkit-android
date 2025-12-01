@@ -53,7 +53,6 @@ fun ExternalAmountScreen(
     viewModel: ExternalNodeViewModel,
     onContinue: () -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
     amountInputViewModel: AmountInputViewModel = hiltViewModel(),
     currencies: CurrencyState = LocalCurrencies.current,
 ) {
@@ -73,7 +72,6 @@ fun ExternalAmountScreen(
             onContinue()
         },
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -85,7 +83,6 @@ private fun Content(
     currencies: CurrencyState = LocalCurrencies.current,
     onContinueClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(

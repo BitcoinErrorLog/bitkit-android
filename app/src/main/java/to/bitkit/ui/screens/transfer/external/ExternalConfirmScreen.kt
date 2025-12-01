@@ -52,7 +52,6 @@ fun ExternalConfirmScreen(
     onConfirm: () -> Unit,
     onNetworkFeeClick: () -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -70,7 +69,6 @@ fun ExternalConfirmScreen(
         onConfirm = { viewModel.onConfirm() },
         onNetworkFeeClick = onNetworkFeeClick,
         onBackClick = onBackClick,
-        onCloseClick = onCloseClick,
     )
 }
 
@@ -80,7 +78,6 @@ private fun Content(
     onConfirm: () -> Unit = {},
     onNetworkFeeClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(

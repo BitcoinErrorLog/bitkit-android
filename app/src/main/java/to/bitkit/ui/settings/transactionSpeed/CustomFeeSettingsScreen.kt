@@ -86,7 +86,6 @@ fun CustomFeeSettingsScreen(
             navController.popBackStack()
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.popBackStack() },
     )
 }
 
@@ -97,7 +96,6 @@ private fun CustomFeeSettingsContent(
     onKeyPress: (String) -> Unit = {},
     onContinue: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     val feeRate = input.toUIntOrNull() ?: 0u
     val isValid = feeRate != 0u

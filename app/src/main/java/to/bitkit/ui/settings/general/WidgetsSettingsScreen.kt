@@ -12,7 +12,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
 import to.bitkit.ui.components.settings.SettingsSwitchRow
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -30,7 +29,6 @@ fun WidgetsSettingsScreen(
 
     WidgetsSettingsContent(
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
         showWidgets = showWidgets,
         showWidgetTitles = showWidgetTitles,
         onShowWidgetsClick = { settings.setShowWidgets(!showWidgets) },
@@ -41,7 +39,6 @@ fun WidgetsSettingsScreen(
 @Composable
 private fun WidgetsSettingsContent(
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
     showWidgets: Boolean,
     onShowWidgetsClick: () -> Unit = {},
     showWidgetTitles: Boolean,

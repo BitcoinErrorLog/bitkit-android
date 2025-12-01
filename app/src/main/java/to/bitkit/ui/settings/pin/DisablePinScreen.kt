@@ -24,7 +24,6 @@ import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.navigateToAuthCheck
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -44,7 +43,6 @@ fun DisablePinScreen(
             )
         },
         onBackClick = { navController.popBackStack() },
-        onCloseClick = { navController.navigateToHome() },
     )
 }
 
@@ -52,7 +50,6 @@ fun DisablePinScreen(
 private fun DisablePinContent(
     onDisableClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(

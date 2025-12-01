@@ -35,8 +35,8 @@ import to.bitkit.ui.theme.Colors
 @Composable
 fun ActivityIcon(
     activity: Activity,
-    size: Dp = 32.dp,
     modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
 ) {
     val isLightning = activity is Activity.Lightning
     val status: PaymentState? = when (activity) {

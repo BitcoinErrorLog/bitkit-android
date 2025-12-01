@@ -21,7 +21,6 @@ import to.bitkit.ui.components.settings.SectionFooter
 import to.bitkit.ui.components.settings.SectionHeader
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
-import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -42,7 +41,6 @@ fun DefaultUnitSettingsScreen(
         onPrimaryUnitClick = currencyViewModel::setPrimaryDisplayUnit,
         onBitcoinUnitClick = currencyViewModel::setBtcDisplayUnit,
         onBackClick = { navController.popBackStack() },
-        onCloseClick = navController::navigateToHome,
     )
 }
 
@@ -54,7 +52,6 @@ fun DefaultUnitSettingsScreenContent(
     onPrimaryUnitClick: (PrimaryDisplay) -> Unit,
     onBitcoinUnitClick: (BitcoinDisplayUnit) -> Unit,
     onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -121,7 +118,6 @@ private fun Preview() {
             onPrimaryUnitClick = {},
             onBitcoinUnitClick = {},
             onBackClick = {},
-            onCloseClick = {},
         )
     }
 }
