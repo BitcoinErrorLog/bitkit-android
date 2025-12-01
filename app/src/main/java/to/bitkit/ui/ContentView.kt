@@ -391,7 +391,6 @@ fun ContentView(
                                     },
                                     toast = { toast ->
                                         appViewModel.toast(toast)
-
                                     }
                                 )
                             }

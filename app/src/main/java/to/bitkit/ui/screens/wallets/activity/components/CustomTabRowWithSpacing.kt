@@ -26,12 +26,6 @@ import androidx.compose.ui.unit.dp
 import to.bitkit.ui.components.CaptionB
 import to.bitkit.ui.theme.Colors
 
-interface TabItem {
-    val name: String
-    val uiText: String
-        @Composable get
-}
-
 @Composable
 fun <T : TabItem> CustomTabRowWithSpacing(
     tabs: List<T>,
@@ -95,4 +89,10 @@ fun <T : TabItem> CustomTabRowWithSpacing(
             }
         }
     }
+}
+
+interface TabItem {
+    val name: String
+    val uiText: String
+        @Composable get
 }

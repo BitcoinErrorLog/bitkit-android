@@ -735,7 +735,6 @@ private fun PreviewSmall() {
     }
 }
 
-
 @Suppress("SpellCheckingInspection")
 @Preview(showSystemUi = true, name = "Auto Mode")
 @Composable
