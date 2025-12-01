@@ -89,8 +89,6 @@ fun ReceiveSheet(
                                     autoHide = true,
                                 )
                             )
-
-                            navController.navigate(ReceiveRoute.GeoBlock)
                         } else {
                             showCreateCjit.value = true
                             navController.navigate(ReceiveRoute.Amount)
