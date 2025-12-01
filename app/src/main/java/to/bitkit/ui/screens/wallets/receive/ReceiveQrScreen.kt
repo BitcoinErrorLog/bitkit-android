@@ -90,7 +90,7 @@ fun ReceiveQrScreen(
     var selectedTab by remember {
         mutableStateOf(
             initialTab ?: when {
-                !cjitInvoice.isNullOrEmpty() -> ReceiveTab.SPENDING  // If CJIT invoice exists, default to SPENDING
+                !cjitInvoice.isNullOrEmpty() -> ReceiveTab.SPENDING
                 hasUsableChannels -> ReceiveTab.AUTO
                 else -> ReceiveTab.SAVINGS
             }
@@ -117,7 +117,7 @@ fun ReceiveQrScreen(
         selectedTab == ReceiveTab.SPENDING &&
             !hasUsableChannels &&
             walletState.nodeLifecycleState.isRunning() &&
-            cjitInvoice.isNullOrEmpty()  // Only show onboarding if there's no CJIT invoice
+            cjitInvoice.isNullOrEmpty()
     }
 
     // Auto-correct selected tab if it becomes hidden
@@ -263,8 +263,8 @@ private fun ReceiveQrView(
     uri: String,
     qrLogoPainter: Painter,
     onClickEditInvoice: () -> Unit,
-    modifier: Modifier = Modifier,
     tab: ReceiveTab,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val qrButtonTooltipState = rememberTooltipState()

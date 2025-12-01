@@ -36,9 +36,9 @@ interface TabItem {
 fun <T : TabItem> CustomTabRowWithSpacing(
     tabs: List<T>,
     currentTabIndex: Int,
-    selectedColor: Color = Colors.Brand,
     onTabChange: (T) -> Unit,
     modifier: Modifier = Modifier,
+    selectedColor: Color = Colors.Brand,
 ) {
     Column(modifier = modifier) {
         Row(
