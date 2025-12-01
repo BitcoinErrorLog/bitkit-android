@@ -133,4 +133,6 @@ data class AppCacheData(
     val lastLightningPaymentId: String? = null,
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
     val backgroundReceive: NewTransactionSheetDetails? = null,
-)
+) {
+    fun resetBip21() = copy(bip21 = "", bolt11 = "", onchainAddress = "")
+}
