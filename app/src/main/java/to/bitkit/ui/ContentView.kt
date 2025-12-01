@@ -388,6 +388,10 @@ fun ContentView(
                                     navigateToExternalConnection = {
                                         navController.navigate(ExternalConnection())
                                         appViewModel.hideSheet()
+                                    },
+                                    toast = { toast ->
+                                        appViewModel.toast(toast)
+
                                     }
                                 )
                             }

@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
+import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningState
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -31,6 +32,7 @@ import to.bitkit.viewmodels.WalletViewModelEffects
 fun ReceiveSheet(
     navigateToExternalConnection: () -> Unit,
     walletState: MainUiState,
+    toast: (Toast) -> Unit,
     editInvoiceAmountViewModel: AmountInputViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -79,7 +81,15 @@ fun ReceiveSheet(
                     walletState = walletState,
                     onClickReceiveCjit = {
                         if (lightningState.isGeoBlocked) {
-                            // todo display toast instead
+                            toast(
+                                Toast(
+                                    type = Toast.ToastType.ERROR,
+                                    title = "Instant Payments Unavailable",
+                                    description = "Bitkit does not provide Lightning services in your country, but you can still connect to other nodes.",
+                                    autoHide = true,
+                                )
+                            )
+
                             navController.navigate(ReceiveRoute.GeoBlock)
                         } else {
                             showCreateCjit.value = true
