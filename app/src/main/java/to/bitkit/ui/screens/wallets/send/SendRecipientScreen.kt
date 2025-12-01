@@ -17,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -49,7 +50,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -58,21 +58,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.R
-import to.bitkit.ext.getClipboardText
 import to.bitkit.ext.startActivityAppSettings
 import to.bitkit.models.Toast
 import to.bitkit.ui.appViewModel
+import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.BottomSheetPreview
+import to.bitkit.ui.components.Display
+import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.RectangleButton
+import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.scanner.CameraPermissionView
-import to.bitkit.ui.screens.scanner.DeniedContent
 import to.bitkit.ui.screens.scanner.QrCodeAnalyzer
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
+import to.bitkit.ui.utils.withAccent
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.SendEvent
 import java.util.concurrent.Executors
@@ -219,33 +222,21 @@ fun SendRecipientScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 CameraPermissionView(
                     permissionState = cameraPermissionState,
                     deniedContent = {
-                        DeniedContent(
-                            shouldShowRationale = cameraPermissionState.status.shouldShowRationale,
-                            inSheet = true,
-                            onClickOpenSettings = {
+                        PermissionDenied(
+                            onClickRetry = {
                                 context.startActivityAppSettings()
                             },
-                            onClickRetry = cameraPermissionState::launchPermissionRequest,
-                            onClickPaste = {
-                                val clipboard = context.getClipboardText()?.trim()
-                                if (clipboard.isNullOrBlank()) {
-                                    app?.toast(
-                                        type = Toast.ToastType.WARNING,
-                                        title = context.getString(R.string.wallet__send_clipboard_empty_title),
-                                        description = context.getString(R.string.wallet__send_clipboard_empty_text),
-                                    )
-                                } else {
-                                    onEvent(SendEvent.AddressContinue(clipboard))
-                                }
-                            },
-                            onBack = { /* No back needed in sheet */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
                         )
                     },
                     grantedContent = {
@@ -402,6 +393,41 @@ private fun CameraPreviewWithControls(
         }
     }
 }
+
+
+@Composable
+private fun PermissionDenied(
+    onClickRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(Shapes.medium)
+            .background(Colors.Black)
+            .padding(32.dp)
+    ) {
+        Display("SCAN\n<accent>QR CODE</accent>".withAccent(accentColor = Colors.Brand), color = Colors.White)
+
+        VerticalSpacer(8.dp)
+
+        BodyM(
+            "Allow camera access to scan bitcoin invoices and pay more quickly.",
+            color = Colors.White64,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        VerticalSpacer(32.dp)
+
+        PrimaryButton(
+            text = "Enable camera",
+            icon = {
+                Icon(painter = painterResource(R.drawable.ic_camera), contentDescription = null)
+            },
+            onClick = onClickRetry,
+        )
+    }
+}
+
 
 private fun processImageFromGallery(
     context: Context,
