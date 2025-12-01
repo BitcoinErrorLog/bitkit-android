@@ -3,7 +3,6 @@ package to.bitkit.ui.screens.wallets.receive
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,11 +30,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -64,6 +60,7 @@ import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.modifiers.swipeToChangeTab
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.shareQrCode
 import to.bitkit.ui.shared.util.shareText
@@ -754,36 +751,5 @@ private fun PreviewDetailsMode() {
                 modifier = Modifier.weight(1f)
             )
         }
-    }
-}
-
-private fun Modifier.swipeToChangeTab(
-    currentTabIndex: Int,
-    tabCount: Int,
-    onTabChange: (Int) -> Unit,
-) = composed {
-    val threshold = remember { 1500f }
-    val velocityTracker = remember { VelocityTracker() }
-
-    pointerInput(currentTabIndex) {
-        detectHorizontalDragGestures(
-            onHorizontalDrag = { change, _ ->
-                velocityTracker.addPosition(change.uptimeMillis, change.position)
-            },
-            onDragEnd = {
-                val velocity = velocityTracker.calculateVelocity().x
-                when {
-                    velocity >= threshold && currentTabIndex > 0 ->
-                        onTabChange(currentTabIndex - 1)
-
-                    velocity <= -threshold && currentTabIndex < tabCount - 1 ->
-                        onTabChange(currentTabIndex + 1)
-                }
-                velocityTracker.resetTracking()
-            },
-            onDragCancel = {
-                velocityTracker.resetTracking()
-            },
-        )
     }
 }
