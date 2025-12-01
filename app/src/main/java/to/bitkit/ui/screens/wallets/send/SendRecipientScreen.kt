@@ -219,7 +219,10 @@ fun SendRecipientScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+            ) {
                 CameraPermissionView(
                     permissionState = cameraPermissionState,
                     deniedContent = {
