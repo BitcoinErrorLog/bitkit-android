@@ -394,7 +394,6 @@ private fun CameraPreviewWithControls(
     }
 }
 
-
 @Composable
 private fun PermissionDenied(
     onClickRetry: () -> Unit,
@@ -427,7 +426,6 @@ private fun PermissionDenied(
         )
     }
 }
-
 
 private fun processImageFromGallery(
     context: Context,
