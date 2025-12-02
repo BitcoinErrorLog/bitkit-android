@@ -158,7 +158,13 @@ fun SendRecipientScreen(
     DisposableEffect(Unit) {
         onDispose {
             camera?.let {
-                ProcessCameraProvider.getInstance(context).get().unbindAll()
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        ProcessCameraProvider.getInstance(context).get().unbindAll()
+                    }.onFailure { e ->
+                        Logger.error("Camera cleanup failed", e)
+                    }
+                }
             }
         }
     }
