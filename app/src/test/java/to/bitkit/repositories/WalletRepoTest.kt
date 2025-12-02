@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import app.cash.turbine.test
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
@@ -50,6 +51,7 @@ class WalletRepoTest : BaseUnitTest() {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(bolt11 = "", onchainAddress = "testAddress")))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
+        whenever(lightningRepo.nodeEvents).thenReturn(MutableSharedFlow())
         wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))

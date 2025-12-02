@@ -41,7 +41,10 @@ class NotifyPaymentReceivedHandler @Inject constructor(
                     activityRepo.handleOnchainTransactionReceived(command.event.txid, command.event.details)
                     if (command.event.details.amountSats > 0) {
                         delay(DELAY_FOR_ACTIVITY_SYNC_MS)
-                        activityRepo.shouldShowReceivedSheet(command.event.txid, command.event.details.amountSats.toULong())
+                        activityRepo.shouldShowReceivedSheet(
+                            command.event.txid,
+                            command.event.details.amountSats.toULong()
+                        )
                     } else {
                         false
                     }

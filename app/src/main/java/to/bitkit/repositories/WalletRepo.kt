@@ -56,6 +56,15 @@ class WalletRepo @Inject constructor(
     private val _balanceState = MutableStateFlow(BalanceState())
     val balanceState = _balanceState.asStateFlow()
 
+    init {
+        repoScope.launch {
+            lightningRepo.nodeEvents.collect { event ->
+                if (!walletExists()) return@collect
+                refreshBip21ForEvent(event)
+            }
+        }
+    }
+
     fun loadFromCache() {
         // TODO try keeping in sync with cache if performant and reliable
         repoScope.launch {
@@ -151,6 +160,8 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun observeLdkWallet() = withContext(bgDispatcher) {
+        // TODO:Refactor: when a sync event is emitted by ldk-node, do the sync, and
+        //  get rid of the entire polling mechanism.
         lightningRepo.getSyncFlow()
             .collect {
                 runCatching {
@@ -189,6 +200,7 @@ class WalletRepo @Inject constructor(
         when (event) {
             is Event.ChannelReady -> {
                 // Only refresh bolt11 if we can now receive on lightning
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 if (lightningRepo.canReceive()) {
                     lightningRepo.createInvoice(
                         amountSats = _walletState.value.bip21AmountSats,
@@ -202,14 +214,16 @@ class WalletRepo @Inject constructor(
 
             is Event.ChannelClosed -> {
                 // Clear bolt11 if we can no longer receive on lightning
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 if (!lightningRepo.canReceive()) {
                     setBolt11("")
                     updateBip21Url()
                 }
             }
 
-            is Event.PaymentReceived -> {
+            is Event.PaymentReceived, is Event.OnchainTransactionReceived -> {
                 // Check if onchain address was used, generate new one if needed
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 refreshAddressIfNeeded()
                 updateBip21Url()
             }

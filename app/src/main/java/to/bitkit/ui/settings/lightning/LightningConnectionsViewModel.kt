@@ -37,7 +37,6 @@ import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LogsRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -50,7 +49,6 @@ class LightningConnectionsViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     internal val blocktankRepo: BlocktankRepo,
     private val logsRepo: LogsRepo,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val walletRepo: WalletRepo,
     private val activityRepo: ActivityRepo,
 ) : ViewModel() {
@@ -129,7 +127,7 @@ class LightningConnectionsViewModel @Inject constructor(
 
     private fun observeLdkEvents() {
         viewModelScope.launch {
-            ldkNodeEventBus.events.collect { event ->
+            lightningRepo.nodeEvents.collect { event ->
                 if (event is Event.ChannelPending || event is Event.ChannelReady || event is Event.ChannelClosed) {
                     Logger.debug("Channel event received: ${event::class.simpleName}, triggering refresh")
                     refreshObservedState()

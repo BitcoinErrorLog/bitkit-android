@@ -11,6 +11,8 @@ import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
+import dagger.hilt.android.testing.UninstallModules
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -22,8 +24,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.lightningdevkit.ldknode.Event
+import org.mockito.kotlin.KArgumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -37,6 +41,10 @@ import to.bitkit.CurrentActivity
 import to.bitkit.R
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
+import to.bitkit.di.BgDispatcher
+import to.bitkit.di.DispatchersModule
+import to.bitkit.di.IoDispatcher
+import to.bitkit.di.UiDispatcher
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.models.NewTransactionSheetDetails
@@ -45,10 +53,11 @@ import to.bitkit.models.NewTransactionSheetType
 import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.LdkNodeEventBus
+import to.bitkit.services.NodeEventHandler
 import to.bitkit.test.BaseUnitTest
 
 @HiltAndroidTest
+@UninstallModules(DispatchersModule::class)
 @Config(application = HiltTestApplication::class)
 @RunWith(RobolectricTestRunner::class)
 class LightningNodeServiceTest : BaseUnitTest() {
@@ -69,56 +78,63 @@ class LightningNodeServiceTest : BaseUnitTest() {
 
     @BindValue
     @JvmField
-    val ldkNodeEventBus: LdkNodeEventBus = mock()
-
-    @BindValue
-    @JvmField
     val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler = mock()
 
     @BindValue
     @JvmField
     val cacheStore: CacheStore = mock()
 
-    private val eventsFlow = MutableSharedFlow<Event>()
+    @BindValue
+    @UiDispatcher
+    @JvmField
+    val uiDispatcher: CoroutineDispatcher = testDispatcher
+
+    @BindValue
+    @BgDispatcher
+    @JvmField
+    val bgDispatcher: CoroutineDispatcher = testDispatcher
+
+    @BindValue
+    @IoDispatcher
+    @JvmField
+    val ioDispatcher: CoroutineDispatcher = testDispatcher
+
+    private val eventHandlerCaptor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
     private val cacheDataFlow = MutableSharedFlow<AppCacheData>(replay = 1)
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
-    fun setUp() {
-        runBlocking {
-            hiltRule.inject()
-            whenever(ldkNodeEventBus.events).thenReturn(eventsFlow)
-            whenever(lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(
-                Result.success(Unit)
-            )
-            whenever(lightningRepo.stop()).thenReturn(Result.success(Unit))
+    fun setUp() = runBlocking {
+        hiltRule.inject()
+        whenever(
+            lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), eventHandlerCaptor.capture())
+        ).thenReturn(Result.success(Unit))
+        whenever(lightningRepo.stop()).thenReturn(Result.success(Unit))
 
-            // Set up CacheStore mock
-            cacheDataFlow.emit(AppCacheData())
-            whenever(cacheStore.data).thenReturn(cacheDataFlow)
+        // Set up CacheStore mock
+        whenever(cacheStore.data).thenReturn(cacheDataFlow)
 
-            // Mock NotifyPaymentReceivedHandler to return ShowNotification result
-            val sheet = NewTransactionSheetDetails(
-                type = NewTransactionSheetType.LIGHTNING,
-                direction = NewTransactionSheetDirection.RECEIVED,
-                paymentHashOrTxId = "test_hash",
-                sats = 100L,
-            )
-            val notification = NotificationDetails(
-                title = context.getString(R.string.notification_received_title),
-                body = "Received ₿ 100 ($0.10)",
-            )
-            whenever(notifyPaymentReceivedHandler.invoke(any())).thenReturn(
-                Result.success(NotifyPaymentReceived.Result.ShowNotification(sheet, notification))
-            )
+        // Mock NotifyPaymentReceivedHandler to return ShowNotification result
+        val sheet = NewTransactionSheetDetails(
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+            paymentHashOrTxId = "test_hash",
+            sats = 100L,
+        )
+        val notification = NotificationDetails(
+            title = context.getString(R.string.notification_received_title),
+            body = "Received ₿ 100 ($0.10)",
+        )
+        whenever(notifyPaymentReceivedHandler.invoke(any())).thenReturn(
+            Result.success(NotifyPaymentReceived.Result.ShowNotification(sheet, notification))
+        )
 
-            // Grant permissions for notifications
-            val app = context as Application
-            Shadows.shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        // Grant permissions for notifications
+        val app = context as Application
+        Shadows.shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
 
-            // Reset App.currentActivity to simulate background state
-            App.currentActivity = CurrentActivity()
-        }
+        // Reset App.currentActivity to simulate background state
+        App.currentActivity = CurrentActivity()
     }
 
     @After
@@ -130,6 +146,10 @@ class LightningNodeServiceTest : BaseUnitTest() {
     fun `payment received in background shows notification`() = test {
         val controller = Robolectric.buildService(LightningNodeService::class.java)
         controller.create().startCommand(0, 0)
+        testScheduler.advanceUntilIdle()
+
+        val capturedHandler = eventHandlerCaptor.lastValue
+        assertNotNull("Event handler should be captured", capturedHandler)
 
         val event = Event.PaymentReceived(
             paymentId = "payment_id",
@@ -138,7 +158,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        eventsFlow.emit(event)
+        capturedHandler?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -166,6 +186,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
 
         val controller = Robolectric.buildService(LightningNodeService::class.java)
         controller.create().startCommand(0, 0)
+        testScheduler.advanceUntilIdle()
 
         val event = Event.PaymentReceived(
             paymentId = "payment_id_fg",
@@ -174,7 +195,8 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        eventsFlow.emit(event)
+        eventHandlerCaptor.lastValue?.invoke(event)
+        testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val shadows = Shadows.shadowOf(notificationManager)
@@ -192,6 +214,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
     fun `notification uses content from use case result`() = test {
         val controller = Robolectric.buildService(LightningNodeService::class.java)
         controller.create().startCommand(0, 0)
+        testScheduler.advanceUntilIdle()
 
         val event = Event.PaymentReceived(
             paymentId = "payment_id",
@@ -200,7 +223,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        eventsFlow.emit(event)
+        eventHandlerCaptor.lastValue?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

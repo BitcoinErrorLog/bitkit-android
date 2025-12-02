@@ -3,7 +3,6 @@ package to.bitkit.domain.commands
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NotificationDetails
-import to.bitkit.utils.Logger
 
 sealed interface NotifyPaymentReceived {
 

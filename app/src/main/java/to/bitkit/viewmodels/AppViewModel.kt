@@ -94,7 +94,6 @@ import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.TimedSheetType
@@ -116,7 +115,6 @@ class AppViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
     private val backupRepo: BackupRepo,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
@@ -227,9 +225,10 @@ class AppViewModel @Inject constructor(
     @Suppress("CyclomaticComplexMethod")
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
-            ldkNodeEventBus.events.collect { event ->
+            lightningRepo.nodeEvents.collect { event ->
                 if (!walletRepo.walletExists()) return@collect
-
+                Logger.debug("LDK-node event received in $TAG: $event", context = TAG)
+                // TODO maybe use launch
                 runCatching {
                     when (event) {
                         is Event.BalanceChanged -> handleBalanceChanged()
@@ -1112,6 +1111,7 @@ class AppViewModel @Inject constructor(
                             )
                         )
                         lightningRepo.sync()
+                        activityRepo.syncActivities()
                     }.onFailure { e ->
                         Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
@@ -1291,7 +1291,7 @@ class AppViewModel @Inject constructor(
     ): Result<PaymentId> {
         return lightningRepo.payInvoice(bolt11 = bolt11, sats = amount).onSuccess { hash ->
             // Wait until matching payment event is received
-            val result = ldkNodeEventBus.events.watchUntil { event ->
+            val result = lightningRepo.nodeEvents.watchUntil { event ->
                 when (event) {
                     is Event.PaymentSuccessful -> {
                         if (event.paymentHash == hash) {

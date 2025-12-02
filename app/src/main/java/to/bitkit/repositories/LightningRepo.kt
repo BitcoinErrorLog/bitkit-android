@@ -14,7 +14,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -51,7 +53,6 @@ import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toCoinSelectAlgorithm
 import to.bitkit.models.toCoreNetwork
 import to.bitkit.services.CoreService
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.services.LightningService
 import to.bitkit.services.LnurlChannelResponse
 import to.bitkit.services.LnurlService
@@ -73,7 +74,6 @@ import kotlin.time.Duration.Companion.seconds
 class LightningRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningService: LightningService,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val coreService: CoreService,
     private val lspNotificationsService: LspNotificationsService,
@@ -85,6 +85,9 @@ class LightningRepo @Inject constructor(
 ) {
     private val _lightningState = MutableStateFlow(LightningState())
     val lightningState = _lightningState.asStateFlow()
+
+    private val _nodeEvents = MutableSharedFlow<Event>(extraBufferCapacity = 64)
+    val nodeEvents = _nodeEvents.asSharedFlow()
 
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
@@ -263,7 +266,7 @@ class LightningRepo @Inject constructor(
     private suspend fun onEvent(event: Event) {
         handleLdkEvent(event)
         _eventHandler?.invoke(event)
-        ldkNodeEventBus.emit(event)
+        _nodeEvents.emit(event)
     }
 
     fun setRecoveryMode(enabled: Boolean) {

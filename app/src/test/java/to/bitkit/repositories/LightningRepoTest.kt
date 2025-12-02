@@ -36,7 +36,6 @@ import to.bitkit.models.OpenChannelResult
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.services.BlocktankService
 import to.bitkit.services.CoreService
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.services.LightningService
 import to.bitkit.services.LnurlService
 import to.bitkit.services.LspNotificationsService
@@ -52,7 +51,6 @@ class LightningRepoTest : BaseUnitTest() {
     private lateinit var sut: LightningRepo
 
     private val lightningService: LightningService = mock()
-    private val ldkNodeEventBus: LdkNodeEventBus = mock()
     private val settingsStore: SettingsStore = mock()
     private val coreService: CoreService = mock()
     private val lspNotificationsService: LspNotificationsService = mock()
@@ -69,7 +67,6 @@ class LightningRepoTest : BaseUnitTest() {
         sut = LightningRepo(
             bgDispatcher = testDispatcher,
             lightningService = lightningService,
-            ldkNodeEventBus = ldkNodeEventBus,
             settingsStore = settingsStore,
             coreService = coreService,
             lspNotificationsService = lspNotificationsService,

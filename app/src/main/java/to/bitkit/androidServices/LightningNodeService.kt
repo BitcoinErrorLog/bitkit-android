@@ -7,8 +7,8 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -16,13 +16,13 @@ import org.lightningdevkit.ldknode.Event
 import to.bitkit.App
 import to.bitkit.R
 import to.bitkit.data.CacheStore
+import to.bitkit.di.UiDispatcher
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.MainActivity
 import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Logger
@@ -31,16 +31,17 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class LightningNodeService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    @Inject
+    @UiDispatcher
+    lateinit var uiDispatcher: CoroutineDispatcher
+
+    private val serviceScope by lazy { CoroutineScope(SupervisorJob() + uiDispatcher) }
 
     @Inject
     lateinit var lightningRepo: LightningRepo
 
     @Inject
     lateinit var walletRepo: WalletRepo
-
-    @Inject
-    lateinit var ldkNodeEventBus: LdkNodeEventBus
 
     @Inject
     lateinit var notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler
@@ -56,26 +57,24 @@ class LightningNodeService : Service() {
 
     private fun setupService() {
         serviceScope.launch {
-            launch {
-                lightningRepo.start(
-                    eventHandler = { event ->
-                        walletRepo.refreshBip21ForEvent(event)
-                        handlePaymentReceived(event)
-                    }
-                ).onSuccess {
-                    val notification = createNotification()
-                    startForeground(NOTIFICATION_ID, notification)
-
-                    walletRepo.setWalletExistsState()
-                    walletRepo.refreshBip21()
-                    walletRepo.syncBalances()
+            lightningRepo.start(
+                eventHandler = { event ->
+                    Logger.debug("LDK-node event received in $TAG: $event", context = TAG)
+                    handlePaymentReceived(event)
                 }
+            ).onSuccess {
+                val notification = createNotification()
+                startForeground(NOTIFICATION_ID, notification)
+
+                walletRepo.setWalletExistsState()
+                walletRepo.refreshBip21()
+                walletRepo.syncBalances()
             }
         }
     }
 
     private suspend fun handlePaymentReceived(event: Event) {
-        if (event !in listOf(Event.PaymentReceived, Event.OnchainTransactionReceived)) return
+        if (event !is Event.PaymentReceived && event !is Event.OnchainTransactionReceived) return
         val command = NotifyPaymentReceived.Command.from(event, includeNotification = true) ?: return
 
         notifyPaymentReceivedHandler(command).onSuccess { result ->

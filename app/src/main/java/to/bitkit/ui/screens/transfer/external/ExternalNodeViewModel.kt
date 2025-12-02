@@ -27,7 +27,6 @@ import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.UiState
 import to.bitkit.ui.shared.toast.ToastEventBus
@@ -38,7 +37,6 @@ import javax.inject.Inject
 @HiltViewModel
 class ExternalNodeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
@@ -210,7 +208,7 @@ class ExternalNodeViewModel @Inject constructor(
     }
 
     private suspend fun awaitChannelPendingEvent(userChannelId: UserChannelId): Result<Event.ChannelPending> {
-        return ldkNodeEventBus.events.watchUntil { event ->
+        return lightningRepo.nodeEvents.watchUntil { event ->
             when (event) {
                 is Event.ChannelClosed -> if (event.userChannelId == userChannelId) {
                     WatchResult.Complete(Result.failure(Exception("${event.reason}")))
