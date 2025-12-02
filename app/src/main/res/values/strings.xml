@@ -983,6 +983,11 @@
     <string name="wallet__receive_cjit_error_msg">Failed to send funds to your spending account.</string>
     <string name="wallet__receive_will">You will receive</string>
     <string name="wallet__receive_ldk_init">Spending Balance Initializing...</string>
+    <string name="wallet__receive_onboarding_title">Receive on &lt;accent&gt;spending balance&lt;/accent&gt;</string>
+    <string name="wallet__receive_onboarding_description">Enjoy instant and cheap\ntransactions with friends, family,\nand merchants.</string>
+    <string name="wallet__receive_qr_generating">Generating QR ...</string>
+    <string name="wallet__receive_geo_blocked_title">Instant Payments Unavailable</string>
+    <string name="wallet__receive_geo_blocked_description">Bitkit does not provide Lightning services in your country, but you can still connect to other nodes.</string>
     <string name="wallet__minimum">MINIMUM</string>
     <string name="wallet__activity">Activity</string>
     <string name="wallet__activity_show_all">Show All Activity</string>

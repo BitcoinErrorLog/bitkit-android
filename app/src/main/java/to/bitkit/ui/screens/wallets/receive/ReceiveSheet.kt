@@ -11,11 +11,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
+import to.bitkit.R
 import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningState
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
@@ -44,6 +46,9 @@ fun ReceiveSheet(
     val showCreateCjit = remember { mutableStateOf(false) }
     val cjitEntryDetails = remember { mutableStateOf<CjitEntryDetails?>(null) }
     val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
+
+    val geoBlockedTitle = stringResource(R.string.wallet__receive_geo_blocked_title)
+    val geoBlockedDescription = stringResource(R.string.wallet__receive_geo_blocked_description)
 
     LaunchedEffect(Unit) {
         wallet.resetPreActivityMetadataTagsForCurrentInvoice()
@@ -84,8 +89,8 @@ fun ReceiveSheet(
                             toast(
                                 Toast(
                                     type = Toast.ToastType.ERROR,
-                                    title = "Instant Payments Unavailable",
-                                    description = "Bitkit does not provide Lightning services in your country, but you can still connect to other nodes.",
+                                    title = geoBlockedTitle,
+                                    description = geoBlockedDescription,
                                     autoHide = true,
                                 )
                             )

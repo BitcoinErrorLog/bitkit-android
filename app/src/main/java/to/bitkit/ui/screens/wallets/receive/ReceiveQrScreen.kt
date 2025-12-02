@@ -377,10 +377,10 @@ fun CjitOnBoardingView(modifier: Modifier = Modifier) {
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Display("Receive on <accent>spending balance</accent>".withAccent(accentColor = Colors.Purple))
+        Display(stringResource(R.string.wallet__receive_onboarding_title).withAccent(accentColor = Colors.Purple))
         VerticalSpacer(8.dp)
         BodyM(
-            "Enjoy instant and cheap\ntransactions with friends, family,\nand merchants.",
+            stringResource(R.string.wallet__receive_onboarding_description),
             color = Colors.White64,
             modifier = Modifier.fillMaxWidth()
         )
