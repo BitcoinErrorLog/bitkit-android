@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -57,40 +58,54 @@ fun RectangleButton(
             .fillMaxWidth()
     ) {
         icon?.let {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .size(40.dp)
-                    .background(Colors.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(it),
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(iconSize),
-                )
-            }
+            CircularIcon(
+                painter = painterResource(it),
+                iconTint = iconTint,
+                iconSize = iconSize
+            )
         }
         imageVector?.let {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .size(40.dp)
-                    .background(Colors.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(iconSize),
-                )
-            }
+            CircularIcon(
+                imageVector = it,
+                iconTint = iconTint,
+                iconSize = iconSize
+            )
         }
         HorizontalSpacer(16.dp)
         BodyMSB(text = label, color = Colors.White)
         FillWidth()
+    }
+}
+
+@Composable
+private fun CircularIcon(
+    painter: Painter? = null,
+    imageVector: ImageVector? = null,
+    iconTint: Color,
+    iconSize: Dp,
+) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .size(40.dp)
+            .background(Colors.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            painter != null -> Icon(
+                painter = painter,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
+            )
+
+            imageVector != null -> Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
+            )
+        }
     }
 }
 
