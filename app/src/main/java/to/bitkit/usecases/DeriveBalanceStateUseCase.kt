@@ -7,9 +7,9 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.amountSats
 import to.bitkit.ext.channelId
-import to.bitkit.ext.minusOrZero
 import to.bitkit.ext.totalNextOutboundHtlcLimitSats
 import to.bitkit.models.BalanceState
+import to.bitkit.models.safe
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.TransferRepo
 import to.bitkit.utils.Logger
@@ -32,12 +32,11 @@ class DeriveBalanceStateUseCase @Inject constructor(
         val pendingChannelsSats = getPendingChannelsSats(activeTransfers, channels, balanceDetails)
 
         val toSavingsAmount = getTransferToSavingsSats(activeTransfers, channels, balanceDetails)
-        val toSpendingAmount = paidOrdersSats + pendingChannelsSats
+        val toSpendingAmount = paidOrdersSats.safe() + pendingChannelsSats.safe()
 
         val totalOnchainSats = balanceDetails.totalOnchainBalanceSats
-        val totalLightningSats = balanceDetails.totalLightningBalanceSats
-            .minusOrZero(pendingChannelsSats)
-            .minusOrZero(toSavingsAmount)
+        val afterPendingChannels = balanceDetails.totalLightningBalanceSats.safe() - pendingChannelsSats.safe()
+        val totalLightningSats = afterPendingChannels.safe() - toSavingsAmount.safe()
 
         val balanceState = BalanceState(
             totalOnchainSats = totalOnchainSats,
@@ -113,7 +112,7 @@ class DeriveBalanceStateUseCase @Inject constructor(
             Logger.debug("Could not calculate max send amount, using fallback of: $fallback", context = TAG)
         }.getOrDefault(fallback)
 
-        return spendableOnchainSats.minusOrZero(fee)
+        return spendableOnchainSats.safe() - fee.safe()
     }
 
     companion object {
