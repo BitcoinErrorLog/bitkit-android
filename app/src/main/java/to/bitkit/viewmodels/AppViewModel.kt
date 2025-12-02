@@ -101,6 +101,7 @@ import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -227,7 +228,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             lightningRepo.nodeEvents.collect { event ->
                 if (!walletRepo.walletExists()) return@collect
-                Logger.debug("LDK-node event received in $TAG: $event", context = TAG)
+                Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
                 // TODO maybe use launch
                 runCatching {
                     when (event) {

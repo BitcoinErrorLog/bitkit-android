@@ -26,6 +26,7 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.MainActivity
 import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -59,7 +60,7 @@ class LightningNodeService : Service() {
         serviceScope.launch {
             lightningRepo.start(
                 eventHandler = { event ->
-                    Logger.debug("LDK-node event received in $TAG: $event", context = TAG)
+                    Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
                     handlePaymentReceived(event)
                 }
             ).onSuccess {
