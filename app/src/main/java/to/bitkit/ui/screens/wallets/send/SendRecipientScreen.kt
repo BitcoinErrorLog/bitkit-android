@@ -62,6 +62,7 @@ import to.bitkit.ext.startActivityAppSettings
 import to.bitkit.models.Toast
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BottomSheetPreview
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
@@ -374,6 +375,13 @@ private fun CameraPreviewWithControls(
                 tint = Colors.White
             )
         }
+
+        BodyMSB("Scan QR",
+            color = Colors.White,
+            modifier = Modifier
+                .padding(top = 31.dp)
+                .align(Alignment.TopCenter)
+        )
 
         // Flashlight button (top-right)
         IconButton(
