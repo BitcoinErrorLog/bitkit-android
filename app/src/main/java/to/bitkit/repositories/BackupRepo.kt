@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
@@ -11,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -262,8 +264,10 @@ class BackupRepo @Inject constructor(
         dataListenerJobs.add(activityChangesJob)
 
         // LIGHTNING_CONNECTIONS - Only display sync timestamp, ldk-node manages its own backups
+        @OptIn(FlowPreview::class)
         val lightningConnectionsJob = scope.launch {
-            lightningService.syncFlow()
+            lightningService.syncStatusChanged
+                .debounce(SYNC_STATUS_DEBOUNCE)
                 .collect {
                     val lastSync = lightningService.status?.latestLightningWalletSyncTimestamp?.toLong()
                         ?.let { it * 1000 } // Convert seconds to millis
@@ -571,5 +575,6 @@ class BackupRepo @Inject constructor(
         private const val BACKUP_CHECK_INTERVAL = 60 * 1000L // 1 minute
         private const val FAILED_BACKUP_CHECK_TIME = 30 * 60 * 1000L // 30 minutes
         private const val FAILED_BACKUP_NOTIFICATION_INTERVAL = 10 * 60 * 1000L // 10 minutes
+        private const val SYNC_STATUS_DEBOUNCE = 500L // 500ms debounce for sync status updates
     }
 }

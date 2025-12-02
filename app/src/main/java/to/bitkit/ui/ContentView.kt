@@ -243,10 +243,6 @@ fun ContentView(
         }
     }
 
-    LaunchedEffect(Unit) {
-        walletViewModel.observeLdkWallet()
-    }
-
     LaunchedEffect(Unit) { walletViewModel.handleHideBalanceOnOpen() }
 
     LaunchedEffect(appViewModel) {

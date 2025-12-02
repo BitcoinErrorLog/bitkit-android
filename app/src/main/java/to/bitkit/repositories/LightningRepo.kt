@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -827,8 +826,6 @@ class LightningRepo @Inject constructor(
             lightningService.canSend(amountSats)
         }
     }
-
-    fun getSyncFlow() = lightningService.syncFlow().filter { lightningState.value.nodeLifecycleState.isRunning() }
 
     fun getNodeId(): String? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.nodeId else null

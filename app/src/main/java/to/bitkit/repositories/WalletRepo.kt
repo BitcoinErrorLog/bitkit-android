@@ -159,17 +159,6 @@ class WalletRepo @Inject constructor(
         preActivityMetadataRepo.addPreActivityMetadata(preActivityMetadata)
     }
 
-    suspend fun observeLdkWallet() = withContext(bgDispatcher) {
-        // TODO:Refactor: when a sync event is emitted by ldk-node, do the sync, and
-        //  get rid of the entire polling mechanism.
-        lightningRepo.getSyncFlow()
-            .collect {
-                runCatching {
-                    syncNodeAndWallet()
-                }
-            }
-    }
-
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
         val startHeight = lightningRepo.lightningState.value.block()?.height
         Logger.verbose("syncNodeAndWallet started at block height=$startHeight", context = TAG)

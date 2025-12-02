@@ -168,10 +168,6 @@ class WalletViewModel @Inject constructor(
         }
     }
 
-    suspend fun observeLdkWallet() {
-        walletRepo.observeLdkWallet()
-    }
-
     fun refreshState() = viewModelScope.launch {
         walletRepo.syncNodeAndWallet()
             .onFailure { error ->
@@ -340,6 +336,7 @@ sealed interface RestoreState {
         object Wallet : InProgress
         object Metadata : InProgress
     }
+
     data object Completed : RestoreState
     data object Settled : RestoreState
 

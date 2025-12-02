@@ -226,32 +226,35 @@ class AppViewModel @Inject constructor(
     @Suppress("CyclomaticComplexMethod")
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
-            lightningRepo.nodeEvents.collect { event ->
-                if (!walletRepo.walletExists()) return@collect
-                Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
-                // TODO maybe use launch
-                runCatching {
-                    when (event) {
-                        is Event.BalanceChanged -> handleBalanceChanged()
-                        is Event.ChannelClosed -> Unit
-                        is Event.ChannelPending -> Unit
-                        is Event.ChannelReady -> notifyChannelReady(event)
-                        is Event.OnchainTransactionConfirmed -> handleOnchainTransactionConfirmed(event)
-                        is Event.OnchainTransactionEvicted -> handleOnchainTransactionEvicted(event)
-                        is Event.OnchainTransactionReceived -> handleOnchainTransactionReceived(event)
-                        is Event.OnchainTransactionReorged -> handleOnchainTransactionReorged(event)
-                        is Event.OnchainTransactionReplaced -> handleOnchainTransactionReplaced(event)
-                        is Event.PaymentClaimable -> Unit
-                        is Event.PaymentFailed -> handlePaymentFailed(event)
-                        is Event.PaymentForwarded -> Unit
-                        is Event.PaymentReceived -> handlePaymentReceived(event)
-                        is Event.PaymentSuccessful -> handlePaymentSuccessful(event)
-                        is Event.SyncCompleted -> handleSyncCompleted()
-                        is Event.SyncProgress -> Unit
-                    }
-                }.onFailure { e ->
-                    Logger.error("LDK event handler error", e, context = TAG)
+            lightningRepo.nodeEvents.collect { handleLdkEvent(it) }
+        }
+    }
+
+    private fun handleLdkEvent(event: Event) {
+        if (!walletRepo.walletExists()) return
+        Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
+        viewModelScope.launch {
+            runCatching {
+                when (event) {
+                    is Event.BalanceChanged -> handleBalanceChanged()
+                    is Event.ChannelClosed -> Unit
+                    is Event.ChannelPending -> Unit
+                    is Event.ChannelReady -> notifyChannelReady(event)
+                    is Event.OnchainTransactionConfirmed -> handleOnchainTransactionConfirmed(event)
+                    is Event.OnchainTransactionEvicted -> handleOnchainTransactionEvicted(event)
+                    is Event.OnchainTransactionReceived -> handleOnchainTransactionReceived(event)
+                    is Event.OnchainTransactionReorged -> handleOnchainTransactionReorged(event)
+                    is Event.OnchainTransactionReplaced -> handleOnchainTransactionReplaced(event)
+                    is Event.PaymentClaimable -> Unit
+                    is Event.PaymentFailed -> handlePaymentFailed(event)
+                    is Event.PaymentForwarded -> Unit
+                    is Event.PaymentReceived -> handlePaymentReceived(event)
+                    is Event.PaymentSuccessful -> handlePaymentSuccessful(event)
+                    is Event.SyncCompleted -> handleSyncCompleted()
+                    is Event.SyncProgress -> Unit
                 }
+            }.onFailure { e ->
+                Logger.error("LDK event handler error", e, context = TAG)
             }
         }
     }
@@ -295,14 +298,14 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun handlePaymentReceived(event: Event.PaymentReceived) {
-        event.paymentHash?.let { paymentHash ->
+        event.paymentHash.let { paymentHash ->
             activityRepo.handlePaymentEvent(paymentHash)
         }
         notifyPaymentReceived(event)
     }
 
     private suspend fun handlePaymentSuccessful(event: Event.PaymentSuccessful) {
-        event.paymentHash?.let { paymentHash ->
+        event.paymentHash.let { paymentHash ->
             activityRepo.handlePaymentEvent(paymentHash)
         }
         notifyPaymentSentOnLightning(event)
@@ -446,7 +449,7 @@ class AppViewModel @Inject constructor(
                     is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
-                    SendEvent.ClearPayConfirmation -> _sendUiState.update { it.copy(shouldConfirmPay = false) }
+                    SendEvent.ClearPayConfirmation -> _sendUiState.update { s -> s.copy(shouldConfirmPay = false) }
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
                     SendEvent.NavToAddress -> setSendEffect(SendEffect.NavigateToAddress)
                 }

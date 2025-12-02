@@ -1,13 +1,10 @@
 package to.bitkit.services
 
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -56,7 +53,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.path.Path
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
@@ -71,6 +67,9 @@ class LightningService @Inject constructor(
 
     @Volatile
     var node: Node? = null
+
+    private val _syncStatusChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val syncStatusChanged: SharedFlow<Unit> = _syncStatusChanged.asSharedFlow()
 
     private lateinit var trustedPeers: List<PeerDetails>
 
@@ -229,6 +228,8 @@ class LightningService @Inject constructor(
             node.syncWallets()
             // launch { setMaxDustHtlcExposureForCurrentChannels() }
         }
+
+        _syncStatusChanged.tryEmit(Unit)
 
         Logger.debug("LDK synced")
     }
@@ -730,13 +731,6 @@ class LightningService @Inject constructor(
     val peers: List<PeerDetails>? get() = node?.listPeers()
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
-
-    fun syncFlow(): Flow<Unit> = flow {
-        while (currentCoroutineContext().isActive) {
-            emit(Unit)
-            delay(Env.walletSyncIntervalSecs.toLong().seconds)
-        }
-    }.flowOn(bgDispatcher)
     // endregion
 
     companion object {
