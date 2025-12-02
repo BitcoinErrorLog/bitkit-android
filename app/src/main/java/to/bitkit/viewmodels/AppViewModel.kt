@@ -223,16 +223,17 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    @Suppress("CyclomaticComplexMethod")
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
             lightningRepo.nodeEvents.collect { handleLdkEvent(it) }
         }
     }
 
+    @Suppress("CyclomaticComplexMethod")
     private fun handleLdkEvent(event: Event) {
         if (!walletRepo.walletExists()) return
         Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
+
         viewModelScope.launch {
             runCatching {
                 when (event) {
