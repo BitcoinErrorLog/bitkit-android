@@ -264,22 +264,7 @@ fun SendRecipientScreen(
 
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_contact),
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .size(40.dp)
-                            .background(Colors.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_users),
-                            contentDescription = null,
-                            tint = Colors.Brand,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                },
+                icon = R.drawable.ic_users,
                 modifier = Modifier.testTag("RecipientContact")
             ) {
                 scope.launch {
@@ -289,22 +274,7 @@ fun SendRecipientScreen(
 
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_invoice),
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .size(40.dp)
-                            .background(Colors.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_clipboard_text),
-                            contentDescription = null,
-                            tint = Colors.Brand,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                },
+                icon = R.drawable.ic_clipboard_text,
                 modifier = Modifier.testTag("RecipientInvoice")
             ) {
                 onEvent(SendEvent.Paste)
@@ -312,22 +282,7 @@ fun SendRecipientScreen(
 
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_manual),
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .size(40.dp)
-                            .background(Colors.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_pencil_simple),
-                            contentDescription = null,
-                            tint = Colors.Brand,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                },
+                icon = R.drawable.ic_pencil_simple,
                 modifier = Modifier.testTag("RecipientManual")
             ) {
                 onEvent(SendEvent.EnterManually)
@@ -376,7 +331,8 @@ private fun CameraPreviewWithControls(
             )
         }
 
-        BodyMSB("Scan QR",
+        BodyMSB(
+            "Scan QR",
             color = Colors.White,
             modifier = Modifier
                 .padding(top = 31.dp)
