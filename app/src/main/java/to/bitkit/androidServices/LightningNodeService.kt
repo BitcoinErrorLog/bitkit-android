@@ -60,6 +60,7 @@ class LightningNodeService : Service() {
                 lightningRepo.start(
                     eventHandler = { event ->
                         walletRepo.refreshBip21ForEvent(event)
+                        handlePaymentReceived(event)
                     }
                 ).onSuccess {
                     val notification = createNotification()
@@ -70,16 +71,11 @@ class LightningNodeService : Service() {
                     walletRepo.syncBalances()
                 }
             }
-
-            launch {
-                ldkNodeEventBus.events.collect { event ->
-                    handleBackgroundEvent(event)
-                }
-            }
         }
     }
 
-    private suspend fun handleBackgroundEvent(event: Event) {
+    private suspend fun handlePaymentReceived(event: Event) {
+        if (event !in listOf(Event.PaymentReceived, Event.OnchainTransactionReceived)) return
         val command = NotifyPaymentReceived.Command.from(event, includeNotification = true) ?: return
 
         notifyPaymentReceivedHandler(command).onSuccess { result ->

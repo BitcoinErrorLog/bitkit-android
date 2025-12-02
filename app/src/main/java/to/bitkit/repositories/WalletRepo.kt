@@ -185,7 +185,7 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun refreshBip21ForEvent(event: Event) {
+    suspend fun refreshBip21ForEvent(event: Event) = withContext(bgDispatcher) {
         when (event) {
             is Event.ChannelReady -> {
                 // Only refresh bolt11 if we can now receive on lightning

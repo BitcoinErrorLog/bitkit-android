@@ -33,10 +33,7 @@ sealed interface NotifyPaymentReceived {
                         includeNotification = includeNotification,
                     )
 
-                    else -> {
-                        Logger.warn("Unknown event type: ${event::class.simpleName}")
-                        null
-                    }
+                    else -> null
                 }
         }
     }
