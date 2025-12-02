@@ -281,7 +281,7 @@ private fun ReceiveQrView(
         QrCodeImage(
             content = uri,
             logoPainter = qrLogoPainter,
-            tipMessage = androidx.compose.ui.res.stringResource(R.string.wallet__receive_copied),
+            tipMessage = stringResource(R.string.wallet__receive_copied),
             onBitmapGenerated = { bitmap -> qrBitmap = bitmap },
             testTag = "QRCode",
             modifier = Modifier.weight(1f, fill = false)
@@ -293,7 +293,7 @@ private fun ReceiveQrView(
             verticalAlignment = Alignment.Top,
         ) {
             PrimaryButton(
-                text = androidx.compose.ui.res.stringResource(R.string.common__edit),
+                text = stringResource(R.string.common__edit),
                 size = ButtonSize.Small,
                 onClick = onClickEditInvoice,
                 fullWidth = false,
@@ -313,11 +313,11 @@ private fun ReceiveQrView(
                 modifier = Modifier.testTag("SpecifyInvoiceButton")
             )
             Tooltip(
-                text = androidx.compose.ui.res.stringResource(R.string.wallet__receive_copied),
+                text = stringResource(R.string.wallet__receive_copied),
                 tooltipState = qrButtonTooltipState
             ) {
                 PrimaryButton(
-                    text = androidx.compose.ui.res.stringResource(R.string.common__copy),
+                    text = stringResource(R.string.common__copy),
                     size = ButtonSize.Small,
                     onClick = {
                         context.setClipboardText(uri)
@@ -341,7 +341,7 @@ private fun ReceiveQrView(
                 )
             }
             PrimaryButton(
-                text = androidx.compose.ui.res.stringResource(R.string.common__share),
+                text = stringResource(R.string.common__share),
                 size = ButtonSize.Small,
                 onClick = {
                     qrBitmap?.let { bitmap ->
@@ -377,10 +377,10 @@ fun CjitOnBoardingView(modifier: Modifier = Modifier) {
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Display("Receive on <accent>spending balance</accent>".withAccent(accentColor = Colors.Purple))
+        Display(stringResource(R.string.wallet__receive_onboarding_title).withAccent(accentColor = Colors.Purple))
         VerticalSpacer(8.dp)
         BodyM(
-            "Enjoy instant and cheap\ntransactions with friends, family,\nand merchants.",
+            stringResource(R.string.wallet__receive_onboarding_description),
             color = Colors.White64,
             modifier = Modifier.fillMaxWidth()
         )
@@ -441,7 +441,7 @@ private fun ReceiveDetailsView(
                     // Show both onchain AND lightning if available
                     if (onchainAddress.isNotEmpty()) {
                         CopyAddressCard(
-                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_bitcoin_invoice),
+                            title = stringResource(R.string.wallet__receive_bitcoin_invoice),
                             address = onchainAddress,
                             type = CopyAddressType.ONCHAIN,
                             testTag = "ReceiveOnchainAddress",
@@ -449,7 +449,7 @@ private fun ReceiveDetailsView(
                     }
                     if (cjitInvoice != null || bolt11.isNotEmpty()) {
                         CopyAddressCard(
-                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_lightning_invoice),
+                            title = stringResource(R.string.wallet__receive_lightning_invoice),
                             address = cjitInvoice ?: bolt11,
                             type = CopyAddressType.LIGHTNING,
                             testTag = "ReceiveLightningAddress",
@@ -460,7 +460,7 @@ private fun ReceiveDetailsView(
                 ReceiveTab.SPENDING -> {
                     if (cjitInvoice != null || bolt11.isNotEmpty()) {
                         CopyAddressCard(
-                            title = androidx.compose.ui.res.stringResource(R.string.wallet__receive_lightning_invoice),
+                            title = stringResource(R.string.wallet__receive_lightning_invoice),
                             address = cjitInvoice ?: bolt11,
                             type = CopyAddressType.LIGHTNING,
                             testTag = "ReceiveLightningAddress",
