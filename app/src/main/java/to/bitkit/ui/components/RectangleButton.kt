@@ -40,7 +40,7 @@ fun RectangleButton(
     imageVector: ImageVector? = null,
     iconTint: Color = Colors.White,
     enabled: Boolean = true,
-    iconSize : Dp = 20.dp,
+    iconSize: Dp = 20.dp,
     onClick: () -> Unit = {},
 ) {
     Button(
