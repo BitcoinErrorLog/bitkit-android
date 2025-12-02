@@ -7,19 +7,15 @@ import to.bitkit.models.NotificationDetails
 sealed interface NotifyPaymentReceived {
 
     sealed interface Command : NotifyPaymentReceived {
-        val sats: ULong
-        val paymentHashOrTxId: String
         val includeNotification: Boolean
 
         data class Lightning(
-            override val sats: ULong,
-            override val paymentHashOrTxId: String,
+            val event: Event.PaymentReceived,
             override val includeNotification: Boolean = false,
         ) : Command
 
         data class Onchain(
-            override val sats: ULong,
-            override val paymentHashOrTxId: String,
+            val event: Event.OnchainTransactionReceived,
             override val includeNotification: Boolean = false,
         ) : Command
 
@@ -27,20 +23,15 @@ sealed interface NotifyPaymentReceived {
             fun from(event: Event, includeNotification: Boolean = false): Command? =
                 when (event) {
                     is Event.PaymentReceived -> Lightning(
-                        sats = event.amountMsat / 1000u,
-                        paymentHashOrTxId = event.paymentHash,
+                        event = event,
                         includeNotification = includeNotification,
                     )
 
-                    is Event.OnchainTransactionReceived -> {
-                        val amountSats = event.details.amountSats
-                        Onchain(
-                            sats = amountSats.toULong(),
-                            paymentHashOrTxId = event.txid,
-                            includeNotification = includeNotification,
-                        ).takeIf {
-                            amountSats > 0
-                        }
+                    is Event.OnchainTransactionReceived -> Onchain(
+                        event = event,
+                        includeNotification = includeNotification,
+                    ).takeIf {
+                        event.details.amountSats > 0
                     }
 
                     else -> null

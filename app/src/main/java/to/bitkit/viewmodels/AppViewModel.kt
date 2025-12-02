@@ -275,17 +275,7 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun handleOnchainTransactionReceived(event: Event.OnchainTransactionReceived) {
-        activityRepo.handleOnchainTransactionReceived(event.txid, event.details)
-        if (event.details.amountSats > 0) {
-            val sats = event.details.amountSats.toULong()
-            viewModelScope.launch {
-                delay(DELAY_FOR_ACTIVITY_SYNC_MS)
-                val shouldShow = activityRepo.shouldShowReceivedSheet(event.txid, sats)
-                if (shouldShow) {
-                    notifyPaymentReceived(event)
-                }
-            }
-        }
+        notifyPaymentReceived(event)
     }
 
     private suspend fun handleOnchainTransactionReorged(event: Event.OnchainTransactionReorged) {
@@ -358,12 +348,12 @@ class AppViewModel @Inject constructor(
         if (command is NotifyPaymentReceived.Command.Lightning) {
             val cachedId = cacheStore.data.first().lastLightningPaymentId
             // Skip if this is a replay by ldk-node on startup
-            if (command.paymentHashOrTxId == cachedId) {
+            if (command.event.paymentHash == cachedId) {
                 Logger.debug("Skipping notification for replayed event: $event", context = TAG)
                 return
             }
             // Cache to skip later as needed
-            cacheStore.setLastLightningPayment(command.paymentHashOrTxId)
+            cacheStore.setLastLightningPayment(command.event.paymentHash)
         }
 
         val result = notifyPaymentReceivedHandler(command).getOrNull()
@@ -1948,9 +1938,6 @@ class AppViewModel @Inject constructor(
 
         /**How long user needs to stay on the home screen before he see this prompt*/
         private const val CHECK_DELAY_MILLIS = 2000L
-
-        /** Delay to allow activity sync before checking if received sheet should be shown */
-        private const val DELAY_FOR_ACTIVITY_SYNC_MS = 500L
     }
 }
 

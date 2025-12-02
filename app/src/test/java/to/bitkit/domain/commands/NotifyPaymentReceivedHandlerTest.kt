@@ -4,8 +4,12 @@ import android.content.Context
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
 import org.junit.Test
+import org.lightningdevkit.ldknode.Event
+import org.lightningdevkit.ldknode.TransactionDetails
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -62,7 +66,11 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
 
     @Test
     fun `lightning payment returns ShowSheet`() = test {
-        val command = NotifyPaymentReceived.Command.Lightning(sats = 1000uL, paymentHashOrTxId = "hash123")
+        val event = mock<Event.PaymentReceived> {
+            on { amountMsat } doReturn 1000000uL
+            on { paymentHash } doReturn "hash123"
+        }
+        val command = NotifyPaymentReceived.Command.Lightning(event = event)
 
         val result = sut(command)
 
@@ -77,9 +85,12 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
 
     @Test
     fun `lightning payment returns ShowNotification when includeNotification is true`() = test {
+        val event = mock<Event.PaymentReceived> {
+            on { amountMsat } doReturn 1000000uL
+            on { paymentHash } doReturn "hash123"
+        }
         val command = NotifyPaymentReceived.Command.Lightning(
-            sats = 1000uL,
-            paymentHashOrTxId = "hash123",
+            event = event,
             includeNotification = true,
         )
 
@@ -96,8 +107,15 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
 
     @Test
     fun `onchain payment returns ShowSheet when shouldShowReceivedSheet returns true`() = test {
+        val details = mock<TransactionDetails> {
+            on { amountSats } doReturn 5000L
+        }
+        val event = mock<Event.OnchainTransactionReceived> {
+            on { txid } doReturn "txid456"
+            on { this.details } doReturn details
+        }
         whenever(activityRepo.shouldShowReceivedSheet(any(), any())).thenReturn(true)
-        val command = NotifyPaymentReceived.Command.Onchain(sats = 5000uL, paymentHashOrTxId = "txid456")
+        val command = NotifyPaymentReceived.Command.Onchain(event = event)
 
         val result = sut(command)
 
@@ -112,8 +130,15 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
 
     @Test
     fun `onchain payment returns Skip when shouldShowReceivedSheet is false`() = test {
+        val details = mock<TransactionDetails> {
+            on { amountSats } doReturn 5000L
+        }
+        val event = mock<Event.OnchainTransactionReceived> {
+            on { txid } doReturn "txid456"
+            on { this.details } doReturn details
+        }
         whenever(activityRepo.shouldShowReceivedSheet(any(), any())).thenReturn(false)
-        val command = NotifyPaymentReceived.Command.Onchain(sats = 5000uL, paymentHashOrTxId = "txid456")
+        val command = NotifyPaymentReceived.Command.Onchain(event = event)
 
         val result = sut(command)
 
@@ -123,21 +148,36 @@ class NotifyPaymentReceivedHandlerTest : BaseUnitTest() {
     }
 
     @Test
-    fun `onchain payment calls shouldShowReceivedSheet with correct parameters`() = test {
+    fun `onchain payment calls handleOnchainTransactionReceived before shouldShowReceivedSheet`() = test {
+        val details = mock<TransactionDetails> {
+            on { amountSats } doReturn 7500L
+        }
+        val event = mock<Event.OnchainTransactionReceived> {
+            on { txid } doReturn "txid789"
+            on { this.details } doReturn details
+        }
         whenever(activityRepo.shouldShowReceivedSheet(any(), any())).thenReturn(true)
-        val command = NotifyPaymentReceived.Command.Onchain(sats = 7500uL, paymentHashOrTxId = "txid789")
+        val command = NotifyPaymentReceived.Command.Onchain(event = event)
 
         sut(command)
 
-        verify(activityRepo).shouldShowReceivedSheet("txid789", 7500uL)
+        inOrder(activityRepo) {
+            verify(activityRepo).handleOnchainTransactionReceived("txid789", details)
+            verify(activityRepo).shouldShowReceivedSheet("txid789", 7500uL)
+        }
     }
 
     @Test
-    fun `lightning payment does not call shouldShowReceivedSheet`() = test {
-        val command = NotifyPaymentReceived.Command.Lightning(sats = 1000uL, paymentHashOrTxId = "hash123")
+    fun `lightning payment does not call onchain-specific methods`() = test {
+        val event = mock<Event.PaymentReceived> {
+            on { amountMsat } doReturn 1000000uL
+            on { paymentHash } doReturn "hash123"
+        }
+        val command = NotifyPaymentReceived.Command.Lightning(event = event)
 
         sut(command)
 
+        verify(activityRepo, never()).handleOnchainTransactionReceived(any(), any())
         verify(activityRepo, never()).shouldShowReceivedSheet(any(), any())
     }
 }
