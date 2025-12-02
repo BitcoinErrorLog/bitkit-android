@@ -71,12 +71,14 @@ fun RgsServerScreen(
                     type = Toast.ToastType.SUCCESS,
                     title = context.getString(R.string.settings__rgs__update_success_title),
                     description = context.getString(R.string.settings__rgs__update_success_description),
+                    testTag = "RgsUpdatedToast",
                 )
             } else {
                 app.toast(
                     type = Toast.ToastType.ERROR,
                     title = context.getString(R.string.wallet__ldk_start_error_title),
                     description = result.exceptionOrNull()?.message ?: "Unknown error",
+                    testTag = "RgsErrorToast",
                 )
             }
             viewModel.clearConnectionResult()
