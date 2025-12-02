@@ -319,10 +319,10 @@ fun ContentView(
                         walletIsInitializing = false
                     }
                 },
-                isRestoring = restoreState.isRestoring(),
+                isRestoring = restoreState.isOngoing(),
             )
         }
-    } else if (restoreState is RestoreState.BackupRestoreCompleted) {
+    } else if (restoreState is RestoreState.Completed) {
         WalletRestoreSuccessView(
             onContinue = { walletViewModel.onRestoreContinue() },
         )
