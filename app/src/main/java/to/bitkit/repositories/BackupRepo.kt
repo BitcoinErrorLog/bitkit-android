@@ -484,8 +484,8 @@ class BackupRepo @Inject constructor(
         return@withContext try {
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
-                val cleanedUp = parsed.cache.copy(onchainAddress = "") // Force address rotation
-                cacheStore.update { cleanedUp }
+                val cleanCache = parsed.cache.resetBip21() // Force address rotation
+                cacheStore.update { cleanCache }
                 Logger.debug("Restored caches: ${jsonLogOf(parsed.cache.copy(cachedRates = emptyList()))}", TAG)
                 onCacheRestored()
                 preActivityMetadataRepo.upsertPreActivityMetadata(parsed.tagMetadata).getOrNull()

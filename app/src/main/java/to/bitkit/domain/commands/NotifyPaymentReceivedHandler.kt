@@ -38,26 +38,32 @@ class NotifyPaymentReceivedHandler @Inject constructor(
             val shouldShow = when (command) {
                 is NotifyPaymentReceived.Command.Lightning -> true
                 is NotifyPaymentReceived.Command.Onchain -> {
+                    activityRepo.handleOnchainTransactionReceived(command.event.txid, command.event.details)
                     delay(DELAY_FOR_ACTIVITY_SYNC_MS)
-                    activityRepo.shouldShowReceivedSheet(command.paymentHashOrTxId, command.sats)
+                    activityRepo.shouldShowReceivedSheet(command.event.txid, command.event.details.amountSats.toULong())
                 }
             }
 
             if (!shouldShow) return@runCatching NotifyPaymentReceived.Result.Skip
 
-            val satsLong = command.sats.toLong()
             val details = NewTransactionSheetDetails(
                 type = when (command) {
                     is NotifyPaymentReceived.Command.Lightning -> NewTransactionSheetType.LIGHTNING
                     is NotifyPaymentReceived.Command.Onchain -> NewTransactionSheetType.ONCHAIN
                 },
                 direction = NewTransactionSheetDirection.RECEIVED,
-                paymentHashOrTxId = command.paymentHashOrTxId,
-                sats = satsLong,
+                paymentHashOrTxId = when (command) {
+                    is NotifyPaymentReceived.Command.Lightning -> command.event.paymentHash
+                    is NotifyPaymentReceived.Command.Onchain -> command.event.txid
+                },
+                sats = when (command) {
+                    is NotifyPaymentReceived.Command.Lightning -> (command.event.amountMsat / 1000u).toLong()
+                    is NotifyPaymentReceived.Command.Onchain -> command.event.details.amountSats
+                },
             )
 
             if (command.includeNotification) {
-                val notification = buildNotificationContent(satsLong)
+                val notification = buildNotificationContent(details.sats)
                 NotifyPaymentReceived.Result.ShowNotification(details, notification)
             } else {
                 NotifyPaymentReceived.Result.ShowSheet(details)
@@ -97,8 +103,8 @@ class NotifyPaymentReceivedHandler @Inject constructor(
         const val TAG = "NotifyPaymentReceivedHandler"
 
         /**
-         * Delay before calling `shouldShowPaymentReceived` for onchain transactions to allow ActivityRepo
-         * to sync payments before we check for RBF replacement or channel closure.
+         * Delay after syncing onchain transaction to allow the database to fully process
+         * the transaction before checking for RBF replacement or channel closure.
          */
         private const val DELAY_FOR_ACTIVITY_SYNC_MS = 500L
     }
