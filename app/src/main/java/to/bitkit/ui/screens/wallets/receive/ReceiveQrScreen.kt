@@ -245,7 +245,13 @@ fun ReceiveQrScreen(
                         }
                     },
                     fullWidth = true,
-                    modifier = Modifier.testTag("ReceiveToggleButton")
+                    modifier = Modifier.testTag(
+                        if (showDetails) {
+                            "QRCode"
+                        } else {
+                            "ShowDetails"
+                        }
+                    )
                 )
             }
 
