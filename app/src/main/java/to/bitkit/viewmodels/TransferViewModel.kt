@@ -36,6 +36,7 @@ import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.TransferType
+import to.bitkit.models.safe
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.LightningRepo
@@ -304,7 +305,7 @@ class TransferViewModel @Inject constructor(
                 maxLspFee = estimate.feeSat
 
                 // Calculate the available balance to send after LSP fee
-                val balanceAfterLspFee = availableAmount - maxLspFee
+                val balanceAfterLspFee = availableAmount.safe() - maxLspFee.safe()
 
                 _spendingUiState.update {
                     // Calculate the max available to send considering the current balance and LSP policy
@@ -380,11 +381,11 @@ class TransferViewModel @Inject constructor(
         val maxChannelSize1 = (maxChannelSizeSat.toDouble() * 0.98).roundToLong().toULong()
 
         // The maximum channel size the user can open including existing channels
-        val maxChannelSize2 = (maxChannelSize1 - channelsSize).coerceAtLeast(0u)
+        val maxChannelSize2 = maxChannelSize1.safe() - channelsSize.safe()
         val maxChannelSizeAvailableToIncrease = min(maxChannelSize1, maxChannelSize2)
 
         val minLspBalance = getMinLspBalance(clientBalanceSat, minChannelSizeSat)
-        val maxLspBalance = (maxChannelSizeAvailableToIncrease - clientBalanceSat).coerceAtLeast(0u)
+        val maxLspBalance = maxChannelSizeAvailableToIncrease.safe() - clientBalanceSat.safe()
         val defaultLspBalance = getDefaultLspBalance(clientBalanceSat, maxLspBalance)
         val maxClientBalance = getMaxClientBalance(maxChannelSizeAvailableToIncrease)
 
@@ -436,11 +437,11 @@ class TransferViewModel @Inject constructor(
         }
 
         val lspBalance = if (clientBalanceSat < threshold1) { // 0-225€: LSP balance = 450€ - client balance
-            defaultLspBalanceSats - clientBalanceSat
+            defaultLspBalanceSats.safe() - clientBalanceSat.safe()
         } else if (clientBalanceSat < threshold2) { // 225-495€: LSP balance = client balance
             clientBalanceSat
         } else if (clientBalanceSat < maxLspBalance) { // 495-950€: LSP balance = max - client balance
-            maxLspBalance - clientBalanceSat
+            maxLspBalance.safe() - clientBalanceSat.safe()
         } else {
             maxLspBalance
         }
@@ -452,7 +453,7 @@ class TransferViewModel @Inject constructor(
         // LSP balance must be at least 2.5% of the channel size for LDK to accept (reserve balance)
         val ldkMinimum = (clientBalance.toDouble() * 0.025).toULong()
         // Channel size must be at least minChannelSize
-        val lspMinimum = if (minChannelSize > clientBalance) minChannelSize - clientBalance else 0u
+        val lspMinimum = minChannelSize.safe() - clientBalance.safe()
 
         return max(ldkMinimum, lspMinimum)
     }
@@ -461,7 +462,7 @@ class TransferViewModel @Inject constructor(
         // Remote balance must be at least 2.5% of the channel size for LDK to accept (reserve balance)
         val minRemoteBalance = (maxChannelSize.toDouble() * 0.025).toULong()
 
-        return maxChannelSize - minRemoteBalance
+        return maxChannelSize.safe() - minRemoteBalance.safe()
     }
 
     /** Calculates the total value of channels connected to Blocktank nodes */
