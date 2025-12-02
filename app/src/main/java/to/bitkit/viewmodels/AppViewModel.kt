@@ -644,7 +644,7 @@ class AppViewModel @Inject constructor(
         resetSendState()
         resetQuickPayData()
 
-        // TODO: wrap the bindings `decode` fn in a `CoreService` method and call it from here
+        @Suppress("ForbiddenComment") // TODO: wrap `decode` from bindings in a `CoreService` method and call that one
         val scan = runCatching { decode(result) }
             .onFailure { Logger.error("Failed to decode scan data: '$result'", it, context = TAG) }
             .onSuccess { Logger.info("Handling decoded scan data: $it", context = TAG) }

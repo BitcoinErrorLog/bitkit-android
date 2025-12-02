@@ -15,13 +15,13 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import to.bitkit.data.SettingsStore
 import to.bitkit.ext.from
+import to.bitkit.models.BalanceState
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LightningState
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WalletState
-import to.bitkit.models.BalanceState
 import to.bitkit.test.BaseUnitTest
 import to.bitkit.viewmodels.RestoreState
 import to.bitkit.viewmodels.WalletViewModel
