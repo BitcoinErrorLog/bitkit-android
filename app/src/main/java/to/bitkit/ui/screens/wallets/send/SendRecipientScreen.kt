@@ -331,12 +331,9 @@ private fun CameraPreviewWithControls(
             )
         }
 
-        BodyMSB(
-            "Scan QR",
-            color = Colors.White,
-            modifier = Modifier
-                .padding(top = 31.dp)
-                .align(Alignment.TopCenter)
+        BodyMSB("Scan QR", color = Colors.White, modifier = Modifier
+            .padding(top = 31.dp)
+            .align(Alignment.TopCenter)
         )
 
         // Flashlight button (top-right)
