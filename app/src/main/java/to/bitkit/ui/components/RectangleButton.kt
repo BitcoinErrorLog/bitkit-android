@@ -79,10 +79,10 @@ fun RectangleButton(
 
 @Composable
 private fun CircularIcon(
-    painter: Painter? = null,
-    imageVector: ImageVector? = null,
     iconTint: Color,
     iconSize: Dp,
+    painter: Painter? = null,
+    imageVector: ImageVector? = null,
 ) {
     Box(
         modifier = Modifier
