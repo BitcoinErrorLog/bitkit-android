@@ -39,8 +39,12 @@ class NotifyPaymentReceivedHandler @Inject constructor(
                 is NotifyPaymentReceived.Command.Lightning -> true
                 is NotifyPaymentReceived.Command.Onchain -> {
                     activityRepo.handleOnchainTransactionReceived(command.event.txid, command.event.details)
-                    delay(DELAY_FOR_ACTIVITY_SYNC_MS)
-                    activityRepo.shouldShowReceivedSheet(command.event.txid, command.event.details.amountSats.toULong())
+                    if (command.event.details.amountSats > 0) {
+                        delay(DELAY_FOR_ACTIVITY_SYNC_MS)
+                        activityRepo.shouldShowReceivedSheet(command.event.txid, command.event.details.amountSats.toULong())
+                    } else {
+                        false
+                    }
                 }
             }
 

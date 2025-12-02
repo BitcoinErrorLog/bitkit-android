@@ -3,6 +3,7 @@ package to.bitkit.domain.commands
 import org.lightningdevkit.ldknode.Event
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NotificationDetails
+import to.bitkit.utils.Logger
 
 sealed interface NotifyPaymentReceived {
 
@@ -30,11 +31,12 @@ sealed interface NotifyPaymentReceived {
                     is Event.OnchainTransactionReceived -> Onchain(
                         event = event,
                         includeNotification = includeNotification,
-                    ).takeIf {
-                        event.details.amountSats > 0
-                    }
+                    )
 
-                    else -> null
+                    else -> {
+                        Logger.warn("Unknown event type: ${event::class.simpleName}")
+                        null
+                    }
                 }
         }
     }
