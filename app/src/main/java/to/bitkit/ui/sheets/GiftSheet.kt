@@ -33,7 +33,7 @@ fun GiftSheet(
 
     val onSuccessState = rememberUpdatedState { details: NewTransactionSheetDetails ->
         appViewModel.hideSheet()
-        appViewModel.showNewTransactionSheet(details)
+        appViewModel.showTransactionSheet(details)
     }
 
     LaunchedEffect(Unit) {

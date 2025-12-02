@@ -11,7 +11,14 @@ data class NewTransactionSheetDetails(
     val paymentHashOrTxId: String? = null,
     val sats: Long = 0,
     val isLoadingDetails: Boolean = false,
-)
+) {
+    companion object {
+        val EMPTY = NewTransactionSheetDetails(
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+        )
+    }
+}
 
 @Serializable
 enum class NewTransactionSheetType {

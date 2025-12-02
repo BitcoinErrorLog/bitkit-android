@@ -37,7 +37,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -316,7 +315,7 @@ class AppViewModel @Inject constructor(
         val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
         if (cjitEntry != null) {
             val amount = channel.amountOnClose.toLong()
-            showNewTransactionSheet(
+            showTransactionSheet(
                 NewTransactionSheetDetails(
                     type = NewTransactionSheetType.LIGHTNING,
                     direction = NewTransactionSheetDirection.RECEIVED,
@@ -359,7 +358,7 @@ class AppViewModel @Inject constructor(
         val result = notifyPaymentReceivedHandler(command).getOrNull()
         if (result !is NotifyPaymentReceived.Result.ShowSheet) return
 
-        showNewTransactionSheet(result.sheet)
+        showTransactionSheet(result.sheet)
     }
 
     private fun notifyTransactionUnconfirmed() = toast(
@@ -1223,10 +1222,10 @@ class AppViewModel @Inject constructor(
     }
 
     fun onClickActivityDetail() {
-        val activityType = _newTransaction.value.type.toActivityFilter()
-        val txType = _newTransaction.value.direction.toTxType()
-        val paymentHashOrTxId = _newTransaction.value.paymentHashOrTxId ?: return
-        _newTransaction.update { it.copy(isLoadingDetails = true) }
+        val activityType = _transactionSheet.value.type.toActivityFilter()
+        val txType = _transactionSheet.value.direction.toTxType()
+        val paymentHashOrTxId = _transactionSheet.value.paymentHashOrTxId ?: return
+        _transactionSheet.update { it.copy(isLoadingDetails = true) }
         viewModelScope.launch {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
@@ -1235,13 +1234,13 @@ class AppViewModel @Inject constructor(
                 retry = true
             ).onSuccess { activity ->
                 hideNewTransactionSheet()
-                _newTransaction.update { it.copy(isLoadingDetails = false) }
+                _transactionSheet.update { it.copy(isLoadingDetails = false) }
                 val nextRoute = Routes.ActivityDetail(activity.rawId())
                 mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
             }.onFailure { e ->
                 Logger.error(msg = "Activity not found", context = TAG)
                 toast(e)
-                _newTransaction.update { it.copy(isLoadingDetails = false) }
+                _transactionSheet.update { it.copy(isLoadingDetails = false) }
             }
         }
     }
@@ -1446,18 +1445,10 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region TxSheet
-    private var _isNewTransactionSheetEnabled = true
-    private val _showNewTransaction = MutableStateFlow(false)
-    val showNewTransaction: StateFlow<Boolean> = _showNewTransaction.asStateFlow()
+    private var _isTransactionSheetEnabled = true
 
-    private val _newTransaction = MutableStateFlow(
-        NewTransactionSheetDetails(
-            type = NewTransactionSheetType.LIGHTNING,
-            direction = NewTransactionSheetDirection.RECEIVED,
-        )
-    )
-
-    val newTransaction = _newTransaction.asStateFlow()
+    private val _transactionSheet = MutableStateFlow(NewTransactionSheetDetails.EMPTY)
+    val transactionSheet = _transactionSheet.asStateFlow()
 
     private val _successSendUiState = MutableStateFlow(
         NewTransactionSheetDetails(
@@ -1468,32 +1459,31 @@ class AppViewModel @Inject constructor(
 
     val successSendUiState = _successSendUiState.asStateFlow()
 
-    fun setNewTransactionSheetEnabled(enabled: Boolean) {
-        _isNewTransactionSheetEnabled = enabled
+    fun enabledTransactionSheet(enabled: Boolean) {
+        _isTransactionSheetEnabled = enabled
     }
 
-    fun showNewTransactionSheet(
+    fun showTransactionSheet(
         details: NewTransactionSheetDetails,
     ) = viewModelScope.launch {
         if (backupRepo.isRestoring.value) return@launch
 
-        if (!_isNewTransactionSheetEnabled) {
+        if (!_isTransactionSheetEnabled) {
             Logger.verbose("NewTransactionSheet blocked by isNewTransactionSheetEnabled=false", context = TAG)
             return@launch
         }
 
-        hideSheet()
-
-        _showNewTransaction.update { true }
-        _newTransaction.update { details }
+        _transactionSheet.update { details }
     }
 
-    fun hideNewTransactionSheet() = _showNewTransaction.update { false }
+    fun hideNewTransactionSheet() {
+        _transactionSheet.update { NewTransactionSheetDetails.EMPTY }
+    }
 
     fun consumePaymentReceivedInBackground() = viewModelScope.launch(bgDispatcher) {
         val details = cacheStore.data.first().backgroundReceive ?: return@launch
         cacheStore.clearBackgroundReceive()
-        showNewTransactionSheet(details)
+        showTransactionSheet(details)
     }
     // endregion
 
@@ -1713,8 +1703,6 @@ class AppViewModel @Inject constructor(
             Logger.debug("Timed sheet already active, skipping check")
             return
         }
-
-        if (backupRepo.isRestoring.value) return
 
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())

@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
 import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE
+import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.ui.components.AuthCheckView
 import to.bitkit.ui.components.InactivityTracker
 import to.bitkit.ui.components.IsOnlineTracker
@@ -168,8 +169,8 @@ class MainActivity : FragmentActivity() {
                     }
                 )
 
-                val showNewTransaction by appViewModel.showNewTransaction.collectAsStateWithLifecycle()
-                if (showNewTransaction) {
+                val transactionSheetDetails by appViewModel.transactionSheet.collectAsStateWithLifecycle()
+                if (transactionSheetDetails != NewTransactionSheetDetails.EMPTY) {
                     NewTransactionSheet(
                         appViewModel = appViewModel,
                         currencyViewModel = currencyViewModel,
