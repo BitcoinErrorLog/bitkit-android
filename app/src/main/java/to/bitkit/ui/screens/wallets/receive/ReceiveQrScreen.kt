@@ -101,6 +101,26 @@ fun ReceiveQrScreen(
         }
     }
 
+    val invoicesByTab = remember(
+        visibleTabs,
+        walletState.bip21,
+        walletState.bolt11,
+        walletState.onchainAddress,
+        cjitInvoice,
+        walletState.nodeLifecycleState
+    ) {
+        visibleTabs.associateWith { tab ->
+            getInvoiceForTab(
+                tab = tab,
+                bip21 = walletState.bip21,
+                bolt11 = walletState.bolt11,
+                cjitInvoice = cjitInvoice,
+                isNodeRunning = walletState.nodeLifecycleState.isRunning(),
+                onchainAddress = walletState.onchainAddress
+            )
+        }
+    }
+
     // Determine initial tab index
     val initialTabIndex = remember(initialTab, visibleTabs) {
         if (initialTab != null) {
@@ -155,7 +175,7 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = lazyListState.firstVisibleItemIndex,
+                currentTabIndex = visibleTabs.indexOf(selectedTab),
                 selectedColor = when (selectedTab) {
                     ReceiveTab.SAVINGS -> Colors.Brand
                     ReceiveTab.AUTO -> Colors.White
@@ -212,14 +232,7 @@ fun ReceiveQrScreen(
                                 }
 
                                 else -> {
-                                    val invoice = getInvoiceForTab(
-                                        tab = tab,
-                                        bip21 = walletState.bip21,
-                                        bolt11 = walletState.bolt11,
-                                        cjitInvoice = cjitInvoice,
-                                        isNodeRunning = walletState.nodeLifecycleState.isRunning(),
-                                        onchainAddress = walletState.onchainAddress
-                                    )
+                                    val invoice = invoicesByTab[tab].orEmpty()
 
                                     ReceiveQrView(
                                         uri = invoice,
