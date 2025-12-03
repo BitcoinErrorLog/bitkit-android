@@ -230,46 +230,42 @@ fun ReceiveQrScreen(
                     items = visibleTabs,
                     key = { _, tab -> tab.name }
                 ) { _, tab ->
-                    Box(
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillParentMaxWidth()
                             .fillParentMaxHeight()
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            when {
-                                showingCjitOnboarding && tab == ReceiveTab.SPENDING -> {
-                                    CjitOnBoardingView(
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+                        when {
+                            showingCjitOnboarding && tab == ReceiveTab.SPENDING -> {
+                                CjitOnBoardingView(
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
-                                showDetails -> {
-                                    ReceiveDetailsView(
-                                        tab = tab,
-                                        walletState = walletState,
-                                        cjitInvoice = cjitInvoice,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+                            showDetails -> {
+                                ReceiveDetailsView(
+                                    tab = tab,
+                                    walletState = walletState,
+                                    cjitInvoice = cjitInvoice,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
-                                else -> {
-                                    val invoice = invoicesByTab[tab].orEmpty()
+                            else -> {
+                                val invoice = invoicesByTab[tab].orEmpty()
 
-                                    ReceiveQrView(
-                                        uri = invoice,
-                                        qrLogoPainter = painterResource(getQrLogoResource(tab)),
-                                        onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
-                                            onClickEditInvoice
-                                        } else {
-                                            onClickReceiveCjit
-                                        },
-                                        tab = tab,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
+                                ReceiveQrView(
+                                    uri = invoice,
+                                    qrLogoPainter = painterResource(getQrLogoResource(tab)),
+                                    onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
+                                        onClickEditInvoice
+                                    } else {
+                                        onClickReceiveCjit
+                                    },
+                                    tab = tab,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }
