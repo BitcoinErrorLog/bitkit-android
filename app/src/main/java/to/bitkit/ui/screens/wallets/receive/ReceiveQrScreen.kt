@@ -196,7 +196,7 @@ fun ReceiveQrScreen(
             LazyRow(
                 state = lazyListState,
                 flingBehavior = snapBehavior,
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 userScrollEnabled = true,
                 modifier = Modifier
                     .weight(1f)
