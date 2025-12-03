@@ -22,7 +22,8 @@ fun getInvoiceForTab(
 ): String {
     return when (tab) {
         ReceiveTab.SAVINGS -> {
-            onchainAddress
+            // Return BIP21 without lightning parameter to preserve amount and other parameters
+            removeLightningFromBip21(bip21, onchainAddress)
         }
 
         ReceiveTab.AUTO -> {
@@ -35,6 +36,25 @@ fun getInvoiceForTab(
                 ?: bolt11
         }
     }
+}
+
+/**
+ * Removes the lightning parameter from a BIP21 URI while preserving all other parameters.
+ *
+ * @param bip21 Full BIP21 URI (e.g., bitcoin:address?amount=0.001&lightning=lnbc...)
+ * @param fallbackAddress Fallback address if BIP21 is empty or invalid
+ * @return BIP21 URI without the lightning parameter (e.g., bitcoin:address?amount=0.001)
+ */
+private fun removeLightningFromBip21(bip21: String, fallbackAddress: String): String {
+    if (bip21.isBlank()) return fallbackAddress
+
+    // Remove lightning parameter using regex
+    // Handles both "?lightning=..." and "&lightning=..." cases
+    val withoutLightning = bip21
+        .replace(Regex("[?&]lightning=[^&]*"), "")
+        .replace(Regex("\\?$"), "") // Remove trailing ? if it's the last char
+
+    return withoutLightning.ifBlank { fallbackAddress }
 }
 
 /**
