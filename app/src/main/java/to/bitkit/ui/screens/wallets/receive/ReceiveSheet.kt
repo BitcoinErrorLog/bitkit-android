@@ -11,14 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
-import to.bitkit.R
-import to.bitkit.models.Toast
 import to.bitkit.repositories.LightningState
 import to.bitkit.ui.screens.wallets.send.AddTagScreen
 import to.bitkit.ui.shared.modifiers.sheetHeight
@@ -34,7 +31,6 @@ import to.bitkit.viewmodels.WalletViewModelEffects
 fun ReceiveSheet(
     navigateToExternalConnection: () -> Unit,
     walletState: MainUiState,
-    toast: (Toast) -> Unit,
     editInvoiceAmountViewModel: AmountInputViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -46,9 +42,6 @@ fun ReceiveSheet(
     val showCreateCjit = remember { mutableStateOf(false) }
     val cjitEntryDetails = remember { mutableStateOf<CjitEntryDetails?>(null) }
     val lightningState: LightningState by wallet.lightningState.collectAsStateWithLifecycle()
-
-    val geoBlockedTitle = stringResource(R.string.wallet__receive_geo_blocked_title)
-    val geoBlockedDescription = stringResource(R.string.wallet__receive_geo_blocked_description)
 
     LaunchedEffect(Unit) {
         wallet.resetPreActivityMetadataTagsForCurrentInvoice()
@@ -86,14 +79,7 @@ fun ReceiveSheet(
                     walletState = walletState,
                     onClickReceiveCjit = {
                         if (lightningState.isGeoBlocked) {
-                            toast(
-                                Toast(
-                                    type = Toast.ToastType.ERROR,
-                                    title = geoBlockedTitle,
-                                    description = geoBlockedDescription,
-                                    autoHide = true,
-                                )
-                            )
+                            navController.navigate(ReceiveRoute.GeoBlock)
                         } else {
                             showCreateCjit.value = true
                             navController.navigate(ReceiveRoute.Amount)
