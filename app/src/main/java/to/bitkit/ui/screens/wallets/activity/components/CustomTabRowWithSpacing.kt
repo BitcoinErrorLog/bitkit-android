@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.components.CaptionB
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.Colors
 
 @Composable
@@ -49,7 +49,7 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onTabChange(tab) }
+                            .clickableAlpha { onTabChange(tab) }
                             .padding(vertical = 8.dp)
                             .testTag("Tab-${tab.name.lowercase()}"),
                     ) {
