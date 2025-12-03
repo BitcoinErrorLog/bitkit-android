@@ -290,6 +290,9 @@ class AppViewModel @Inject constructor(
                         is Event.PaymentClaimable -> Unit
                         is Event.PaymentFailed -> Unit
                         is Event.PaymentForwarded -> Unit
+                        else -> {
+                            Logger.warn("Unhandled LDK event: $event", context = TAG)
+                        }
                     }
                 }.onFailure { e ->
                     Logger.error("LDK event handler error", e, context = TAG)

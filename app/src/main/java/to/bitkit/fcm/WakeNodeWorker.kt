@@ -144,6 +144,7 @@ class WakeNodeWorker @AssistedInject constructor(
                     self.deliver()
                 }
             }
+            else -> Unit
         }
     }
 

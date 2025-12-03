@@ -46,8 +46,6 @@ class LdkError(private val inner: LdkException) : AppError("Unknown LDK error.")
         class Build(exception: BuildException) : LdkException {
             override val message = when (exception) {
                 is BuildException.InvalidChannelMonitor -> "Invalid channel monitor."
-                is BuildException.InvalidSeedBytes -> "Invalid seed bytes."
-                is BuildException.InvalidSeedFile -> "Invalid seed file."
                 is BuildException.InvalidSystemTime -> "Invalid system time."
                 is BuildException.InvalidListeningAddresses -> "Invalid listening addresses."
                 is BuildException.ReadFailed -> "Read failed."

@@ -26,6 +26,7 @@ import org.lightningdevkit.ldknode.ElectrumSyncConfig
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.FeeRate
 import org.lightningdevkit.ldknode.Node
+import org.lightningdevkit.ldknode.NodeEntropy
 import org.lightningdevkit.ldknode.NodeException
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -99,13 +100,12 @@ class LightningService @Inject constructor(
 
             configureChainSource(customServerUrl)
             configureGossipSource(customRgsServerUrl)
-
-            setEntropyBip39Mnemonic(mnemonic, passphrase)
         }
 
         Logger.debug("Building node…")
-
         val vssStoreId = vssStoreIdProvider.getVssStoreId(walletIndex)
+
+        val nodeEntropy = NodeEntropy.fromBip39Mnemonic(mnemonic, passphrase)
 
         ServiceQueue.LDK.background {
             node = try {
@@ -119,16 +119,21 @@ class LightningService @Inject constructor(
                         storeId = vssStoreId,
                         lnurlAuthServerUrl = lnurlAuthServerUrl,
                         fixedHeaders = emptyMap(),
+                        nodeEntropy = nodeEntropy,
                     )
                 } else {
                     builder.buildWithVssStoreAndFixedHeaders(
                         vssUrl = vssUrl,
                         storeId = vssStoreId,
                         fixedHeaders = emptyMap(),
+                        nodeEntropy = nodeEntropy,
                     )
                 }
             } catch (e: BuildException) {
                 throw LdkError(e)
+            } finally {
+                // cleanup sensitive data
+                nodeEntropy.destroy()
             }
         }
 
@@ -760,6 +765,8 @@ class LightningService @Inject constructor(
                     "⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason"
                 )
             }
+
+            else -> Logger.info("LDK-node event: $event")
         }
     }
     // endregion

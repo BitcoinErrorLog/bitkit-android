@@ -452,7 +452,6 @@ private fun PreviewDevMode() {
                 nodeLifecycleState = NodeLifecycleState.Running,
                 nodeStatus = NodeStatus(
                     isRunning = true,
-                    isListening = true,
                     currentBestBlock = BestBlock(
                         height = 1000u,
                         blockHash = "0123456789abcDef",
@@ -463,6 +462,7 @@ private fun PreviewDevMode() {
                     latestRgsSnapshotTimestamp = null,
                     latestNodeAnnouncementBroadcastTimestamp = null,
                     latestChannelMonitorArchivalHeight = null,
+                    latestPathfindingScoresSyncTimestamp = null,
                 ),
                 nodeId = "0348a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
                 peers = listOf(Env.Peers.staging),
