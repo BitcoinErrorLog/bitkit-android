@@ -1,12 +1,10 @@
 package to.bitkit.ui.screens.wallets.receive
 
 import android.graphics.Bitmap
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,18 +18,17 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,7 +65,6 @@ import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
-import to.bitkit.ui.shared.animations.TabTransitionAnimations
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -94,17 +90,6 @@ fun ReceiveQrScreen(
     val haptic = LocalHapticFeedback.current
     val hasUsableChannels = walletState.channels.any { it.isUsable }
 
-    // Tab selection state
-    var selectedTab by remember {
-        mutableStateOf(
-            initialTab ?: when {
-                !cjitInvoice.isNullOrEmpty() -> ReceiveTab.SPENDING
-                hasUsableChannels -> ReceiveTab.AUTO
-                else -> ReceiveTab.SAVINGS
-            }
-        )
-    }
-
     var showDetails by remember { mutableStateOf(false) }
 
     val visibleTabs = remember(hasUsableChannels) {
@@ -117,77 +102,85 @@ fun ReceiveQrScreen(
         }
     }
 
-    val currentTabIndex = remember(selectedTab, visibleTabs) {
-        visibleTabs.indexOf(selectedTab)
+    val invoicesByTab = remember(
+        visibleTabs,
+        walletState.bip21,
+        walletState.bolt11,
+        walletState.onchainAddress,
+        cjitInvoice,
+        walletState.nodeLifecycleState
+    ) {
+        visibleTabs.associateWith { tab ->
+            getInvoiceForTab(
+                tab = tab,
+                bip21 = walletState.bip21,
+                bolt11 = walletState.bolt11,
+                cjitInvoice = cjitInvoice,
+                isNodeRunning = walletState.nodeLifecycleState.isRunning(),
+                onchainAddress = walletState.onchainAddress
+            )
+        }
     }
 
-    // HorizontalPager state
+    // Determine initial tab index
+    val initialTabIndex = remember(initialTab, visibleTabs) {
+        if (initialTab != null) {
+            visibleTabs.indexOf(initialTab).coerceAtLeast(0)
+        } else {
+            when {
+                !cjitInvoice.isNullOrEmpty() -> visibleTabs.indexOf(ReceiveTab.SPENDING)
+                hasUsableChannels -> visibleTabs.indexOf(ReceiveTab.AUTO)
+                else -> visibleTabs.indexOf(ReceiveTab.SAVINGS)
+            }.coerceAtLeast(0)
+        }
+    }
+
+    // LazyRow state with snap behavior
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(
-        initialPage = currentTabIndex.coerceAtLeast(0),
-        pageCount = { visibleTabs.size }
+    val lazyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = initialTabIndex
     )
 
-    // Sync: Pager swipes → update selectedTab
-    LaunchedEffect(pagerState.currentPage) {
-        val newTab = visibleTabs.getOrNull(pagerState.currentPage)
-        if (newTab != null && newTab != selectedTab) {
-            selectedTab = newTab
-        }
-    }
+    val snapBehavior = rememberSnapFlingBehavior(
+        lazyListState = lazyListState,
+        snapPosition = SnapPosition.Center
+    )
 
-    // Sync: Validate pager position when tabs change
-    LaunchedEffect(visibleTabs) {
-        if (pagerState.currentPage >= visibleTabs.size) {
-            pagerState.animateScrollToPage(visibleTabs.size - 1)
-        }
-    }
-
-    // Sync: selectedTab changes → scroll pager
-    LaunchedEffect(selectedTab, visibleTabs) {
-        val newIndex = visibleTabs.indexOf(selectedTab)
-        if (newIndex >= 0 && newIndex != pagerState.currentPage) {
-            pagerState.animateScrollToPage(newIndex)
-        }
-    }
-
-    // Track previous tab to determine animation direction
-    var previousTabIndex by remember { mutableIntStateOf(currentTabIndex) }
-
-    // Derive animation direction based on tab index change
-    val isForward by remember {
+    // Calculate current tab based on scroll position for smooth indicator and color updates
+    val selectedTab by remember {
         derivedStateOf {
-            currentTabIndex > previousTabIndex
+            val layoutInfo = lazyListState.layoutInfo
+            val currentIndex = if (layoutInfo.visibleItemsInfo.isEmpty()) {
+                lazyListState.firstVisibleItemIndex
+            } else {
+                val viewportMidpoint = layoutInfo.viewportStartOffset +
+                    (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) / 2
+
+                layoutInfo.visibleItemsInfo
+                    .minByOrNull { item ->
+                        val itemMidpoint = item.offset + item.size / 2
+                        kotlin.math.abs(itemMidpoint - viewportMidpoint)
+                    }
+                    ?.index ?: lazyListState.firstVisibleItemIndex
+            }
+
+            visibleTabs.getOrNull(currentIndex)
+                ?: visibleTabs.firstOrNull()
+                ?: ReceiveTab.SAVINGS
         }
     }
 
-    // Update previous index when current changes
-    LaunchedEffect(currentTabIndex) {
-        previousTabIndex = currentTabIndex
+    // Derive index from selectedTab for tab row indicator
+    val currentTabIndex by remember {
+        derivedStateOf {
+            visibleTabs.indexOf(selectedTab).coerceAtLeast(0)
+        }
     }
 
-    val showingCjitOnboarding = remember(selectedTab, walletState, cjitInvoice) {
-        selectedTab == ReceiveTab.SPENDING &&
-            !hasUsableChannels &&
+    val showingCjitOnboarding = remember(walletState, cjitInvoice, hasUsableChannels) {
+        !hasUsableChannels &&
             walletState.nodeLifecycleState.isRunning() &&
             cjitInvoice.isNullOrEmpty()
-    }
-
-    // Current invoice for display
-    val currentInvoice = remember(selectedTab, walletState, cjitInvoice) {
-        getInvoiceForTab(
-            tab = selectedTab,
-            bip21 = walletState.bip21,
-            bolt11 = walletState.bolt11,
-            cjitInvoice = cjitInvoice,
-            isNodeRunning = walletState.nodeLifecycleState.isRunning(),
-            onchainAddress = walletState.onchainAddress
-        )
-    }
-
-    // QR logo based on selected tab
-    val qrLogoRes = remember(selectedTab) {
-        getQrLogoResource(selectedTab)
     }
 
     Column(
@@ -206,67 +199,49 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = pagerState.currentPage,
-                selectedColor = when (selectedTab) {
-                    ReceiveTab.SAVINGS -> Colors.Brand
-                    ReceiveTab.AUTO -> Colors.White
-                    ReceiveTab.SPENDING -> Colors.Purple
-                },
+                currentTabIndex = currentTabIndex,
+                selectedColor = selectedTab.accentColor,
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    selectedTab = tab
                     val newIndex = visibleTabs.indexOf(tab)
-                    scope.launch { pagerState.animateScrollToPage(newIndex) }
+                    scope.launch {
+                        lazyListState.animateScrollToItem(newIndex)
+                    }
                 }
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // Content area (QR or Details) with HorizontalPager
-            HorizontalPager(
-                state = pagerState,
-                pageSpacing = 16.dp,
+            // Content area (QR or Details) with LazyRow
+            LazyRow(
+                state = lazyListState,
+                flingBehavior = snapBehavior,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                userScrollEnabled = true,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-            ) { page ->
-                val tab = visibleTabs[page]
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // Animated content switcher with direction-aware transitions
-                    AnimatedContent(
-                        targetState = Triple(tab, showDetails, showingCjitOnboarding),
-                        transitionSpec = {
-                            // Only animate tab changes, not showDetails toggle
-                            if (targetState.first != initialState.first) {
-                                TabTransitionAnimations.tabContentTransition(isForward)
-                            } else {
-                                // Instant transition for showDetails toggle
-                                ContentTransform(
-                                    targetContentEnter = EnterTransition.None,
-                                    initialContentExit = ExitTransition.None
-                                )
-                            }
-                        },
-                        contentKey = { (currentTab, details, onboarding) ->
-                            // Use tab + state as key for proper animation
-                            "$currentTab-$details-$onboarding"
-                        },
-                        label = "ReceiveTabContent"
-                    ) { (targetTab, targetShowDetails, targetShowingCjitOnboarding) ->
+            ) {
+                itemsIndexed(
+                    items = visibleTabs,
+                    key = { _, tab -> tab.name }
+                ) { _, tab ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .fillParentMaxHeight()
+                    ) {
                         when {
-                            targetShowingCjitOnboarding -> {
+                            showingCjitOnboarding && tab == ReceiveTab.SPENDING -> {
                                 CjitOnBoardingView(
                                     modifier = Modifier.weight(1f)
                                 )
                             }
 
-                            targetShowDetails -> {
+                            showDetails -> {
                                 ReceiveDetailsView(
-                                    tab = targetTab,
+                                    tab = tab,
                                     walletState = walletState,
                                     cjitInvoice = cjitInvoice,
                                     modifier = Modifier.weight(1f)
@@ -274,15 +249,17 @@ fun ReceiveQrScreen(
                             }
 
                             else -> {
+                                val invoice = invoicesByTab[tab].orEmpty()
+
                                 ReceiveQrView(
-                                    uri = currentInvoice,
-                                    qrLogoPainter = painterResource(qrLogoRes),
+                                    uri = invoice,
+                                    qrLogoPainter = painterResource(getQrLogoResource(tab)),
                                     onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
                                         onClickEditInvoice
                                     } else {
                                         onClickReceiveCjit
                                     },
-                                    tab = targetTab,
+                                    tab = tab,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -294,25 +271,27 @@ fun ReceiveQrScreen(
             Spacer(Modifier.height(24.dp))
 
             AnimatedVisibility(visible = walletState.nodeLifecycleState.isRunning()) {
+                val showCjitButton = showingCjitOnboarding && selectedTab == ReceiveTab.SPENDING
                 PrimaryButton(
                     text = stringResource(
                         when {
-                            showingCjitOnboarding -> R.string.wallet__receive__cjit
+                            showCjitButton -> R.string.wallet__receive__cjit
                             showDetails -> R.string.wallet__receive_show_qr
                             else -> R.string.wallet__receive_show_details
                         }
                     ),
                     icon = {
-                        if (showingCjitOnboarding) {
+                        if (showCjitButton) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_lightning_alt),
                                 tint = Colors.Purple,
                                 contentDescription = null
+
                             )
                         }
                     },
                     onClick = {
-                        if (showingCjitOnboarding) {
+                        if (showCjitButton) {
                             onClickReceiveCjit()
                             showDetails = false
                         } else {
@@ -377,11 +356,7 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
-                        tint = when (tab) {
-                            ReceiveTab.SAVINGS -> Colors.Brand
-                            ReceiveTab.AUTO -> Colors.Brand
-                            ReceiveTab.SPENDING -> Colors.Purple
-                        },
+                        tint = tab.accentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -404,11 +379,7 @@ private fun ReceiveQrView(
                         Icon(
                             painter = painterResource(R.drawable.ic_copy),
                             contentDescription = null,
-                            tint = when (tab) {
-                                ReceiveTab.SAVINGS -> Colors.Brand
-                                ReceiveTab.AUTO -> Colors.Brand
-                                ReceiveTab.SPENDING -> Colors.Purple
-                            },
+                            tint = tab.accentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -429,11 +400,7 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_share),
                         contentDescription = null,
-                        tint = when (tab) {
-                            ReceiveTab.SAVINGS -> Colors.Brand
-                            ReceiveTab.AUTO -> Colors.Brand
-                            ReceiveTab.SPENDING -> Colors.Purple
-                        },
+                        tint = tab.accentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 },
