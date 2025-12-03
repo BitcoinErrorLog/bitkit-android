@@ -107,7 +107,8 @@ fun Modifier.screen(
 
 fun Modifier.primaryButtonStyle(
     isEnabled: Boolean,
-    shape: Shape
+    shape: Shape,
+    primaryColor: Color? = null
 ): Modifier {
     return this
         // Step 1: Add shadow (only when enabled)
@@ -130,7 +131,7 @@ fun Modifier.primaryButtonStyle(
                 Modifier.drawWithContent {
                     // Draw the main gradient background filling entire button
                     val mainBrush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFF2A2A2A), Color(0xFF1C1C1C)),
+                        colors = listOf(primaryColor ?: Color(0xFF2A2A2A), Color(0xFF1C1C1C)),
                         startY = 0f,
                         endY = size.height
                     )

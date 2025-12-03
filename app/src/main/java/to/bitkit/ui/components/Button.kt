@@ -49,7 +49,6 @@ enum class ButtonSize {
         }
 }
 
-@Suppress("UnusedParameter")
 @Composable
 fun PrimaryButton(
     text: String?,
@@ -60,7 +59,7 @@ fun PrimaryButton(
     size: ButtonSize = ButtonSize.Large,
     enabled: Boolean = true,
     fullWidth: Boolean = true,
-    color: Color = Colors.White16, // Deprecated: Color customization no longer supported
+    color: Color? = null,
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
     val buttonShape = MaterialTheme.shapes.large
@@ -86,35 +85,36 @@ fun PrimaryButton(
                 .requiredHeight(size.height)
                 .primaryButtonStyle(
                     isEnabled = enabled && !isLoading,
-                    shape = buttonShape
+                    shape = buttonShape,
+                    primaryColor = color
                 )
                 .padding(contentPadding)
         ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                color = Colors.White32,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(size.height / 2)
-            )
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (icon != null) {
-                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
-                        icon()
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Colors.White32,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(size.height / 2)
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (icon != null) {
+                        Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                            icon()
+                        }
+                    }
+                    text?.let {
+                        Text(
+                            text = text,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
-                text?.let {
-                    Text(
-                        text = text,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-        }
         }
     }
 }
