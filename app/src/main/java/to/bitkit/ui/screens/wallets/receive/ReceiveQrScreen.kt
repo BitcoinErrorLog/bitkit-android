@@ -225,7 +225,7 @@ fun ReceiveQrScreen(
             // Content area (QR or Details) with HorizontalPager
             HorizontalPager(
                 state = pagerState,
-                pageSpacing = 8.dp,
+                pageSpacing = 16.dp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
