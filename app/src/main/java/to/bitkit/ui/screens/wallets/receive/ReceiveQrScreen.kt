@@ -117,6 +117,19 @@ fun ReceiveQrScreen(
         }
     }
 
+    val invoicesByTab = remember(visibleTabs, walletState, cjitInvoice) {
+        visibleTabs.associateWith { tab ->
+            getInvoiceForTab(
+                tab = tab,
+                bip21 = walletState.bip21,
+                bolt11 = walletState.bolt11,
+                cjitInvoice = cjitInvoice,
+                isNodeRunning = walletState.nodeLifecycleState.isRunning(),
+                onchainAddress = walletState.onchainAddress
+            )
+        }
+    }
+
     val currentTabIndex = remember(selectedTab, visibleTabs) {
         visibleTabs.indexOf(selectedTab)
     }
@@ -154,14 +167,10 @@ fun ReceiveQrScreen(
     // Track previous tab to determine animation direction
     var previousTabIndex by remember { mutableIntStateOf(currentTabIndex) }
 
-    // Derive animation direction based on tab index change
     val isForward by remember {
-        derivedStateOf {
-            currentTabIndex > previousTabIndex
-        }
+        derivedStateOf { currentTabIndex > previousTabIndex }
     }
 
-    // Update previous index when current changes
     LaunchedEffect(currentTabIndex) {
         previousTabIndex = currentTabIndex
     }
@@ -171,18 +180,6 @@ fun ReceiveQrScreen(
             !hasUsableChannels &&
             walletState.nodeLifecycleState.isRunning() &&
             cjitInvoice.isNullOrEmpty()
-    }
-
-    // Current invoice for display
-    val currentInvoice = remember(selectedTab, walletState, cjitInvoice) {
-        getInvoiceForTab(
-            tab = selectedTab,
-            bip21 = walletState.bip21,
-            bolt11 = walletState.bolt11,
-            cjitInvoice = cjitInvoice,
-            isNodeRunning = walletState.nodeLifecycleState.isRunning(),
-            onchainAddress = walletState.onchainAddress
-        )
     }
 
     // QR logo based on selected tab
@@ -236,15 +233,12 @@ fun ReceiveQrScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Animated content switcher with direction-aware transitions
                     AnimatedContent(
                         targetState = Triple(tab, showDetails, showingCjitOnboarding),
                         transitionSpec = {
-                            // Only animate tab changes, not showDetails toggle
                             if (targetState.first != initialState.first) {
                                 TabTransitionAnimations.tabContentTransition(isForward)
                             } else {
-                                // Instant transition for showDetails toggle
                                 ContentTransform(
                                     targetContentEnter = EnterTransition.None,
                                     initialContentExit = ExitTransition.None
@@ -252,7 +246,6 @@ fun ReceiveQrScreen(
                             }
                         },
                         contentKey = { (currentTab, details, onboarding) ->
-                            // Use tab + state as key for proper animation
                             "$currentTab-$details-$onboarding"
                         },
                         label = "ReceiveTabContent"
@@ -274,8 +267,10 @@ fun ReceiveQrScreen(
                             }
 
                             else -> {
+                                val cachedInvoice = invoicesByTab[targetTab].orEmpty()
+
                                 ReceiveQrView(
-                                    uri = currentInvoice,
+                                    uri = cachedInvoice,
                                     qrLogoPainter = painterResource(qrLogoRes),
                                     onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
                                         onClickEditInvoice
