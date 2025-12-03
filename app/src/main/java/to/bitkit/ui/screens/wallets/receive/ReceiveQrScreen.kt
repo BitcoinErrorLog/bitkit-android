@@ -200,11 +200,7 @@ fun ReceiveQrScreen(
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
                 currentTabIndex = currentTabIndex,
-                selectedColor = when (selectedTab) {
-                    ReceiveTab.SAVINGS -> Colors.Brand
-                    ReceiveTab.AUTO -> Colors.White
-                    ReceiveTab.SPENDING -> Colors.Purple
-                },
+                selectedColor = selectedTab.accentColor,
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     val newIndex = visibleTabs.indexOf(tab)
@@ -360,11 +356,7 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_pencil_simple),
                         contentDescription = null,
-                        tint = when (tab) {
-                            ReceiveTab.SAVINGS -> Colors.Brand
-                            ReceiveTab.AUTO -> Colors.Brand
-                            ReceiveTab.SPENDING -> Colors.Purple
-                        },
+                        tint = tab.accentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -387,11 +379,7 @@ private fun ReceiveQrView(
                         Icon(
                             painter = painterResource(R.drawable.ic_copy),
                             contentDescription = null,
-                            tint = when (tab) {
-                                ReceiveTab.SAVINGS -> Colors.Brand
-                                ReceiveTab.AUTO -> Colors.Brand
-                                ReceiveTab.SPENDING -> Colors.Purple
-                            },
+                            tint = tab.accentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -412,11 +400,7 @@ private fun ReceiveQrView(
                     Icon(
                         painter = painterResource(R.drawable.ic_share),
                         contentDescription = null,
-                        tint = when (tab) {
-                            ReceiveTab.SAVINGS -> Colors.Brand
-                            ReceiveTab.AUTO -> Colors.Brand
-                            ReceiveTab.SPENDING -> Colors.Purple
-                        },
+                        tint = tab.accentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 },
