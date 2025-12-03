@@ -61,16 +61,21 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                         )
                     }
 
-                    // Animated indicator
                     val animatedAlpha by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0.2f,
-                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                        animationSpec = tween(
+                            durationMillis = 250,
+                            easing = FastOutSlowInEasing
+                        ),
                         label = "indicatorAlpha"
                     )
 
                     val animatedColor by animateColorAsState(
                         targetValue = if (isSelected) selectedColor else Colors.White,
-                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                        animationSpec = tween(
+                            durationMillis = 250,
+                            easing = FastOutSlowInEasing
+                        ),
                         label = "indicatorColor"
                     )
 
