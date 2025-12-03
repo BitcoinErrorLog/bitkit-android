@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
@@ -124,28 +125,28 @@ fun QrCodeImage(
             }
         }
 
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            logoPainter?.let {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(68.dp)
-                        .background(Color.White, shape = CircleShape)
-                ) {
-                    Image(
-                        painter = it,
-                        contentDescription = null,
-                        modifier = Modifier.size(50.dp)
-                    )
-                }
+        logoPainter?.let {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(68.dp)
+                    .background(Color.White, shape = CircleShape)
+                    .align(Alignment.Center)
+            ) {
+                Image(
+                    painter = it,
+                    contentDescription = null,
+                    modifier = Modifier.size(50.dp)
+                )
             }
+        }
 
-            if (bitmap == null) {
-                CaptionB(stringResource(R.string.wallet__receive_qr_generating), color = Colors.Black)
-            }
+        if (bitmap == null) {
+            CircularProgressIndicator(
+                color = Colors.Black,
+                strokeWidth = 4.dp,
+                modifier = Modifier.size(68.dp)
+            )
         }
     }
 }
