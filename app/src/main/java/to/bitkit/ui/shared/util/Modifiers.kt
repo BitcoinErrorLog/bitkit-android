@@ -2,11 +2,9 @@ package to.bitkit.ui.shared.util
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBars
@@ -21,16 +19,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import to.bitkit.ui.theme.ButtonGradients
 import to.bitkit.ui.theme.Colors
 
 /**
@@ -109,7 +106,6 @@ fun Modifier.screen(
     .then(if (insets == null) Modifier else Modifier.windowInsetsPadding(insets))
 
 fun Modifier.primaryButtonStyle(
-    isPressed: Boolean,
     isEnabled: Boolean,
     shape: Shape
 ): Modifier {
@@ -132,9 +128,17 @@ fun Modifier.primaryButtonStyle(
         .then(
             if (isEnabled) {
                 Modifier.drawWithContent {
-                    // Draw the main gradient background
-                    val mainBrush = if (isPressed) ButtonGradients.Pressed else ButtonGradients.Active
-                    drawRect(brush = mainBrush)
+                    // Draw the main gradient background filling entire button
+                    val mainBrush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF2A2A2A), Color(0xFF1C1C1C)),
+                        startY = 0f,
+                        endY = size.height
+                    )
+                    drawRect(
+                        brush = mainBrush,
+                        topLeft = Offset.Zero,
+                        size = size
+                    )
 
                     // Draw top border highlight (2dp gradient fade)
                     val borderHeight = 2.dp.toPx()

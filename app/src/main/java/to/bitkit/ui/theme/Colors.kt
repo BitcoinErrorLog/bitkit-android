@@ -1,6 +1,5 @@
 package to.bitkit.ui.theme
 
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 object Colors {
@@ -55,13 +54,4 @@ object Colors {
     val Red24 = Red.copy(alpha = 0.24f)
     val Yellow16 = Yellow.copy(alpha = 0.16f)
     val Yellow24 = Yellow.copy(alpha = 0.24f)
-}
-
-object ButtonGradients {
-    val Active = Brush.verticalGradient(
-        colors = listOf(Color(0xFF2A2A2A), Color(0xFF1C1C1C))
-    )
-    val Pressed = Brush.verticalGradient(
-        colors = listOf(Color(0xFF3A3A3A), Color(0xFF2A2A2A))
-    )
 }
