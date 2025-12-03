@@ -3,6 +3,8 @@ package to.bitkit.ui.screens.wallets.receive
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -145,16 +146,37 @@ fun ReceiveQrScreen(
         snapPosition = SnapPosition.Center
     )
 
-    // Derive selectedTab from scroll position
-    val selectedTab = remember(lazyListState.firstVisibleItemIndex, visibleTabs) {
-        visibleTabs.getOrNull(lazyListState.firstVisibleItemIndex)
-            ?: visibleTabs.firstOrNull()
-            ?: ReceiveTab.SAVINGS
+    // Calculate current tab index based on scroll position for smooth indicator updates
+    val currentTabIndex by remember {
+        derivedStateOf {
+            val layoutInfo = lazyListState.layoutInfo
+            if (layoutInfo.visibleItemsInfo.isEmpty()) {
+                lazyListState.firstVisibleItemIndex
+            } else {
+                val viewportMidpoint = layoutInfo.viewportStartOffset +
+                    (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) / 2
+
+                layoutInfo.visibleItemsInfo
+                    .minByOrNull { item ->
+                        val itemMidpoint = item.offset + item.size / 2
+                        kotlin.math.abs(itemMidpoint - viewportMidpoint)
+                    }
+                    ?.index ?: lazyListState.firstVisibleItemIndex
+            }
+        }
     }
 
-    val showingCjitOnboarding = remember(selectedTab, walletState, cjitInvoice, hasUsableChannels) {
-        selectedTab == ReceiveTab.SPENDING &&
-            !hasUsableChannels &&
+    // Derive selectedTab from real-time currentTabIndex for smooth color updates
+    val selectedTab by remember {
+        derivedStateOf {
+            visibleTabs.getOrNull(currentTabIndex)
+                ?: visibleTabs.firstOrNull()
+                ?: ReceiveTab.SAVINGS
+        }
+    }
+
+    val showingCjitOnboarding = remember(walletState, cjitInvoice, hasUsableChannels) {
+        !hasUsableChannels &&
             walletState.nodeLifecycleState.isRunning() &&
             cjitInvoice.isNullOrEmpty()
     }
@@ -175,7 +197,7 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = visibleTabs.indexOf(selectedTab),
+                currentTabIndex = currentTabIndex,
                 selectedColor = when (selectedTab) {
                     ReceiveTab.SAVINGS -> Colors.Brand
                     ReceiveTab.AUTO -> Colors.White
@@ -255,16 +277,17 @@ fun ReceiveQrScreen(
             Spacer(Modifier.height(24.dp))
 
             AnimatedVisibility(visible = walletState.nodeLifecycleState.isRunning()) {
+                val showCjitButton = showingCjitOnboarding && selectedTab == ReceiveTab.SPENDING
                 PrimaryButton(
                     text = stringResource(
                         when {
-                            showingCjitOnboarding -> R.string.wallet__receive__cjit
+                            showCjitButton -> R.string.wallet__receive__cjit
                             showDetails -> R.string.wallet__receive_show_qr
                             else -> R.string.wallet__receive_show_details
                         }
                     ),
                     icon = {
-                        if (showingCjitOnboarding) {
+                        if (showCjitButton) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_lightning_alt),
                                 tint = Colors.Purple,
@@ -273,7 +296,7 @@ fun ReceiveQrScreen(
                         }
                     },
                     onClick = {
-                        if (showingCjitOnboarding) {
+                        if (showCjitButton) {
                             onClickReceiveCjit()
                             showDetails = false
                         } else {
