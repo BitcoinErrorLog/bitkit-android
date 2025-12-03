@@ -248,7 +248,8 @@ fun ReceiveQrScreen(
                         contentKey = { (currentTab, details, onboarding) ->
                             "$currentTab-$details-$onboarding"
                         },
-                        label = "ReceiveTabContent"
+                        label = "ReceiveTabContent",
+                        modifier = Modifier.weight(1f)
                     ) { (targetTab, targetShowDetails, targetShowingCjitOnboarding) ->
                         when {
                             targetShowingCjitOnboarding -> {
