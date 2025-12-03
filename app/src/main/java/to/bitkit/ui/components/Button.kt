@@ -1,6 +1,8 @@
 package to.bitkit.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +18,13 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppButtonDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -47,6 +53,7 @@ enum class ButtonSize {
         }
 }
 
+@Suppress("UnusedParameter")
 @Composable
 fun PrimaryButton(
     text: String?,
@@ -57,17 +64,31 @@ fun PrimaryButton(
     size: ButtonSize = ButtonSize.Large,
     enabled: Boolean = true,
     fullWidth: Boolean = true,
-    color: Color = Colors.White16,
+    color: Color = Colors.White16, // Deprecated: Color customization no longer supported
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val buttonShape = MaterialTheme.shapes.large
+
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        colors = AppButtonDefaults.primaryColors.copy(containerColor = color),
+        colors = AppButtonDefaults.primaryColors.copy(
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent
+        ),
         contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        shape = buttonShape,
         modifier = Modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
+            .primaryButtonStyle(
+                isPressed = isPressed,
+                isEnabled = enabled && !isLoading,
+                shape = buttonShape
+            )
             .then(modifier)
     ) {
         if (isLoading) {
