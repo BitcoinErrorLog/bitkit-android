@@ -146,11 +146,11 @@ fun ReceiveQrScreen(
         snapPosition = SnapPosition.Center
     )
 
-    // Calculate current tab index based on scroll position for smooth indicator updates
-    val currentTabIndex by remember {
+    // Calculate current tab based on scroll position for smooth indicator and color updates
+    val selectedTab by remember {
         derivedStateOf {
             val layoutInfo = lazyListState.layoutInfo
-            if (layoutInfo.visibleItemsInfo.isEmpty()) {
+            val currentIndex = if (layoutInfo.visibleItemsInfo.isEmpty()) {
                 lazyListState.firstVisibleItemIndex
             } else {
                 val viewportMidpoint = layoutInfo.viewportStartOffset +
@@ -163,15 +163,17 @@ fun ReceiveQrScreen(
                     }
                     ?.index ?: lazyListState.firstVisibleItemIndex
             }
+
+            visibleTabs.getOrNull(currentIndex)
+                ?: visibleTabs.firstOrNull()
+                ?: ReceiveTab.SAVINGS
         }
     }
 
-    // Derive selectedTab from real-time currentTabIndex for smooth color updates
-    val selectedTab by remember {
+    // Derive index from selectedTab for tab row indicator
+    val currentTabIndex by remember {
         derivedStateOf {
-            visibleTabs.getOrNull(currentTabIndex)
-                ?: visibleTabs.firstOrNull()
-                ?: ReceiveTab.SAVINGS
+            visibleTabs.indexOf(selectedTab).coerceAtLeast(0)
         }
     }
 
@@ -292,6 +294,7 @@ fun ReceiveQrScreen(
                                 painter = painterResource(R.drawable.ic_lightning_alt),
                                 tint = Colors.Purple,
                                 contentDescription = null
+
                             )
                         }
                     },
