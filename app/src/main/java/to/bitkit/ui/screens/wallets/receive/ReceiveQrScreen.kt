@@ -193,8 +193,7 @@ fun ReceiveQrScreen(
                     showDetails -> {
                         ReceiveDetailsView(
                             tab = selectedTab,
-                            onchainAddress = walletState.onchainAddress,
-                            bolt11 = walletState.bolt11,
+                            walletState = walletState,
                             cjitInvoice = cjitInvoice,
                             modifier = Modifier.weight(1f)
                         )
@@ -414,8 +413,7 @@ fun CjitOnBoardingView(modifier: Modifier = Modifier) {
 @Composable
 private fun ReceiveDetailsView(
     tab: ReceiveTab,
-    onchainAddress: String,
-    bolt11: String,
+    walletState: MainUiState,
     cjitInvoice: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -427,10 +425,14 @@ private fun ReceiveDetailsView(
         Column {
             when (tab) {
                 ReceiveTab.SAVINGS -> {
-                    if (onchainAddress.isNotEmpty()) {
+                    if (walletState.onchainAddress.isNotEmpty()) {
                         CopyAddressCard(
                             title = stringResource(R.string.wallet__receive_bitcoin_invoice),
-                            address = onchainAddress,
+                            address = removeLightningFromBip21(
+                                bip21 = walletState.bip21,
+                                fallbackAddress = walletState.onchainAddress
+                            ),
+                            body = walletState.onchainAddress,
                             type = CopyAddressType.ONCHAIN,
                             testTag = "ReceiveOnchainAddress",
                         )
@@ -439,18 +441,22 @@ private fun ReceiveDetailsView(
 
                 ReceiveTab.AUTO -> {
                     // Show both onchain AND lightning if available
-                    if (onchainAddress.isNotEmpty()) {
+                    if (walletState.onchainAddress.isNotEmpty()) {
                         CopyAddressCard(
                             title = stringResource(R.string.wallet__receive_bitcoin_invoice),
-                            address = onchainAddress,
+                            address = removeLightningFromBip21(
+                                bip21 = walletState.bip21,
+                                fallbackAddress = walletState.onchainAddress
+                            ),
+                            body = walletState.onchainAddress,
                             type = CopyAddressType.ONCHAIN,
                             testTag = "ReceiveOnchainAddress",
                         )
                     }
-                    if (cjitInvoice != null || bolt11.isNotEmpty()) {
+                    if (cjitInvoice != null || walletState.bolt11.isNotEmpty()) {
                         CopyAddressCard(
                             title = stringResource(R.string.wallet__receive_lightning_invoice),
-                            address = cjitInvoice ?: bolt11,
+                            address = cjitInvoice ?: walletState.bolt11,
                             type = CopyAddressType.LIGHTNING,
                             testTag = "ReceiveLightningAddress",
                         )
@@ -458,10 +464,10 @@ private fun ReceiveDetailsView(
                 }
 
                 ReceiveTab.SPENDING -> {
-                    if (cjitInvoice != null || bolt11.isNotEmpty()) {
+                    if (cjitInvoice != null || walletState.bolt11.isNotEmpty()) {
                         CopyAddressCard(
                             title = stringResource(R.string.wallet__receive_lightning_invoice),
-                            address = cjitInvoice ?: bolt11,
+                            address = cjitInvoice ?: walletState.bolt11,
                             type = CopyAddressType.LIGHTNING,
                             testTag = "ReceiveLightningAddress",
                         )
@@ -478,6 +484,7 @@ enum class CopyAddressType { ONCHAIN, LIGHTNING }
 @Composable
 private fun CopyAddressCard(
     title: String,
+    body: String? = null,
     address: String,
     type: CopyAddressType,
     testTag: String? = null,
@@ -502,7 +509,7 @@ private fun CopyAddressCard(
         }
         Spacer(modifier = Modifier.height(16.dp))
         BodyS(
-            text = address.truncate(32).uppercase(),
+            text = (body ?: address).truncate(32).uppercase(),
             modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -751,8 +758,10 @@ private fun PreviewDetailsMode() {
         ) {
             ReceiveDetailsView(
                 tab = ReceiveTab.AUTO,
-                onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
-                bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
+                walletState = MainUiState(
+                    onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
+                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
+                ),
                 cjitInvoice = null,
                 modifier = Modifier.weight(1f)
             )

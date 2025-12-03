@@ -45,7 +45,7 @@ fun getInvoiceForTab(
  * @param fallbackAddress Fallback address if BIP21 is empty or invalid
  * @return BIP21 URI without the lightning parameter (e.g., bitcoin:address?amount=0.001)
  */
-private fun removeLightningFromBip21(bip21: String, fallbackAddress: String): String {
+fun removeLightningFromBip21(bip21: String, fallbackAddress: String): String {
     if (bip21.isBlank()) return fallbackAddress
 
     // Remove lightning parameter using regex
