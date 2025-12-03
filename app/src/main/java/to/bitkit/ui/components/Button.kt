@@ -72,17 +72,24 @@ fun PrimaryButton(
             containerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent
         ),
-        contentPadding = contentPadding,
+        contentPadding = PaddingValues(0.dp),
         shape = buttonShape,
         modifier = Modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
-            .primaryButtonStyle(
-                isEnabled = enabled && !isLoading,
-                shape = buttonShape
-            )
             .then(modifier)
     ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .requiredHeight(size.height)
+                .primaryButtonStyle(
+                    isEnabled = enabled && !isLoading,
+                    shape = buttonShape
+                )
+                .padding(contentPadding)
+        ) {
         if (isLoading) {
             CircularProgressIndicator(
                 color = Colors.White32,
@@ -107,6 +114,7 @@ fun PrimaryButton(
                     )
                 }
             }
+        }
         }
     }
 }
