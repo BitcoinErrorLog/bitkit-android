@@ -1,11 +1,7 @@
 package to.bitkit.ui.screens.wallets.receive
 
 import android.graphics.Bitmap
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,18 +16,18 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,7 +64,6 @@ import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
-import to.bitkit.ui.shared.animations.TabTransitionAnimations
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -94,17 +89,6 @@ fun ReceiveQrScreen(
     val haptic = LocalHapticFeedback.current
     val hasUsableChannels = walletState.channels.any { it.isUsable }
 
-    // Tab selection state
-    var selectedTab by remember {
-        mutableStateOf(
-            initialTab ?: when {
-                !cjitInvoice.isNullOrEmpty() -> ReceiveTab.SPENDING
-                hasUsableChannels -> ReceiveTab.AUTO
-                else -> ReceiveTab.SAVINGS
-            }
-        )
-    }
-
     var showDetails by remember { mutableStateOf(false) }
 
     val visibleTabs = remember(hasUsableChannels) {
@@ -117,74 +101,42 @@ fun ReceiveQrScreen(
         }
     }
 
-    val invoicesByTab = remember(visibleTabs, walletState, cjitInvoice) {
-        visibleTabs.associateWith { tab ->
-            getInvoiceForTab(
-                tab = tab,
-                bip21 = walletState.bip21,
-                bolt11 = walletState.bolt11,
-                cjitInvoice = cjitInvoice,
-                isNodeRunning = walletState.nodeLifecycleState.isRunning(),
-                onchainAddress = walletState.onchainAddress
-            )
+    // Determine initial tab index
+    val initialTabIndex = remember(initialTab, visibleTabs) {
+        if (initialTab != null) {
+            visibleTabs.indexOf(initialTab).coerceAtLeast(0)
+        } else {
+            when {
+                !cjitInvoice.isNullOrEmpty() -> visibleTabs.indexOf(ReceiveTab.SPENDING)
+                hasUsableChannels -> visibleTabs.indexOf(ReceiveTab.AUTO)
+                else -> visibleTabs.indexOf(ReceiveTab.SAVINGS)
+            }.coerceAtLeast(0)
         }
     }
 
-    val currentTabIndex = remember(selectedTab, visibleTabs) {
-        visibleTabs.indexOf(selectedTab)
-    }
-
-    // HorizontalPager state
+    // LazyRow state with snap behavior
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(
-        initialPage = currentTabIndex.coerceAtLeast(0),
-        pageCount = { visibleTabs.size }
+    val lazyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = initialTabIndex
     )
 
-    // Sync: Pager swipes → update selectedTab
-    LaunchedEffect(pagerState.currentPage) {
-        val newTab = visibleTabs.getOrNull(pagerState.currentPage)
-        if (newTab != null && newTab != selectedTab) {
-            selectedTab = newTab
-        }
+    val snapBehavior = rememberSnapFlingBehavior(
+        lazyListState = lazyListState,
+        snapPosition = SnapPosition.Center
+    )
+
+    // Derive selectedTab from scroll position
+    val selectedTab = remember(lazyListState.firstVisibleItemIndex, visibleTabs) {
+        visibleTabs.getOrNull(lazyListState.firstVisibleItemIndex)
+            ?: visibleTabs.firstOrNull()
+            ?: ReceiveTab.SAVINGS
     }
 
-    // Sync: Validate pager position when tabs change
-    LaunchedEffect(visibleTabs) {
-        if (pagerState.currentPage >= visibleTabs.size) {
-            pagerState.animateScrollToPage(visibleTabs.size - 1)
-        }
-    }
-
-    // Sync: selectedTab changes → scroll pager
-    LaunchedEffect(selectedTab, visibleTabs) {
-        val newIndex = visibleTabs.indexOf(selectedTab)
-        if (newIndex >= 0 && newIndex != pagerState.currentPage) {
-            pagerState.animateScrollToPage(newIndex)
-        }
-    }
-
-    // Track previous tab to determine animation direction
-    var previousTabIndex by remember { mutableIntStateOf(currentTabIndex) }
-
-    val isForward by remember {
-        derivedStateOf { currentTabIndex > previousTabIndex }
-    }
-
-    LaunchedEffect(currentTabIndex) {
-        previousTabIndex = currentTabIndex
-    }
-
-    val showingCjitOnboarding = remember(selectedTab, walletState, cjitInvoice) {
+    val showingCjitOnboarding = remember(selectedTab, walletState, cjitInvoice, hasUsableChannels) {
         selectedTab == ReceiveTab.SPENDING &&
             !hasUsableChannels &&
             walletState.nodeLifecycleState.isRunning() &&
             cjitInvoice.isNullOrEmpty()
-    }
-
-    // QR logo based on selected tab
-    val qrLogoRes = remember(selectedTab) {
-        getQrLogoResource(selectedTab)
     }
 
     Column(
@@ -203,7 +155,7 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = pagerState.currentPage,
+                currentTabIndex = lazyListState.firstVisibleItemIndex,
                 selectedColor = when (selectedTab) {
                     ReceiveTab.SAVINGS -> Colors.Brand
                     ReceiveTab.AUTO -> Colors.White
@@ -211,76 +163,76 @@ fun ReceiveQrScreen(
                 },
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    selectedTab = tab
                     val newIndex = visibleTabs.indexOf(tab)
-                    scope.launch { pagerState.animateScrollToPage(newIndex) }
+                    scope.launch {
+                        lazyListState.animateScrollToItem(newIndex)
+                    }
                 }
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // Content area (QR or Details) with HorizontalPager
-            HorizontalPager(
-                state = pagerState,
-                pageSpacing = 16.dp,
+            // Content area (QR or Details) with LazyRow
+            LazyRow(
+                state = lazyListState,
+                flingBehavior = snapBehavior,
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                userScrollEnabled = true,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-            ) { page ->
-                val tab = visibleTabs[page]
+            ) {
+                itemsIndexed(
+                    items = visibleTabs,
+                    key = { _, tab -> tab.name }
+                ) { _, tab ->
+                    Box(
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .fillParentMaxHeight()
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            when {
+                                showingCjitOnboarding && tab == ReceiveTab.SPENDING -> {
+                                    CjitOnBoardingView(
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    AnimatedContent(
-                        targetState = Triple(tab, showDetails, showingCjitOnboarding),
-                        transitionSpec = {
-                            if (targetState.first != initialState.first) {
-                                TabTransitionAnimations.tabContentTransition(isForward)
-                            } else {
-                                ContentTransform(
-                                    targetContentEnter = EnterTransition.None,
-                                    initialContentExit = ExitTransition.None
-                                )
-                            }
-                        },
-                        contentKey = { (currentTab, details, onboarding) ->
-                            "$currentTab-$details-$onboarding"
-                        },
-                        label = "ReceiveTabContent",
-                        modifier = Modifier.weight(1f)
-                    ) { (targetTab, targetShowDetails, targetShowingCjitOnboarding) ->
-                        when {
-                            targetShowingCjitOnboarding -> {
-                                CjitOnBoardingView(
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                                showDetails -> {
+                                    ReceiveDetailsView(
+                                        tab = tab,
+                                        walletState = walletState,
+                                        cjitInvoice = cjitInvoice,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
 
-                            targetShowDetails -> {
-                                ReceiveDetailsView(
-                                    tab = targetTab,
-                                    walletState = walletState,
-                                    cjitInvoice = cjitInvoice,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                                else -> {
+                                    val invoice = getInvoiceForTab(
+                                        tab = tab,
+                                        bip21 = walletState.bip21,
+                                        bolt11 = walletState.bolt11,
+                                        cjitInvoice = cjitInvoice,
+                                        isNodeRunning = walletState.nodeLifecycleState.isRunning(),
+                                        onchainAddress = walletState.onchainAddress
+                                    )
 
-                            else -> {
-                                val cachedInvoice = invoicesByTab[targetTab].orEmpty()
-
-                                ReceiveQrView(
-                                    uri = cachedInvoice,
-                                    qrLogoPainter = painterResource(qrLogoRes),
-                                    onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
-                                        onClickEditInvoice
-                                    } else {
-                                        onClickReceiveCjit
-                                    },
-                                    tab = targetTab,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                    ReceiveQrView(
+                                        uri = invoice,
+                                        qrLogoPainter = painterResource(getQrLogoResource(tab)),
+                                        onClickEditInvoice = if (cjitInvoice.isNullOrEmpty()) {
+                                            onClickEditInvoice
+                                        } else {
+                                            onClickReceiveCjit
+                                        },
+                                        tab = tab,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
