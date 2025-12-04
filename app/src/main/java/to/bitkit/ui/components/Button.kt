@@ -16,18 +16,21 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppButtonDefaults
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
@@ -57,41 +60,68 @@ fun PrimaryButton(
     size: ButtonSize = ButtonSize.Large,
     enabled: Boolean = true,
     fullWidth: Boolean = true,
-    color: Color = Colors.White16,
+    color: Color? = null,
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
+    val buttonShape = MaterialTheme.shapes.large
+
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        colors = AppButtonDefaults.primaryColors.copy(containerColor = color),
-        contentPadding = contentPadding,
+        colors = AppButtonDefaults.primaryColors.copy(
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent
+        ),
+        contentPadding = PaddingValues(0.dp),
+        shape = buttonShape,
         modifier = Modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
             .then(modifier)
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                color = Colors.White32,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(size.height / 2)
-            )
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (icon != null) {
-                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
-                        icon()
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+                .requiredHeight(size.height)
+                .primaryButtonStyle(
+                    isEnabled = enabled && !isLoading,
+                    shape = buttonShape,
+                    primaryColor = color
+                )
+                .padding(contentPadding)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Colors.White32,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(size.height / 2)
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (icon != null) {
+                        Box(
+                            modifier = if (enabled) {
+                                Modifier
+                            } else {
+                                Modifier.graphicsLayer {
+                                    colorFilter = ColorFilter.tint(Colors.White32)
+                                }
+                            }
+                        ) {
+                            icon()
+                        }
                     }
-                }
-                text?.let {
-                    Text(
-                        text = text,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    text?.let {
+                        Text(
+                            text = text,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -110,7 +140,7 @@ fun SecondaryButton(
     fullWidth: Boolean = true,
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
-    val border = BorderStroke(2.dp, if (enabled) Colors.White16 else Color.Transparent)
+    val border = BorderStroke(2.dp, if (enabled) Colors.Gray4 else Color.Transparent)
     OutlinedButton(
         onClick = onClick,
         enabled = enabled && !isLoading,
@@ -134,7 +164,15 @@ fun SecondaryButton(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (icon != null) {
-                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                    Box(
+                        modifier = if (enabled) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                colorFilter = ColorFilter.tint(Colors.White32)
+                            }
+                        }
+                    ) {
                         icon()
                     }
                 }
@@ -179,17 +217,30 @@ fun TertiaryButton(
                 modifier = Modifier.size(size.height / 2)
             )
         } else {
-            if (icon != null) {
-                Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
-                    icon()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (icon != null) {
+                    Box(
+                        modifier = if (enabled) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                colorFilter = ColorFilter.tint(Colors.White32)
+                            }
+                        }
+                    ) {
+                        icon()
+                    }
                 }
-            }
-            text?.let {
-                Text(
-                    text = text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                text?.let {
+                    Text(
+                        text = text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -237,6 +288,7 @@ private fun PrimaryButtonPreview() {
             )
             PrimaryButton(
                 text = "Primary Small",
+                fullWidth = false,
                 size = ButtonSize.Small,
                 onClick = {},
             )
@@ -339,6 +391,7 @@ private fun SecondaryButtonPreview() {
             SecondaryButton(
                 text = "Secondary Small",
                 size = ButtonSize.Small,
+                fullWidth = false,
                 onClick = {},
             )
             SecondaryButton(
@@ -421,11 +474,20 @@ private fun TertiaryButtonPreview() {
             TertiaryButton(
                 text = "Tertiary Disabled",
                 enabled = false,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "",
+                        tint = Colors.Brand,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
                 onClick = {}
             )
             TertiaryButton(
                 text = "Tertiary Small",
                 size = ButtonSize.Small,
+                fullWidth = false,
                 onClick = {}
             )
             TertiaryButton(
