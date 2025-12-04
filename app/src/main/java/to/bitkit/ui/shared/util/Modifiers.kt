@@ -108,7 +108,7 @@ fun Modifier.screen(
 fun Modifier.primaryButtonStyle(
     isEnabled: Boolean,
     shape: Shape,
-    primaryColor: Color? = null
+    primaryColor: Color? = null,
 ): Modifier {
     return this
         // Step 1: Add shadow (only when enabled)
@@ -160,11 +160,7 @@ fun Modifier.primaryButtonStyle(
                     drawContent()
                 }
             } else {
-                Modifier.background(
-                    brush = Brush.verticalGradient(
-                        listOf(Colors.White06, Colors.White06)
-                    )
-                )
+                Modifier.background(Colors.White06)
             }
         )
 }
