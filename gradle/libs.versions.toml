@@ -1,41 +1,41 @@
 [versions]
-accompanistPermissions = "0.36.0"
-activityCompose = "1.10.1"
+accompanistPermissions = "0.37.3"
+activityCompose = "1.12.1"
 agp = "8.13.0"
-appcompat = "1.7.0"
+appcompat = "1.7.1"
 barcodeScanning = "17.3.0"
-biometric = "1.4.0-alpha02"
-bouncyCastle = "1.79"
-camera = "1.4.2"
-composeBom = "2025.09.00" # https://developer.android.com/develop/ui/compose/bom/bom-mapping
+biometric = "1.4.0-alpha04"
+bouncyCastle = "1.83"
+camera = "1.5.1"
+composeBom = "2025.12.00" # https://developer.android.com/develop/ui/compose/bom/bom-mapping
 constraintlayoutCompose = "1.1.1"
-coreKtx = "1.15.0"
-coreSplashscreen = "1.0.1"
-datastorePrefs = "1.1.4"
+coreKtx = "1.17.0"
+coreSplashscreen = "1.2.0"
+datastorePrefs = "1.2.0"
 detekt = "1.23.8"
-espressoCore = "3.6.1"
-hilt = "2.55"
-hiltAndroidx = "1.2.0"
+espressoCore = "3.7.0"
+hilt = "2.57.2"
+hiltAndroidx = "1.3.0"
 junit = "4.13.2"
-junitExt = "1.2.1"
-kotlin = "2.1.10"
-kotlinxDatetime = "0.6.2"
-ksp = "2.1.10-1.0.31"
-ktor = "3.1.1"
-lifecycle = "2.8.7"
-material = "1.12.0"
-mockitoKotlin = "5.4.0"
-navCompose = "2.8.9"
-robolectric = "4.14.1"
-room = "2.6.1"
+junitExt = "1.3.0"
+kotlin = "2.2.21"
+kotlinxDatetime = "0.7.1"
+ksp = "2.3.2"
+ktor = "3.3.3"
+lifecycle = "2.10.0"
+material = "1.13.0"
+mockitoKotlin = "6.1.0"
+navCompose = "2.9.6"
+robolectric = "4.16"
+room = "2.8.4"
 slf4j = "2.0.17"
-testAndroidx = "1.6.1"
-turbine = "1.0.0"
-workRuntimeKtx = "2.10.0"
-zxing = "3.5.2"
-lottieVersion = "6.6.4"
-composeChartsVersion = "0.1.7"
-haze = "1.6.9"
+testAndroidx = "1.7.0"
+turbine = "1.2.1"
+workRuntimeKtx = "2.11.0"
+zxing = "3.5.4"
+lottieVersion = "6.7.1"
+composeChartsVersion = "0.2.0"
+haze = "1.7.1"
 
 [libraries]
 accompanist-pager-indicators = { module = "com.google.accompanist:accompanist-pager-indicators", version.ref = "accompanistPermissions" }
@@ -63,8 +63,8 @@ core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePrefs" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
-detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.4.23" }
-firebase-bom = { module = "com.google.firebase:firebase-bom", version = "34.2.0" }
+detekt-compose-rules = { module = "io.nlopez.compose.rules:detekt", version = "0.5.0" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version = "34.6.0" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
@@ -72,7 +72,7 @@ hilt-android-testing = { module = "com.google.dagger:hilt-android-testing", vers
 hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltAndroidx" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltAndroidx" }
 hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltAndroidx" }
-jna = { module = "net.java.dev.jna:jna", version = "5.17.0" }
+jna = { module = "net.java.dev.jna:jna", version = "5.18.1" }
 kotlin-bom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlin" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -119,7 +119,7 @@ haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = 
 android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-google-services = { id = "com.google.gms.google-services", version = "4.4.3" }
+google-services = { id = "com.google.gms.google-services", version = "4.4.4" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
