@@ -82,7 +82,7 @@ fun PrimaryButton(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .fillMaxWidth()
+                .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
                 .requiredHeight(size.height)
                 .primaryButtonStyle(
                     isEnabled = enabled && !isLoading,
@@ -288,6 +288,7 @@ private fun PrimaryButtonPreview() {
             )
             PrimaryButton(
                 text = "Primary Small",
+                fullWidth = false,
                 size = ButtonSize.Small,
                 onClick = {},
             )
@@ -390,6 +391,7 @@ private fun SecondaryButtonPreview() {
             SecondaryButton(
                 text = "Secondary Small",
                 size = ButtonSize.Small,
+                fullWidth = false,
                 onClick = {},
             )
             SecondaryButton(
@@ -485,6 +487,7 @@ private fun TertiaryButtonPreview() {
             TertiaryButton(
                 text = "Tertiary Small",
                 size = ButtonSize.Small,
+                fullWidth = false,
                 onClick = {}
             )
             TertiaryButton(
