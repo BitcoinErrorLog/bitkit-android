@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,11 +39,11 @@ import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
+import to.bitkit.ui.shared.util.gradientBackground
+import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-private val buttonBg = Color(40, 40, 40).copy(alpha = 0.95f)
-private val buttonBgOverlay = Brush.verticalGradient(colors = listOf(buttonBg, Color.Transparent))
 
 private val iconToTextGap = 4.dp
 private val iconSize = 20.dp
@@ -64,20 +65,16 @@ fun BoxScope.TabBar(
         modifier = modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to Color.Transparent,
-                        0.5f to Colors.Black,
-                    ),
-                )
-            )
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp)
             .navigationBarsPadding()
     ) {
-        Row {
-            val buttonMaterial = CupertinoMaterials.ultraThin(containerColor = buttonBg)
+        Row(
+            modifier = Modifier.primaryButtonStyle(
+                isEnabled = true,
+                shape = MaterialTheme.shapes.large,
+            )
+        ) {
             // Send Button
             Box(
                 contentAlignment = Alignment.Center,
@@ -85,16 +82,6 @@ fun BoxScope.TabBar(
                     .weight(1f)
                     .height(60.dp)
                     .clip(buttonLeftShape)
-                    .background(buttonBg) // fallback if no haze
-                    .hazeEffect(
-                        state = hazeState,
-                        style = buttonMaterial,
-                    )
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(buttonBg, Color.Transparent),
-                        )
-                    )
                     .clickable { onSendClick() }
                     .testTag("Send")
             ) {
@@ -116,12 +103,6 @@ fun BoxScope.TabBar(
                     .weight(1f)
                     .height(60.dp)
                     .clip(buttonRightShape)
-                    .background(buttonBg) // fallback if no haze
-                    .hazeEffect(
-                        state = hazeState,
-                        style = buttonMaterial,
-                    )
-                    .background(buttonBgOverlay)
                     .clickable { onReceiveClick() }
                     .testTag("Receive")
             ) {
@@ -146,11 +127,6 @@ fun BoxScope.TabBar(
             modifier = Modifier
                 .size(80.dp)
                 .clip(CircleShape)
-                .background(buttonBg) // fallback if no haze
-                .hazeEffect(
-                    state = hazeState,
-                    style = CupertinoMaterials.regular(containerColor = buttonBg),
-                )
                 .background(
                     Brush.verticalGradient(colors = listOf(Colors.White10, Color.Transparent))
                 )
@@ -164,7 +140,6 @@ fun BoxScope.TabBar(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .background(buttonBg) // fallback if no haze
                 .hazeEffect(
                     state = hazeState,
                     style = CupertinoMaterials.regular(containerColor = Color.Transparent),
@@ -190,7 +165,8 @@ private fun Preview() {
             contentAlignment = Alignment.BottomCenter,
             modifier = Modifier
                 .fillMaxSize()
-                .background(Colors.Brand)
+                .background(Colors.Black)
+                .gradientBackground()
         ) {
             // Content Behind
             Column(
