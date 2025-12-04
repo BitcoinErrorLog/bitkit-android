@@ -1448,6 +1448,16 @@ class AppViewModel @Inject constructor(
         toast(type = Toast.ToastType.ERROR, title = "Error", description = error.message ?: "Unknown error")
     }
 
+    fun toast(toast: Toast) {
+        toast(
+            type = toast.type,
+            title = toast.title,
+            description = toast.description,
+            autoHide = toast.autoHide,
+            visibilityTime = toast.visibilityTime
+        )
+    }
+
     fun hideToast() {
         currentToast = null
     }
