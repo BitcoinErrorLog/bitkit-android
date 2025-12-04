@@ -455,16 +455,16 @@ fun ContentView(
                         Routes.AllActivity::class.qualifiedName,
                     )
 
-                        if (showTabBar) {
-                            TabBar(
-                                onSendClick = { appViewModel.showSheet(Sheet.Send()) },
-                                onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-                                onScanClick = { navController.navigateToScanner() },
-                                modifier = Modifier.align(Alignment.BottomCenter)
-                            )
-                        }
+                    if (showTabBar) {
+                        TabBar(
+                            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+                            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
+                            onScanClick = { navController.navigateToScanner() },
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
                     }
                 }
+            }
 
             DrawerMenu(
                 drawerState = drawerState,
