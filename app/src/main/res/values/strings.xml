@@ -971,7 +971,12 @@
     <string name="wallet__receive_bitcoin_invoice">Bitcoin invoice</string>
     <string name="wallet__receive_lightning_invoice">Lightning invoice</string>
     <string name="wallet__receive_note_placeholder">Optional note to payer</string>
+    <string name="wallet__receive__cjit">Receive Lightning funds</string>
     <string name="wallet__receive_show_qr">Show QR Code</string>
+    <string name="wallet__receive_show_details">Show Details</string>
+    <string name="wallet__receive_tab_savings">Savings</string>
+    <string name="wallet__receive_tab_auto">Auto</string>
+    <string name="wallet__receive_tab_spending">Spending</string>
     <string name="wallet__receive_text_lnfunds">Want to receive &lt;accent&gt;Lightning&lt;/accent&gt; funds?</string>
     <string name="wallet__receive_spending">Receive on Spending Balance</string>
     <string name="wallet__receive_connect_initial">To set up your spending balance, a &lt;accent&gt;{networkFee}&lt;/accent&gt; network fee and &lt;accent&gt;{serviceFee}&lt;/accent&gt; service provider fee will be deducted.</string>
@@ -986,6 +991,11 @@
     <string name="wallet__receive_cjit_error_msg">Failed to send funds to your spending account.</string>
     <string name="wallet__receive_will">You will receive</string>
     <string name="wallet__receive_ldk_init">Spending Balance Initializing...</string>
+    <string name="wallet__receive_onboarding_title">Receive on &lt;accent&gt;spending balance&lt;/accent&gt;</string>
+    <string name="wallet__receive_onboarding_description">Enjoy instant and cheap\ntransactions with friends, family,\nand merchants.</string>
+    <string name="wallet__receive_qr_generating">Generating QR ...</string>
+    <string name="wallet__receive_geo_blocked_title">Instant Payments Unavailable</string>
+    <string name="wallet__receive_geo_blocked_description">Bitkit does not provide Lightning services in your country, but you can still connect to other nodes.</string>
     <string name="wallet__minimum">MINIMUM</string>
     <string name="wallet__activity">Activity</string>
     <string name="wallet__activity_show_all">Show All Activity</string>

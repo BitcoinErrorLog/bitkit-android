@@ -100,10 +100,10 @@ fun ActivityListFilter(
     }
 }
 
-enum class ActivityTab {
+enum class ActivityTab : TabItem {
     ALL, SENT, RECEIVED, OTHER;
 
-    val uiText: String
+    override val uiText: String
         @Composable
         get() = when (this) {
             ALL -> stringResource(R.string.wallet__activity_tabs__all)
