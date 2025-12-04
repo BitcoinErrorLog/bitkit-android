@@ -125,12 +125,12 @@ fun BoxScope.TabBar(
                 .size(64.dp)
                 // Shadow 1: gray2 shadow with radius 0 at y=-1 (top highlight)
                 .drawWithContent {
-                    // Draw a subtle top highlight (simulating iOS gray2 shadow at y=-1)
+                    // Draw a prominent top highlight
                     drawCircle(
                         color = Colors.Gray2,
-                        radius = size.width / 2 + 0.5.dp.toPx(),
-                        center = Offset(size.width / 2, size.height / 2 - 1.dp.toPx()),
-                        alpha = 0.15f
+                        radius = size.width / 2,
+                        center = Offset(size.width / 2, size.height / 2 - 1.5.dp.toPx()),
+                        alpha = 0.6f
                     )
                     drawContent()
                 }
