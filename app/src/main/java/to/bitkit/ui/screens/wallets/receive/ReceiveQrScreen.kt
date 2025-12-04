@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -191,9 +192,7 @@ fun ReceiveQrScreen(
             .keepScreenOn()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin))
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
+        Column {
             Spacer(Modifier.height(16.dp))
 
             // Tab row
@@ -207,7 +206,8 @@ fun ReceiveQrScreen(
                     scope.launch {
                         lazyListState.animateScrollToItem(newIndex)
                     }
-                }
+                },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             Spacer(Modifier.height(24.dp))
@@ -217,6 +217,7 @@ fun ReceiveQrScreen(
                 state = lazyListState,
                 flingBehavior = snapBehavior,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 userScrollEnabled = true,
                 modifier = Modifier
                     .weight(1f)
