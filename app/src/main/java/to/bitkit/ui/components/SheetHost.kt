@@ -21,6 +21,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import to.bitkit.ui.sheets.BackupRoute
@@ -30,6 +31,8 @@ import to.bitkit.ui.theme.AppShapes
 import to.bitkit.ui.theme.Colors
 
 enum class SheetSize { LARGE, MEDIUM, SMALL, CALENDAR; }
+
+private val sheetContainerColor = Color(0xFF141414) // Equivalent to White08 on a Black background
 
 @Stable
 sealed interface Sheet {
@@ -92,7 +95,7 @@ fun SheetHost(
             sheetShape = AppShapes.sheet,
             sheetContent = sheets,
             sheetDragHandle = { SheetDragHandle() },
-            sheetContainerColor = Colors.White08,
+            sheetContainerColor = sheetContainerColor,
             sheetContentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             content()
