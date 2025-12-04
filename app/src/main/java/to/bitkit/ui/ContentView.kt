@@ -1,10 +1,8 @@
 package to.bitkit.ui
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
@@ -438,39 +436,38 @@ fun ContentView(
                     }
                 }
             ) {
-                RootNavHost(
-                    navController = navController,
-                    drawerState = drawerState,
-                    walletViewModel = walletViewModel,
-                    appViewModel = appViewModel,
-                    activityListViewModel = activityListViewModel,
-                    settingsViewModel = settingsViewModel,
-                    currencyViewModel = currencyViewModel,
-                    transferViewModel = transferViewModel,
-                )
-            }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    RootNavHost(
+                        navController = navController,
+                        drawerState = drawerState,
+                        walletViewModel = walletViewModel,
+                        appViewModel = appViewModel,
+                        activityListViewModel = activityListViewModel,
+                        settingsViewModel = settingsViewModel,
+                        currencyViewModel = currencyViewModel,
+                        transferViewModel = transferViewModel,
+                    )
 
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-            val currentRoute = navBackStackEntry?.destination?.route
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-            val showTabBar = currentRoute in listOf(
-                Routes.Home::class.qualifiedName,
-                Routes.AllActivity::class.qualifiedName,
-            )
+                    val currentRoute = navBackStackEntry?.destination?.route
 
-            AnimatedVisibility(
-                visible = showTabBar && currentSheet == null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-            ) {
-                TabBar(
-                    hazeState = hazeState,
-                    onSendClick = { appViewModel.showSheet(Sheet.Send()) },
-                    onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-                    onScanClick = { navController.navigateToScanner() },
-                )
+                    val showTabBar = currentRoute in listOf(
+                        Routes.Home::class.qualifiedName,
+                        Routes.AllActivity::class.qualifiedName,
+                    )
+
+                    if (showTabBar) {
+                        TabBar(
+                            hazeState = hazeState,
+                            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
+                            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
+                            onScanClick = { navController.navigateToScanner() }, modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                        )
+                    }
+                }
             }
 
             DrawerMenu(
