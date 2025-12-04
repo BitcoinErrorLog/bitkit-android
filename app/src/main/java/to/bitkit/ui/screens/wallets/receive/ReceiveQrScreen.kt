@@ -300,7 +300,9 @@ fun ReceiveQrScreen(
                         }
                     },
                     fullWidth = true,
-                    modifier = Modifier.testTag(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .testTag(
                         if (showDetails) {
                             "QRCode"
                         } else {
