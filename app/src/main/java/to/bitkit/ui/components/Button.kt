@@ -217,25 +217,30 @@ fun TertiaryButton(
                 modifier = Modifier.size(size.height / 2)
             )
         } else {
-            if (icon != null) {
-                Box(
-                    modifier = if (enabled) {
-                        Modifier
-                    } else {
-                        Modifier.graphicsLayer {
-                            colorFilter = ColorFilter.tint(Colors.White06)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (icon != null) {
+                    Box(
+                        modifier = if (enabled) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                colorFilter = ColorFilter.tint(Colors.White06)
+                            }
                         }
+                    ) {
+                        icon()
                     }
-                ) {
-                    icon()
                 }
-            }
-            text?.let {
-                Text(
-                    text = text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                text?.let {
+                    Text(
+                        text = text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -467,6 +472,14 @@ private fun TertiaryButtonPreview() {
             TertiaryButton(
                 text = "Tertiary Disabled",
                 enabled = false,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "",
+                        tint = Colors.Brand,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
                 onClick = {}
             )
             TertiaryButton(
