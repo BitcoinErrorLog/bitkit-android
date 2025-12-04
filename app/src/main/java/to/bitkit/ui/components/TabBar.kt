@@ -25,8 +25,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -114,34 +118,61 @@ fun BoxScope.TabBar(
             }
         }
 
-        // Scan Button
-        val scanBg = Colors.Gray6.copy(alpha = 0.75f)
-        // Outer Border
+        // Scan button matching iOS reference
         Box(
-            content = {},
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.verticalGradient(colors = listOf(Colors.White10, Color.Transparent))
+                .size(64.dp)
+                // Shadow 1: gray2 shadow with radius 0 at y=-1 (top highlight)
+                .drawWithContent {
+                    // Draw a subtle top highlight (simulating iOS gray2 shadow at y=-1)
+                    drawCircle(
+                        color = Colors.Gray2,
+                        radius = size.width / 2 + 0.5.dp.toPx(),
+                        center = Offset(size.width / 2, size.height / 2 - 1.dp.toPx()),
+                        alpha = 0.15f
+                    )
+                    drawContent()
+                }
+                // Shadow 2: black 25% opacity, radius 25, y offset 20
+                .shadow(
+                    elevation = 25.dp,
+                    shape = CircleShape,
+                    ambientColor = Colors.Black25,
+                    spotColor = Colors.Black25
                 )
-                .clickable { onScanClick() }
-                .padding(2.dp)
-                .testTag("Scan")
-        )
-        // Inner Content
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(76.dp)
                 .clip(CircleShape)
-                .background(scanBg)
+                .background(Colors.Gray7)
+                // Overlay: Circle strokeBorder with linear gradient mask (top to bottom)
+                .drawWithContent {
+                    drawContent()
+
+                    // Draw 2px black border with vertical gradient mask (black at top, clear at bottom)
+                    val borderWidth = 2.dp.toPx()
+                    val gradientBrush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black,      // Top: full black
+                            Color.Transparent // Bottom: transparent
+                        ),
+                        startY = 0f,
+                        endY = size.height
+                    )
+
+                    // Draw the circular border with gradient
+                    drawCircle(
+                        brush = gradientBrush,
+                        radius = (size.width - borderWidth) / 2,
+                        center = Offset(size.width / 2, size.height / 2),
+                        style = Stroke(width = borderWidth)
+                    )
+                }
+                .clickable { onScanClick() }
+                .testTag("Scan")
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_scan),
                 contentDescription = stringResource(R.string.wallet__recipient_scan),
-                tint = Colors.Gray2,
+                tint = Colors.Gray1,
                 modifier = Modifier.size(32.dp)
             )
         }
