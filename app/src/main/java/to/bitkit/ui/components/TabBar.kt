@@ -153,7 +153,7 @@ fun BoxScope.TabBar(
                     // Create vertical gradient mask (black to clear)
                     val maskGradient = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White,      // Top: full opacity (shows border)
+                            Color.White, // Top: full opacity (shows border)
                             Color.Transparent // Bottom: transparent (hides border)
                         ),
                         startY = 0f,
