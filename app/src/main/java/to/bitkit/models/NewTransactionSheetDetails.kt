@@ -1,59 +1,22 @@
 package to.bitkit.models
 
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.PaymentType
 import kotlinx.serialization.Serializable
-import to.bitkit.di.json
-import to.bitkit.utils.Logger
-
-private const val APP_PREFS = "bitkit_prefs"
 
 @Serializable
 data class NewTransactionSheetDetails(
     val type: NewTransactionSheetType,
     val direction: NewTransactionSheetDirection,
     val paymentHashOrTxId: String? = null,
-    val sats: Long,
-    val isLoadingDetails: Boolean = false
+    val sats: Long = 0,
+    val isLoadingDetails: Boolean = false,
 ) {
     companion object {
-        private const val BACKGROUND_TRANSACTION_KEY = "backgroundTransaction"
-
-        fun save(context: Context, details: NewTransactionSheetDetails) {
-            val sharedPreferences = getSharedPreferences(context)
-            val editor = sharedPreferences.edit()
-            try {
-                val jsonData = json.encodeToString(details)
-                editor.putString(BACKGROUND_TRANSACTION_KEY, jsonData)
-                editor.apply()
-            } catch (e: Exception) {
-                Logger.error("Failed to cache transaction", e)
-            }
-        }
-
-        fun load(context: Context): NewTransactionSheetDetails? {
-            val sharedPreferences = getSharedPreferences(context)
-            val jsonData = sharedPreferences.getString(BACKGROUND_TRANSACTION_KEY, null) ?: return null
-
-            return try {
-                json.decodeFromString(jsonData)
-            } catch (e: Exception) {
-                Logger.error("Failed to load cached transaction", e)
-                null
-            }
-        }
-
-        fun clear(context: Context) {
-            val sharedPreferences = getSharedPreferences(context)
-            sharedPreferences.edit { remove(BACKGROUND_TRANSACTION_KEY) }
-        }
-
-        private fun getSharedPreferences(context: Context): SharedPreferences {
-            return context.getSharedPreferences(APP_PREFS, Context.MODE_PRIVATE)
-        }
+        val EMPTY = NewTransactionSheetDetails(
+            type = NewTransactionSheetType.LIGHTNING,
+            direction = NewTransactionSheetDirection.RECEIVED,
+        )
     }
 }
 

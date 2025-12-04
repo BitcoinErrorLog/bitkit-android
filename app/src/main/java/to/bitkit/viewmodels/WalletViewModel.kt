@@ -56,7 +56,7 @@ class WalletViewModel @Inject constructor(
 
     val isRecoveryMode = lightningRepo.isRecoveryMode
 
-    var restoreState by mutableStateOf<RestoreState>(RestoreState.NotRestoring)
+    var restoreState by mutableStateOf<RestoreState>(RestoreState.Initial)
         private set
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -90,7 +90,7 @@ class WalletViewModel @Inject constructor(
                         receiveOnSpendingBalance = state.receiveOnSpendingBalance,
                     )
                 }
-                if (state.walletExists && restoreState == RestoreState.RestoringWallet) {
+                if (state.walletExists && restoreState == RestoreState.InProgress.Wallet) {
                     restoreFromBackup()
                 }
             }
@@ -112,14 +112,14 @@ class WalletViewModel @Inject constructor(
     }
 
     private suspend fun restoreFromBackup() {
-        restoreState = RestoreState.RestoringBackups
+        restoreState = RestoreState.InProgress.Metadata
         backupRepo.performFullRestoreFromLatestBackup(onCacheRestored = walletRepo::loadFromCache)
         // data backup is not critical and mostly for user convenience so there is no reason to propagate errors up
-        restoreState = RestoreState.BackupRestoreCompleted
+        restoreState = RestoreState.Completed
     }
 
     fun onRestoreContinue() {
-        restoreState = RestoreState.NotRestoring
+        restoreState = RestoreState.Settled
     }
 
     fun proceedWithoutRestore(onDone: () -> Unit) {
@@ -127,7 +127,7 @@ class WalletViewModel @Inject constructor(
             // TODO start LDK without trying to restore backup state from VSS if possible
             lightningRepo.stop()
             delay(LOADING_MS.milliseconds)
-            restoreState = RestoreState.NotRestoring
+            restoreState = RestoreState.Settled
             onDone()
         }
     }
@@ -142,7 +142,10 @@ class WalletViewModel @Inject constructor(
                 .onSuccess {
                     walletRepo.setWalletExistsState()
                     walletRepo.syncBalances()
-                    walletRepo.refreshBip21()
+                    // Skip refreshing during restore, it will be called when it completes
+                    if (restoreState.isIdle()) {
+                        walletRepo.refreshBip21()
+                    }
                 }
                 .onFailure { error ->
                     Logger.error("Node startup error", error)
@@ -163,10 +166,6 @@ class WalletViewModel @Inject constructor(
                     ToastEventBus.send(error)
                 }
         }
-    }
-
-    suspend fun observeLdkWallet() {
-        walletRepo.observeLdkWallet()
     }
 
     fun refreshState() = viewModelScope.launch {
@@ -263,7 +262,7 @@ class WalletViewModel @Inject constructor(
 
     suspend fun restoreWallet(mnemonic: String, bip39Passphrase: String?) {
         setInitNodeLifecycleState()
-        restoreState = RestoreState.RestoringWallet
+        restoreState = RestoreState.InProgress.Wallet
 
         walletRepo.restoreWallet(
             mnemonic = mnemonic,
@@ -332,10 +331,15 @@ sealed interface WalletViewModelEffects {
 }
 
 sealed interface RestoreState {
-    data object NotRestoring : RestoreState
-    data object RestoringWallet : RestoreState
-    data object RestoringBackups : RestoreState
-    data object BackupRestoreCompleted : RestoreState
+    data object Initial : RestoreState
+    sealed interface InProgress : RestoreState {
+        object Wallet : InProgress
+        object Metadata : InProgress
+    }
 
-    fun isRestoring() = this is RestoringWallet || this is RestoringBackups
+    data object Completed : RestoreState
+    data object Settled : RestoreState
+
+    fun isOngoing() = this is InProgress
+    fun isIdle() = this is Initial || this is Settled
 }

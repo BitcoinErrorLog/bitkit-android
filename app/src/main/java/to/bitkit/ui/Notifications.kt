@@ -52,22 +52,21 @@ internal fun Context.notificationBuilder(
         .setAutoCancel(true) // remove on tap
 }
 
-internal fun pushNotification(
+internal fun Context.pushNotification(
     title: String?,
     text: String?,
     extras: Bundle? = null,
     bigText: String? = null,
     id: Int = Random.nextInt(),
-    context: Context,
 ): Int {
     Logger.debug("Push notification: $title, $text")
 
     // Only check permission if running on Android 13+ (SDK 33+)
     val requiresPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-        context.requiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+        requiresPermission(Manifest.permission.POST_NOTIFICATIONS)
 
     if (!requiresPermission) {
-        val builder = context.notificationBuilder(extras)
+        val builder = notificationBuilder(extras)
             .setContentTitle(title)
             .setContentText(text)
             .apply {
@@ -75,7 +74,7 @@ internal fun pushNotification(
                     setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
                 }
             }
-        context.notificationManagerCompat.notify(id, builder.build())
+        notificationManagerCompat.notify(id, builder.build())
     }
 
     return id

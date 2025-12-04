@@ -136,7 +136,7 @@ class FcmService : FirebaseMessagingService() {
     }
 
     private fun sendNotification(title: String?, body: String?, extras: Bundle? = null) {
-        pushNotification(title, body, extras, context = applicationContext)
+        applicationContext.pushNotification(title, body, extras)
     }
 
     private inline fun <reified T> Map<String, String>.tryAs(block: (T) -> Unit): Boolean {

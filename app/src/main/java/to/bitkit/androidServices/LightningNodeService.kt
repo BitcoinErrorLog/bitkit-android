@@ -7,29 +7,48 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.lightningdevkit.ldknode.Event
 import to.bitkit.App
 import to.bitkit.R
+import to.bitkit.data.CacheStore
+import to.bitkit.di.UiDispatcher
+import to.bitkit.domain.commands.NotifyPaymentReceived
+import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
+import to.bitkit.models.NewTransactionSheetDetails
+import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.MainActivity
+import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class LightningNodeService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    @Inject
+    @UiDispatcher
+    lateinit var uiDispatcher: CoroutineDispatcher
+
+    private val serviceScope by lazy { CoroutineScope(SupervisorJob() + uiDispatcher) }
 
     @Inject
     lateinit var lightningRepo: LightningRepo
 
     @Inject
     lateinit var walletRepo: WalletRepo
+
+    @Inject
+    lateinit var notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler
+
+    @Inject
+    lateinit var cacheStore: CacheStore
 
     override fun onCreate() {
         super.onCreate()
@@ -39,26 +58,43 @@ class LightningNodeService : Service() {
 
     private fun setupService() {
         serviceScope.launch {
-            launch {
-                lightningRepo.start(
-                    eventHandler = { event ->
-                        walletRepo.refreshBip21ForEvent(event)
-                    }
-                ).onSuccess {
-                    val notification = createNotification()
-                    startForeground(NOTIFICATION_ID, notification)
-
-                    walletRepo.setWalletExistsState()
-                    walletRepo.refreshBip21()
-                    walletRepo.syncBalances()
+            lightningRepo.start(
+                eventHandler = { event ->
+                    Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
+                    handlePaymentReceived(event)
                 }
+            ).onSuccess {
+                val notification = createNotification()
+                startForeground(NOTIFICATION_ID, notification)
+
+                walletRepo.setWalletExistsState()
+                walletRepo.refreshBip21()
+                walletRepo.syncBalances()
             }
         }
     }
 
-    // Update the createNotification method in LightningNodeService.kt
+    private suspend fun handlePaymentReceived(event: Event) {
+        if (event !is Event.PaymentReceived && event !is Event.OnchainTransactionReceived) return
+        val command = NotifyPaymentReceived.Command.from(event, includeNotification = true) ?: return
+
+        notifyPaymentReceivedHandler(command).onSuccess { result ->
+            if (result !is NotifyPaymentReceived.Result.ShowNotification) return
+            showPaymentNotification(result.sheet, result.notification)
+        }
+    }
+
+    private fun showPaymentNotification(
+        sheet: NewTransactionSheetDetails,
+        notification: NotificationDetails,
+    ) {
+        if (App.currentActivity?.value != null) return
+        serviceScope.launch { cacheStore.setBackgroundReceive(sheet) }
+        pushNotification(notification.title, notification.body)
+    }
+
     private fun createNotification(
-        contentText: String = "Bitkit is running in background so you can receive Lightning payments"
+        contentText: String = getString(R.string.notification_running_in_background),
     ): Notification {
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -88,7 +124,7 @@ class LightningNodeService : Service() {
             .setContentIntent(pendingIntent)
             .addAction(
                 R.drawable.ic_x,
-                "Stop App", // TODO: Get from resources
+                getString(R.string.notification_stop_app),
                 stopPendingIntent
             )
             .build()

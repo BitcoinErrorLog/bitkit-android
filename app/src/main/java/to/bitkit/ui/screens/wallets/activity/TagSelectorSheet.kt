@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,10 @@ fun TagSelectorSheet() {
     val app = appViewModel ?: return
     val availableTags by activity.availableTags.collectAsStateWithLifecycle()
     val selectedTags by activity.selectedTags.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        activity.updateAvailableTags()
+    }
 
     Content(
         availableTags = availableTags,

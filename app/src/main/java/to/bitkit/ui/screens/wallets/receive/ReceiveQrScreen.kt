@@ -69,9 +69,6 @@ import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
-import to.bitkit.ui.screens.wallets.receive.ReceiveTab.AUTO
-import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SAVINGS
-import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SPENDING
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -83,6 +80,7 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
 
+@Suppress("CyclomaticComplexMethod")
 @OptIn(FlowPreview::class)
 @Composable
 fun ReceiveQrScreen(
@@ -188,9 +186,9 @@ fun ReceiveQrScreen(
                 tabs = visibleTabs,
                 currentTabIndex = visibleTabs.indexOf(selectedTab),
                 selectedColor = when (selectedTab) {
-                    SAVINGS -> Colors.Brand
-                    AUTO -> Colors.White
-                    SPENDING -> Colors.Purple
+                    ReceiveTab.SAVINGS -> Colors.Brand
+                    ReceiveTab.AUTO -> Colors.White
+                    ReceiveTab.SPENDING -> Colors.Purple
                 },
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -673,8 +671,11 @@ private fun PreviewAutoMode() {
                     nodeLifecycleState = NodeLifecycleState.Running,
                     channels = listOf(mockChannel),
                     onchainAddress = "bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l",
-                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq",
-                    bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79..."
+                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfv" +
+                        "djjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq",
+                    bip21 = "bitcoin:bcrt1qfserxgtuesul4m9zva56wzk849yf9l8rk4qy0l?lightning=" +
+                        "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfv" +
+                        "djjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq",
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),
@@ -737,7 +738,8 @@ private fun PreviewSpendingMode() {
                 walletState = MainUiState(
                     nodeLifecycleState = NodeLifecycleState.Running,
                     channels = listOf(mockChannel),
-                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfvdjjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
+                    bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79vhx9n2ps8q6tcdehhxapqd9h8vmmfv" +
+                        "djjqen0wgsyqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxq"
                 ),
                 onClickEditInvoice = {},
                 modifier = Modifier.sheetHeight(),

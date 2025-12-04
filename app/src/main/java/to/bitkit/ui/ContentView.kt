@@ -41,7 +41,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import to.bitkit.env.Env
-import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
 import to.bitkit.models.WidgetType
@@ -183,6 +182,7 @@ import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.TransferViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun ContentView(
     appViewModel: AppViewModel,
@@ -193,6 +193,7 @@ fun ContentView(
     transferViewModel: TransferViewModel,
     settingsViewModel: SettingsViewModel,
     backupsViewModel: BackupsViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -216,11 +217,7 @@ fun ContentView(
                         walletViewModel.start()
                     }
 
-                    val pendingTransaction = NewTransactionSheetDetails.load(context)
-                    if (pendingTransaction != null) {
-                        appViewModel.showNewTransactionSheet(details = pendingTransaction, event = null)
-                        NewTransactionSheetDetails.clear(context)
-                    }
+                    appViewModel.consumePaymentReceivedInBackground()
 
                     currencyViewModel.triggerRefresh()
                     blocktankViewModel.refreshOrders()
@@ -242,10 +239,6 @@ fun ContentView(
         onDispose {
             lifecycle.removeObserver(observer)
         }
-    }
-
-    LaunchedEffect(Unit) {
-        walletViewModel.observeLdkWallet()
     }
 
     LaunchedEffect(Unit) { walletViewModel.handleHideBalanceOnOpen() }
@@ -322,168 +315,164 @@ fun ContentView(
                         walletIsInitializing = false
                     }
                 },
-                isRestoring = restoreState.isRestoring(),
+                isRestoring = restoreState.isOngoing(),
             )
         }
-    } else if (restoreState is RestoreState.BackupRestoreCompleted) {
+        return
+    } else if (restoreState is RestoreState.Completed) {
         WalletRestoreSuccessView(
             onContinue = { walletViewModel.onRestoreContinue() },
         )
-    } else {
-        val balance by walletViewModel.balanceState.collectAsStateWithLifecycle()
-        val currencies by currencyViewModel.uiState.collectAsState()
+        return
+    }
 
-        LaunchedEffect(balance) {
-            // Anytime we receive a balance update, we should sync the payments to activity list
-            activityListViewModel.resync()
-        }
+    val balance by walletViewModel.balanceState.collectAsStateWithLifecycle()
+    val currencies by currencyViewModel.uiState.collectAsState()
 
-        // Keep backups in sync
-        LaunchedEffect(backupsViewModel) { backupsViewModel.observeAndSyncBackups() }
+    // Keep backups in sync
+    LaunchedEffect(backupsViewModel) { backupsViewModel.observeAndSyncBackups() }
 
-        CompositionLocalProvider(
-            LocalAppViewModel provides appViewModel,
-            LocalWalletViewModel provides walletViewModel,
-            LocalBlocktankViewModel provides blocktankViewModel,
-            LocalCurrencyViewModel provides currencyViewModel,
-            LocalActivityListViewModel provides activityListViewModel,
-            LocalTransferViewModel provides transferViewModel,
-            LocalSettingsViewModel provides settingsViewModel,
-            LocalBackupsViewModel provides backupsViewModel,
-            LocalDrawerState provides drawerState,
-            LocalBalances provides balance,
-            LocalCurrencies provides currencies,
+    CompositionLocalProvider(
+        LocalAppViewModel provides appViewModel,
+        LocalWalletViewModel provides walletViewModel,
+        LocalBlocktankViewModel provides blocktankViewModel,
+        LocalCurrencyViewModel provides currencyViewModel,
+        LocalActivityListViewModel provides activityListViewModel,
+        LocalTransferViewModel provides transferViewModel,
+        LocalSettingsViewModel provides settingsViewModel,
+        LocalBackupsViewModel provides backupsViewModel,
+        LocalDrawerState provides drawerState,
+        LocalBalances provides balance,
+        LocalCurrencies provides currencies,
+    ) {
+        AutoReadClipboardHandler()
+
+        val hasSeenWidgetsIntro by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
+        val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
+
+        val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
+        val hazeState = rememberHazeState()
+
+        Box(
+            modifier = modifier.fillMaxSize()
         ) {
-            AutoReadClipboardHandler()
+            SheetHost(
+                shouldExpand = currentSheet != null,
+                onDismiss = { appViewModel.hideSheet() },
+                sheets = {
+                    when (val sheet = currentSheet) {
+                        null -> Unit
+                        is Sheet.Send -> {
+                            SendSheet(
+                                appViewModel = appViewModel,
+                                walletViewModel = walletViewModel,
+                                startDestination = sheet.route,
+                            )
+                        }
 
-            val hasSeenWidgetsIntro by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
-            val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
+                        is Sheet.Receive -> {
+                            val walletUiState by walletViewModel.uiState.collectAsState()
+                            ReceiveSheet(
+                                walletState = walletUiState,
+                                navigateToExternalConnection = {
+                                    navController.navigate(ExternalConnection())
+                                    appViewModel.hideSheet()
+                                }
+                            )
+                        }
 
-            val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
-            val hazeState = rememberHazeState()
+                        is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
+                        is Sheet.ActivityTagSelector -> TagSelectorSheet()
+                        is Sheet.Pin -> PinSheet(sheet, appViewModel)
+                        is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
+                        is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
+                        Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
+                        is Sheet.Gift -> GiftSheet(sheet, appViewModel)
+                        is Sheet.TimedSheet -> {
+                            when (sheet.type) {
+                                TimedSheetType.APP_UPDATE -> {
+                                    UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
+                                }
 
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                SheetHost(
-                    shouldExpand = currentSheet != null,
-                    onDismiss = { appViewModel.hideSheet() },
-                    sheets = {
-                        when (val sheet = currentSheet) {
-                            null -> Unit
-                            is Sheet.Send -> {
-                                SendSheet(
-                                    appViewModel = appViewModel,
-                                    walletViewModel = walletViewModel,
-                                    startDestination = sheet.route,
-                                )
-                            }
+                                TimedSheetType.BACKUP -> {
+                                    BackupSheet(
+                                        sheet = Sheet.Backup(BackupRoute.Intro),
+                                        onDismiss = { appViewModel.dismissTimedSheet() }
+                                    )
+                                }
 
-                            is Sheet.Receive -> {
-                                val walletUiState by walletViewModel.uiState.collectAsState()
-                                ReceiveSheet(
-                                    walletState = walletUiState,
-                                    navigateToExternalConnection = {
-                                        navController.navigate(ExternalConnection())
-                                        appViewModel.hideSheet()
-                                    }
-                                )
-                            }
+                                TimedSheetType.NOTIFICATIONS -> {
+                                    BackgroundPaymentsIntroSheet(
+                                        onContinue = {
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            navController.navigate(Routes.BackgroundPaymentsSettings)
+                                            settingsViewModel.setBgPaymentsIntroSeen(true)
+                                        },
+                                    )
+                                }
 
-                            is Sheet.ActivityDateRangeSelector -> DateRangeSelectorSheet()
-                            is Sheet.ActivityTagSelector -> TagSelectorSheet()
-                            is Sheet.Pin -> PinSheet(sheet, appViewModel)
-                            is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
-                            is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
-                            Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
-                            is Sheet.Gift -> GiftSheet(sheet, appViewModel)
-                            is Sheet.TimedSheet -> {
-                                when (sheet.type) {
-                                    TimedSheetType.APP_UPDATE -> {
-                                        UpdateSheet(onCancel = { appViewModel.dismissTimedSheet() })
-                                    }
+                                TimedSheetType.QUICK_PAY -> {
+                                    QuickPayIntroSheet(
+                                        onContinue = {
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            navController.navigate(Routes.QuickPaySettings)
+                                        },
+                                    )
+                                }
 
-                                    TimedSheetType.BACKUP -> {
-                                        BackupSheet(
-                                            sheet = Sheet.Backup(BackupRoute.Intro),
-                                            onDismiss = { appViewModel.dismissTimedSheet() }
-                                        )
-                                    }
-
-                                    TimedSheetType.NOTIFICATIONS -> {
-                                        BackgroundPaymentsIntroSheet(
-                                            onContinue = {
-                                                appViewModel.dismissTimedSheet(skipQueue = true)
-                                                navController.navigate(Routes.BackgroundPaymentsSettings)
-                                                settingsViewModel.setBgPaymentsIntroSeen(true)
-                                            },
-                                        )
-                                    }
-
-                                    TimedSheetType.QUICK_PAY -> {
-                                        QuickPayIntroSheet(
-                                            onContinue = {
-                                                appViewModel.dismissTimedSheet(skipQueue = true)
-                                                navController.navigate(Routes.QuickPaySettings)
-                                            },
-                                        )
-                                    }
-
-                                    TimedSheetType.HIGH_BALANCE -> {
-                                        HighBalanceWarningSheet(
-                                            understoodClick = { appViewModel.dismissTimedSheet() },
-                                            learnMoreClick = {
-                                                val intent =
-                                                    Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
-                                                context.startActivity(intent)
-                                                appViewModel.dismissTimedSheet(skipQueue = true)
-                                            }
-                                        )
-                                    }
+                                TimedSheetType.HIGH_BALANCE -> {
+                                    HighBalanceWarningSheet(
+                                        understoodClick = { appViewModel.dismissTimedSheet() },
+                                        learnMoreClick = {
+                                            val intent =
+                                                Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
+                                            context.startActivity(intent)
+                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                        }
+                                    )
                                 }
                             }
                         }
                     }
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        RootNavHost(
-                            navController = navController,
-                            drawerState = drawerState,
-                            walletViewModel = walletViewModel,
-                            appViewModel = appViewModel,
-                            activityListViewModel = activityListViewModel,
-                            settingsViewModel = settingsViewModel,
-                            currencyViewModel = currencyViewModel,
-                            transferViewModel = transferViewModel,
-                        )
+                }
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    RootNavHost(
+                        navController = navController,
+                        drawerState = drawerState,
+                        walletViewModel = walletViewModel,
+                        appViewModel = appViewModel,
+                        activityListViewModel = activityListViewModel,
+                        settingsViewModel = settingsViewModel,
+                        currencyViewModel = currencyViewModel,
+                        transferViewModel = transferViewModel,
+                    )
 
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = navBackStackEntry?.destination?.route
-                        val showTabBar = currentRoute in listOf(
-                            Routes.Home::class.qualifiedName,
-                            Routes.AllActivity::class.qualifiedName,
-                        )
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    val showTabBar = currentRoute in listOf(
+                        Routes.Home::class.qualifiedName,
+                        Routes.AllActivity::class.qualifiedName,
+                    )
 
                         if (showTabBar) {
                             TabBar(
                                 onSendClick = { appViewModel.showSheet(Sheet.Send()) },
                                 onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
                                 onScanClick = { navController.navigateToScanner() },
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
+                                modifier = Modifier.align(Alignment.BottomCenter)
                             )
                         }
                     }
                 }
 
-                DrawerMenu(
-                    drawerState = drawerState,
-                    rootNavController = navController,
-                    hasSeenWidgetsIntro = hasSeenWidgetsIntro,
-                    hasSeenShopIntro = hasSeenShopIntro,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                )
-            }
+            DrawerMenu(
+                drawerState = drawerState,
+                rootNavController = navController,
+                hasSeenWidgetsIntro = hasSeenWidgetsIntro,
+                hasSeenShopIntro = hasSeenShopIntro,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
         }
     }
 }
@@ -748,6 +737,7 @@ private fun RootNavHost(
 }
 
 // region destinations
+@Suppress("LongParameterList")
 private fun NavGraphBuilder.home(
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,

@@ -88,14 +88,13 @@ class DevSettingsViewModel @Inject constructor(
         }
     }
 
-    fun fakeBgTransaction() {
+    fun fakeBgReceive() {
         viewModelScope.launch {
-            NewTransactionSheetDetails.save(
-                context,
+            cacheStore.setBackgroundReceive(
                 NewTransactionSheetDetails(
                     type = NewTransactionSheetType.LIGHTNING,
                     direction = NewTransactionSheetDirection.RECEIVED,
-                    sats = 123456789,
+                    sats = 21_000_000,
                 )
             )
         }
