@@ -1413,10 +1413,6 @@ inline fun <reified T : Any> NavController.navigateIfNotCurrent(route: T) {
     }
 }
 
-fun NavController.navigateToSettings() = navigate(
-    route = Routes.Settings,
-)
-
 fun NavController.navigateToGeneralSettings() = navigate(
     route = Routes.GeneralSettings,
 )
