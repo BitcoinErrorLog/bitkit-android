@@ -108,7 +108,7 @@ fun PrimaryButton(
                                 Modifier
                             } else {
                                 Modifier.graphicsLayer {
-                                    colorFilter = ColorFilter.tint(Colors.White06)
+                                    colorFilter = ColorFilter.tint(Colors.White32)
                                 }
                             }
                         ) {
@@ -169,7 +169,7 @@ fun SecondaryButton(
                             Modifier
                         } else {
                             Modifier.graphicsLayer {
-                                colorFilter = ColorFilter.tint(Colors.White06)
+                                colorFilter = ColorFilter.tint(Colors.White32)
                             }
                         }
                     ) {
@@ -227,7 +227,7 @@ fun TertiaryButton(
                             Modifier
                         } else {
                             Modifier.graphicsLayer {
-                                colorFilter = ColorFilter.tint(Colors.White06)
+                                colorFilter = ColorFilter.tint(Colors.White32)
                             }
                         }
                     ) {
