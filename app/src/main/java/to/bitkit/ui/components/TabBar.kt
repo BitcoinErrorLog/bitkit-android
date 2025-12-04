@@ -32,10 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
@@ -55,7 +52,6 @@ private val buttonRightShape = RoundedCornerShape(topEndPercent = 50, bottomEndP
 @Composable
 fun BoxScope.TabBar(
     modifier: Modifier = Modifier,
-    hazeState: HazeState = rememberHazeState(),
     onSendClick: () -> Unit = {},
     onReceiveClick: () -> Unit = {},
     onScanClick: () -> Unit = {},
@@ -140,10 +136,6 @@ fun BoxScope.TabBar(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .hazeEffect(
-                    state = hazeState,
-                    style = CupertinoMaterials.regular(containerColor = Color.Transparent),
-                )
                 .background(scanBg)
         ) {
             Icon(
@@ -181,7 +173,6 @@ private fun Preview() {
                 onSendClick = {},
                 onReceiveClick = {},
                 onScanClick = {},
-                hazeState = hazeState,
             )
         }
     }
