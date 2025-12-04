@@ -23,8 +23,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -102,7 +103,15 @@ fun PrimaryButton(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (icon != null) {
-                        Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                        Box(
+                            modifier = if (enabled) {
+                                Modifier
+                            } else {
+                                Modifier.graphicsLayer {
+                                    colorFilter = ColorFilter.tint(Colors.White06)
+                                }
+                            }
+                        ) {
                             icon()
                         }
                     }
@@ -155,7 +164,15 @@ fun SecondaryButton(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (icon != null) {
-                    Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                    Box(
+                        modifier = if (enabled) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                colorFilter = ColorFilter.tint(Colors.White06)
+                            }
+                        }
+                    ) {
                         icon()
                     }
                 }
@@ -201,7 +218,15 @@ fun TertiaryButton(
             )
         } else {
             if (icon != null) {
-                Box(modifier = if (enabled) Modifier else Modifier.alpha(0.5f)) {
+                Box(
+                    modifier = if (enabled) {
+                        Modifier
+                    } else {
+                        Modifier.graphicsLayer {
+                            colorFilter = ColorFilter.tint(Colors.White06)
+                        }
+                    }
+                ) {
                     icon()
                 }
             }
