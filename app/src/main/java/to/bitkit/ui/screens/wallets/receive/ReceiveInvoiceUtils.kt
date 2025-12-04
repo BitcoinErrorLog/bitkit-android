@@ -12,6 +12,7 @@ import to.bitkit.R
  * @param onchainAddress Pure Bitcoin address (fallback)
  * @return The invoice string to display/encode in QR
  */
+@Suppress("LongParameterList")
 fun getInvoiceForTab(
     tab: ReceiveTab,
     bip21: String,

@@ -80,12 +80,14 @@ fun ElectrumConfigScreen(
                     description = context.getString(R.string.settings__es__server_updated_message)
                         .replace("{host}", uiState.host)
                         .replace("{port}", uiState.port),
+                    testTag = "ElectrumUpdatedToast",
                 )
             } else {
                 app.toast(
                     type = Toast.ToastType.WARNING,
                     title = context.getString(R.string.settings__es__server_error),
                     description = context.getString(R.string.settings__es__server_error_description),
+                    testTag = "ElectrumErrorToast",
                 )
             }
             viewModel.clearConnectionResult()

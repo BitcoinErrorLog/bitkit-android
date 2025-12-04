@@ -1,14 +1,12 @@
 package to.bitkit.services
 
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.AnchorChannelsConfig
@@ -32,6 +30,7 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
+import org.lightningdevkit.ldknode.TransactionDetails
 import org.lightningdevkit.ldknode.Txid
 import org.lightningdevkit.ldknode.defaultConfig
 import to.bitkit.async.BaseCoroutineScope
@@ -49,11 +48,11 @@ import to.bitkit.utils.LdkError
 import to.bitkit.utils.LdkLogWriter
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import to.bitkit.utils.jsonLogOf
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.io.path.Path
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 typealias NodeEventHandler = suspend (Event) -> Unit
 
@@ -68,6 +67,9 @@ class LightningService @Inject constructor(
 
     @Volatile
     var node: Node? = null
+
+    private val _syncStatusChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val syncStatusChanged: SharedFlow<Unit> = _syncStatusChanged.asSharedFlow()
 
     private lateinit var trustedPeers: List<PeerDetails>
 
@@ -226,6 +228,8 @@ class LightningService @Inject constructor(
             node.syncWallets()
             // launch { setMaxDustHtlcExposureForCurrentChannels() }
         }
+
+        _syncStatusChanged.tryEmit(Unit)
 
         Logger.debug("LDK synced")
     }
@@ -673,95 +677,50 @@ class LightningService @Inject constructor(
     // region events
     private var shouldListenForEvents = true
 
-    suspend fun listenForEvents(onEvent: NodeEventHandler? = null) {
+    suspend fun listenForEvents(onEvent: NodeEventHandler? = null) = withContext(bgDispatcher) {
         while (shouldListenForEvents) {
-            val node = this.node ?: let {
+            val node = this@LightningService.node ?: let {
                 Logger.error(ServiceError.NodeNotStarted.message.orEmpty())
-                return
+                return@withContext
             }
             val event = node.nextEventAsync()
-
+            Logger.debug("LDK-node event fired: ${jsonLogOf(event)}")
             try {
                 node.eventHandled()
-                Logger.debug("LDK eventHandled: $event")
+                Logger.verbose("LDK-node eventHandled: $event")
             } catch (e: NodeException) {
-                Logger.error("LDK eventHandled error", LdkError(e))
+                Logger.verbose("LDK eventHandled error: $event", LdkError(e))
             }
-
-            logEvent(event)
             onEvent?.invoke(event)
         }
     }
+    // endregion
 
-    private fun logEvent(event: Event) {
-        when (event) {
-            is Event.PaymentSuccessful -> {
-                val paymentId = event.paymentId ?: "?"
-                val paymentHash = event.paymentHash
-                val feePaidMsat = event.feePaidMsat ?: 0
-                Logger.info(
-                    "✅ Payment successful: paymentId: $paymentId paymentHash: $paymentHash feePaidMsat: $feePaidMsat"
-                )
-            }
-
-            is Event.PaymentFailed -> {
-                val paymentId = event.paymentId ?: "?"
-                val paymentHash = event.paymentHash
-                val reason = event.reason
-                Logger.info("❌ Payment failed: paymentId: $paymentId paymentHash: $paymentHash reason: $reason")
-            }
-
-            is Event.PaymentReceived -> {
-                val paymentId = event.paymentId ?: "?"
-                val paymentHash = event.paymentHash
-                val amountMsat = event.amountMsat
-                Logger.info(
-                    "🤑 Payment received: paymentId: $paymentId paymentHash: $paymentHash amountMsat: $amountMsat"
-                )
-            }
-
-            is Event.PaymentClaimable -> {
-                val paymentId = event.paymentId
-                val paymentHash = event.paymentHash
-                val claimableAmountMsat = event.claimableAmountMsat
-                Logger.info(
-                    "🫰 Payment claimable: paymentId: $paymentId paymentHash: $paymentHash claimableAmountMsat: $claimableAmountMsat"
-                )
-            }
-
-            is Event.PaymentForwarded -> Unit
-
-            is Event.ChannelPending -> {
-                val channelId = event.channelId
-                val userChannelId = event.userChannelId
-                val formerTemporaryChannelId = event.formerTemporaryChannelId
-                val counterpartyNodeId = event.counterpartyNodeId
-                val fundingTxo = event.fundingTxo
-                Logger.info(
-                    "⏳ Channel pending: channelId: $channelId userChannelId: $userChannelId formerTemporaryChannelId: $formerTemporaryChannelId counterpartyNodeId: $counterpartyNodeId fundingTxo: $fundingTxo"
-                )
-            }
-
-            is Event.ChannelReady -> {
-                val channelId = event.channelId
-                val userChannelId = event.userChannelId
-                val counterpartyNodeId = event.counterpartyNodeId ?: "?"
-                Logger.info(
-                    "👐 Channel ready: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId"
-                )
-            }
-
-            is Event.ChannelClosed -> {
-                val channelId = event.channelId
-                val userChannelId = event.userChannelId
-                val counterpartyNodeId = event.counterpartyNodeId ?: "?"
-                val reason = event.reason?.toString() ?: ""
-                Logger.info(
-                    "⛔ Channel closed: channelId: $channelId userChannelId: $userChannelId counterpartyNodeId: $counterpartyNodeId reason: $reason"
-                )
+    // region transaction details
+    suspend fun getTransactionDetails(txid: Txid): TransactionDetails? {
+        val node = this.node ?: return null
+        return ServiceQueue.LDK.background {
+            try {
+                node.getTransactionDetails(txid)
+            } catch (e: Exception) {
+                Logger.error("Error getting transaction details by txid: $txid", e, context = TAG)
+                null
             }
         }
     }
+
+    suspend fun getAddressBalance(address: String): ULong {
+        val node = this.node ?: throw ServiceError.NodeNotSetup
+        return ServiceQueue.LDK.background {
+            try {
+                node.getAddressBalance(addressStr = address)
+            } catch (e: Exception) {
+                Logger.error("Error getting address balance for address: $address", e, context = TAG)
+                throw e
+            }
+        }
+    }
+
     // endregion
 
     // region state
@@ -772,13 +731,6 @@ class LightningService @Inject constructor(
     val peers: List<PeerDetails>? get() = node?.listPeers()
     val channels: List<ChannelDetails>? get() = node?.listChannels()
     val payments: List<PaymentDetails>? get() = node?.listPayments()
-
-    fun syncFlow(): Flow<Unit> = flow {
-        while (currentCoroutineContext().isActive) {
-            emit(Unit)
-            delay(Env.walletSyncIntervalSecs.toLong().seconds)
-        }
-    }.flowOn(bgDispatcher)
     // endregion
 
     companion object {
