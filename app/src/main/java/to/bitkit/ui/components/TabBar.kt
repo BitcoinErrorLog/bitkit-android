@@ -40,6 +40,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import to.bitkit.R
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppThemeSurface
@@ -118,7 +119,7 @@ fun BoxScope.TabBar(
             }
         }
 
-        // Scan button matching iOS reference
+        // Scan button
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -178,7 +179,7 @@ fun BoxScope.TabBar(
                         blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
                     )
                 }
-                .clickable { onScanClick() }
+                .clickableAlpha { onScanClick() }
                 .testTag("Scan")
         ) {
             Icon(
