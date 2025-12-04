@@ -143,27 +143,39 @@ fun BoxScope.TabBar(
                 )
                 .clip(CircleShape)
                 .background(Colors.Gray7)
-                // Overlay: Circle strokeBorder with linear gradient mask (top to bottom)
+                // Overlay: Circle strokeBorder with linear gradient mask (iOS: .mask)
                 .drawWithContent {
                     drawContent()
 
-                    // Draw 2px black border with vertical gradient mask (black at top, clear at bottom)
+                    // The mask gradient goes from black (visible) at top to clear (invisible) at bottom
                     val borderWidth = 2.dp.toPx()
-                    val gradientBrush = Brush.verticalGradient(
+
+                    // Create vertical gradient mask (black to clear)
+                    val maskGradient = Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black,      // Top: full black
-                            Color.Transparent // Bottom: transparent
+                            Color.White,      // Top: full opacity (shows border)
+                            Color.Transparent // Bottom: transparent (hides border)
                         ),
                         startY = 0f,
                         endY = size.height
                     )
 
-                    // Draw the circular border with gradient
+                    // Draw solid black circular border first, then apply gradient as alpha mask
                     drawCircle(
-                        brush = gradientBrush,
+                        color = Color.Black,
                         radius = (size.width - borderWidth) / 2,
                         center = Offset(size.width / 2, size.height / 2),
-                        style = Stroke(width = borderWidth)
+                        style = Stroke(width = borderWidth),
+                        alpha = 1f
+                    )
+
+                    // Apply gradient mask by drawing gradient as overlay with BlendMode
+                    drawCircle(
+                        brush = maskGradient,
+                        radius = (size.width - borderWidth) / 2,
+                        center = Offset(size.width / 2, size.height / 2),
+                        style = Stroke(width = borderWidth),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
                     )
                 }
                 .clickable { onScanClick() }
@@ -173,7 +185,7 @@ fun BoxScope.TabBar(
                 painter = painterResource(R.drawable.ic_scan),
                 contentDescription = stringResource(R.string.wallet__recipient_scan),
                 tint = Colors.Gray1,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
     }
