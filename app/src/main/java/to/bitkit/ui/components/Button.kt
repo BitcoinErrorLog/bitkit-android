@@ -140,7 +140,7 @@ fun SecondaryButton(
     fullWidth: Boolean = true,
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
-    val border = BorderStroke(2.dp, if (enabled) Colors.White16 else Color.Transparent)
+    val border = BorderStroke(2.dp, if (enabled) Colors.Gray4 else Color.Transparent)
     OutlinedButton(
         onClick = onClick,
         enabled = enabled && !isLoading,
