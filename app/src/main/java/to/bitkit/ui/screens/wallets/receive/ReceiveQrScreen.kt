@@ -69,6 +69,9 @@ import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.AUTO
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SAVINGS
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SPENDING
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -184,7 +187,11 @@ fun ReceiveQrScreen(
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
                 currentTabIndex = visibleTabs.indexOf(selectedTab),
-                selectedColor = selectedTab.accentColor,
+                selectedColor = when (selectedTab) {
+                    SAVINGS -> Colors.Brand
+                    AUTO -> Colors.White
+                    SPENDING -> Colors.Purple
+                },
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     val newIndex = visibleTabs.indexOf(tab)
