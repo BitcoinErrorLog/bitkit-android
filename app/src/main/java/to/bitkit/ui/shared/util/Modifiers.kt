@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,12 +79,17 @@ fun Modifier.clickableAlpha(
         )
 }
 
-fun Modifier.gradientBackground(startColor: Color = Colors.Gray6, endColor: Color = Colors.Black): Modifier {
-    return this.background(
-        brush = Brush.verticalGradient(
-            colors = listOf(startColor, endColor)
+fun Modifier.gradientBackground(
+    startColor: Color = Colors.White08,
+    endColor: Color = Color.White.copy(alpha = 0.012f),
+): Modifier {
+    return this
+        .background(Color.Black)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(startColor, endColor)
+            )
         )
-    )
 }
 
 fun Modifier.blockPointerInputPassthrough(): Modifier {

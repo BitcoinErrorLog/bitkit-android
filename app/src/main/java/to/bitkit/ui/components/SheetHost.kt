@@ -92,7 +92,7 @@ fun SheetHost(
             sheetShape = AppShapes.sheet,
             sheetContent = sheets,
             sheetDragHandle = { SheetDragHandle() },
-            sheetContainerColor = Colors.Gray6,
+            sheetContainerColor = Colors.White08,
             sheetContentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             content()
