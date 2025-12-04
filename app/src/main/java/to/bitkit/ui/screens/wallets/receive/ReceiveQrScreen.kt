@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,12 +28,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
@@ -65,6 +69,9 @@ import to.bitkit.ui.components.Tooltip
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
 import to.bitkit.ui.screens.wallets.activity.components.CustomTabRowWithSpacing
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.AUTO
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SAVINGS
+import to.bitkit.ui.screens.wallets.receive.ReceiveTab.SPENDING
 import to.bitkit.ui.shared.effects.SetMaxBrightness
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -76,6 +83,7 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
 
+@OptIn(FlowPreview::class)
 @Composable
 fun ReceiveQrScreen(
     cjitInvoice: String?,
@@ -122,24 +130,9 @@ fun ReceiveQrScreen(
         }
     }
 
-    // Determine initial tab index
-    val initialTabIndex = remember(initialTab, visibleTabs) {
-        if (initialTab != null) {
-            visibleTabs.indexOf(initialTab).coerceAtLeast(0)
-        } else {
-            when {
-                !cjitInvoice.isNullOrEmpty() -> visibleTabs.indexOf(ReceiveTab.SPENDING)
-                hasUsableChannels -> visibleTabs.indexOf(ReceiveTab.AUTO)
-                else -> visibleTabs.indexOf(ReceiveTab.SAVINGS)
-            }.coerceAtLeast(0)
-        }
-    }
-
     // LazyRow state with snap behavior
     val scope = rememberCoroutineScope()
-    val lazyListState = rememberLazyListState(
-        initialFirstVisibleItemIndex = initialTabIndex
-    )
+    val lazyListState = rememberLazyListState()
 
     val snapBehavior = rememberSnapFlingBehavior(
         lazyListState = lazyListState,
@@ -147,33 +140,29 @@ fun ReceiveQrScreen(
     )
 
     // Calculate current tab based on scroll position for smooth indicator and color updates
-    val selectedTab by remember {
-        derivedStateOf {
-            val layoutInfo = lazyListState.layoutInfo
-            val currentIndex = if (layoutInfo.visibleItemsInfo.isEmpty()) {
-                lazyListState.firstVisibleItemIndex
-            } else {
-                val viewportMidpoint = layoutInfo.viewportStartOffset +
-                    (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) / 2
-
-                layoutInfo.visibleItemsInfo
-                    .minByOrNull { item ->
-                        val itemMidpoint = item.offset + item.size / 2
-                        kotlin.math.abs(itemMidpoint - viewportMidpoint)
-                    }
-                    ?.index ?: lazyListState.firstVisibleItemIndex
-            }
-
-            visibleTabs.getOrNull(currentIndex)
-                ?: visibleTabs.firstOrNull()
-                ?: ReceiveTab.SAVINGS
-        }
+    var selectedTab by remember {
+        mutableStateOf(initialTab ?: ReceiveTab.SAVINGS)
     }
 
-    // Derive index from selectedTab for tab row indicator
-    val currentTabIndex by remember {
-        derivedStateOf {
-            visibleTabs.indexOf(selectedTab).coerceAtLeast(0)
+    LaunchedEffect(lazyListState, visibleTabs.size) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (index < visibleTabs.size && index > -1) {
+                    val tab = visibleTabs[index]
+                    selectedTab = tab
+                }
+            }
+    }
+
+    // Auto-switch to AUTO tab when it becomes available for the first time
+    LaunchedEffect(hasUsableChannels) {
+        if (hasUsableChannels && visibleTabs.contains(ReceiveTab.AUTO)) {
+            val autoIndex = visibleTabs.indexOf(ReceiveTab.AUTO)
+            if (autoIndex != -1) {
+                lazyListState.animateScrollToItem(autoIndex)
+                selectedTab = ReceiveTab.AUTO
+            }
         }
     }
 
@@ -191,23 +180,27 @@ fun ReceiveQrScreen(
             .keepScreenOn()
     ) {
         SheetTopBar(stringResource(R.string.wallet__receive_bitcoin))
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
+        Column {
             Spacer(Modifier.height(16.dp))
 
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = currentTabIndex,
-                selectedColor = selectedTab.accentColor,
+                currentTabIndex = visibleTabs.indexOf(selectedTab),
+                selectedColor = when (selectedTab) {
+                    SAVINGS -> Colors.Brand
+                    AUTO -> Colors.White
+                    SPENDING -> Colors.Purple
+                },
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     val newIndex = visibleTabs.indexOf(tab)
+                    selectedTab = tab
                     scope.launch {
                         lazyListState.animateScrollToItem(newIndex)
                     }
-                }
+                },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             Spacer(Modifier.height(24.dp))
@@ -217,6 +210,7 @@ fun ReceiveQrScreen(
                 state = lazyListState,
                 flingBehavior = snapBehavior,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 userScrollEnabled = true,
                 modifier = Modifier
                     .weight(1f)
@@ -299,13 +293,15 @@ fun ReceiveQrScreen(
                         }
                     },
                     fullWidth = true,
-                    modifier = Modifier.testTag(
-                        if (showDetails) {
-                            "QRCode"
-                        } else {
-                            "ShowDetails"
-                        }
-                    )
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .testTag(
+                            if (showDetails) {
+                                "QRCode"
+                            } else {
+                                "ShowDetails"
+                            }
+                        )
                 )
             }
 

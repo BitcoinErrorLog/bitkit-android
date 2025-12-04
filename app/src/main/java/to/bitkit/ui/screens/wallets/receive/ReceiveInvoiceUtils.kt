@@ -27,7 +27,7 @@ fun getInvoiceForTab(
         }
 
         ReceiveTab.AUTO -> {
-            bip21.takeIf { isNodeRunning }.orEmpty()
+            bip21.takeIf { isNodeRunning && containsLightningParameter(bip21) }.orEmpty()
         }
 
         ReceiveTab.SPENDING -> {
@@ -55,6 +55,16 @@ fun removeLightningFromBip21(bip21: String, fallbackAddress: String): String {
         .replace(Regex("\\?$"), "") // Remove trailing ? if it's the last char
 
     return withoutLightning.ifBlank { fallbackAddress }
+}
+
+/**
+ * Checks if a BIP21 URI contains a lightning parameter.
+ *
+ * @param bip21 The BIP21 URI to check
+ * @return true if the URI contains a lightning parameter, false otherwise
+ */
+private fun containsLightningParameter(bip21: String): Boolean {
+    return Regex("[?&]lightning=[^&]*").containsMatchIn(bip21)
 }
 
 /**
