@@ -448,11 +448,8 @@ fun ContentView(
                         transferViewModel = transferViewModel,
                     )
 
-
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-
                     val currentRoute = navBackStackEntry?.destination?.route
-
                     val showTabBar = currentRoute in listOf(
                         Routes.Home::class.qualifiedName,
                         Routes.AllActivity::class.qualifiedName,
@@ -463,8 +460,8 @@ fun ContentView(
                             hazeState = hazeState,
                             onSendClick = { appViewModel.showSheet(Sheet.Send()) },
                             onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-                            onScanClick = { navController.navigateToScanner() }, modifier = Modifier
-                                .align(Alignment.BottomCenter)
+                            onScanClick = { navController.navigateToScanner() },
+                            modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
                 }

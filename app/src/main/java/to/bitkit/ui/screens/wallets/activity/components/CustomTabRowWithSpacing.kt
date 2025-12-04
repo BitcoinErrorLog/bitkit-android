@@ -36,8 +36,8 @@ fun <T : TabItem> CustomTabRowWithSpacing(
 ) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth()
         ) {
             tabs.forEachIndexed { index, tab ->
                 val isSelected = tabs[currentTabIndex] == tab
@@ -51,7 +51,7 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                             .fillMaxWidth()
                             .clickableAlpha { onTabChange(tab) }
                             .padding(vertical = 8.dp)
-                            .testTag("Tab-${tab.name.lowercase()}"),
+                            .testTag("Tab-${tab.name.lowercase()}")
                     ) {
                         CaptionB(
                             tab.uiText,
@@ -67,7 +67,7 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                             durationMillis = 250,
                             easing = FastOutSlowInEasing
                         ),
-                        label = "indicatorAlpha"
+                        label = "indicatorAlpha",
                     )
 
                     val animatedColor by animateColorAsState(
@@ -76,7 +76,7 @@ fun <T : TabItem> CustomTabRowWithSpacing(
                             durationMillis = 250,
                             easing = FastOutSlowInEasing
                         ),
-                        label = "indicatorColor"
+                        label = "indicatorColor",
                     )
 
                     Box(

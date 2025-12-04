@@ -36,6 +36,7 @@ fun ReceiveSheet(
 ) {
     val wallet = requireNotNull(walletViewModel)
     val navController = rememberNavController()
+
     LaunchedEffect(Unit) { editInvoiceAmountViewModel.clearInput() }
 
     val cjitInvoice = remember { mutableStateOf<String?>(null) }
