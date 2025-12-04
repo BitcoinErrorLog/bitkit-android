@@ -14,9 +14,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,6 +36,7 @@ import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
+import org.lightningdevkit.ldknode.TransactionDetails
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
@@ -50,7 +52,6 @@ import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toCoinSelectAlgorithm
 import to.bitkit.models.toCoreNetwork
 import to.bitkit.services.CoreService
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.services.LightningService
 import to.bitkit.services.LnurlChannelResponse
 import to.bitkit.services.LnurlService
@@ -72,7 +73,6 @@ import kotlin.time.Duration.Companion.seconds
 class LightningRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val lightningService: LightningService,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val coreService: CoreService,
     private val lspNotificationsService: LspNotificationsService,
@@ -85,9 +85,12 @@ class LightningRepo @Inject constructor(
     private val _lightningState = MutableStateFlow(LightningState())
     val lightningState = _lightningState.asStateFlow()
 
+    private val _nodeEvents = MutableSharedFlow<Event>(extraBufferCapacity = 64)
+    val nodeEvents = _nodeEvents.asSharedFlow()
+
     private val scope = CoroutineScope(bgDispatcher + SupervisorJob())
 
-    private var cachedEventHandler: NodeEventHandler? = null
+    private var _eventHandler: NodeEventHandler? = null
     private val _isRecoveryMode = MutableStateFlow(false)
     val isRecoveryMode = _isRecoveryMode.asStateFlow()
 
@@ -193,6 +196,8 @@ class LightningRepo @Inject constructor(
         try {
             _lightningState.update { it.copy(nodeLifecycleState = NodeLifecycleState.Starting) }
 
+            this@LightningRepo._eventHandler = eventHandler
+
             // Setup if not already setup
             if (lightningService.node == null) {
                 val setupResult = setup(walletIndex, customServerUrl, customRgsServerUrl)
@@ -211,21 +216,12 @@ class LightningRepo @Inject constructor(
             if (getStatus()?.isRunning == true) {
                 Logger.info("LDK node already running", context = TAG)
                 _lightningState.update { it.copy(nodeLifecycleState = NodeLifecycleState.Running) }
-                lightningService.listenForEvents(onEvent = { event ->
-                    handleLdkEvent(event)
-                    eventHandler?.invoke(event)
-                })
+                lightningService.listenForEvents(::onEvent)
                 return@withContext Result.success(Unit)
             }
 
             // Start the node service
-            lightningService.start(timeout) { event ->
-                handleLdkEvent(event)
-                eventHandler?.invoke(event)
-                ldkNodeEventBus.emit(event)
-            }
-
-            this@LightningRepo.cachedEventHandler = eventHandler
+            lightningService.start(timeout, ::onEvent)
 
             _lightningState.update { it.copy(nodeLifecycleState = NodeLifecycleState.Running) }
 
@@ -264,6 +260,12 @@ class LightningRepo @Inject constructor(
                 Result.failure(e)
             }
         }
+    }
+
+    private suspend fun onEvent(event: Event) {
+        handleLdkEvent(event)
+        _eventHandler?.invoke(event)
+        _nodeEvents.emit(event)
     }
 
     fun setRecoveryMode(enabled: Boolean) {
@@ -330,11 +332,13 @@ class LightningRepo @Inject constructor(
                     refreshChannelCache()
                 }
             }
+
             is Event.ChannelReady -> {
                 scope.launch {
                     refreshChannelCache()
                 }
             }
+
             is Event.ChannelClosed -> {
                 val channelId = event.channelId
                 val reason = event.reason?.toString() ?: ""
@@ -342,6 +346,7 @@ class LightningRepo @Inject constructor(
                     registerClosedChannel(channelId, reason)
                 }
             }
+
             else -> {
                 // Other events don't need special handling
             }
@@ -368,7 +373,7 @@ class LightningRepo @Inject constructor(
             }
 
             val channelName = channel.inboundScidAlias?.toString()
-                ?: channel.channelId.take(CHANNEL_ID_PREVIEW_LENGTH) + "…"
+                ?: (channel.channelId.take(CHANNEL_ID_PREVIEW_LENGTH) + "…")
 
             val closedAt = (System.currentTimeMillis() / 1000L).toULong()
 
@@ -436,7 +441,7 @@ class LightningRepo @Inject constructor(
         start(
             shouldRetry = false,
             customServerUrl = newServerUrl,
-            eventHandler = cachedEventHandler,
+            eventHandler = _eventHandler,
         ).onFailure { startError ->
             Logger.warn("Failed ldk-node config change, attempting recovery…")
             restartWithPreviousConfig()
@@ -463,7 +468,7 @@ class LightningRepo @Inject constructor(
         start(
             shouldRetry = false,
             customRgsServerUrl = newRgsUrl,
-            eventHandler = cachedEventHandler,
+            eventHandler = _eventHandler,
         ).onFailure { startError ->
             Logger.warn("Failed ldk-node config change, attempting recovery…")
             restartWithPreviousConfig()
@@ -488,7 +493,7 @@ class LightningRepo @Inject constructor(
 
         start(
             shouldRetry = false,
-            eventHandler = cachedEventHandler,
+            eventHandler = _eventHandler,
         ).onSuccess {
             Logger.debug("Successfully started node with previous config")
         }.onFailure { e ->
@@ -656,14 +661,13 @@ class LightningRepo @Inject constructor(
                 isMaxAmount = isMaxAmount
             )
 
-            val addressString = address.toString()
             val preActivityMetadata = PreActivityMetadata(
                 paymentId = txId,
                 createdAt = nowTimestamp().toEpochMilli().toULong(),
                 tags = tags,
                 paymentHash = null,
                 txId = txId,
-                address = addressString,
+                address = address,
                 isReceive = false,
                 feeRate = satsPerVByte.toULong(),
                 isTransfer = isTransfer,
@@ -714,6 +718,18 @@ class LightningRepo @Inject constructor(
         val payments = lightningService.payments
             ?: return@executeWhenNodeRunning Result.failure(Exception("It wasn't possible get the payments"))
         Result.success(payments)
+    }
+
+    suspend fun getTransactionDetails(txid: Txid): Result<TransactionDetails?> = executeWhenNodeRunning(
+        "Get transaction details by txid"
+    ) {
+        Result.success(lightningService.getTransactionDetails(txid))
+    }
+
+    suspend fun getAddressBalance(address: String): Result<ULong> = executeWhenNodeRunning("Get address balance") {
+        runCatching {
+            lightningService.getAddressBalance(address)
+        }
     }
 
     suspend fun listSpendableOutputs(): Result<List<SpendableUtxo>> = executeWhenNodeRunning("List spendable outputs") {
@@ -810,8 +826,6 @@ class LightningRepo @Inject constructor(
             lightningService.canSend(amountSats)
         }
     }
-
-    fun getSyncFlow() = lightningService.syncFlow().filter { lightningState.value.nodeLifecycleState.isRunning() }
 
     fun getNodeId(): String? =
         if (_lightningState.value.nodeLifecycleState.isRunning()) lightningService.nodeId else null

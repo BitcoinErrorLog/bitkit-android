@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
+import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.ActivityFilter
 import com.synonym.bitkitcore.FeeRates
 import com.synonym.bitkitcore.LightningInvoice
@@ -36,7 +37,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -52,10 +52,13 @@ import org.lightningdevkit.ldknode.SpendableUtxo
 import org.lightningdevkit.ldknode.Txid
 import to.bitkit.BuildConfig
 import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
+import to.bitkit.domain.commands.NotifyPaymentReceived
+import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.amountOnClose
@@ -91,7 +94,6 @@ import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.TimedSheetType
@@ -99,27 +101,29 @@ import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.utils.Logger
+import to.bitkit.utils.jsonLogOf
 import java.math.BigDecimal
 import javax.inject.Inject
 
 @Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    connectivityRepo: ConnectivityRepo,
+    healthRepo: HealthRepo,
+    @param:ApplicationContext private val context: Context,
+    @param:BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val keychain: Keychain,
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
     private val backupRepo: BackupRepo,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val settingsStore: SettingsStore,
     private val currencyRepo: CurrencyRepo,
     private val activityRepo: ActivityRepo,
     private val preActivityMetadataRepo: PreActivityMetadataRepo,
     private val blocktankRepo: BlocktankRepo,
-    private val connectivityRepo: ConnectivityRepo,
-    private val healthRepo: HealthRepo,
     private val appUpdaterService: AppUpdaterService,
+    private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
+    private val cacheStore: CacheStore,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -221,82 +225,202 @@ class AppViewModel @Inject constructor(
 
     private fun observeLdkNodeEvents() {
         viewModelScope.launch {
-            ldkNodeEventBus.events.collect { event ->
-                if (!walletRepo.walletExists()) return@collect
+            lightningRepo.nodeEvents.collect { handleLdkEvent(it) }
+        }
+    }
 
-                launch(bgDispatcher) { walletRepo.syncNodeAndWallet() }
-                runCatching {
-                    when (event) { // TODO Create individual sheet for each type of event
-                        is Event.PaymentReceived -> {
-                            showNewTransactionSheet(
-                                NewTransactionSheetDetails(
-                                    type = NewTransactionSheetType.LIGHTNING,
-                                    direction = NewTransactionSheetDirection.RECEIVED,
-                                    paymentHashOrTxId = event.paymentHash,
-                                    sats = (event.amountMsat / 1000u).toLong(),
-                                ),
-                                event = event
-                            )
-                        }
+    @Suppress("CyclomaticComplexMethod")
+    private fun handleLdkEvent(event: Event) {
+        if (!walletRepo.walletExists()) return
+        Logger.debug("LDK-node event received in $TAG: ${jsonLogOf(event)}", context = TAG)
 
-                        is Event.ChannelReady -> {
-                            val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
-                            val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
-                            if (cjitEntry != null) {
-                                val amount = channel.amountOnClose.toLong()
-                                showNewTransactionSheet(
-                                    NewTransactionSheetDetails(
-                                        type = NewTransactionSheetType.LIGHTNING,
-                                        direction = NewTransactionSheetDirection.RECEIVED,
-                                        sats = amount,
-                                    ),
-                                    event = event
-                                )
-                                activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
-                            } else {
-                                toast(
-                                    type = Toast.ToastType.LIGHTNING,
-                                    title = context.getString(R.string.lightning__channel_opened_title),
-                                    description = context.getString(R.string.lightning__channel_opened_msg),
-                                )
-                            }
-                        }
-
-                        is Event.ChannelPending -> Unit
-                        is Event.ChannelClosed -> Unit
-
-                        is Event.PaymentSuccessful -> {
-                            val paymentHash = event.paymentHash
-                            // TODO Temporary solution while LDK node don't returns the sent value in the event
-                            activityRepo.findActivityByPaymentId(
-                                paymentHashOrTxId = paymentHash,
-                                type = ActivityFilter.LIGHTNING,
-                                txType = PaymentType.SENT,
-                                retry = true
-                            ).onSuccess { activity ->
-                                handlePaymentSuccess(
-                                    NewTransactionSheetDetails(
-                                        type = NewTransactionSheetType.LIGHTNING,
-                                        direction = NewTransactionSheetDirection.SENT,
-                                        paymentHashOrTxId = event.paymentHash,
-                                        sats = activity.totalValue().toLong(),
-                                    ),
-                                )
-                            }.onFailure { e ->
-                                Logger.warn("Failed displaying sheet for event: $Event", e)
-                            }
-                        }
-
-                        is Event.PaymentClaimable -> Unit
-                        is Event.PaymentFailed -> Unit
-                        is Event.PaymentForwarded -> Unit
-                    }
-                }.onFailure { e ->
-                    Logger.error("LDK event handler error", e, context = TAG)
+        viewModelScope.launch {
+            runCatching {
+                when (event) {
+                    is Event.BalanceChanged -> handleBalanceChanged()
+                    is Event.ChannelClosed -> Unit
+                    is Event.ChannelPending -> Unit
+                    is Event.ChannelReady -> notifyChannelReady(event)
+                    is Event.OnchainTransactionConfirmed -> handleOnchainTransactionConfirmed(event)
+                    is Event.OnchainTransactionEvicted -> handleOnchainTransactionEvicted(event)
+                    is Event.OnchainTransactionReceived -> handleOnchainTransactionReceived(event)
+                    is Event.OnchainTransactionReorged -> handleOnchainTransactionReorged(event)
+                    is Event.OnchainTransactionReplaced -> handleOnchainTransactionReplaced(event)
+                    is Event.PaymentClaimable -> Unit
+                    is Event.PaymentFailed -> handlePaymentFailed(event)
+                    is Event.PaymentForwarded -> Unit
+                    is Event.PaymentReceived -> handlePaymentReceived(event)
+                    is Event.PaymentSuccessful -> handlePaymentSuccessful(event)
+                    is Event.SyncCompleted -> handleSyncCompleted()
+                    is Event.SyncProgress -> Unit
                 }
+            }.onFailure { e ->
+                Logger.error("LDK event handler error", e, context = TAG)
             }
         }
     }
+
+    private suspend fun handleBalanceChanged() {
+        walletRepo.syncBalances()
+    }
+
+    private suspend fun handleSyncCompleted() {
+        walletRepo.syncNodeAndWallet()
+    }
+
+    private suspend fun handleOnchainTransactionConfirmed(event: Event.OnchainTransactionConfirmed) {
+        activityRepo.handleOnchainTransactionConfirmed(event.txid, event.details)
+    }
+
+    private suspend fun handleOnchainTransactionEvicted(event: Event.OnchainTransactionEvicted) {
+        activityRepo.handleOnchainTransactionEvicted(event.txid)
+        notifyTransactionRemoved(event)
+    }
+
+    private suspend fun handleOnchainTransactionReceived(event: Event.OnchainTransactionReceived) {
+        notifyPaymentReceived(event)
+    }
+
+    private suspend fun handleOnchainTransactionReorged(event: Event.OnchainTransactionReorged) {
+        activityRepo.handleOnchainTransactionReorged(event.txid)
+        notifyTransactionUnconfirmed()
+    }
+
+    private suspend fun handleOnchainTransactionReplaced(event: Event.OnchainTransactionReplaced) {
+        activityRepo.handleOnchainTransactionReplaced(event.txid, event.conflicts)
+        notifyTransactionReplaced(event)
+    }
+
+    private suspend fun handlePaymentFailed(event: Event.PaymentFailed) {
+        event.paymentHash?.let { paymentHash ->
+            activityRepo.handlePaymentEvent(paymentHash)
+        }
+        notifyPaymentFailed()
+    }
+
+    private suspend fun handlePaymentReceived(event: Event.PaymentReceived) {
+        event.paymentHash.let { paymentHash ->
+            activityRepo.handlePaymentEvent(paymentHash)
+        }
+        notifyPaymentReceived(event)
+    }
+
+    private suspend fun handlePaymentSuccessful(event: Event.PaymentSuccessful) {
+        event.paymentHash.let { paymentHash ->
+            activityRepo.handlePaymentEvent(paymentHash)
+        }
+        notifyPaymentSentOnLightning(event)
+    }
+
+    // region Notifications
+
+    private suspend fun notifyChannelReady(event: Event.ChannelReady) {
+        val channel = lightningRepo.getChannels()?.find { it.channelId == event.channelId }
+        val cjitEntry = channel?.let { blocktankRepo.getCjitEntry(it) }
+        if (cjitEntry != null) {
+            val amount = channel.amountOnClose.toLong()
+            showTransactionSheet(
+                NewTransactionSheetDetails(
+                    type = NewTransactionSheetType.LIGHTNING,
+                    direction = NewTransactionSheetDirection.RECEIVED,
+                    sats = amount,
+                ),
+            )
+            activityRepo.insertActivityFromCjit(cjitEntry = cjitEntry, channel = channel)
+            return
+        }
+        toast(
+            type = Toast.ToastType.LIGHTNING,
+            title = context.getString(R.string.lightning__channel_opened_title),
+            description = context.getString(R.string.lightning__channel_opened_msg),
+        )
+    }
+
+    private suspend fun notifyTransactionRemoved(event: Event.OnchainTransactionEvicted) {
+        if (activityRepo.wasTransactionReplaced(event.txid)) return
+        toast(
+            type = Toast.ToastType.WARNING,
+            title = context.getString(R.string.wallet__toast_transaction_removed_title),
+            description = context.getString(R.string.wallet__toast_transaction_removed_description),
+            testTag = "TransactionRemovedToast",
+        )
+    }
+
+    private suspend fun notifyPaymentReceived(event: Event) {
+        val command = NotifyPaymentReceived.Command.from(event) ?: return
+        if (command is NotifyPaymentReceived.Command.Lightning) {
+            val cachedId = cacheStore.data.first().lastLightningPaymentId
+            // Skip if this is a replay by ldk-node on startup
+            if (command.event.paymentHash == cachedId) {
+                Logger.debug("Skipping notification for replayed event: $event", context = TAG)
+                return
+            }
+            // Cache to skip later as needed
+            cacheStore.setLastLightningPayment(command.event.paymentHash)
+        }
+
+        val result = notifyPaymentReceivedHandler(command).getOrNull()
+        if (result !is NotifyPaymentReceived.Result.ShowSheet) return
+
+        showTransactionSheet(result.sheet)
+    }
+
+    private fun notifyTransactionUnconfirmed() = toast(
+        type = Toast.ToastType.WARNING,
+        title = context.getString(R.string.wallet__toast_transaction_unconfirmed_title),
+        description = context.getString(R.string.wallet__toast_transaction_unconfirmed_description),
+        testTag = "TransactionUnconfirmedToast",
+    )
+
+    private suspend fun notifyTransactionReplaced(event: Event.OnchainTransactionReplaced) {
+        val isReceive = activityRepo.isReceivedTransaction(event.txid)
+        toast(
+            type = Toast.ToastType.INFO,
+            title = when (isReceive) {
+                true -> R.string.wallet__toast_received_transaction_replaced_title
+                else -> R.string.wallet__toast_transaction_replaced_title
+            }.let { context.getString(it) },
+            description = when (isReceive) {
+                true -> R.string.wallet__toast_received_transaction_replaced_description
+                else -> R.string.wallet__toast_transaction_replaced_description
+            }.let { context.getString(it) },
+            testTag = when (isReceive) {
+                true -> "ReceivedTransactionReplacedToast"
+                else -> "TransactionReplacedToast"
+            },
+        )
+    }
+
+    private fun notifyPaymentFailed() = toast(
+        type = Toast.ToastType.ERROR,
+        title = context.getString(R.string.wallet__toast_payment_failed_title),
+        description = context.getString(R.string.wallet__toast_payment_failed_description),
+        testTag = "PaymentFailedToast",
+    )
+
+    private suspend fun notifyPaymentSentOnLightning(event: Event.PaymentSuccessful): Result<Activity> {
+        val paymentHash = event.paymentHash
+        // TODO Temporary solution while LDK node doesn't return the sent value in the event
+        return activityRepo.findActivityByPaymentId(
+            paymentHashOrTxId = paymentHash,
+            type = ActivityFilter.LIGHTNING,
+            txType = PaymentType.SENT,
+            retry = true
+        ).onSuccess { activity ->
+            handlePaymentSuccess(
+                NewTransactionSheetDetails(
+                    type = NewTransactionSheetType.LIGHTNING,
+                    direction = NewTransactionSheetDirection.SENT,
+                    paymentHashOrTxId = event.paymentHash,
+                    sats = activity.totalValue().toLong(),
+                ),
+            )
+        }.onFailure { e ->
+            Logger.warn("Failed displaying sheet for event: $event", e)
+        }
+    }
+
+    // endregion
 
     // region send
 
@@ -326,7 +450,7 @@ class AppViewModel @Inject constructor(
                     is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
                     SendEvent.PayConfirmed -> onConfirmPay()
-                    SendEvent.ClearPayConfirmation -> _sendUiState.update { it.copy(shouldConfirmPay = false) }
+                    SendEvent.ClearPayConfirmation -> _sendUiState.update { s -> s.copy(shouldConfirmPay = false) }
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
                     SendEvent.NavToAddress -> setSendEffect(SendEffect.NavigateToAddress)
                 }
@@ -523,6 +647,7 @@ class AppViewModel @Inject constructor(
         resetSendState()
         resetQuickPayData()
 
+        @Suppress("ForbiddenComment") // TODO: wrap `decode` from bindings in a `CoreService` method and call that one
         val scan = runCatching { decode(result) }
             .onFailure { Logger.error("Failed to decode scan data: '$result'", it, context = TAG) }
             .onSuccess { Logger.info("Handling decoded scan data: $it", context = TAG) }
@@ -991,6 +1116,7 @@ class AppViewModel @Inject constructor(
                             )
                         )
                         lightningRepo.sync()
+                        activityRepo.syncActivities()
                     }.onFailure { e ->
                         Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
@@ -1101,11 +1227,11 @@ class AppViewModel @Inject constructor(
     }
 
     fun onClickActivityDetail() {
-        val activityType = _newTransaction.value.type.toActivityFilter()
-        val txType = _newTransaction.value.direction.toTxType()
-        val paymentHashOrTxId = _newTransaction.value.paymentHashOrTxId ?: return
-        _newTransaction.update { it.copy(isLoadingDetails = true) }
-        viewModelScope.launch(bgDispatcher) {
+        val activityType = _transactionSheet.value.type.toActivityFilter()
+        val txType = _transactionSheet.value.direction.toTxType()
+        val paymentHashOrTxId = _transactionSheet.value.paymentHashOrTxId ?: return
+        _transactionSheet.update { it.copy(isLoadingDetails = true) }
+        viewModelScope.launch {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
                 type = activityType,
@@ -1113,13 +1239,13 @@ class AppViewModel @Inject constructor(
                 retry = true
             ).onSuccess { activity ->
                 hideNewTransactionSheet()
-                _newTransaction.update { it.copy(isLoadingDetails = false) }
+                _transactionSheet.update { it.copy(isLoadingDetails = false) }
                 val nextRoute = Routes.ActivityDetail(activity.rawId())
                 mainScreenEffect(MainScreenEffect.Navigate(nextRoute))
             }.onFailure { e ->
                 Logger.error(msg = "Activity not found", context = TAG)
                 toast(e)
-                _newTransaction.update { it.copy(isLoadingDetails = false) }
+                _transactionSheet.update { it.copy(isLoadingDetails = false) }
             }
         }
     }
@@ -1129,7 +1255,7 @@ class AppViewModel @Inject constructor(
         val txType = _successSendUiState.value.direction.toTxType()
         val paymentHashOrTxId = _successSendUiState.value.paymentHashOrTxId ?: return
         _successSendUiState.update { it.copy(isLoadingDetails = true) }
-        viewModelScope.launch(bgDispatcher) {
+        viewModelScope.launch {
             activityRepo.findActivityByPaymentId(
                 paymentHashOrTxId = paymentHashOrTxId,
                 type = activityType,
@@ -1170,7 +1296,7 @@ class AppViewModel @Inject constructor(
     ): Result<PaymentId> {
         return lightningRepo.payInvoice(bolt11 = bolt11, sats = amount).onSuccess { hash ->
             // Wait until matching payment event is received
-            val result = ldkNodeEventBus.events.watchUntil { event ->
+            val result = lightningRepo.nodeEvents.watchUntil { event ->
                 when (event) {
                     is Event.PaymentSuccessful -> {
                         if (event.paymentHash == hash) {
@@ -1324,73 +1450,45 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region TxSheet
-    var isNewTransactionSheetEnabled = true
-        private set
+    private var _isTransactionSheetEnabled = true
 
-    private val _showNewTransaction = MutableStateFlow(false)
-    val showNewTransaction: StateFlow<Boolean> = _showNewTransaction.asStateFlow()
-
-    private val _newTransaction = MutableStateFlow(
-        NewTransactionSheetDetails(
-            type = NewTransactionSheetType.LIGHTNING,
-            direction = NewTransactionSheetDirection.RECEIVED,
-            paymentHashOrTxId = null,
-            sats = 0
-        )
-    )
-
-    val newTransaction = _newTransaction.asStateFlow()
+    private val _transactionSheet = MutableStateFlow(NewTransactionSheetDetails.EMPTY)
+    val transactionSheet = _transactionSheet.asStateFlow()
 
     private val _successSendUiState = MutableStateFlow(
         NewTransactionSheetDetails(
             type = NewTransactionSheetType.LIGHTNING,
             direction = NewTransactionSheetDirection.SENT,
-            paymentHashOrTxId = null,
-            sats = 0
         )
     )
 
     val successSendUiState = _successSendUiState.asStateFlow()
 
-    fun setNewTransactionSheetEnabled(enabled: Boolean) {
-        isNewTransactionSheetEnabled = enabled
+    fun enabledTransactionSheet(enabled: Boolean) {
+        _isTransactionSheetEnabled = enabled
     }
 
-    fun showNewTransactionSheet(
+    fun showTransactionSheet(
         details: NewTransactionSheetDetails,
-        event: Event?,
     ) = viewModelScope.launch {
         if (backupRepo.isRestoring.value) return@launch
 
-        if (!isNewTransactionSheetEnabled) {
-            Logger.debug("NewTransactionSheet display blocked by isNewTransactionSheetEnabled=false", context = TAG)
+        if (!_isTransactionSheetEnabled) {
+            Logger.verbose("NewTransactionSheet blocked by isNewTransactionSheetEnabled=false", context = TAG)
             return@launch
         }
 
-        if (event is Event.PaymentReceived) {
-            val activity = activityRepo.findActivityByPaymentId(
-                paymentHashOrTxId = event.paymentHash,
-                type = ActivityFilter.ALL,
-                txType = PaymentType.RECEIVED,
-                retry = false,
-            ).getOrNull()
-
-            // TODO check if this is still needed now that we're disabling the sheet during restore
-            // TODO Temporary fix while ldk-node bug is not fixed https://github.com/synonymdev/bitkit-android/pull/297
-            if (activity != null) {
-                Logger.warn("Activity ${activity.rawId()} already exists, skipping sheet", context = TAG)
-                return@launch
-            }
-        }
-
-        hideSheet()
-
-        _newTransaction.update { details }
-        _showNewTransaction.value = true
+        _transactionSheet.update { details }
     }
 
     fun hideNewTransactionSheet() {
-        _showNewTransaction.value = false
+        _transactionSheet.update { NewTransactionSheetDetails.EMPTY }
+    }
+
+    fun consumePaymentReceivedInBackground() = viewModelScope.launch(bgDispatcher) {
+        val details = cacheStore.data.first().backgroundReceive ?: return@launch
+        cacheStore.clearBackgroundReceive()
+        showTransactionSheet(details)
     }
     // endregion
 
@@ -1428,13 +1526,15 @@ class AppViewModel @Inject constructor(
         description: String? = null,
         autoHide: Boolean = true,
         visibilityTime: Long = Toast.VISIBILITY_TIME_DEFAULT,
+        testTag: String? = null,
     ) {
         currentToast = Toast(
             type = type,
             title = title,
             description = description,
             autoHide = autoHide,
-            visibilityTime = visibilityTime
+            visibilityTime = visibilityTime,
+            testTag = testTag,
         )
         if (autoHide) {
             viewModelScope.launch {
@@ -1618,8 +1718,6 @@ class AppViewModel @Inject constructor(
             Logger.debug("Timed sheet already active, skipping check")
             return
         }
-
-        if (backupRepo.isRestoring.value) return
 
         timedSheetsScope?.cancel()
         timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())

@@ -1,6 +1,7 @@
 package to.bitkit.repositories
 
 import app.cash.turbine.test
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Before
@@ -26,9 +27,6 @@ import to.bitkit.services.OnchainService
 import to.bitkit.test.BaseUnitTest
 import to.bitkit.usecases.DeriveBalanceStateUseCase
 import to.bitkit.usecases.WipeWalletUseCase
-import to.bitkit.utils.AddressChecker
-import to.bitkit.utils.AddressInfo
-import to.bitkit.utils.AddressStats
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -42,7 +40,6 @@ class WalletRepoTest : BaseUnitTest() {
     private val coreService = mock<CoreService>()
     private val onchainService = mock<OnchainService>()
     private val settingsStore = mock<SettingsStore>()
-    private val addressChecker = mock<AddressChecker>()
     private val lightningRepo = mock<LightningRepo>()
     private val cacheStore = mock<CacheStore>()
     private val preActivityMetadataRepo = mock<PreActivityMetadataRepo>()
@@ -54,6 +51,7 @@ class WalletRepoTest : BaseUnitTest() {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(bolt11 = "", onchainAddress = "testAddress")))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
+        whenever(lightningRepo.nodeEvents).thenReturn(MutableSharedFlow())
         wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
         wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
             .thenReturn(Result.success(1000uL))
@@ -87,7 +85,6 @@ class WalletRepoTest : BaseUnitTest() {
         keychain = keychain,
         coreService = coreService,
         settingsStore = settingsStore,
-        addressChecker = addressChecker,
         lightningRepo = lightningRepo,
         cacheStore = cacheStore,
         preActivityMetadataRepo = preActivityMetadataRepo,
@@ -153,7 +150,6 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `refreshBip21 should generate new address when current is empty`() = test {
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
 
         val result = sut.refreshBip21()
 
@@ -165,7 +161,6 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21 should set receiveOnSpendingBalance false when shouldBlockLightning is true`() = test {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
 
         val result = sut.refreshBip21()
 
@@ -177,7 +172,6 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21 should set receiveOnSpendingBalance true when shouldBlockLightning is false`() = test {
         wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, false))
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mock())
 
         val result = sut.refreshBip21()
 
@@ -190,14 +184,7 @@ class WalletRepoTest : BaseUnitTest() {
         val testAddress = "testAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(
-            mockAddressInfo().let { addressInfo ->
-                addressInfo.copy(
-                    chain_stats = addressInfo.chain_stats.copy(tx_count = 5),
-                    mempool_stats = addressInfo.mempool_stats.copy(tx_count = 5)
-                )
-            }
-        )
+        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(true)
 
         val result = sut.refreshBip21()
 
@@ -209,7 +196,7 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21 should keep address when current has no transactions`() = test {
         val existingAddress = "existingAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = existingAddress)))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
+        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(false)
         sut = createSut()
         sut.loadFromCache()
 
@@ -649,13 +636,7 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21ForEvent PaymentReceived should refresh address if used`() = test {
         val testAddress = "testAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(
-            mockAddressInfo().let { addressInfo ->
-                addressInfo.copy(
-                    chain_stats = addressInfo.chain_stats.copy(tx_count = 1)
-                )
-            }
-        )
+        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(true)
         whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
         sut = createSut()
         sut.loadFromCache()
@@ -676,7 +657,7 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21ForEvent PaymentReceived should not refresh address if not used`() = test {
         val testAddress = "testAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        whenever(addressChecker.getAddressInfo(any())).thenReturn(mockAddressInfo())
+        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(false)
         sut = createSut()
         sut.loadFromCache()
 
@@ -712,21 +693,3 @@ class WalletRepoTest : BaseUnitTest() {
         assertTrue(result.isFailure)
     }
 }
-
-private fun mockAddressInfo() = AddressInfo(
-    address = "testAddress",
-    chain_stats = AddressStats(
-        funded_txo_count = 1,
-        funded_txo_sum = 2,
-        spent_txo_count = 1,
-        spent_txo_sum = 1,
-        tx_count = 0
-    ),
-    mempool_stats = AddressStats(
-        funded_txo_count = 1,
-        funded_txo_sum = 2,
-        spent_txo_count = 1,
-        spent_txo_sum = 1,
-        tx_count = 0
-    )
-)

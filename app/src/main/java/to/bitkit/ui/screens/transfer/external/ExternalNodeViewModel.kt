@@ -27,11 +27,9 @@ import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.UiState
 import to.bitkit.ui.shared.toast.ToastEventBus
-import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
@@ -39,13 +37,11 @@ import javax.inject.Inject
 @HiltViewModel
 class ExternalNodeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val ldkNodeEventBus: LdkNodeEventBus,
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
     private val transferRepo: to.bitkit.repositories.TransferRepo,
     private val preActivityMetadataRepo: to.bitkit.repositories.PreActivityMetadataRepo,
-    private val addressChecker: AddressChecker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
@@ -171,8 +167,9 @@ class ExternalNodeViewModel @Inject constructor(
                 channelAmountSats = _uiState.value.amount.sats.toULong(),
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
-                    val txId = event.fundingTxo.txid
-                    val address = addressChecker.getOutputAddress(event.fundingTxo).getOrDefault("")
+                    val (txId, vout) = event.fundingTxo
+                    val transactionDetails = lightningRepo.getTransactionDetails(txId).getOrNull()
+                    val address = transactionDetails?.outputs?.getOrNull(vout.toInt())?.scriptpubkeyAddress ?: ""
                     val feeRate = _uiState.value.customFeeRate ?: 0u
 
                     preActivityMetadataRepo.savePreActivityMetadata(
@@ -211,7 +208,7 @@ class ExternalNodeViewModel @Inject constructor(
     }
 
     private suspend fun awaitChannelPendingEvent(userChannelId: UserChannelId): Result<Event.ChannelPending> {
-        return ldkNodeEventBus.events.watchUntil { event ->
+        return lightningRepo.nodeEvents.watchUntil { event ->
             when (event) {
                 is Event.ChannelClosed -> if (event.userChannelId == userChannelId) {
                     WatchResult.Complete(Result.failure(Exception("${event.reason}")))

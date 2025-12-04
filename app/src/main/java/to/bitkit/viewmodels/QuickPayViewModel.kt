@@ -12,14 +12,12 @@ import org.lightningdevkit.ldknode.PaymentId
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.watchUntil
 import to.bitkit.repositories.LightningRepo
-import to.bitkit.services.LdkNodeEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 @HiltViewModel
 class QuickPayViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
-    private val ldkNodeEventBus: LdkNodeEventBus,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuickPayUiState())
@@ -80,7 +78,7 @@ class QuickPayViewModel @Inject constructor(
             .getOrDefault("")
 
         // Wait until matching payment event is received
-        val result = ldkNodeEventBus.events.watchUntil { event ->
+        val result = lightningRepo.nodeEvents.watchUntil { event ->
             when (event) {
                 is Event.PaymentSuccessful -> {
                     if (event.paymentHash == hash) {

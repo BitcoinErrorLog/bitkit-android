@@ -14,6 +14,7 @@ import to.bitkit.models.BackupCategory
 import to.bitkit.models.BackupItemStatus
 import to.bitkit.models.BalanceState
 import to.bitkit.models.FxRate
+import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -83,22 +84,6 @@ class CacheStore @Inject constructor(
         }
     }
 
-    suspend fun addActivityToPendingDelete(activityId: String) {
-        if (activityId.isBlank()) return
-        if (activityId in store.data.first().activitiesPendingDelete) return
-        store.updateData {
-            it.copy(activitiesPendingDelete = it.activitiesPendingDelete + activityId)
-        }
-    }
-
-    suspend fun removeActivityFromPendingDelete(activityId: String) {
-        if (activityId.isBlank()) return
-        if (activityId !in store.data.first().activitiesPendingDelete) return
-        store.updateData {
-            it.copy(activitiesPendingDelete = it.activitiesPendingDelete - activityId)
-        }
-    }
-
     suspend fun addActivityToPendingBoost(pendingBoostActivity: PendingBoostActivity) {
         if (pendingBoostActivity in store.data.first().pendingBoostActivities) return
         store.updateData {
@@ -111,6 +96,18 @@ class CacheStore @Inject constructor(
         store.updateData {
             it.copy(pendingBoostActivities = it.pendingBoostActivities - pendingBoostActivity)
         }
+    }
+
+    suspend fun setLastLightningPayment(paymentId: String) {
+        store.updateData { it.copy(lastLightningPaymentId = paymentId) }
+    }
+
+    suspend fun setBackgroundReceive(details: NewTransactionSheetDetails) = store.updateData {
+        it.copy(backgroundReceive = details)
+    }
+
+    suspend fun clearBackgroundReceive() {
+        store.updateData { it.copy(backgroundReceive = null) }
     }
 
     suspend fun reset() {
@@ -133,6 +130,9 @@ data class AppCacheData(
     val balance: BalanceState? = null,
     val backupStatuses: Map<BackupCategory, BackupItemStatus> = mapOf(),
     val deletedActivities: List<String> = listOf(),
-    val activitiesPendingDelete: List<String> = listOf(),
+    val lastLightningPaymentId: String? = null,
     val pendingBoostActivities: List<PendingBoostActivity> = listOf(),
-)
+    val backgroundReceive: NewTransactionSheetDetails? = null,
+) {
+    fun resetBip21() = copy(bip21 = "", bolt11 = "", onchainAddress = "")
+}

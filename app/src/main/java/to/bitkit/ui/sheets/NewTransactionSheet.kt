@@ -57,7 +57,7 @@ fun NewTransactionSheet(
     modifier: Modifier = Modifier,
 ) {
     val currencies by currencyViewModel.uiState.collectAsState()
-    val newTransaction by appViewModel.newTransaction.collectAsState()
+    val details by appViewModel.transactionSheet.collectAsState()
 
     CompositionLocalProvider(
         LocalCurrencyViewModel provides currencyViewModel,
@@ -68,7 +68,7 @@ fun NewTransactionSheet(
             onDismissRequest = { appViewModel.hideNewTransactionSheet() },
         ) {
             NewTransactionSheetView(
-                details = newTransaction,
+                details = details,
                 onCloseClick = { appViewModel.hideNewTransactionSheet() },
                 onDetailClick = {
                     appViewModel.onClickActivityDetail()

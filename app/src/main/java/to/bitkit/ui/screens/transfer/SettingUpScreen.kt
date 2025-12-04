@@ -69,9 +69,9 @@ fun SettingUpScreen(
 
     // Effect to disable new transaction sheet for channel purchase
     DisposableEffect(Unit) {
-        app.setNewTransactionSheetEnabled(false)
+        app.enabledTransactionSheet(false)
         onDispose {
-            app.setNewTransactionSheetEnabled(true)
+            app.enabledTransactionSheet(true)
         }
     }
 

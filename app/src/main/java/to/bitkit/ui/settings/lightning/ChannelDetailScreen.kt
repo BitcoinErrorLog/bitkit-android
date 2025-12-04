@@ -76,7 +76,6 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.getBlockExplorerUrl
 import to.bitkit.ui.walletViewModel
-import to.bitkit.utils.TxDetails
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -108,11 +107,20 @@ fun ChannelDetailScreen(
         }
     }
 
+    // Fetch activity timestamp for transfer activity with matching channel ID
+    LaunchedEffect(channel.details.channelId) {
+        channel.details.channelId?.let { channelId ->
+            viewModel.fetchActivityTimestamp(channelId)
+        }
+    }
+
+    val txTime by viewModel.txTime.collectAsStateWithLifecycle()
+
     Content(
         channel = channel,
         blocktankOrders = paidOrders.paidOrders,
         cjitEntries = paidOrders.cjitEntries,
-        txDetails = txDetails,
+        txTime = txTime,
         isRefreshing = uiState.isRefreshing,
         isClosedChannel = isClosedChannel,
         onBack = { navController.popBackStack() },
@@ -144,7 +152,7 @@ private fun Content(
     channel: ChannelUi,
     blocktankOrders: List<IBtOrder> = emptyList(),
     cjitEntries: List<IcJitEntry> = emptyList(),
-    txDetails: TxDetails? = null,
+    txTime: ULong? = null,
     isRefreshing: Boolean = false,
     isClosedChannel: Boolean = false,
     onBack: () -> Unit = {},
@@ -375,17 +383,12 @@ private fun Content(
                 )
 
                 val fundingTxId = channel.details.fundingTxo?.txid
-                val txTime = if (fundingTxId != null && txDetails?.txid == fundingTxId) {
-                    txDetails.status.block_time
-                } else {
-                    null
-                }
 
                 txTime?.let {
                     SectionRow(
                         name = stringResource(R.string.lightning__opened_on),
                         valueContent = {
-                            CaptionB(text = formatUnixTimestamp(txTime))
+                            CaptionB(text = formatUnixTimestamp(txTime.toLong()))
                         }
                     )
                 }
@@ -642,7 +645,6 @@ private fun PreviewOpenChannel() {
                     isUsable = true,
                 ),
             ),
-            txDetails = null,
         )
     }
 }
@@ -729,7 +731,6 @@ private fun PreviewChannelWithOrder() {
                     createdAt = "2024-01-15T10:30:00.000Z"
                 )
             ),
-            txDetails = null,
         )
     }
 }
@@ -817,7 +818,6 @@ private fun PreviewPendingOrder() {
                     createdAt = "2024-01-15T14:20:00.000Z"
                 )
             ),
-            txDetails = null,
         )
     }
 }
@@ -888,7 +888,6 @@ private fun PreviewExpiredOrder() {
                     createdAt = "2024-01-14T11:45:00.000Z"
                 )
             ),
-            txDetails = null,
         )
     }
 }
@@ -962,7 +961,6 @@ private fun PreviewChannelWithCjit() {
                     createdAt = "2024-01-16T11:30:00.000Z"
                 )
             ),
-            txDetails = null,
         )
     }
 }
