@@ -262,6 +262,7 @@ fun SendRecipientScreen(
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_contact),
                 icon = R.drawable.ic_users,
+                iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientContact")
             ) {
                 scope.launch {
@@ -272,6 +273,7 @@ fun SendRecipientScreen(
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_invoice),
                 icon = R.drawable.ic_clipboard_text,
+                iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientInvoice")
             ) {
                 onEvent(SendEvent.Paste)
@@ -280,6 +282,7 @@ fun SendRecipientScreen(
             RectangleButton(
                 label = stringResource(R.string.wallet__recipient_manual),
                 icon = R.drawable.ic_pencil_simple,
+                iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientManual")
             ) {
                 onEvent(SendEvent.EnterManually)
