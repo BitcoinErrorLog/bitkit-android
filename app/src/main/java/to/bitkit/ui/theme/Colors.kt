@@ -16,12 +16,13 @@ object Colors {
     val White = Color(0xFFFFFFFF)
 
     // Gray Base
-    val Gray6 = Color(0xFF151515)
-    val Gray5 = Color(0xFF1C1C1D)
-    val Gray4 = Color(0xFF3A343C)
+    val Gray7 = Color(0xFF101010)
+    val Gray6 = Color(0xFF1C1C1C)
+    val Gray5 = Color(0xFF2A2A2A)
+    val Gray4 = Color(0xFF3A3A3A)
     val Gray3 = Color(0xFF48484A)
     val Gray2 = Color(0xFF636366)
-    val Gray1 = Color(0xFF8E8E93)
+    val Gray1 = Color(0xFF8E8E8E)
 
     // Alpha
     val Black50 = Color.Black.copy(alpha = 0.5f)
