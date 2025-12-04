@@ -28,12 +28,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices.NEXUS_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
@@ -77,6 +80,7 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
 
+@OptIn(FlowPreview::class)
 @Composable
 fun ReceiveQrScreen(
     cjitInvoice: String?,
@@ -123,24 +127,9 @@ fun ReceiveQrScreen(
         }
     }
 
-    // Determine initial tab index
-    val initialTabIndex = remember(initialTab, visibleTabs) {
-        if (initialTab != null) {
-            visibleTabs.indexOf(initialTab).coerceAtLeast(0)
-        } else {
-            when {
-                !cjitInvoice.isNullOrEmpty() -> visibleTabs.indexOf(ReceiveTab.SPENDING)
-                hasUsableChannels -> visibleTabs.indexOf(ReceiveTab.AUTO)
-                else -> visibleTabs.indexOf(ReceiveTab.SAVINGS)
-            }.coerceAtLeast(0)
-        }
-    }
-
     // LazyRow state with snap behavior
     val scope = rememberCoroutineScope()
-    val lazyListState = rememberLazyListState(
-        initialFirstVisibleItemIndex = initialTabIndex
-    )
+    val lazyListState = rememberLazyListState()
 
     val snapBehavior = rememberSnapFlingBehavior(
         lazyListState = lazyListState,
@@ -148,33 +137,29 @@ fun ReceiveQrScreen(
     )
 
     // Calculate current tab based on scroll position for smooth indicator and color updates
-    val selectedTab by remember {
-        derivedStateOf {
-            val layoutInfo = lazyListState.layoutInfo
-            val currentIndex = if (layoutInfo.visibleItemsInfo.isEmpty()) {
-                lazyListState.firstVisibleItemIndex
-            } else {
-                val viewportMidpoint = layoutInfo.viewportStartOffset +
-                    (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) / 2
-
-                layoutInfo.visibleItemsInfo
-                    .minByOrNull { item ->
-                        val itemMidpoint = item.offset + item.size / 2
-                        kotlin.math.abs(itemMidpoint - viewportMidpoint)
-                    }
-                    ?.index ?: lazyListState.firstVisibleItemIndex
-            }
-
-            visibleTabs.getOrNull(currentIndex)
-                ?: visibleTabs.firstOrNull()
-                ?: ReceiveTab.SAVINGS
-        }
+    var selectedTab by remember {
+        mutableStateOf(initialTab ?: ReceiveTab.SAVINGS)
     }
 
-    // Derive index from selectedTab for tab row indicator
-    val currentTabIndex by remember {
-        derivedStateOf {
-            visibleTabs.indexOf(selectedTab).coerceAtLeast(0)
+    LaunchedEffect(lazyListState, visibleTabs.size) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (index < visibleTabs.size && index > -1) {
+                    val tab = visibleTabs[index]
+                    selectedTab = tab
+                }
+            }
+    }
+
+    // Auto-switch to AUTO tab when it becomes available for the first time
+    LaunchedEffect(hasUsableChannels) {
+        if (hasUsableChannels && visibleTabs.contains(ReceiveTab.AUTO)) {
+            val autoIndex = visibleTabs.indexOf(ReceiveTab.AUTO)
+            if (autoIndex != -1) {
+                lazyListState.animateScrollToItem(autoIndex)
+                selectedTab = ReceiveTab.AUTO
+            }
         }
     }
 
@@ -198,11 +183,12 @@ fun ReceiveQrScreen(
             // Tab row
             CustomTabRowWithSpacing(
                 tabs = visibleTabs,
-                currentTabIndex = currentTabIndex,
+                currentTabIndex = visibleTabs.indexOf(selectedTab),
                 selectedColor = selectedTab.accentColor,
                 onTabChange = { tab ->
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     val newIndex = visibleTabs.indexOf(tab)
+                    selectedTab = tab
                     scope.launch {
                         lazyListState.animateScrollToItem(newIndex)
                     }
@@ -303,12 +289,12 @@ fun ReceiveQrScreen(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .testTag(
-                        if (showDetails) {
-                            "QRCode"
-                        } else {
-                            "ShowDetails"
-                        }
-                    )
+                            if (showDetails) {
+                                "QRCode"
+                            } else {
+                                "ShowDetails"
+                            }
+                        )
                 )
             }
 
