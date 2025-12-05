@@ -115,7 +115,7 @@ fun SendRecipientScreen(
     }
 
     // QR code analyzer with auto-proceed callback
-    val analyzer = remember {
+    val analyzer = remember(onEvent) {
         QrCodeAnalyzer { result ->
             if (result.isSuccess) {
                 val qrCode = result.getOrThrow()
@@ -185,6 +185,20 @@ fun SendRecipientScreen(
     }
 
     // Gallery picker launchers
+    val handleGalleryScanSuccess = remember(onEvent) {
+        { qrCode: String ->
+            Logger.debug("QR from gallery: $qrCode")
+            onEvent(SendEvent.AddressContinue(qrCode))
+        }
+    }
+
+    val handleGalleryError = remember(app) {
+        { e: Exception ->
+            app?.toast(e)
+            Unit
+        }
+    }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
@@ -192,13 +206,8 @@ fun SendRecipientScreen(
                 processImageFromGallery(
                     context = context,
                     uri = it,
-                    onScanSuccess = { qrCode ->
-                        Logger.debug("QR from gallery: $qrCode")
-                        onEvent(SendEvent.AddressContinue(qrCode))
-                    },
-                    onError = { e ->
-                        app?.toast(e)
-                    }
+                    onScanSuccess = handleGalleryScanSuccess,
+                    onError = handleGalleryError
                 )
             }
         }
@@ -211,13 +220,8 @@ fun SendRecipientScreen(
             processImageFromGallery(
                 context = context,
                 uri = it,
-                onScanSuccess = { qrCode ->
-                    Logger.debug("QR from photo picker: $qrCode")
-                    onEvent(SendEvent.AddressContinue(qrCode))
-                },
-                onError = { e ->
-                    app?.toast(e)
-                }
+                onScanSuccess = handleGalleryScanSuccess,
+                onError = handleGalleryError
             )
         }
     }
