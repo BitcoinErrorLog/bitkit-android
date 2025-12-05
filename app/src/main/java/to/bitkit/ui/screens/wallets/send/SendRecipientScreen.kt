@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionStatus
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -138,9 +138,8 @@ fun SendRecipientScreen(
             .build()
     }
 
-    // Camera binding - only initialize once
-    LaunchedEffect(Unit) {
-        if (!isCameraInitialized) {
+    LaunchedEffect(cameraPermissionState.status, isCameraInitialized) {
+        if (cameraPermissionState.status.isGranted && !isCameraInitialized) {
             delay(TRANSITION_SCREEN_MS)
             imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
 
@@ -233,7 +232,7 @@ fun SendRecipientScreen(
         },
         onClickPaste = { onEvent(SendEvent.Paste) },
         onClickManual = { onEvent(SendEvent.EnterManually) },
-        cameraPermissionGranted = cameraPermissionState.status is PermissionStatus.Granted,
+        cameraPermissionGranted = cameraPermissionState.status.isGranted,
         onRequestPermission = { context.startActivityAppSettings() },
         modifier = modifier
     )
