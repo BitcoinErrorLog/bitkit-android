@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -68,7 +69,6 @@ import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.RectangleButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.SheetTopBar
-import to.bitkit.ui.screens.scanner.CameraPermissionView
 import to.bitkit.ui.screens.scanner.QrCodeAnalyzer
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.shared.util.gradientBackground
@@ -102,7 +102,6 @@ fun SendRecipientScreen(
     val previewView = remember { PreviewView(context) }
     val preview = remember { CameraPreview.Builder().build() }
     var camera by remember { mutableStateOf<Camera?>(null) }
-
 
     val cameraSelector = remember {
         CameraSelector.Builder()
@@ -212,6 +211,46 @@ fun SendRecipientScreen(
         }
     }
 
+    SendRecipientContent(
+        previewView = previewView,
+        onClickFlashlight = {
+            isFlashlightOn = !isFlashlightOn
+            camera?.cameraControl?.enableTorch(isFlashlightOn)
+        },
+        onClickGallery = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pickMedia.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            } else {
+                galleryLauncher.launch("image/*")
+            }
+        },
+        onClickContact = {
+            scope.launch {
+                app?.toast(Exception("Coming soon: Contact"))
+            }
+        },
+        onClickPaste = { onEvent(SendEvent.Paste) },
+        onClickManual = { onEvent(SendEvent.EnterManually) },
+        cameraPermissionGranted = cameraPermissionState.status is PermissionStatus.Granted,
+        onRequestPermission = { context.startActivityAppSettings() },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun SendRecipientContent(
+    previewView: PreviewView?,
+    onClickFlashlight: () -> Unit,
+    onClickGallery: () -> Unit,
+    onClickContact: () -> Unit,
+    onClickPaste: () -> Unit,
+    onClickManual: () -> Unit,
+    cameraPermissionGranted: Boolean,
+    onRequestPermission: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -230,38 +269,21 @@ fun SendRecipientScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                CameraPermissionView(
-                    permissionState = cameraPermissionState,
-                    deniedContent = {
-                        PermissionDenied(
-                            onClickRetry = {
-                                context.startActivityAppSettings()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight()
-                        )
-                    },
-                    grantedContent = {
-                        CameraPreviewWithControls(
-                            previewView = previewView,
-                            onClickFlashlight = {
-                                isFlashlightOn = !isFlashlightOn
-                                camera?.cameraControl?.enableTorch(isFlashlightOn)
-                            },
-                            onClickGallery = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    pickMedia.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                } else {
-                                    galleryLauncher.launch("image/*")
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                )
+                if (cameraPermissionGranted && previewView != null) {
+                    CameraPreviewWithControls(
+                        previewView = previewView,
+                        onClickFlashlight = onClickFlashlight,
+                        onClickGallery = onClickGallery,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    PermissionDenied(
+                        onClickRetry = onRequestPermission,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                    )
+                }
             }
 
             RectangleButton(
@@ -270,9 +292,7 @@ fun SendRecipientScreen(
                 iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientContact")
             ) {
-                scope.launch {
-                    app?.toast(Exception("Coming soon: Contact"))
-                }
+                onClickContact()
             }
 
             RectangleButton(
@@ -281,7 +301,7 @@ fun SendRecipientScreen(
                 iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientInvoice")
             ) {
-                onEvent(SendEvent.Paste)
+                onClickPaste()
             }
 
             RectangleButton(
@@ -290,7 +310,7 @@ fun SendRecipientScreen(
                 iconTint = Colors.Brand,
                 modifier = Modifier.testTag("RecipientManual")
             ) {
-                onEvent(SendEvent.EnterManually)
+                onClickManual()
             }
         }
     }
@@ -436,8 +456,15 @@ private fun processImageFromGallery(
 private fun Preview() {
     AppThemeSurface {
         BottomSheetPreview {
-            SendRecipientScreen(
-                onEvent = {},
+            SendRecipientContent(
+                previewView = null,
+                onClickFlashlight = {},
+                onClickGallery = {},
+                onClickContact = {},
+                onClickPaste = {},
+                onClickManual = {},
+                cameraPermissionGranted = false,
+                onRequestPermission = {},
                 modifier = Modifier.sheetHeight(),
             )
         }
