@@ -25,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -131,6 +132,7 @@ class MainActivity : FragmentActivity() {
                             settingsViewModel = settingsViewModel,
                             backupsViewModel = backupsViewModel,
                             hazeState = hazeState,
+                            modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
                         )
                     }
 
