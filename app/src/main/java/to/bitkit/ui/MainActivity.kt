@@ -15,7 +15,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import dev.chrisbanes.haze.rememberHazeState
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -131,7 +131,6 @@ class MainActivity : FragmentActivity() {
                             transferViewModel = transferViewModel,
                             settingsViewModel = settingsViewModel,
                             backupsViewModel = backupsViewModel,
-                            hazeState = hazeState,
                             modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
                         )
                     }
