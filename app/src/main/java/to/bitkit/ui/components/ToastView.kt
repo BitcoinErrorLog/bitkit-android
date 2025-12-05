@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush.Companion.verticalGradient
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -47,7 +45,6 @@ fun ToastView(
     onDismiss: () -> Unit,
 ) {
     val tintColor = toast.tintColor()
-    val gradientColor = toast.gradientColor()
 
     Box(
         contentAlignment = Alignment.CenterStart,
@@ -55,8 +52,7 @@ fun ToastView(
             .fillMaxWidth()
             .systemBarsPadding()
             .padding(horizontal = 16.dp)
-            .background(verticalGradient(listOf(gradientColor, Color.Black), startY = 0f), RoundedCornerShape(8.dp))
-            .border(1.dp, tintColor, RoundedCornerShape(8.dp))
+            .background(tintColor.copy(alpha = 0.32f), RoundedCornerShape(8.dp))
             .padding(16.dp)
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
@@ -125,18 +121,37 @@ fun ToastOverlay(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showSystemUi = true)
 @Composable
 private fun ToastViewPreview() {
     AppThemeSurface {
         ScreenColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+
+            ToastView(
+                toast = Toast(
+                    type = Toast.ToastType.WARNING,
+                    title = "You’re still offline",
+                    description = "Check your connection to keep using Bitkit.",
+                    autoHide = true,
+                ),
+                onDismiss = {}
+            )
+            ToastView(
+                toast = Toast(
+                    type = Toast.ToastType.LIGHTNING,
+                    title = "Instant Payments Ready",
+                    description = "You can now pay anyone, anywhere, instantly.",
+                    autoHide = true,
+                ),
+                onDismiss = {}
+            )
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.SUCCESS,
-                    title = "Success Toast",
-                    description = "This is a toast message.",
+                    title = "You’re Back Online!",
+                    description = "Successfully reconnected to the Internet.",
                     autoHide = true,
                 ),
                 onDismiss = {}
@@ -144,24 +159,8 @@ private fun ToastViewPreview() {
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.INFO,
-                    title = "Info Toast",
-                    description = "This is a toast message.",
-                    autoHide = false,
-                ),
-                onDismiss = {}
-            )
-            ToastView(
-                toast = Toast(
-                    type = Toast.ToastType.LIGHTNING,
-                    title = "Lightning Toast",
-                    autoHide = true,
-                ),
-                onDismiss = {}
-            )
-            ToastView(
-                toast = Toast(
-                    type = Toast.ToastType.WARNING,
-                    title = "Warning Toast",
+                    title = "General Message",
+                    description = "Used for neutral content to inform the user.",
                     autoHide = false,
                 ),
                 onDismiss = {}
@@ -177,17 +176,6 @@ private fun ToastViewPreview() {
             )
         }
     }
-}
-
-@Suppress("MagicNumber")
-@ReadOnlyComposable
-@Composable
-private fun Toast.gradientColor(): Color = when (type) {
-    Toast.ToastType.SUCCESS -> Color(0XFF1D2F1C)
-    Toast.ToastType.INFO -> Color(0XFF032E56)
-    Toast.ToastType.LIGHTNING -> Color(0XFF2B1637)
-    Toast.ToastType.WARNING -> Color(0XFF3C1001)
-    Toast.ToastType.ERROR -> Color(0XFF491F25)
 }
 
 @ReadOnlyComposable
