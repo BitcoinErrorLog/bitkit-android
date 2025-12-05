@@ -81,8 +81,7 @@ fun ToastView(
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
         // Main toast content
-        val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-        val toastMaterial = CupertinoMaterials.thin(containerColor = containerColor)
+        val toastMaterial = CupertinoMaterials.thin(containerColor = tintColor)
 
         Box(
             modifier = Modifier
@@ -94,15 +93,9 @@ fun ToastView(
                     ambientColor = Color.Black.copy(alpha = 0.4f),
                     spotColor = Color.Black.copy(alpha = 0.4f)
                 )
-                .background(
-                    color = containerColor,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .then(
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = toastMaterial
-                    )
+                .hazeEffect(
+                    state = hazeState,
+                    style = toastMaterial
                 )
                 .background(
                     color = tintColor.copy(alpha = 0.32f),
@@ -188,7 +181,7 @@ fun ToastView(
                 toast.description?.let { description ->
                     Caption(
                         text = description,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Colors.White
                     )
                 }
             }
