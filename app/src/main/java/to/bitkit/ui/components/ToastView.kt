@@ -19,11 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
@@ -52,7 +52,7 @@ fun ToastView(
             .fillMaxWidth()
             .systemBarsPadding()
             .padding(horizontal = 16.dp)
-            .background(tintColor.copy(alpha = 0.32f), RoundedCornerShape(8.dp))
+            .background(tintColor.copy(alpha = 0.32f), shape = MaterialTheme.shapes.medium)
             .padding(16.dp)
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
