@@ -136,12 +136,12 @@ fun SendRecipientScreen(
             .build()
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(lifecycleOwner) {
         imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
     }
 
     // Camera binding
-    LaunchedEffect(Unit) {
+    LaunchedEffect(lifecycleOwner) {
         val cameraProvider = withContext(Dispatchers.IO) {
             ProcessCameraProvider.getInstance(context).get()
         }
@@ -158,12 +158,10 @@ fun SendRecipientScreen(
     DisposableEffect(Unit) {
         onDispose {
             camera?.let {
-                scope.launch(Dispatchers.IO) {
-                    runCatching {
-                        ProcessCameraProvider.getInstance(context).get().unbindAll()
-                    }.onFailure { e ->
-                        Logger.error("Camera cleanup failed", e)
-                    }
+                runCatching {
+                    ProcessCameraProvider.getInstance(context).get().unbindAll()
+                }.onFailure { e ->
+                    Logger.error("Camera cleanup failed", e)
                 }
             }
         }
