@@ -15,6 +15,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -96,6 +97,7 @@ class MainActivity : FragmentActivity() {
                 val walletExists by walletViewModel.walletState
                     .map { it.walletExists }
                     .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
+                val hazeState = rememberHazeState(blurEnabled = true)
 
                 LaunchedEffect(
                     walletExists,
@@ -128,6 +130,7 @@ class MainActivity : FragmentActivity() {
                             transferViewModel = transferViewModel,
                             settingsViewModel = settingsViewModel,
                             backupsViewModel = backupsViewModel,
+                            hazeState = hazeState,
                         )
                     }
 
@@ -164,6 +167,7 @@ class MainActivity : FragmentActivity() {
 
                 ToastOverlay(
                     toast = appViewModel.currentToast,
+                    hazeState = hazeState,
                     onDismiss = {
                         appViewModel.hideToast()
                     }

@@ -81,9 +81,8 @@ fun ToastView(
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
         // Main toast content
-        // Match TabBar pattern: opaque base + hazeEffect + tint overlay
-        val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        val toastMaterial = CupertinoMaterials.ultraThin(containerColor = containerColor)
+        val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+        val toastMaterial = CupertinoMaterials.thin(containerColor = containerColor)
 
         Box(
             modifier = Modifier

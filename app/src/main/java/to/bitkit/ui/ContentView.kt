@@ -193,6 +193,7 @@ fun ContentView(
     transferViewModel: TransferViewModel,
     settingsViewModel: SettingsViewModel,
     backupsViewModel: BackupsViewModel,
+    hazeState: dev.chrisbanes.haze.HazeState,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -351,7 +352,6 @@ fun ContentView(
         val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
 
         val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
-        val hazeState = rememberHazeState()
 
         Box(
             modifier = modifier.fillMaxSize()
