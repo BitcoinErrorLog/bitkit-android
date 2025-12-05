@@ -44,6 +44,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.CupertinoMaterials
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.models.Toast
@@ -52,10 +57,12 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ToastView(
     toast: Toast,
     onDismiss: () -> Unit,
+    hazeState: HazeState = rememberHazeState(blurEnabled = true),
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
 ) {
@@ -74,6 +81,11 @@ fun ToastView(
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
         // Main toast content
+        val backgroundAlpha = 0.7f
+        val toastMaterial = CupertinoMaterials.ultraThin(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,8 +97,14 @@ fun ToastView(
                     spotColor = Color.Black.copy(alpha = 0.4f)
                 )
                 .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha),
                     shape = MaterialTheme.shapes.medium
+                )
+                .then(
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = toastMaterial
+                    )
                 )
                 .background(
                     color = tintColor.copy(alpha = 0.32f),
@@ -207,6 +225,7 @@ fun ToastView(
 @Composable
 private fun ToastHost(
     toast: Toast?,
+    hazeState: HazeState,
     onDismiss: () -> Unit,
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
@@ -225,6 +244,7 @@ private fun ToastHost(
             ToastView(
                 toast = it,
                 onDismiss = onDismiss,
+                hazeState = hazeState,
                 onDragStart = onDragStart,
                 onDragEnd = onDragEnd
             )
@@ -236,6 +256,7 @@ private fun ToastHost(
 fun ToastOverlay(
     toast: Toast?,
     modifier: Modifier = Modifier,
+    hazeState: HazeState = rememberHazeState(blurEnabled = true),
     onDismiss: () -> Unit,
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
@@ -246,6 +267,7 @@ fun ToastOverlay(
     ) {
         ToastHost(
             toast = toast,
+            hazeState = hazeState,
             onDismiss = onDismiss,
             onDragStart = onDragStart,
             onDragEnd = onDragEnd
@@ -264,11 +286,11 @@ private fun ToastViewPreview() {
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.WARNING,
-                    title = "You’re still offline",
+                    title = "You're still offline",
                     description = "Check your connection to keep using Bitkit.",
                     autoHide = true,
                 ),
-                onDismiss = {}
+                onDismiss = {},
             )
             ToastView(
                 toast = Toast(
@@ -277,16 +299,16 @@ private fun ToastViewPreview() {
                     description = "You can now pay anyone, anywhere, instantly.",
                     autoHide = true,
                 ),
-                onDismiss = {}
+                onDismiss = {},
             )
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.SUCCESS,
-                    title = "You’re Back Online!",
+                    title = "You're Back Online!",
                     description = "Successfully reconnected to the Internet.",
                     autoHide = true,
                 ),
-                onDismiss = {}
+                onDismiss = {},
             )
             ToastView(
                 toast = Toast(
@@ -295,7 +317,7 @@ private fun ToastViewPreview() {
                     description = "Used for neutral content to inform the user.",
                     autoHide = false,
                 ),
-                onDismiss = {}
+                onDismiss = {},
             )
             ToastView(
                 toast = Toast(
@@ -304,7 +326,7 @@ private fun ToastViewPreview() {
                     description = "This is a toast message.",
                     autoHide = true,
                 ),
-                onDismiss = {}
+                onDismiss = {},
             )
         }
     }
