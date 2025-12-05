@@ -36,6 +36,7 @@ fun ReceiveSheet(
 ) {
     val wallet = requireNotNull(walletViewModel)
     val navController = rememberNavController()
+
     LaunchedEffect(Unit) { editInvoiceAmountViewModel.clearInput() }
 
     val cjitInvoice = remember { mutableStateOf<String?>(null) }
@@ -75,28 +76,17 @@ fun ReceiveSheet(
                 }
 
                 ReceiveQrScreen(
-                    cjitInvoice = cjitInvoice,
-                    cjitActive = showCreateCjit,
+                    cjitInvoice = cjitInvoice.value,
                     walletState = walletState,
-                    onCjitToggle = { isOn ->
-                        when {
-                            isOn && lightningState.shouldBlockLightningReceive -> {
-                                navController.navigate(ReceiveRoute.GeoBlock)
-                            }
-
-                            !isOn -> {
-                                showCreateCjit.value = false
-                                cjitInvoice.value = null
-                            }
-
-                            isOn && cjitInvoice.value == null -> {
-                                showCreateCjit.value = true
-                                navController.navigate(ReceiveRoute.Amount)
-                            }
+                    onClickReceiveCjit = {
+                        if (lightningState.isGeoBlocked) {
+                            navController.navigate(ReceiveRoute.GeoBlock)
+                        } else {
+                            showCreateCjit.value = true
+                            navController.navigate(ReceiveRoute.Amount)
                         }
                     },
                     onClickEditInvoice = { navController.navigate(ReceiveRoute.EditInvoice) },
-                    onClickReceiveOnSpending = { wallet.toggleReceiveOnSpending() }
                 )
             }
             composableWithDefaultTransitions<ReceiveRoute.Amount> {

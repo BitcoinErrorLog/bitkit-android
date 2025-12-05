@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,23 +18,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.components.CaptionB
+import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.Colors
 
 @Composable
-fun CustomTabRowWithSpacing(
-    tabs: List<ActivityTab>,
+fun <T : TabItem> CustomTabRowWithSpacing(
+    tabs: List<T>,
     currentTabIndex: Int,
-    onTabChange: (ActivityTab) -> Unit,
+    onTabChange: (T) -> Unit,
     modifier: Modifier = Modifier,
+    selectedColor: Color = Colors.Brand,
 ) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth()
         ) {
             tabs.forEachIndexed { index, tab ->
                 val isSelected = tabs[currentTabIndex] == tab
@@ -47,9 +49,9 @@ fun CustomTabRowWithSpacing(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onTabChange(tab) }
+                            .clickableAlpha { onTabChange(tab) }
                             .padding(vertical = 8.dp)
-                            .testTag("Tab-${tab.name.lowercase()}"),
+                            .testTag("Tab-${tab.name.lowercase()}")
                     ) {
                         CaptionB(
                             tab.uiText,
@@ -59,17 +61,22 @@ fun CustomTabRowWithSpacing(
                         )
                     }
 
-                    // Animated indicator
                     val animatedAlpha by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0.2f,
-                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                        label = "indicatorAlpha"
+                        animationSpec = tween(
+                            durationMillis = 250,
+                            easing = FastOutSlowInEasing
+                        ),
+                        label = "indicatorAlpha",
                     )
 
                     val animatedColor by animateColorAsState(
-                        targetValue = if (isSelected) Colors.Brand else Colors.White,
-                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                        label = "indicatorColor"
+                        targetValue = if (isSelected) selectedColor else Colors.White,
+                        animationSpec = tween(
+                            durationMillis = 250,
+                            easing = FastOutSlowInEasing
+                        ),
+                        label = "indicatorColor",
                     )
 
                     Box(
@@ -87,4 +94,10 @@ fun CustomTabRowWithSpacing(
             }
         }
     }
+}
+
+interface TabItem {
+    val name: String
+    val uiText: String
+        @Composable get
 }

@@ -53,7 +53,7 @@ fun BottomSheet(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = Colors.Gray6)
+                .background(color = Colors.White08)
         ) {
             SheetDragHandle()
         }

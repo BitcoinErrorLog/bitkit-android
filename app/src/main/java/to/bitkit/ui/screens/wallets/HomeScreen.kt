@@ -488,7 +488,7 @@ private fun Content(
                         onEmptyActivityRowClick = onClickEmptyActivityRow,
                     )
 
-                    VerticalSpacer(120.dp) // scrollable empty space behind footer
+                    VerticalSpacer(150.dp) // scrollable empty space behind footer
                 }
             }
             if (homeUiState.showEmptyState) {
@@ -497,6 +497,7 @@ private fun Content(
                     onClose = onDismissEmptyState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
                 )
             }
         }

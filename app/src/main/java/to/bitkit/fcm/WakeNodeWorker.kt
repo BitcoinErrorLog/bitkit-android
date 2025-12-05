@@ -15,6 +15,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import org.lightningdevkit.ldknode.Event
+import to.bitkit.R
+import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.json
 import to.bitkit.ext.amountOnClose
@@ -28,6 +30,7 @@ import to.bitkit.models.BlocktankNotificationType.wakeToTimeout
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
 import to.bitkit.models.NewTransactionSheetType
+import to.bitkit.models.NotificationDetails
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
@@ -47,12 +50,11 @@ class WakeNodeWorker @AssistedInject constructor(
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
     private val settingsStore: SettingsStore,
+    private val cacheStore: CacheStore,
 ) : CoroutineWorker(appContext, workerParams) {
     private val self = this
 
-    class VisibleNotification(var title: String = "", var body: String = "")
-
-    private var bestAttemptContent: VisibleNotification? = VisibleNotification()
+    private var bestAttemptContent: NotificationDetails? = null
 
     private var notificationType: BlocktankNotificationType? = null
     private var notificationPayload: JsonObject? = null
@@ -92,8 +94,10 @@ class WakeNodeWorker @AssistedInject constructor(
                             coreService.blocktank.open(orderId = orderId)
                         } catch (e: Exception) {
                             Logger.error("failed to open channel", e)
-                            self.bestAttemptContent?.title = "Channel open failed"
-                            self.bestAttemptContent?.body = e.message ?: "Unknown error"
+                            self.bestAttemptContent = NotificationDetails(
+                                title = appContext.getString(R.string.notification_channel_open_failed_title),
+                                body = e.message ?: appContext.getString(R.string.notification_unknown_error),
+                            )
                             self.deliver()
                         }
                     }
@@ -102,10 +106,12 @@ class WakeNodeWorker @AssistedInject constructor(
             withTimeout(timeout) { deliverSignal.await() } // Stops node on timeout & avoids notification replay by OS
             return Result.success()
         } catch (e: Exception) {
-            val reason = e.message ?: "Unknown error"
+            val reason = e.message ?: appContext.getString(R.string.notification_unknown_error)
 
-            self.bestAttemptContent?.title = "Lightning error"
-            self.bestAttemptContent?.body = reason
+            self.bestAttemptContent = NotificationDetails(
+                title = appContext.getString(R.string.notification_lightning_error_title),
+                body = reason,
+            )
             Logger.error("Lightning error", e)
             self.deliver()
 
@@ -119,44 +125,52 @@ class WakeNodeWorker @AssistedInject constructor(
      */
     private suspend fun handleLdkEvent(event: Event) {
         val showDetails = settingsStore.data.first().showNotificationDetails
-        val openBitkitMessage = "Open Bitkit to see details"
+        val hiddenBody = appContext.getString(R.string.notification_received_body_hidden)
         when (event) {
-            is Event.PaymentReceived -> onPaymentReceived(event, showDetails, openBitkitMessage)
+            is Event.PaymentReceived -> onPaymentReceived(event, showDetails, hiddenBody)
 
             is Event.ChannelPending -> {
-                self.bestAttemptContent?.title = "Channel Opened"
-                self.bestAttemptContent?.body = "Pending"
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_channel_opened_title),
+                    body = appContext.getString(R.string.notification_channel_pending_body),
+                )
                 // Don't deliver, give a chance for channelReady event to update the content if it's a turbo channel
             }
 
-            is Event.ChannelReady -> onChannelReady(event, showDetails, openBitkitMessage)
+            is Event.ChannelReady -> onChannelReady(event, showDetails, hiddenBody)
             is Event.ChannelClosed -> onChannelClosed(event)
 
-            is Event.PaymentSuccessful -> Unit
-            is Event.PaymentClaimable -> Unit
-            is Event.PaymentForwarded -> Unit
-
             is Event.PaymentFailed -> {
-                self.bestAttemptContent?.title = "Payment failed"
-                self.bestAttemptContent?.body = "⚡ ${event.reason}"
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_payment_failed_title),
+                    body = "⚡ ${event.reason}",
+                )
 
                 if (self.notificationType == wakeToTimeout) {
                     self.deliver()
                 }
             }
+
             else -> Unit
         }
     }
 
     private suspend fun onChannelClosed(event: Event.ChannelClosed) {
-        self.bestAttemptContent?.title = "Channel closed"
-        self.bestAttemptContent?.body = "Reason: ${event.reason}"
+        self.bestAttemptContent = when (self.notificationType) {
+            mutualClose -> NotificationDetails(
+                title = appContext.getString(R.string.notification_channel_closed_title),
+                body = appContext.getString(R.string.notification_channel_closed_mutual_body),
+            )
 
-        if (self.notificationType == mutualClose) {
-            self.bestAttemptContent?.body = "Balance moved from spending to savings"
-        } else if (self.notificationType == orderPaymentConfirmed) {
-            self.bestAttemptContent?.title = "Channel failed to open in the background"
-            self.bestAttemptContent?.body = "Please try again"
+            orderPaymentConfirmed -> NotificationDetails(
+                title = appContext.getString(R.string.notification_channel_open_bg_failed_title),
+                body = appContext.getString(R.string.notification_please_try_again_body),
+            )
+
+            else -> NotificationDetails(
+                title = appContext.getString(R.string.notification_channel_closed_title),
+                body = appContext.getString(R.string.notification_channel_closed_reason_body, event.reason),
+            )
         }
 
         self.deliver()
@@ -165,13 +179,11 @@ class WakeNodeWorker @AssistedInject constructor(
     private suspend fun onPaymentReceived(
         event: Event.PaymentReceived,
         showDetails: Boolean,
-        openBitkitMessage: String,
+        hiddenBody: String,
     ) {
-        bestAttemptContent?.title = "Payment Received"
         val sats = event.amountMsat / 1000u
         // Save for UI to pick up
-        NewTransactionSheetDetails.save(
-            appContext,
+        cacheStore.setBackgroundReceive(
             NewTransactionSheetDetails(
                 type = NewTransactionSheetType.LIGHTNING,
                 direction = NewTransactionSheetDirection.RECEIVED,
@@ -179,8 +191,11 @@ class WakeNodeWorker @AssistedInject constructor(
                 sats = sats.toLong(),
             )
         )
-        val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
-        bestAttemptContent?.body = content
+        val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else hiddenBody
+        bestAttemptContent = NotificationDetails(
+            title = appContext.getString(R.string.notification_received_title),
+            body = content,
+        )
         if (self.notificationType == incomingHtlc) {
             self.deliver()
         }
@@ -189,21 +204,26 @@ class WakeNodeWorker @AssistedInject constructor(
     private suspend fun onChannelReady(
         event: Event.ChannelReady,
         showDetails: Boolean,
-        openBitkitMessage: String,
+        hiddenBody: String,
     ) {
+        val viaNewChannel = appContext.getString(R.string.notification_via_new_channel_body)
         if (self.notificationType == cjitPaymentArrived) {
-            self.bestAttemptContent?.title = "Payment received"
-            self.bestAttemptContent?.body = "Via new channel"
+            self.bestAttemptContent = NotificationDetails(
+                title = appContext.getString(R.string.notification_received_title),
+                body = viaNewChannel,
+            )
 
             lightningRepo.getChannels()?.find { it.channelId == event.channelId }?.let { channel ->
                 val sats = channel.amountOnClose
-                val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else openBitkitMessage
-                self.bestAttemptContent?.title = content
+                val content = if (showDetails) "$BITCOIN_SYMBOL $sats" else hiddenBody
+                self.bestAttemptContent = NotificationDetails(
+                    title = content,
+                    body = viaNewChannel,
+                )
                 val cjitEntry = channel.let { blocktankRepo.getCjitEntry(it) }
                 if (cjitEntry != null) {
                     // Save for UI to pick up
-                    NewTransactionSheetDetails.save(
-                        appContext,
+                    cacheStore.setBackgroundReceive(
                         NewTransactionSheetDetails(
                             type = NewTransactionSheetType.LIGHTNING,
                             direction = NewTransactionSheetDirection.RECEIVED,
@@ -214,8 +234,10 @@ class WakeNodeWorker @AssistedInject constructor(
                 }
             }
         } else if (self.notificationType == orderPaymentConfirmed) {
-            self.bestAttemptContent?.title = "Channel opened"
-            self.bestAttemptContent?.body = "Ready to send"
+            self.bestAttemptContent = NotificationDetails(
+                title = appContext.getString(R.string.notification_channel_opened_title),
+                body = appContext.getString(R.string.notification_channel_ready_body),
+            )
         }
         self.deliver()
     }
@@ -224,7 +246,7 @@ class WakeNodeWorker @AssistedInject constructor(
         lightningRepo.stop()
 
         bestAttemptContent?.run {
-            pushNotification(title, body, context = appContext)
+            appContext.pushNotification(title, body)
             Logger.info("Delivered notification")
         }
 

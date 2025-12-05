@@ -15,6 +15,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import to.bitkit.data.SettingsStore
 import to.bitkit.ext.from
+import to.bitkit.models.BalanceState
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
@@ -25,6 +26,7 @@ import to.bitkit.test.BaseUnitTest
 import to.bitkit.viewmodels.RestoreState
 import to.bitkit.viewmodels.WalletViewModel
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class WalletViewModelTest : BaseUnitTest() {
 
     private lateinit var sut: WalletViewModel
@@ -36,6 +38,8 @@ class WalletViewModelTest : BaseUnitTest() {
     private val blocktankRepo: BlocktankRepo = mock()
     private val mockLightningState = MutableStateFlow(LightningState())
     private val mockWalletState = MutableStateFlow(WalletState())
+    private val mockBalanceState = MutableStateFlow(BalanceState())
+    private val mockIsRecoveryMode = MutableStateFlow(false)
 
     @Before
     fun setUp() {
@@ -159,7 +163,7 @@ class WalletViewModelTest : BaseUnitTest() {
 
     @Test
     fun `backup restore should not be triggered when wallet exists while not restoring`() = test {
-        assertEquals(RestoreState.NotRestoring, sut.restoreState)
+        assertEquals(RestoreState.Initial, sut.restoreState)
 
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
 
@@ -171,39 +175,113 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
         sut.restoreWallet("mnemonic", "passphrase")
-        assertEquals(RestoreState.RestoringWallet, sut.restoreState)
+        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
 
         sut.onRestoreContinue()
 
-        assertEquals(RestoreState.NotRestoring, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `proceedWithoutRestore should exit restore flow`() = test {
         val testError = Exception("Test error")
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.failure(testError))
         sut.restoreWallet("mnemonic", "passphrase")
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
-        assertEquals(RestoreState.BackupRestoreCompleted, sut.restoreState)
+        assertEquals(RestoreState.Completed, sut.restoreState)
 
         sut.proceedWithoutRestore(onDone = {})
         advanceUntilIdle()
-        assertEquals(RestoreState.NotRestoring, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState)
     }
 
     @Test
     fun `restore state should transition as expected`() = test {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
-        assertEquals(RestoreState.NotRestoring, sut.restoreState)
+        assertEquals(RestoreState.Initial, sut.restoreState)
 
         sut.restoreWallet("mnemonic", "passphrase")
-        assertEquals(RestoreState.RestoringWallet, sut.restoreState)
+        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
 
         mockWalletState.value = mockWalletState.value.copy(walletExists = true)
-        assertEquals(RestoreState.BackupRestoreCompleted, sut.restoreState)
+        assertEquals(RestoreState.Completed, sut.restoreState)
 
         sut.onRestoreContinue()
-        assertEquals(RestoreState.NotRestoring, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState)
+    }
+
+    @Test
+    fun `start should call refreshBip21 when restore state is idle`() = test {
+        // Create fresh mocks for this test
+        val testWalletRepo: WalletRepo = mock()
+        val testLightningRepo: LightningRepo = mock()
+
+        // Create a wallet state with walletExists = true
+        val testWalletState = MutableStateFlow(WalletState(walletExists = true))
+
+        // Set up mocks BEFORE creating SUT
+        whenever(testWalletRepo.walletState).thenReturn(testWalletState)
+        whenever(testWalletRepo.balanceState).thenReturn(mockBalanceState)
+        whenever(testWalletRepo.walletExists()).thenReturn(true)
+        whenever(testLightningRepo.lightningState).thenReturn(mockLightningState)
+        whenever(testLightningRepo.isRecoveryMode).thenReturn(mockIsRecoveryMode)
+        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(Unit))
+
+        val testSut = WalletViewModel(
+            bgDispatcher = testDispatcher,
+            walletRepo = testWalletRepo,
+            lightningRepo = testLightningRepo,
+            settingsStore = settingsStore,
+            backupRepo = backupRepo,
+            blocktankRepo = blocktankRepo,
+        )
+
+        assertEquals(RestoreState.Initial, testSut.restoreState)
+        assertEquals(true, testSut.walletExists)
+
+        testSut.start()
+        advanceUntilIdle()
+
+        verify(testLightningRepo).start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull())
+        verify(testWalletRepo).refreshBip21()
+    }
+
+    @Test
+    fun `start should skip refreshBip21 when restore is in progress`() = test {
+        // Create fresh mocks for this test
+        val testWalletRepo: WalletRepo = mock()
+        val testLightningRepo: LightningRepo = mock()
+
+        // Create wallet state with walletExists = true so start() doesn't return early
+        val testWalletState = MutableStateFlow(WalletState(walletExists = true))
+
+        // Set up mocks BEFORE creating SUT
+        whenever(testWalletRepo.walletState).thenReturn(testWalletState)
+        whenever(testWalletRepo.balanceState).thenReturn(mockBalanceState)
+        whenever(testWalletRepo.walletExists()).thenReturn(true)
+        whenever(testWalletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.success(Unit))
+        whenever(testLightningRepo.lightningState).thenReturn(mockLightningState)
+        whenever(testLightningRepo.isRecoveryMode).thenReturn(mockIsRecoveryMode)
+        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(Unit))
+
+        val testSut = WalletViewModel(
+            bgDispatcher = testDispatcher,
+            walletRepo = testWalletRepo,
+            lightningRepo = testLightningRepo,
+            settingsStore = settingsStore,
+            backupRepo = backupRepo,
+            blocktankRepo = blocktankRepo,
+        )
+
+        // Trigger restore to put state in non-idle
+        testSut.restoreWallet("mnemonic", null)
+        assertEquals(RestoreState.InProgress.Wallet, testSut.restoreState)
+
+        testSut.start()
+        advanceUntilIdle()
+
+        verify(testWalletRepo, never()).refreshBip21()
     }
 }

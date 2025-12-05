@@ -30,7 +30,6 @@ import to.bitkit.models.toDerivationPath
 import to.bitkit.services.CoreService
 import to.bitkit.usecases.DeriveBalanceStateUseCase
 import to.bitkit.usecases.WipeWalletUseCase
-import to.bitkit.utils.AddressChecker
 import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
@@ -44,7 +43,6 @@ class WalletRepo @Inject constructor(
     private val keychain: Keychain,
     private val coreService: CoreService,
     private val settingsStore: SettingsStore,
-    private val addressChecker: AddressChecker,
     private val lightningRepo: LightningRepo,
     private val cacheStore: CacheStore,
     private val preActivityMetadataRepo: PreActivityMetadataRepo,
@@ -58,6 +56,15 @@ class WalletRepo @Inject constructor(
 
     private val _balanceState = MutableStateFlow(BalanceState())
     val balanceState = _balanceState.asStateFlow()
+
+    init {
+        repoScope.launch {
+            lightningRepo.nodeEvents.collect { event ->
+                if (!walletExists()) return@collect
+                refreshBip21ForEvent(event)
+            }
+        }
+    }
 
     fun loadFromCache() {
         // TODO try keeping in sync with cache if performant and reliable
@@ -84,9 +91,8 @@ class WalletRepo @Inject constructor(
 
     suspend fun checkAddressUsage(address: String): Result<Boolean> = withContext(bgDispatcher) {
         return@withContext try {
-            val addressInfo = addressChecker.getAddressInfo(address)
-            val hasTransactions = addressInfo.chain_stats.tx_count > 0 || addressInfo.mempool_stats.tx_count > 0
-            Result.success(hasTransactions)
+            val result = coreService.isAddressUsed(address)
+            Result.success(result)
         } catch (e: Exception) {
             Logger.error("checkAddressUsage error", e, context = TAG)
             Result.failure(e)
@@ -154,15 +160,6 @@ class WalletRepo @Inject constructor(
         preActivityMetadataRepo.addPreActivityMetadata(preActivityMetadata)
     }
 
-    suspend fun observeLdkWallet() = withContext(bgDispatcher) {
-        lightningRepo.getSyncFlow()
-            .collect {
-                runCatching {
-                    syncNodeAndWallet()
-                }
-            }
-    }
-
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
         val startHeight = lightningRepo.lightningState.value.block()?.height
         Logger.verbose("syncNodeAndWallet started at block height=$startHeight", context = TAG)
@@ -189,10 +186,11 @@ class WalletRepo @Inject constructor(
         }
     }
 
-    suspend fun refreshBip21ForEvent(event: Event) {
+    suspend fun refreshBip21ForEvent(event: Event) = withContext(bgDispatcher) {
         when (event) {
             is Event.ChannelReady -> {
                 // Only refresh bolt11 if we can now receive on lightning
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 if (lightningRepo.canReceive()) {
                     lightningRepo.createInvoice(
                         amountSats = _walletState.value.bip21AmountSats,
@@ -206,14 +204,16 @@ class WalletRepo @Inject constructor(
 
             is Event.ChannelClosed -> {
                 // Clear bolt11 if we can no longer receive on lightning
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 if (!lightningRepo.canReceive()) {
                     setBolt11("")
                     updateBip21Url()
                 }
             }
 
-            is Event.PaymentReceived -> {
+            is Event.PaymentReceived, is Event.OnchainTransactionReceived -> {
                 // Check if onchain address was used, generate new one if needed
+                Logger.debug("refreshBip21ForEvent: $event", context = TAG)
                 refreshAddressIfNeeded()
                 updateBip21Url()
             }
