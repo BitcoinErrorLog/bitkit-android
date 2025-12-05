@@ -1,22 +1,15 @@
 package to.bitkit.ui.shared.util
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -25,9 +18,23 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.DelegatingNode
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import to.bitkit.ui.theme.Colors
 
 /**
@@ -40,42 +47,71 @@ import to.bitkit.ui.theme.Colors
 fun Modifier.clickableAlpha(
     pressedAlpha: Float = 0.7f,
     onClick: (() -> Unit)?,
-): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+): Modifier = if (onClick != null) {
+    this.then(ClickableAlphaElement(pressedAlpha, onClick))
+} else {
+    this
+}
 
-    val wasClicked = remember { mutableStateOf(false) }
+private data class ClickableAlphaElement(
+    val pressedAlpha: Float,
+    val onClick: () -> Unit,
+) : ModifierNodeElement<ClickableAlphaNode>() {
+    override fun create(): ClickableAlphaNode = ClickableAlphaNode(pressedAlpha, onClick)
 
-    LaunchedEffect(isPressed) {
-        if (!isPressed) {
-            wasClicked.value = false
+    override fun update(node: ClickableAlphaNode) {
+        node.pressedAlpha = pressedAlpha
+        node.onClick = onClick
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "clickableAlpha"
+        properties["pressedAlpha"] = pressedAlpha
+        properties["onClick"] = onClick
+    }
+}
+
+private class ClickableAlphaNode(
+    var pressedAlpha: Float,
+    var onClick: () -> Unit,
+) : DelegatingNode(), LayoutModifierNode, SemanticsModifierNode {
+
+    private val animatable = Animatable(1f)
+
+    init {
+        delegate(SuspendingPointerInputModifierNode {
+            detectTapGestures(
+                onPress = {
+                    coroutineScope.launch { animatable.animateTo(pressedAlpha) }
+                    val released = tryAwaitRelease()
+                    if (!released) {
+                        coroutineScope.launch { animatable.animateTo(1f) }
+                    }
+                },
+                onTap = {
+                    onClick()
+                    coroutineScope.launch {
+                        animatable.animateTo(pressedAlpha)
+                        animatable.animateTo(1f)
+                    }
+                }
+            )
+        })
+    }
+
+    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
+        val placeable = measurable.measure(constraints)
+        return layout(placeable.width, placeable.height) {
+            placeable.placeWithLayer(0, 0) {
+                this.alpha = animatable.value
+            }
         }
     }
 
-    val alpha by animateFloatAsState(
-        targetValue = if (isPressed || wasClicked.value) pressedAlpha else 1f,
-        finishedListener = {
-            // Reset the clicked state after animation completes
-            wasClicked.value = false
-        }
-    )
-
-    this
-        .graphicsLayer { this.alpha = alpha }
-        .then(
-            if (onClick != null) {
-                Modifier.clickable(
-                    onClick = {
-                        wasClicked.value = true
-                        onClick()
-                    },
-                    interactionSource = interactionSource,
-                    indication = null,
-                )
-            } else {
-                Modifier
-            }
-        )
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        onClick(action = { onClick(); true })
+    }
 }
 
 fun Modifier.gradientBackground(
