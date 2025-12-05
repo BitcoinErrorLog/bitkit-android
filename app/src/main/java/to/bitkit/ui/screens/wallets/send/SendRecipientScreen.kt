@@ -102,6 +102,7 @@ fun SendRecipientScreen(
     val previewView = remember { PreviewView(context) }
     val preview = remember { CameraPreview.Builder().build() }
     var camera by remember { mutableStateOf<Camera?>(null) }
+    val executor = remember { Executors.newSingleThreadExecutor() }
 
     val cameraSelector = remember {
         CameraSelector.Builder()
@@ -140,20 +141,30 @@ fun SendRecipientScreen(
 
     LaunchedEffect(cameraPermissionState.status, isCameraInitialized) {
         if (cameraPermissionState.status.isGranted && !isCameraInitialized) {
-            delay(TRANSITION_SCREEN_MS)
-            imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
+            runCatching {
+                delay(TRANSITION_SCREEN_MS)
+                imageAnalysis.setAnalyzer(executor, analyzer)
 
-            val cameraProvider = withContext(Dispatchers.IO) {
-                ProcessCameraProvider.getInstance(context).get()
+                val cameraProvider = withContext(Dispatchers.IO) {
+                    ProcessCameraProvider.getInstance(context).get()
+                }
+                camera = cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageAnalysis
+                )
+                preview.surfaceProvider = previewView.surfaceProvider
+                isCameraInitialized = true
+            }.onFailure { e ->
+                Logger.error("Camera initialization failed", e)
+                app?.toast(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.other__qr_error_header),
+                    description = "Failed to initialize camera: ${e.message}"
+                )
+                isCameraInitialized = false
             }
-            camera = cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                preview,
-                imageAnalysis
-            )
-            preview.surfaceProvider = previewView.surfaceProvider
-            isCameraInitialized = true
         }
     }
 
@@ -169,6 +180,7 @@ fun SendRecipientScreen(
             }
             // Reset state - camera will reinit if needed on next composition
             isCameraInitialized = false
+            executor.shutdown()
         }
     }
 
@@ -213,8 +225,16 @@ fun SendRecipientScreen(
     SendRecipientContent(
         previewView = previewView,
         onClickFlashlight = {
-            isFlashlightOn = !isFlashlightOn
-            camera?.cameraControl?.enableTorch(isFlashlightOn)
+            camera?.cameraControl?.let { control ->
+                isFlashlightOn = !isFlashlightOn
+                runCatching {
+                    control.enableTorch(isFlashlightOn)
+                }.onFailure { e ->
+                    Logger.error("Torch control failed", e)
+                    // Revert state
+                    isFlashlightOn = !isFlashlightOn
+                }
+            }
         },
         onClickGallery = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
