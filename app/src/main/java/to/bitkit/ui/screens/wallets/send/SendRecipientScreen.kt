@@ -193,14 +193,18 @@ fun SendRecipientScreen(
     }
 
     // Gallery picker launchers
-    val handleGalleryScanSuccess = remember(onEvent) {
+    val handleGalleryScanSuccess = remember(
+        onEvent
+    ) {
         { qrCode: String ->
             Logger.debug("QR from gallery: $qrCode")
             onEvent(SendEvent.AddressContinue(qrCode))
         }
     }
 
-    val handleGalleryError = remember(app) {
+    val handleGalleryError = remember(
+        app
+    ) {
         { e: Exception ->
             app?.toast(e)
             Unit
