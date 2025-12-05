@@ -96,11 +96,12 @@ fun SendRecipientScreen(
 
     // Camera state
     var isFlashlightOn by remember { mutableStateOf(false) }
+    var isCameraInitialized by remember { mutableStateOf(false) }
     val previewView = remember { PreviewView(context) }
     val preview = remember { CameraPreview.Builder().build() }
     var camera by remember { mutableStateOf<Camera?>(null) }
 
-    // Fixed back camera selector
+
     val cameraSelector = remember {
         CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
@@ -136,22 +137,23 @@ fun SendRecipientScreen(
             .build()
     }
 
-    LaunchedEffect(lifecycleOwner) {
-        imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
-    }
+    // Camera binding - only initialize once
+    LaunchedEffect(Unit) {
+        if (!isCameraInitialized) {
+            imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
 
-    // Camera binding
-    LaunchedEffect(lifecycleOwner) {
-        val cameraProvider = withContext(Dispatchers.IO) {
-            ProcessCameraProvider.getInstance(context).get()
+            val cameraProvider = withContext(Dispatchers.IO) {
+                ProcessCameraProvider.getInstance(context).get()
+            }
+            camera = cameraProvider.bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalysis
+            )
+            preview.surfaceProvider = previewView.surfaceProvider
+            isCameraInitialized = true
         }
-        camera = cameraProvider.bindToLifecycle(
-            lifecycleOwner,
-            cameraSelector,
-            preview,
-            imageAnalysis
-        )
-        preview.surfaceProvider = previewView.surfaceProvider
     }
 
     // Camera cleanup
@@ -164,6 +166,8 @@ fun SendRecipientScreen(
                     Logger.error("Camera cleanup failed", e)
                 }
             }
+            // Reset state - camera will reinit if needed on next composition
+            isCameraInitialized = false
         }
     }
 
