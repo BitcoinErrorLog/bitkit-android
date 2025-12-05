@@ -32,7 +32,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +56,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.R
 import to.bitkit.ext.startActivityAppSettings
@@ -90,7 +88,6 @@ fun SendRecipientScreen(
     onEvent: (SendEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scope = rememberCoroutineScope()
     val app = appViewModel
 
     // Context & lifecycle
@@ -261,9 +258,7 @@ fun SendRecipientScreen(
             }
         },
         onClickContact = {
-            scope.launch {
-                app?.toast(Exception("Coming soon: Contact"))
-            }
+            app?.toast(Exception("Coming soon: Contact"))
         },
         onClickPaste = { onEvent(SendEvent.Paste) },
         onClickManual = { onEvent(SendEvent.EnterManually) },
