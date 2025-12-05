@@ -53,6 +53,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import to.bitkit.R
@@ -74,6 +75,7 @@ import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
+import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.SendEvent
@@ -140,6 +142,7 @@ fun SendRecipientScreen(
     // Camera binding - only initialize once
     LaunchedEffect(Unit) {
         if (!isCameraInitialized) {
+            delay(TRANSITION_SCREEN_MS)
             imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
 
             val cameraProvider = withContext(Dispatchers.IO) {
