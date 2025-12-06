@@ -711,8 +711,6 @@ class LightningService @Inject constructor(
                 Logger.error("Error getting transaction details by txid: $txid", e, context = TAG)
                 null
             }
-
-            else -> Logger.info("LDK-node event: $event")
         }
     }
 
