@@ -487,7 +487,7 @@ private fun Content(
                             homeUiState.banners.forEach { banner ->
                                 ActivityBanner(
                                     gradientColor = banner.color,
-                                    title = stringResource(R.string.activity_banner__transfer_in_progress),
+                                    title = stringResource(banner.title),
                                     icon = banner.icon,
                                     onClick = {
                                         when (banner) {
