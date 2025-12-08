@@ -46,7 +46,7 @@ fun ActivityBanner(
     gradientColor: Color,
     title: String,
     @DrawableRes icon: Int,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
 ) {
 
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
@@ -102,7 +102,7 @@ fun ActivityBanner(
                 glowRadius = 12.dp,
                 cornerRadius = 16.dp
             )
-            .clickableAlpha { onClick() }
+            .clickableAlpha(onClick = onClick)
     ) {
         // Main card content with clipped backgrounds
         Box(
