@@ -24,15 +24,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.models.ActivityBannerType
 import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.shared.util.outerGlow
 import to.bitkit.ui.theme.Colors
 
 private const val GLOW_ANIMATION_MILLIS = 1200
@@ -101,39 +96,12 @@ fun ActivityBanner(
     Box(
         modifier = modifier
             .requiredHeight(72.dp)
-            .drawBehind {
-                // Draw outer glow using Canvas - extends beyond component bounds
-                val glowRadius = 12f * density  // Glow extends 12dp beyond edges
-                val cornerRadius = 16f * density  // Match ShapeDefaults.Large
-
-                drawIntoCanvas { canvas ->
-                    val paint = Paint().apply {
-                        color = gradientColor.copy(alpha = 0f)  // Transparent fill
-                        isAntiAlias = true
-                    }
-
-                    // Draw blurred shadow behind the card
-                    val frameworkPaint = paint.asFrameworkPaint()
-                    frameworkPaint.color = gradientColor.copy(alpha = 0f).toArgb()
-                    frameworkPaint.setShadowLayer(
-                        glowRadius,  // Blur radius
-                        0f,  // X offset
-                        0f,  // Y offset
-                        gradientColor.copy(alpha = dropShadowOpacity)
-                            .toArgb()  // Shadow color with full animated opacity
-                    )
-
-                    canvas.drawRoundRect(
-                        left = 0f,
-                        top = 0f,
-                        right = size.width,
-                        bottom = size.height,
-                        radiusX = cornerRadius,
-                        radiusY = cornerRadius,
-                        paint = paint
-                    )
-                }
-            }
+            .outerGlow(
+                glowColor = gradientColor,
+                glowOpacity = dropShadowOpacity,
+                glowRadius = 12.dp,
+                cornerRadius = 16.dp
+            )
             .clickableAlpha { onClick() }
     ) {
         // Main card content with clipped backgrounds

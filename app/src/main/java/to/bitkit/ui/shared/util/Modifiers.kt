@@ -18,15 +18,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.theme.Colors
 
@@ -109,6 +116,56 @@ fun Modifier.screen(
     .fillMaxSize()
     .then(if (noBackground) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
     .then(if (insets == null) Modifier else Modifier.windowInsetsPadding(insets))
+
+/**
+ * Draws an animated outer glow effect that extends beyond the component's bounds.
+ * Uses Canvas with setShadowLayer to create a blur effect.
+ *
+ * @param glowColor The color of the glow effect
+ * @param glowOpacity The animated opacity value (0.0 to 1.0)
+ * @param glowRadius The blur radius in dp (how far the glow extends)
+ * @param cornerRadius The corner radius of the glow shape in dp
+ */
+fun Modifier.outerGlow(
+    glowColor: Color,
+    glowOpacity: Float,
+    glowRadius: Dp = 12.dp,
+    cornerRadius: Dp = 16.dp,
+): Modifier = composed {
+    val density = LocalDensity.current.density
+
+    this.drawBehind {
+        val glowRadiusPx = glowRadius.toPx()
+        val cornerRadiusPx = cornerRadius.toPx()
+
+        drawIntoCanvas { canvas ->
+            val paint = Paint().apply {
+                color = glowColor.copy(alpha = 0f)  // Transparent fill
+                isAntiAlias = true
+            }
+
+            // Draw blurred shadow behind the component
+            val frameworkPaint = paint.asFrameworkPaint()
+            frameworkPaint.color = glowColor.copy(alpha = 0f).toArgb()
+            frameworkPaint.setShadowLayer(
+                glowRadiusPx,  // Blur radius
+                0f,  // X offset
+                0f,  // Y offset
+                glowColor.copy(alpha = glowOpacity).toArgb()  // Shadow color with animated opacity
+            )
+
+            canvas.drawRoundRect(
+                left = 0f,
+                top = 0f,
+                right = size.width,
+                bottom = size.height,
+                radiusX = cornerRadiusPx,
+                radiusY = cornerRadiusPx,
+                paint = paint
+            )
+        }
+    }
+}
 
 fun Modifier.primaryButtonStyle(
     isEnabled: Boolean,
