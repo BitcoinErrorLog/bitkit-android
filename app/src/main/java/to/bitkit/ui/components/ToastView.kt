@@ -73,6 +73,7 @@ private const val ELEVATION_DP = 10
 fun ToastView(
     toast: Toast,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     hazeState: HazeState = rememberHazeState(blurEnabled = true),
     hazeStyle: HazeStyle = CupertinoMaterials.thin(containerColor = toast.tintColor()),
     onDragStart: () -> Unit = {},
@@ -86,7 +87,7 @@ fun ToastView(
 
     Box(
         contentAlignment = Alignment.TopStart,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .systemBarsPadding()
             .padding(horizontal = 16.dp)
