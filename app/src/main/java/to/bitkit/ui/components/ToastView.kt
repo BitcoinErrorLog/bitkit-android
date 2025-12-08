@@ -64,6 +64,7 @@ private const val DISMISS_ANIMATION_DURATION_MS = 300
 private const val SNAP_BACK_DAMPING_RATIO = 0.7f
 private const val DRAG_RESISTANCE_FACTOR = 0.08f
 private const val DRAG_START_THRESHOLD_PX = 5
+private const val HORIZONTAL_DISMISS_ANIMATION_TARGET_PX = 500f
 private const val TINT_ALPHA = 0.32f
 private const val SHADOW_ALPHA = 0.4f
 private const val ELEVATION_DP = 10
@@ -81,7 +82,8 @@ fun ToastView(
 ) {
     val tintColor = toast.tintColor()
     val coroutineScope = rememberCoroutineScope()
-    val dragOffset = remember { Animatable(0f) }
+    val dragOffsetY = remember { Animatable(0f) }
+    val dragOffsetX = remember { Animatable(0f) }
     var hasPausedAutoHide by remember { mutableStateOf(false) }
     val dismissThreshold = DISMISS_THRESHOLD_DP.dp
 
@@ -97,7 +99,7 @@ fun ToastView(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset { IntOffset(0, dragOffset.value.roundToInt()) }
+                .offset { IntOffset(dragOffsetX.value.roundToInt(), dragOffsetY.value.roundToInt()) }
                 .shadow(
                     elevation = ELEVATION_DP.dp,
                     shape = MaterialTheme.shapes.medium,
@@ -122,17 +124,67 @@ fun ToastView(
                             }
 
                             coroutineScope.launch {
-                                // Dismiss if swiped up enough, otherwise snap back
-                                if (dragOffset.value < -dismissThreshold.toPx()) {
-                                    // Animate out
-                                    dragOffset.animateTo(
+                                val horizontalSwipeDistance = kotlin.math.abs(dragOffsetX.value)
+                                val verticalSwipeDistance = kotlin.math.abs(dragOffsetY.value)
+
+                                // Determine if this is primarily horizontal or vertical swipe
+                                val isHorizontalSwipe = horizontalSwipeDistance > verticalSwipeDistance
+
+                                if (isHorizontalSwipe && horizontalSwipeDistance > dismissThreshold.toPx()) {
+                                    // Horizontal swipe dismiss - animate out in swipe direction
+                                    val targetX = if (dragOffsetX.value > 0) {
+                                        HORIZONTAL_DISMISS_ANIMATION_TARGET_PX
+                                    } else {
+                                        -HORIZONTAL_DISMISS_ANIMATION_TARGET_PX
+                                    }
+                                    dragOffsetX.animateTo(
+                                        targetValue = targetX,
+                                        animationSpec = tween(durationMillis = DISMISS_ANIMATION_DURATION_MS)
+                                    )
+                                    onDismiss()
+                                } else if (!isHorizontalSwipe && dragOffsetY.value < -dismissThreshold.toPx()) {
+                                    // Vertical swipe up dismiss - animate out upward
+                                    dragOffsetY.animateTo(
                                         targetValue = DISMISS_ANIMATION_TARGET_PX,
                                         animationSpec = tween(durationMillis = DISMISS_ANIMATION_DURATION_MS)
                                     )
                                     onDismiss()
                                 } else {
                                     // Snap back to original position
-                                    dragOffset.animateTo(
+                                    launch {
+                                        dragOffsetX.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = spring(
+                                                dampingRatio = SNAP_BACK_DAMPING_RATIO,
+                                                stiffness = Spring.StiffnessMedium
+                                            )
+                                        )
+                                    }
+                                    launch {
+                                        dragOffsetY.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = spring(
+                                                dampingRatio = SNAP_BACK_DAMPING_RATIO,
+                                                stiffness = Spring.StiffnessMedium
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                launch {
+                                    dragOffsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = SNAP_BACK_DAMPING_RATIO,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                                launch {
+                                    dragOffsetY.animateTo(
                                         targetValue = 0f,
                                         animationSpec = spring(
                                             dampingRatio = SNAP_BACK_DAMPING_RATIO,
@@ -142,32 +194,29 @@ fun ToastView(
                                 }
                             }
                         },
-                        onDragCancel = {
-                            coroutineScope.launch {
-                                dragOffset.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = spring(
-                                        dampingRatio = SNAP_BACK_DAMPING_RATIO,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                )
-                            }
-                        },
                         onDrag = { change, dragAmount ->
                             change.consume()
                             coroutineScope.launch {
-                                val translation = dragOffset.value + dragAmount.y
-
-                                if (translation < 0) {
+                                // Handle vertical drag
+                                val translationY = dragOffsetY.value + dragAmount.y
+                                if (translationY < 0) {
                                     // Upward drag - allow freely
-                                    dragOffset.snapTo(translation)
+                                    dragOffsetY.snapTo(translationY)
                                 } else {
                                     // Downward drag - apply resistance
-                                    dragOffset.snapTo(translation * DRAG_RESISTANCE_FACTOR)
+                                    dragOffsetY.snapTo(translationY * DRAG_RESISTANCE_FACTOR)
                                 }
 
+                                // Handle horizontal drag - allow freely in both directions
+                                val translationX = dragOffsetX.value + dragAmount.x
+                                dragOffsetX.snapTo(translationX)
+
                                 // Pause auto-hide when drag starts (only once)
-                                if (kotlin.math.abs(dragOffset.value) > DRAG_START_THRESHOLD_PX && !hasPausedAutoHide) {
+                                val totalDragDistance = kotlin.math.sqrt(
+                                    dragOffsetX.value * dragOffsetX.value +
+                                    dragOffsetY.value * dragOffsetY.value
+                                )
+                                if (totalDragDistance > DRAG_START_THRESHOLD_PX && !hasPausedAutoHide) {
                                     hasPausedAutoHide = true
                                     onDragStart()
                                 }
@@ -200,7 +249,7 @@ fun ToastView(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset { IntOffset(0, dragOffset.value.roundToInt()) },
+                    .offset { IntOffset(dragOffsetX.value.roundToInt(), dragOffsetY.value.roundToInt()) },
                 contentAlignment = Alignment.TopEnd
             ) {
                 IconButton(
