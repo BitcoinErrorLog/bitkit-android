@@ -108,7 +108,7 @@ fun ActivityBanner(
 
                 drawIntoCanvas { canvas ->
                     val paint = Paint().apply {
-                        color = gradientColor.copy(alpha = dropShadowOpacity)
+                        color = gradientColor.copy(alpha = 0f)  // Transparent fill
                         isAntiAlias = true
                     }
 
@@ -119,7 +119,8 @@ fun ActivityBanner(
                         glowRadius,  // Blur radius
                         0f,  // X offset
                         0f,  // Y offset
-                        gradientColor.copy(alpha = dropShadowOpacity * 0.8f).toArgb()  // Shadow color
+                        gradientColor.copy(alpha = dropShadowOpacity)
+                            .toArgb()  // Shadow color with full animated opacity
                     )
 
                     canvas.drawRoundRect(
