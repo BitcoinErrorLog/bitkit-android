@@ -5,7 +5,6 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -58,13 +57,10 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.roundToInt
 
-private const val DISMISS_THRESHOLD_DP = 50
-private const val DISMISS_ANIMATION_TARGET_PX = -200f
-private const val DISMISS_ANIMATION_DURATION_MS = 300
+private const val DISMISS_THRESHOLD_DP = 40
 private const val SNAP_BACK_DAMPING_RATIO = 0.7f
 private const val DRAG_RESISTANCE_FACTOR = 0.08f
 private const val DRAG_START_THRESHOLD_PX = 5
-private const val HORIZONTAL_DISMISS_ANIMATION_TARGET_PX = 500f
 private const val TINT_ALPHA = 0.32f
 private const val SHADOW_ALPHA = 0.4f
 private const val ELEVATION_DP = 10
@@ -95,7 +91,6 @@ fun ToastView(
             .padding(horizontal = 16.dp)
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,23 +126,10 @@ fun ToastView(
                                 val isHorizontalSwipe = horizontalSwipeDistance > verticalSwipeDistance
 
                                 if (isHorizontalSwipe && horizontalSwipeDistance > dismissThreshold.toPx()) {
-                                    // Horizontal swipe dismiss - animate out in swipe direction
-                                    val targetX = if (dragOffsetX.value > 0) {
-                                        HORIZONTAL_DISMISS_ANIMATION_TARGET_PX
-                                    } else {
-                                        -HORIZONTAL_DISMISS_ANIMATION_TARGET_PX
-                                    }
-                                    dragOffsetX.animateTo(
-                                        targetValue = targetX,
-                                        animationSpec = tween(durationMillis = DISMISS_ANIMATION_DURATION_MS)
-                                    )
+                                    // Horizontal swipe dismiss
                                     onDismiss()
                                 } else if (!isHorizontalSwipe && dragOffsetY.value < -dismissThreshold.toPx()) {
-                                    // Vertical swipe up dismiss - animate out upward
-                                    dragOffsetY.animateTo(
-                                        targetValue = DISMISS_ANIMATION_TARGET_PX,
-                                        animationSpec = tween(durationMillis = DISMISS_ANIMATION_DURATION_MS)
-                                    )
+                                    // Vertical swipe up dismiss
                                     onDismiss()
                                 } else {
                                     // Snap back to original position
@@ -214,7 +196,7 @@ fun ToastView(
                                 // Pause auto-hide when drag starts (only once)
                                 val totalDragDistance = kotlin.math.sqrt(
                                     dragOffsetX.value * dragOffsetX.value +
-                                    dragOffsetY.value * dragOffsetY.value
+                                        dragOffsetY.value * dragOffsetY.value
                                 )
                                 if (totalDragDistance > DRAG_START_THRESHOLD_PX && !hasPausedAutoHide) {
                                     hasPausedAutoHide = true
