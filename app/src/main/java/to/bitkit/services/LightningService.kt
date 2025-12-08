@@ -97,49 +97,59 @@ class LightningService @Inject constructor(
             ),
         )
 
+        Logger.debug("Building node…")
+
+        node = build(
+            config,
+            walletIndex,
+            NodeEntropy.fromBip39Mnemonic(mnemonic, passphrase),
+            customServerUrl,
+            customRgsServerUrl,
+        )
+
+        Logger.info("LDK node setup")
+    }
+
+    private suspend fun build(
+        config: Config,
+        walletIndex: Int,
+        nodeEntropy: NodeEntropy,
+        customServerUrl: String?,
+        customRgsServerUrl: String?,
+    ): Node = ServiceQueue.LDK.background {
         val builder = Builder.fromConfig(config).apply {
             setCustomLogger(LdkLogWriter())
-
             configureChainSource(customServerUrl)
             configureGossipSource(customRgsServerUrl)
         }
-
-        Logger.debug("Building node…")
-        val vssStoreId = vssStoreIdProvider.getVssStoreId(walletIndex)
-
-        val nodeEntropy = NodeEntropy.fromBip39Mnemonic(mnemonic, passphrase)
-
-        ServiceQueue.LDK.background {
-            node = try {
-                val lnurlAuthServerUrl = Env.lnurlAuthServerUrl
-                val vssUrl = Env.vssServerUrl
-                Logger.verbose("Building ldk-node with vssUrl: '$vssUrl'")
-                Logger.verbose("Building ldk-node with lnurlAuthServerUrl: '$lnurlAuthServerUrl'")
-                if (lnurlAuthServerUrl.isNotEmpty()) {
-                    builder.buildWithVssStore(
-                        vssUrl = vssUrl,
-                        storeId = vssStoreId,
-                        lnurlAuthServerUrl = lnurlAuthServerUrl,
-                        fixedHeaders = emptyMap(),
-                        nodeEntropy = nodeEntropy,
-                    )
-                } else {
-                    builder.buildWithVssStoreAndFixedHeaders(
-                        vssUrl = vssUrl,
-                        storeId = vssStoreId,
-                        fixedHeaders = emptyMap(),
-                        nodeEntropy = nodeEntropy,
-                    )
-                }
-            } catch (e: BuildException) {
-                throw LdkError(e)
-            } finally {
-                // cleanup sensitive data
-                nodeEntropy.destroy()
+        try {
+            val vssStoreId = vssStoreIdProvider.getVssStoreId(walletIndex)
+            val lnurlAuthServerUrl = Env.lnurlAuthServerUrl
+            val vssUrl = Env.vssServerUrl
+            Logger.verbose("Building ldk-node with vssUrl: '$vssUrl'")
+            Logger.verbose("Building ldk-node with lnurlAuthServerUrl: '$lnurlAuthServerUrl'")
+            if (lnurlAuthServerUrl.isNotEmpty()) {
+                builder.buildWithVssStore(
+                    vssUrl = vssUrl,
+                    storeId = vssStoreId,
+                    lnurlAuthServerUrl = lnurlAuthServerUrl,
+                    fixedHeaders = emptyMap(),
+                    nodeEntropy = nodeEntropy,
+                )
+            } else {
+                builder.buildWithVssStoreAndFixedHeaders(
+                    vssUrl = vssUrl,
+                    storeId = vssStoreId,
+                    fixedHeaders = emptyMap(),
+                    nodeEntropy = nodeEntropy,
+                )
             }
+        } catch (e: BuildException) {
+            throw LdkError(e)
+        } finally {
+            // cleanup sensitive data
+            nodeEntropy.destroy()
         }
-
-        Logger.info("LDK node setup")
     }
 
     private suspend fun Builder.configureGossipSource(customRgsServerUrl: String?) {
