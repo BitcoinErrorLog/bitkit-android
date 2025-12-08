@@ -1167,4 +1167,26 @@
     <string name="notification_stop_app">Stop App</string>
     <string name="notification_unknown_error">Unknown error</string>
     <string name="notification_via_new_channel_body">Via new channel</string>
+    <string name="lightning__node_sync_time">Lightning Wallet Sync Time</string>
+    <string name="common_ready">Ready</string>
+    <string name="lightning__block_height">Block Height</string>
+    <string name="lightning__onchain_sync_time">Onchain Wallet Sync Time</string>
+    <string name="lightning__rgs_snapshot_time">Rapid Gossip Sync Snapshot Time</string>
+    <string name="lightning__fee_rate_update_time">Fee Rate Cache Update Time</string>
+    <string name="lightning__monitor_height">Channel Monitor Archival Height</string>
+    <string name="lightning__scores_sync_time">Pathfinding Scores Sync Time</string>
+    <string name="lightning__wallet_balances">Wallet Balances</string>
+    <string name="lightning__total_onchain">Total Onchain</string>
+    <string name="lightning__spendable_onchain">Spendable Onchain</string>
+    <string name="lightning__total_anchor_channels_reserve">Total Anchor Channels Reserve</string>
+    <string name="lightning__total_lightning">Total Lightning</string>
+    <string name="lightning__lightning_balances">Lightning Balances</string>
+    <string name="common__usable">Usable</string>
+    <string name="common__announced">Announced</string>
+    <string name="lightning__inbound_capacity">Inbound Capacity</string>
+    <string name="lightning__inbound_htlc_max">Inbound HTLC Max</string>
+    <string name="lightning__inbound_htlc_min">Inbound HTLC Min</string>
+    <string name="lightning__next_outbound_htlc_limit">Next Outbound HTLC Limit</string>
+    <string name="lightning__next_outbound_htlc_min">Next Outbound HTLC Min</string>
+    <string name="common_confirmations">Confirmations</string>
 </resources>

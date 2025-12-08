@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import to.bitkit.R
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Caption
 import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
@@ -81,32 +83,39 @@ fun SettingsTextButtonRow(
     }
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun Preview() {
     AppThemeSurface {
-        Column {
-            SettingsTextButtonRow(
-                title = "Simple Title Only",
-                onClick = {},
-            )
-            SettingsTextButtonRow(
-                title = "Title",
-                value = "Value",
-                onClick = {},
-            )
-            SettingsTextButtonRow(
-                title = "Title",
-                description = "Description",
-                value = "Value",
-                onClick = {},
-            )
-            SettingsTextButtonRow(
-                title = "Disabled",
-                iconRes = R.drawable.ic_settings,
-                enabled = false,
-                onClick = {},
-            )
+        Scaffold {
+            Column(
+                modifier = Modifier
+                    .screen()
+                    .padding(it)
+            ) {
+                SectionHeader("Variants")
+                SettingsTextButtonRow(
+                    title = "Simple Title Only",
+                    onClick = {},
+                )
+                SettingsTextButtonRow(
+                    title = "Title",
+                    value = "Value",
+                    onClick = {},
+                )
+                SettingsTextButtonRow(
+                    title = "Title",
+                    description = "Description",
+                    value = "Value",
+                    onClick = {},
+                )
+                SettingsTextButtonRow(
+                    title = "Disabled",
+                    iconRes = R.drawable.ic_settings,
+                    enabled = false,
+                    onClick = {},
+                )
+            }
         }
     }
 }
