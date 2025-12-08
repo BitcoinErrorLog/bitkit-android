@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -481,8 +480,10 @@ private fun Content(
 
                     AnimatedVisibility(homeUiState.banners.isNotEmpty()) {
                         Column(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
                         ) {
                             homeUiState.banners.forEach { banner ->
                                 ActivityBanner(
