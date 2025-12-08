@@ -57,6 +57,16 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.roundToInt
 
+private const val DISMISS_THRESHOLD_DP = 50
+private const val DISMISS_ANIMATION_TARGET_PX = -200f
+private const val DISMISS_ANIMATION_DURATION_MS = 300
+private const val SNAP_BACK_DAMPING_RATIO = 0.7f
+private const val DRAG_RESISTANCE_FACTOR = 0.08f
+private const val DRAG_START_THRESHOLD_PX = 5
+private const val TINT_ALPHA = 0.32f
+private const val SHADOW_ALPHA = 0.4f
+private const val ELEVATION_DP = 10
+
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ToastView(
@@ -70,7 +80,7 @@ fun ToastView(
     val coroutineScope = rememberCoroutineScope()
     val dragOffset = remember { Animatable(0f) }
     var hasPausedAutoHide by remember { mutableStateOf(false) }
-    val dismissThreshold = 50.dp
+    val dismissThreshold = DISMISS_THRESHOLD_DP.dp
 
     Box(
         contentAlignment = Alignment.TopStart,
@@ -88,17 +98,17 @@ fun ToastView(
                 .fillMaxWidth()
                 .offset { IntOffset(0, dragOffset.value.roundToInt()) }
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = ELEVATION_DP.dp,
                     shape = MaterialTheme.shapes.medium,
-                    ambientColor = Color.Black.copy(alpha = 0.4f),
-                    spotColor = Color.Black.copy(alpha = 0.4f)
+                    ambientColor = Color.Black.copy(alpha = SHADOW_ALPHA),
+                    spotColor = Color.Black.copy(alpha = SHADOW_ALPHA)
                 )
                 .hazeEffect(
                     state = hazeState,
                     style = toastMaterial
                 )
                 .background(
-                    color = tintColor.copy(alpha = 0.32f),
+                    color = tintColor.copy(alpha = TINT_ALPHA),
                     shape = MaterialTheme.shapes.medium
                 )
                 .pointerInput(Unit) {
@@ -115,8 +125,8 @@ fun ToastView(
                                 if (dragOffset.value < -dismissThreshold.toPx()) {
                                     // Animate out
                                     dragOffset.animateTo(
-                                        targetValue = -200f,
-                                        animationSpec = tween(durationMillis = 300)
+                                        targetValue = DISMISS_ANIMATION_TARGET_PX,
+                                        animationSpec = tween(durationMillis = DISMISS_ANIMATION_DURATION_MS)
                                     )
                                     onDismiss()
                                 } else {
@@ -124,7 +134,7 @@ fun ToastView(
                                     dragOffset.animateTo(
                                         targetValue = 0f,
                                         animationSpec = spring(
-                                            dampingRatio = 0.7f,
+                                            dampingRatio = SNAP_BACK_DAMPING_RATIO,
                                             stiffness = Spring.StiffnessMedium
                                         )
                                     )
@@ -136,7 +146,7 @@ fun ToastView(
                                 dragOffset.animateTo(
                                     targetValue = 0f,
                                     animationSpec = spring(
-                                        dampingRatio = 0.7f,
+                                        dampingRatio = SNAP_BACK_DAMPING_RATIO,
                                         stiffness = Spring.StiffnessMedium
                                     )
                                 )
@@ -152,11 +162,11 @@ fun ToastView(
                                     dragOffset.snapTo(translation)
                                 } else {
                                     // Downward drag - apply resistance
-                                    dragOffset.snapTo(translation * 0.08f)
+                                    dragOffset.snapTo(translation * DRAG_RESISTANCE_FACTOR)
                                 }
 
                                 // Pause auto-hide when drag starts (only once)
-                                if (kotlin.math.abs(dragOffset.value) > 5 && !hasPausedAutoHide) {
+                                if (kotlin.math.abs(dragOffset.value) > DRAG_START_THRESHOLD_PX && !hasPausedAutoHide) {
                                     hasPausedAutoHide = true
                                     onDragStart()
                                 }
