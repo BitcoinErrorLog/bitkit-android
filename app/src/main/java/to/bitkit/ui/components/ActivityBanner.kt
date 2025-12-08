@@ -72,7 +72,7 @@ fun ActivityBanner(
     )
 
     val radialGradientOpacity by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
+        initialValue = 0.6f,  // Increased from 0.4f for more prominent glow
         targetValue = 0.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = GLOW_ANIMATION_MILLIS),
@@ -98,7 +98,7 @@ fun ActivityBanner(
             .requiredHeight(72.dp)
             // Drop shadow must be applied BEFORE clipping
             .shadow(
-                elevation = 12.dp,
+                elevation = 16.dp,  // Increased from 12.dp for more prominent glow
                 shape = ShapeDefaults.Large,
                 ambientColor = gradientColor.copy(alpha = dropShadowOpacity),
                 spotColor = gradientColor.copy(alpha = dropShadowOpacity)
@@ -117,17 +117,17 @@ fun ActivityBanner(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0f),  // Transparent center
-                            gradientColor.copy(alpha = innerShadowOpacity * 0.5f)  // Colored edges
+                            Color.Transparent,  // Transparent center
+                            gradientColor.copy(alpha = innerShadowOpacity)  // Full opacity for more visible glow
                         ),
-                        radius = 200f
+                        radius = 400f  // Increased spread for better coverage
                     )
                 )
                 // Layer 3: Linear gradient (top to bottom)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            gradientColor.copy(alpha = 0.24f),
+                            gradientColor.copy(alpha = 0.32f),  // Increased from 0.24f for more visibility
                             gradientColor.copy(alpha = 0f)
                         )
                     )
