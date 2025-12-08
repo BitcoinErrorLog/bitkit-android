@@ -24,10 +24,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -96,21 +101,46 @@ fun ActivityBanner(
     Box(
         modifier = modifier
             .requiredHeight(72.dp)
-            // Drop shadow must be applied BEFORE clipping
-            .shadow(
-                elevation = 16.dp,  // Increased from 12.dp for more prominent glow
-                shape = ShapeDefaults.Large,
-                ambientColor = gradientColor.copy(alpha = dropShadowOpacity),
-                spotColor = gradientColor.copy(alpha = dropShadowOpacity)
-            )
-            .clip(ShapeDefaults.Large)
+            .drawBehind {
+                // Draw outer glow using Canvas - extends beyond component bounds
+                val glowRadius = 12f * density  // Glow extends 12dp beyond edges
+                val cornerRadius = 16f * density  // Match ShapeDefaults.Large
+
+                drawIntoCanvas { canvas ->
+                    val paint = Paint().apply {
+                        color = gradientColor.copy(alpha = dropShadowOpacity)
+                        isAntiAlias = true
+                    }
+
+                    // Draw blurred shadow behind the card
+                    val frameworkPaint = paint.asFrameworkPaint()
+                    frameworkPaint.color = gradientColor.copy(alpha = 0f).toArgb()
+                    frameworkPaint.setShadowLayer(
+                        glowRadius,  // Blur radius
+                        0f,  // X offset
+                        0f,  // Y offset
+                        gradientColor.copy(alpha = dropShadowOpacity * 0.8f).toArgb()  // Shadow color
+                    )
+
+                    canvas.drawRoundRect(
+                        left = 0f,
+                        top = 0f,
+                        right = size.width,
+                        bottom = size.height,
+                        radiusX = cornerRadius,
+                        radiusY = cornerRadius,
+                        paint = paint
+                    )
+                }
+            }
             .clickableAlpha { onClick() }
     ) {
-        // Background layers inside the Box to avoid shape conflicts
+        // Main card content with clipped backgrounds
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .requiredHeight(72.dp)
+                .clip(ShapeDefaults.Large)
                 // Layer 1: Base color (black)
                 .background(Color.Black)
                 // Layer 2: Inner shadow approximation (radial gradient from edges)
@@ -120,7 +150,7 @@ fun ActivityBanner(
                             Color.Transparent,  // Transparent center
                             gradientColor.copy(alpha = innerShadowOpacity)  // Full opacity for more visible glow
                         ),
-                        radius = 400f  // Increased spread for better coverage
+                        radius = 400f
                     )
                 )
                 // Layer 3: Linear gradient (top to bottom)
