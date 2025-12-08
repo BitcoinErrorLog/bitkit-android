@@ -479,8 +479,6 @@ private fun Content(
                         )
                     }
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text13Up(stringResource(R.string.wallet__activity), color = Colors.White64)
-                    Spacer(modifier = Modifier.height(16.dp))
                     ActivityListSimple(
                         items = latestActivities,
                         onAllActivityClick = { rootNavController.navigateToAllActivity() },
