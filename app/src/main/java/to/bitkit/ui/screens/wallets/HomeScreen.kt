@@ -70,11 +70,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.models.ActivityBannerType
 import to.bitkit.models.BalanceState
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
+import to.bitkit.ui.components.ActivityBanner
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
@@ -236,8 +238,6 @@ fun HomeScreen(
                     }
                 }
 
-                Suggestion.TRANSFER_PENDING -> Unit
-                Suggestion.LIGHTNING_READY -> Unit
                 Suggestion.NOTIFICATIONS -> {
                     if (bgPaymentsIntroSeen) {
                         rootNavController.navigate(Routes.BackgroundPaymentsSettings)
@@ -479,10 +479,25 @@ private fun Content(
                     }
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    LazyColumn {
-                        items(items = homeUiState.banners, key = { banner -> banner.name }) {
-                            //  Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
-
+                    AnimatedVisibility(homeUiState.banners.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            homeUiState.banners.forEach { banner ->
+                                ActivityBanner(
+                                    gradientColor = banner.color,
+                                    title = stringResource(R.string.activity_banner__transfer_in_progress),
+                                    icon = banner.icon,
+                                    onClick = {
+                                        when (banner) {
+                                            ActivityBannerType.SPENDING -> rootNavController.navigate(Routes.SettingUp)
+                                            ActivityBannerType.SAVINGS -> Unit
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
 

@@ -220,8 +220,12 @@ class HomeViewModel @Inject constructor(
             .distinctUntilChanged()
             .collect { transfers ->
                 val banners = listOfNotNull(
-                    ActivityBannerType.SPENDING.takeIf { transfers.any { it.type == TransferType.TO_SPENDING } },
-                    ActivityBannerType.SAVINGS.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
+                    ActivityBannerType.SPENDING.takeIf {
+                        transfers.any { it.type == TransferType.TO_SPENDING || it.type == TransferType.MANUAL_SETUP }
+                    },
+                    ActivityBannerType.SAVINGS.takeIf {
+                        transfers.any { it.type == TransferType.COOP_CLOSE || it.type == TransferType.FORCE_CLOSE }
+                    },
                 )
                 _uiState.update { it.copy(banners = banners) }
             }
@@ -236,7 +240,6 @@ class HomeViewModel @Inject constructor(
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -254,7 +257,6 @@ class HomeViewModel @Inject constructor(
                     Suggestion.LIGHTNING.takeIf {
                         transfers.all { it.type != TransferType.TO_SPENDING }
                     },
-                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,

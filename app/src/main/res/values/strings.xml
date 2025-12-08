@@ -35,6 +35,7 @@
     <string name="cards__notifications__title">Get paid</string>
     <string name="cards__notifications__description">When Bitkit is closed</string>
     <string name="cards__suggestions">Suggestions</string>
+    <string name="activity_banner__transfer_in_progress">TRANSFER IN PROGRESS</string>
     <string name="common__advanced">Advanced</string>
     <string name="common__continue">Continue</string>
     <string name="common__cancel">Cancel</string>

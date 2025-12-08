@@ -67,22 +67,6 @@ enum class Suggestion(
         color = Colors.Green24,
         icon = R.drawable.fast_forward
     ),
-
-    /**Replaces LIGHTNING when a LN channel is being force closed*/
-    TRANSFER_PENDING(
-        title = R.string.cards__lightningSettingUp__title,
-        description = R.string.cards__transferPending__description,
-        color = Colors.Purple24,
-        icon = R.drawable.transfer,
-        dismissible = false
-    ),
-    LIGHTNING_READY(
-        title = R.string.cards__lightningReady__title,
-        description = R.string.cards__lightningReady__description,
-        color = Colors.Purple24,
-        icon = R.drawable.transfer,
-        dismissible = false,
-    ),
     NOTIFICATIONS(
         title = R.string.cards__notifications__title,
         description = R.string.cards__notifications__description,
