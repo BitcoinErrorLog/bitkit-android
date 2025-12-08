@@ -481,7 +481,7 @@ private fun Content(
 
                     AnimatedVisibility(homeUiState.banners.isNotEmpty()) {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             homeUiState.banners.forEach { banner ->
