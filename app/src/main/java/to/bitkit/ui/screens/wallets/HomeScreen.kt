@@ -483,7 +483,7 @@ private fun Content(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp)
+                                .padding(bottom = 18.dp)
                         ) {
                             homeUiState.banners.forEach { banner ->
                                 ActivityBanner(
