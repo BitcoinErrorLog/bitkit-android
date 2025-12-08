@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import kotlin.math.roundToInt
@@ -61,7 +62,7 @@ private val Padding = 8.dp
 @Composable
 fun SwipeToConfirm(
     text: String = stringResource(R.string.other__swipe),
-    color: Color = Colors.Green,
+    color: Color = Colors.Brand,
     icon: ImageVector = Icons.AutoMirrored.Default.ArrowForward,
     @DrawableRes endIcon: Int = R.drawable.ic_check,
     endIconTint: Color = Colors.Black,
@@ -97,7 +98,10 @@ fun SwipeToConfirm(
         modifier = modifier
             .requiredHeight(CircleSize + Padding * 2)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.16f))
+            .primaryButtonStyle(
+                isEnabled = !loading,
+                shape = CircleShape,
+            )
             .padding(Padding)
     ) {
         Box(
@@ -223,7 +227,7 @@ private fun Preview() {
         ) {
             SwipeToConfirm(
                 text = stringResource(R.string.wallet__send_swipe),
-                color = Colors.Green,
+                color = Colors.Brand,
                 loading = isLoading,
                 onConfirm = {
                     scope.launch {
