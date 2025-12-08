@@ -457,7 +457,6 @@ fun ContentView(
 
                     if (showTabBar) {
                         TabBar(
-                            hazeState = hazeState,
                             onSendClick = { appViewModel.showSheet(Sheet.Send()) },
                             onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
                             onScanClick = { navController.navigateToScanner() },
