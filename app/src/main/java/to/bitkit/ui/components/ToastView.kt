@@ -103,9 +103,6 @@ fun ToastView(
                 )
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragStart = {
-                            // Drag started
-                        },
                         onDragEnd = {
                             // Resume auto-hide when drag ends (if we paused it)
                             if (hasPausedAutoHide) {
