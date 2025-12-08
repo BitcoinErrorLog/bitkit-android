@@ -45,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -73,6 +74,7 @@ fun ToastView(
     toast: Toast,
     onDismiss: () -> Unit,
     hazeState: HazeState = rememberHazeState(blurEnabled = true),
+    hazeStyle: HazeStyle = CupertinoMaterials.thin(containerColor = toast.tintColor()),
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
 ) {
@@ -90,8 +92,6 @@ fun ToastView(
             .padding(horizontal = 16.dp)
             .then(toast.testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
-        // Main toast content
-        val toastMaterial = CupertinoMaterials.thin(containerColor = tintColor)
 
         Box(
             modifier = Modifier
@@ -105,7 +105,7 @@ fun ToastView(
                 )
                 .hazeEffect(
                     state = hazeState,
-                    style = toastMaterial
+                    style = hazeStyle
                 )
                 .background(
                     color = tintColor.copy(alpha = TINT_ALPHA),
