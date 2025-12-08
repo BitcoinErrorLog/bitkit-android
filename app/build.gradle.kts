@@ -3,6 +3,7 @@ import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -127,8 +128,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+            freeCompilerArgs.addAll(
+                listOf(
+                    "-XXLanguage:+PropertyParamAnnotationDefaultTargetMode",
+                )
+            )
+        }
     }
     buildFeatures {
         buildConfig = true
@@ -168,7 +176,6 @@ android {
 
 composeCompiler {
     featureFlags = setOf(
-        ComposeFeatureFlag.StrongSkipping.disabled(),
         ComposeFeatureFlag.OptimizeNonSkippingGroups,
     )
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
