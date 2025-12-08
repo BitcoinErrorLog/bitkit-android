@@ -358,7 +358,6 @@ private fun Content(
                             title = stringResource(R.string.wallet__savings__title),
                             sats = balances.totalOnchainSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_btc_circle),
-                            showTransferIcon = balances.balanceInTransferToSavings > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Savings) }
                                 .padding(vertical = 4.dp)
@@ -370,7 +369,6 @@ private fun Content(
                             title = stringResource(R.string.wallet__spending__title),
                             sats = balances.totalLightningSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_ln_circle),
-                            showTransferIcon = balances.balanceInTransferToSpending > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Spending) }
                                 .padding(vertical = 4.dp)

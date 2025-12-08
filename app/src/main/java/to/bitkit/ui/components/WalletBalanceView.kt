@@ -44,7 +44,6 @@ fun RowScope.WalletBalanceView(
     sats: Long,
     icon: Painter,
     modifier: Modifier = Modifier,
-    showTransferIcon: Boolean = false,
 ) {
     val isPreview = LocalInspectionMode.current
     if (isPreview) {
@@ -63,7 +62,6 @@ fun RowScope.WalletBalanceView(
             primaryDisplay = PrimaryDisplay.BITCOIN,
             displayUnit = BitcoinDisplayUnit.MODERN,
             hideBalance = false,
-            showTransferIcon = showTransferIcon,
         )
     }
 
@@ -82,7 +80,6 @@ fun RowScope.WalletBalanceView(
         primaryDisplay = primaryDisplay,
         displayUnit = displayUnit,
         hideBalance = hideBalance,
-        showTransferIcon = showTransferIcon,
     )
 }
 
@@ -95,7 +92,6 @@ private fun RowScope.Content(
     primaryDisplay: PrimaryDisplay,
     displayUnit: BitcoinDisplayUnit,
     hideBalance: Boolean,
-    showTransferIcon: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -134,14 +130,6 @@ private fun RowScope.Content(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             BodyMSB(text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else btcComponents.value)
-                            if (showTransferIcon) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_transfer),
-                                    contentDescription = null,
-                                    tint = Colors.White64,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
                         }
                     }
                 } else {
@@ -156,14 +144,6 @@ private fun RowScope.Content(
                         ) {
                             BodyMSB(text = converted.symbol)
                             BodyMSB(text = if (isHidden) UiConstants.HIDE_BALANCE_SHORT else converted.formatted)
-                            if (showTransferIcon) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_transfer),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Colors.White64
-                                )
-                            }
                         }
                     }
                 }
@@ -217,7 +197,6 @@ private fun PreviewTransferToSpending() {
                 title = stringResource(R.string.wallet__spending__title),
                 sats = 250_000,
                 icon = painterResource(R.drawable.ic_ln_circle),
-                showTransferIcon = true,
             )
         }
     }
@@ -237,7 +216,6 @@ private fun PreviewTransferToSavings() {
                 title = stringResource(R.string.wallet__savings__title),
                 sats = 1_250_000,
                 icon = painterResource(R.drawable.ic_btc_circle),
-                showTransferIcon = true,
             )
             VerticalDivider()
             WalletBalanceView(
@@ -263,14 +241,12 @@ private fun PreviewTransfers() {
                 title = stringResource(R.string.wallet__savings__title),
                 sats = 1_150_000,
                 icon = painterResource(R.drawable.ic_btc_circle),
-                showTransferIcon = true,
             )
             VerticalDivider()
             WalletBalanceView(
                 title = stringResource(R.string.wallet__spending__title),
                 sats = 150_000,
                 icon = painterResource(R.drawable.ic_ln_circle),
-                showTransferIcon = true,
             )
         }
     }
