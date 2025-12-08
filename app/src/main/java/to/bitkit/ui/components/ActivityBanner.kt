@@ -49,7 +49,6 @@ fun ActivityBanner(
     onClick: () -> Unit,
 ) {
 
-    // 4-property glow animation matching iOS
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
 
     val innerShadowOpacity by infiniteTransition.animateFloat(
@@ -97,57 +96,61 @@ fun ActivityBanner(
     Box(
         modifier = modifier
             .requiredHeight(72.dp)
-            .clip(ShapeDefaults.Large)
-            // Layer 1: Base color (black)
-            .background(Color.Black, shape = ShapeDefaults.Large)
-            // Layer 2: Inner shadow approximation (radial gradient from edges)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = 0f),  // Transparent center
-                        gradientColor.copy(alpha = innerShadowOpacity * 0.5f)  // Colored edges
-                    ),
-                    radius = 200f
-                ),
-                shape = ShapeDefaults.Large
-            )
-            // Layer 3: Linear gradient (top to bottom)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        gradientColor.copy(alpha = 0.24f),
-                        gradientColor.copy(alpha = 0f)
-                    )
-                ),
-                shape = ShapeDefaults.Large
-            )
-            // Layer 4: Radial gradient (top-left corner)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        gradientColor.copy(alpha = radialGradientOpacity),
-                        gradientColor.copy(alpha = 0f)
-                    ),
-                    center = Offset(0f, 0f),
-                    radius = 160f * density
-                ),
-                shape = ShapeDefaults.Large
-            )
-            // Border with animated opacity
-            .border(
-                width = 1.dp,
-                color = gradientColor.copy(alpha = borderOpacity),
-                shape = ShapeDefaults.Large
-            )
-            // Drop shadow with animated opacity
+            // Drop shadow must be applied BEFORE clipping
             .shadow(
                 elevation = 12.dp,
                 shape = ShapeDefaults.Large,
                 ambientColor = gradientColor.copy(alpha = dropShadowOpacity),
                 spotColor = gradientColor.copy(alpha = dropShadowOpacity)
             )
+            .clip(ShapeDefaults.Large)
             .clickableAlpha { onClick() }
     ) {
+        // Background layers inside the Box to avoid shape conflicts
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .requiredHeight(72.dp)
+                // Layer 1: Base color (black)
+                .background(Color.Black)
+                // Layer 2: Inner shadow approximation (radial gradient from edges)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0f),  // Transparent center
+                            gradientColor.copy(alpha = innerShadowOpacity * 0.5f)  // Colored edges
+                        ),
+                        radius = 200f
+                    )
+                )
+                // Layer 3: Linear gradient (top to bottom)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            gradientColor.copy(alpha = 0.24f),
+                            gradientColor.copy(alpha = 0f)
+                        )
+                    )
+                )
+                // Layer 4: Radial gradient (top-left corner)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            gradientColor.copy(alpha = radialGradientOpacity),
+                            gradientColor.copy(alpha = 0f)
+                        ),
+                        center = Offset(0f, 0f),
+                        radius = 160f * density
+                    )
+                )
+                // Border with animated opacity
+                .border(
+                    width = 1.dp,
+                    color = gradientColor.copy(alpha = borderOpacity),
+                    shape = ShapeDefaults.Large
+                )
+        )
+
         Row(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 12.dp)
