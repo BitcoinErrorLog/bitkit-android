@@ -204,16 +204,40 @@ private fun NodeStateSection(
                 value = if (status.isRunning) "✅" else "⏳",
             )
             SettingsTextButtonRow(
-                title = "Lightning wallet sync time:",
+                title = "Lightning Wallet Sync Time:",
                 value = status.latestLightningWalletSyncTimestamp
                     ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
                     ?: "Never",
             )
             SettingsTextButtonRow(
-                title = "Onchain wallet sync time:",
+                title = "Onchain Wallet Sync Time:",
                 value = status.latestOnchainWalletSyncTimestamp
                     ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
                     ?: "Never",
+            )
+            SettingsTextButtonRow(
+                title = "Rapid Gossip Sync Snapshot time:",
+                value = status.latestRgsSnapshotTimestamp
+                    ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
+                    ?: "Never",
+            )
+            SettingsTextButtonRow(
+                title = "Fee Rate Cache Update time:",
+                value = status.latestFeeRateCacheUpdateTimestamp
+                    ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
+                    ?: "Never",
+            )
+            SettingsTextButtonRow(
+                title = "Channel Monitor Archival Height:",
+                value = status.latestChannelMonitorArchivalHeight
+                    ?.let { "$it" }
+                    ?: "Never",
+            )
+            SettingsTextButtonRow(
+                title = "Pathfinding Scores Sync Time:",
+                value = status.latestPathfindingScoresSyncTimestamp
+                    ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
+                    ?: "Never"
             )
             SettingsTextButtonRow(
                 title = "Block height:",
