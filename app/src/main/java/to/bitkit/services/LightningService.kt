@@ -79,15 +79,27 @@ class LightningService @Inject constructor(
         customServerUrl: String? = null,
         customRgsServerUrl: String? = null,
     ) {
-        val mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound
-        val passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)
+        Logger.debug("Building node…")
 
+        val config = config(walletIndex)
+        node = build(
+            walletIndex,
+            customServerUrl,
+            customRgsServerUrl,
+            config,
+        )
+
+        Logger.info("LDK node setup")
+    }
+
+    private fun config(
+        walletIndex: Int,
+    ): Config {
         // TODO get trustedLnPeers from blocktank info
-        this.trustedPeers = Env.trustedLnPeers
+        val trustedPeerNodeIds = Env.trustedLnPeers.map { it.nodeId }
         val dirPath = Env.ldkStoragePath(walletIndex)
 
-        val trustedPeerNodeIds = trustedPeers.map { it.nodeId }
-        val config = defaultConfig().copy(
+        return defaultConfig().copy(
             storageDirPath = dirPath,
             network = Env.network,
             trustedPeers0conf = trustedPeerNodeIds,
@@ -96,27 +108,19 @@ class LightningService @Inject constructor(
                 perChannelReserveSats = 1u,
             ),
         )
-
-        Logger.debug("Building node…")
-
-        node = build(
-            config,
-            walletIndex,
-            NodeEntropy.fromBip39Mnemonic(mnemonic, passphrase),
-            customServerUrl,
-            customRgsServerUrl,
-        )
-
-        Logger.info("LDK node setup")
     }
 
     private suspend fun build(
-        config: Config,
         walletIndex: Int,
-        nodeEntropy: NodeEntropy,
         customServerUrl: String?,
         customRgsServerUrl: String?,
+        config: Config,
     ): Node = ServiceQueue.LDK.background {
+        val nodeEntropy = NodeEntropy.fromBip39Mnemonic(
+            mnemonic = keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name) ?: throw ServiceError.MnemonicNotFound,
+            passphrase = keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name),
+        )
+
         val builder = Builder.fromConfig(config).apply {
             setCustomLogger(LdkLogWriter())
             configureChainSource(customServerUrl)
