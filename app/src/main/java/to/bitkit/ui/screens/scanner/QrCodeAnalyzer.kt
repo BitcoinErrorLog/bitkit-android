@@ -16,19 +16,21 @@ import to.bitkit.utils.Logger
 class QrCodeAnalyzer(
     private val onScanResult: (Result<String>) -> Unit,
 ) : ImageAnalysis.Analyzer {
-    private var isScanning = true
+    private var lastScannedCode: String? = null
+    private var lastScanTime: Long = 0
+    private val scanCooldownMs = 2000L // 2 seconds cooldown between scans
 
     private val scannerOptions = BarcodeScannerOptions.Builder()
         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
         .build()
     private val scanner: BarcodeScanner = BarcodeScanning.getClient(scannerOptions)
 
-    override fun analyze(image: ImageProxy) {
-        if (!isScanning) {
-            image.close()
-            return
-        }
+    fun reset() {
+        lastScannedCode = null
+        lastScanTime = 0
+    }
 
+    override fun analyze(image: ImageProxy) {
         if (image.image != null) {
             val inputImage = InputImage.fromMediaImage(image.image!!, image.imageInfo.rotationDegrees)
             scanner.process(inputImage)
@@ -37,8 +39,15 @@ class QrCodeAnalyzer(
                         it.result.let { barcodes ->
                             barcodes.forEach { barcode ->
                                 barcode.rawValue?.let { qrCode ->
-                                    isScanning = false
-                                    onScanResult(Result.success(qrCode))
+                                    val currentTime = System.currentTimeMillis()
+                                    val isDifferentCode = qrCode != lastScannedCode
+                                    val isCooldownExpired = currentTime - lastScanTime > scanCooldownMs
+
+                                    if (isDifferentCode || isCooldownExpired) {
+                                        lastScannedCode = qrCode
+                                        lastScanTime = currentTime
+                                        onScanResult(Result.success(qrCode))
+                                    }
                                     image.close()
                                     return@addOnCompleteListener
                                 }

@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,9 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -83,14 +79,8 @@ fun FundingScreen(
                 Box {
                     RectangleButton(
                         label = stringResource(R.string.lightning__funding__button1),
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_transfer),
-                                contentDescription = null,
-                                tint = Colors.Purple,
-                                modifier = Modifier.size(28.dp),
-                            )
-                        },
+                        icon = R.drawable.ic_transfer,
+                        iconTint = Colors.Purple,
                         enabled = canTransfer && !isGeoBlocked,
                         onClick = onTransfer,
                         modifier = Modifier.testTag("FundTransfer")
@@ -111,28 +101,17 @@ fun FundingScreen(
                 }
                 RectangleButton(
                     label = stringResource(R.string.lightning__funding__button2),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_qr_purple),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    },
+                    icon = R.drawable.ic_qr_purple,
+                    iconTint = Colors.Purple,
+                    iconSize = 13.75.dp,
                     enabled = !isGeoBlocked,
                     onClick = onFund,
                     modifier = Modifier.testTag("FundReceive")
                 )
                 RectangleButton(
                     label = stringResource(R.string.lightning__funding__button3),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_share_purple),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    },
+                    icon = R.drawable.ic_share_purple,
+                    iconTint = Colors.Purple,
                     onClick = onAdvanced,
                     modifier = Modifier.testTag("FundCustom")
                 )
