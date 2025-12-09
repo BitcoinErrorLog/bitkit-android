@@ -69,11 +69,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.models.ActivityBannerType
 import to.bitkit.models.BalanceState
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
+import to.bitkit.ui.components.ActivityBanner
 import to.bitkit.ui.components.AppStatus
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
@@ -235,10 +237,6 @@ fun HomeScreen(
                     }
                 }
 
-                Suggestion.TRANSFER_PENDING -> Unit
-                Suggestion.TRANSFER_CLOSING_CHANNEL -> Unit
-                Suggestion.LIGHTNING_SETTING_UP -> rootNavController.navigate(Routes.SettingUp)
-                Suggestion.LIGHTNING_READY -> Unit
                 Suggestion.NOTIFICATIONS -> {
                     if (bgPaymentsIntroSeen) {
                         rootNavController.navigate(Routes.BackgroundPaymentsSettings)
@@ -360,7 +358,6 @@ private fun Content(
                             title = stringResource(R.string.wallet__savings__title),
                             sats = balances.totalOnchainSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_btc_circle),
-                            showTransferIcon = balances.balanceInTransferToSavings > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Savings) }
                                 .padding(vertical = 4.dp)
@@ -372,7 +369,6 @@ private fun Content(
                             title = stringResource(R.string.wallet__spending__title),
                             sats = balances.totalLightningSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_ln_circle),
-                            showTransferIcon = balances.balanceInTransferToSpending > 0u,
                             modifier = Modifier
                                 .clickableAlpha { walletNavController.navigate(HomeRoutes.Spending) }
                                 .padding(vertical = 4.dp)
@@ -479,8 +475,31 @@ private fun Content(
                         )
                     }
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text13Up(stringResource(R.string.wallet__activity), color = Colors.White64)
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                    AnimatedVisibility(homeUiState.banners.isNotEmpty()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 18.dp)
+                        ) {
+                            homeUiState.banners.forEach { banner ->
+                                ActivityBanner(
+                                    gradientColor = banner.color,
+                                    title = stringResource(banner.title),
+                                    icon = banner.icon,
+                                    onClick = {
+                                        when (banner) {
+                                            ActivityBannerType.SPENDING -> rootNavController.navigate(Routes.SettingUp)
+                                            ActivityBannerType.SAVINGS -> Unit
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
                     ActivityListSimple(
                         items = latestActivities,
                         onAllActivityClick = { rootNavController.navigateToAllActivity() },

@@ -19,7 +19,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.dao.TransferDao
 import to.bitkit.data.entities.TransferEntity
 import to.bitkit.ext.createChannelDetails
@@ -34,7 +33,6 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 class TransferRepoTest : BaseUnitTest() {
-
     private lateinit var sut: TransferRepo
 
     private val transferDao = mock<TransferDao>()
@@ -42,10 +40,12 @@ class TransferRepoTest : BaseUnitTest() {
     private val blocktankRepo = mock<BlocktankRepo>()
     private val clock = mock<Clock>()
 
-    private val testTransferId = "test-transfer-id"
-    private val testChannelId = "test-channel-id"
-    private val testFundingTxo = OutPoint(txid = "test-funding-tx-id", vout = 0u)
-    private val testLspOrderId = "test-lsp-order-id"
+    companion object Fixtures {
+        private const val ID_ORDER = "test-order-id"
+        private const val ID_CHANNEL = "test-channel-id"
+        private const val ID_TRANSFER = "test-transfer-id"
+        private val fundingTxo = OutPoint(txid = "test-funding-tx-id", vout = 0u)
+    }
 
     @Before
     fun setUp() {
@@ -60,7 +60,7 @@ class TransferRepoTest : BaseUnitTest() {
         )
     }
 
-    // createTransfer tests
+    // MARK: - createTransfer
 
     @Test
     fun `createTransfer creates TO_SPENDING transfer - LSP flow with lspOrderId, no channelId yet`() = test {
@@ -72,7 +72,7 @@ class TransferRepoTest : BaseUnitTest() {
             amountSats = 50000L,
             channelId = null,
             fundingTxId = null,
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
         )
 
         assertTrue(result.isSuccess)
@@ -89,8 +89,8 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.createTransfer(
             type = TransferType.COOP_CLOSE,
             amountSats = 75000L,
-            channelId = testChannelId,
-            fundingTxId = testFundingTxo.txid,
+            channelId = ID_CHANNEL,
+            fundingTxId = fundingTxo.txid,
             lspOrderId = null,
         )
 
@@ -106,8 +106,8 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.createTransfer(
             type = TransferType.FORCE_CLOSE,
             amountSats = 75000L,
-            channelId = testChannelId,
-            fundingTxId = testFundingTxo.txid,
+            channelId = ID_CHANNEL,
+            fundingTxId = fundingTxo.txid,
             lspOrderId = null,
         )
 
@@ -123,8 +123,8 @@ class TransferRepoTest : BaseUnitTest() {
         val result = sut.createTransfer(
             type = TransferType.MANUAL_SETUP,
             amountSats = 100000L,
-            channelId = testChannelId, // Available immediately from ChannelPending event
-            fundingTxId = testFundingTxo.txid, // Available immediately from ChannelPending event
+            channelId = ID_CHANNEL, // Available immediately from ChannelPending event
+            fundingTxId = fundingTxo.txid, // Available immediately from ChannelPending event
             lspOrderId = null, // No LSP order for manual channels
         )
 
@@ -151,7 +151,7 @@ class TransferRepoTest : BaseUnitTest() {
     fun `createTransfer generates unique IDs for each transfer`() = test {
         setupClockNowMock()
         val capturedTransfers = mutableListOf<TransferEntity>()
-        wheneverBlocking { transferDao.insert(any()) }.thenAnswer { invocation ->
+        whenever(transferDao.insert(any())).thenAnswer { invocation ->
             capturedTransfers.add(invocation.getArgument(0))
         }
 
@@ -168,17 +168,17 @@ class TransferRepoTest : BaseUnitTest() {
         assertTrue(id1 != id2)
     }
 
-    // markSettled tests
+    // MARK: - markSettled
 
     @Test
     fun `markSettled successfully marks transfer as settled`() = test {
         val settledAt = setupClockNowMock()
         whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
-        val result = sut.markSettled(testTransferId)
+        val result = sut.markSettled(ID_TRANSFER)
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
+        verify(transferDao).markSettled(eq(ID_TRANSFER), eq(settledAt))
     }
 
     @Test
@@ -187,17 +187,17 @@ class TransferRepoTest : BaseUnitTest() {
         val exception = Exception("Database error")
         whenever(transferDao.markSettled(any(), any())).thenAnswer { throw exception }
 
-        val result = sut.markSettled(testTransferId)
+        val result = sut.markSettled(ID_TRANSFER)
 
         assertTrue(result.isFailure)
         assertEquals(exception, result.exceptionOrNull())
     }
 
-    // syncTransferStates tests
+    // MARK: - syncTransferStates
 
     @Test
     fun `syncTransferStates returns early when no active transfers`() = test {
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(emptyList()))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(emptyList()))
 
         val result = sut.syncTransferStates()
 
@@ -209,49 +209,49 @@ class TransferRepoTest : BaseUnitTest() {
     fun `syncTransferStates settles TO_SPENDING transfer when channel is ready`() = test {
         val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
 
         val channelDetails = createChannelDetails().copy(
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isChannelReady = true,
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(listOf(channelDetails))
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(mock()))
-        wheneverBlocking { transferDao.markSettled(any(), any()) }.thenReturn(Unit)
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(mock()))
+        whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
+        verify(transferDao).markSettled(eq(ID_TRANSFER), eq(settledAt))
     }
 
     @Test
     fun `syncTransferStates does not settle TO_SPENDING transfer when channel is not ready`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
 
         val channelDetails = createChannelDetails().copy(
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isChannelReady = false,
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(listOf(channelDetails))
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(mock()))
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(mock()))
 
         val result = sut.syncTransferStates()
 
@@ -262,17 +262,17 @@ class TransferRepoTest : BaseUnitTest() {
     @Test
     fun `syncTransferStates does not settle TO_SPENDING transfer when channel not found`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(mock()))
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(mock()))
 
         val result = sut.syncTransferStates()
 
@@ -284,10 +284,10 @@ class TransferRepoTest : BaseUnitTest() {
     fun `syncTransferStates settles TO_SAVINGS transfer when balance is swept`() = test {
         val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SAVINGS,
             amountSats = 75000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
@@ -301,30 +301,30 @@ class TransferRepoTest : BaseUnitTest() {
             pendingBalancesFromChannelClosures = emptyList(),
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balances))
-        wheneverBlocking { transferDao.markSettled(any(), any()) }.thenReturn(Unit)
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(balances))
+        whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
+        verify(transferDao).markSettled(eq(ID_TRANSFER), eq(settledAt))
     }
 
     @Test
     fun `syncTransferStates does not settle TO_SAVINGS transfer when balance still exists`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SAVINGS,
             amountSats = 75000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
 
         val lightningBalance = LightningBalance.ClaimableOnChannelClose(
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             counterpartyNodeId = "node123",
             amountSatoshis = 75000u,
             transactionFeeSatoshis = 0u,
@@ -343,9 +343,9 @@ class TransferRepoTest : BaseUnitTest() {
             pendingBalancesFromChannelClosures = emptyList(),
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balances))
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(balances))
 
         val result = sut.syncTransferStates()
 
@@ -357,23 +357,23 @@ class TransferRepoTest : BaseUnitTest() {
     fun `syncTransferStates settles TO_SAVINGS transfer when balances is null`() = test {
         val settledAt = setupClockNowMock()
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SAVINGS,
             amountSats = 75000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(flowOf(listOf(transfer)))
+        whenever(transferDao.getActiveTransfers()).thenReturn(flowOf(listOf(transfer)))
         whenever(lightningRepo.getChannels()).thenReturn(emptyList())
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.failure(Exception("Error")))
-        wheneverBlocking { transferDao.markSettled(any(), any()) }.thenReturn(Unit)
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.failure(Exception("Error")))
+        whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
         val result = sut.syncTransferStates()
 
         assertTrue(result.isSuccess)
-        verify(transferDao).markSettled(eq(testTransferId), eq(settledAt))
+        verify(transferDao).markSettled(eq(ID_TRANSFER), eq(settledAt))
     }
 
     @Test
@@ -411,12 +411,12 @@ class TransferRepoTest : BaseUnitTest() {
             pendingBalancesFromChannelClosures = emptyList(),
         )
 
-        wheneverBlocking { transferDao.getActiveTransfers() }.thenReturn(
+        whenever(transferDao.getActiveTransfers()).thenReturn(
             flowOf(listOf(toSpendingTransfer, toSavingsTransfer))
         )
         whenever(lightningRepo.getChannels()).thenReturn(listOf(readyChannel))
-        wheneverBlocking { lightningRepo.getBalancesAsync() }.thenReturn(Result.success(balances))
-        wheneverBlocking { transferDao.markSettled(any(), any()) }.thenReturn(Unit)
+        whenever(lightningRepo.getBalancesAsync()).thenReturn(Result.success(balances))
+        whenever(transferDao.markSettled(any(), any())).thenReturn(Unit)
 
         val result = sut.syncTransferStates()
 
@@ -428,10 +428,10 @@ class TransferRepoTest : BaseUnitTest() {
     @Test
     fun `syncTransferStates handles failure gracefully`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
-            channelId = testChannelId,
+            channelId = ID_CHANNEL,
             isSettled = false,
             createdAt = 1000L,
         )
@@ -446,22 +446,22 @@ class TransferRepoTest : BaseUnitTest() {
         assertEquals(exception, result.exceptionOrNull())
     }
 
-    // resolveChannelIdForTransfer tests
+    // MARK: - resolveChannelIdForTransfer
 
     @Test
     fun `resolveChannelIdForTransfer returns null for LSP transfer when order not yet available`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
             channelId = null, // LSP flow - not known yet
             fundingTxId = null,
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
             isSettled = false,
             createdAt = 1000L,
         )
 
-        wheneverBlocking { blocktankRepo.getOrder(testLspOrderId, refresh = false) }
+        whenever(blocktankRepo.getOrder(ID_ORDER, refresh = false))
             .thenReturn(Result.success(null)) // Order not found yet
 
         val result = sut.resolveChannelIdForTransfer(transfer, emptyList())
@@ -472,11 +472,11 @@ class TransferRepoTest : BaseUnitTest() {
     @Test
     fun `resolveChannelIdForTransfer returns channelId directly for manual channel - no resolution needed`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.MANUAL_SETUP,
             amountSats = 100000L,
-            channelId = testChannelId, // Already set in manual flow
-            fundingTxId = testFundingTxo.txid,
+            channelId = ID_CHANNEL, // Already set in manual flow
+            fundingTxId = fundingTxo.txid,
             lspOrderId = null,
             isSettled = false,
             createdAt = 1000L,
@@ -484,55 +484,55 @@ class TransferRepoTest : BaseUnitTest() {
 
         val result = sut.resolveChannelIdForTransfer(transfer, emptyList())
 
-        assertEquals(testChannelId, result)
+        assertEquals(ID_CHANNEL, result)
     }
 
     @Test
     fun `resolveChannelIdForTransfer finds channel via LSP order funding tx for settlement check`() = test {
         val channelMock = mock<IBtChannel> {
-            on { fundingTx } doReturn FundingTx(id = testFundingTxo.txid, vout = testFundingTxo.vout.toULong())
+            on { fundingTx } doReturn FundingTx(id = fundingTxo.txid, vout = fundingTxo.vout.toULong())
         }
 
         val order = mock<IBtOrder>()
         whenever(order.channel).thenReturn(channelMock)
 
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
             channelId = null, // LSP flow - not set initially
             fundingTxId = null, // LSP flow - not set initially
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
             isSettled = false,
             createdAt = 1000L,
         )
 
         val channelDetails = mock<ChannelDetails>()
-        whenever(channelDetails.fundingTxo).thenReturn(testFundingTxo)
-        whenever(channelDetails.channelId).thenReturn(testChannelId)
+        whenever(channelDetails.fundingTxo).thenReturn(fundingTxo)
+        whenever(channelDetails.channelId).thenReturn(ID_CHANNEL)
 
-        wheneverBlocking { blocktankRepo.getOrder(testLspOrderId, refresh = false) }
+        whenever(blocktankRepo.getOrder(ID_ORDER, refresh = false))
             .thenReturn(Result.success(order))
 
         val result = sut.resolveChannelIdForTransfer(transfer, listOf(channelDetails))
 
-        assertEquals(testChannelId, result)
+        assertEquals(ID_CHANNEL, result)
     }
 
     @Test
     fun `resolveChannelIdForTransfer returns null when LSP order not found`() = test {
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
             channelId = null,
             fundingTxId = null,
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
             isSettled = false,
             createdAt = 1000L,
         )
 
-        wheneverBlocking { blocktankRepo.getOrder(testLspOrderId, refresh = false) }
+        whenever(blocktankRepo.getOrder(ID_ORDER, refresh = false))
             .thenReturn(Result.success(null))
 
         val result = sut.resolveChannelIdForTransfer(transfer, emptyList())
@@ -549,17 +549,17 @@ class TransferRepoTest : BaseUnitTest() {
         whenever(order.channel).thenReturn(channelMock)
 
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
             channelId = null,
             fundingTxId = null,
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
             isSettled = false,
             createdAt = 1000L,
         )
 
-        wheneverBlocking { blocktankRepo.getOrder(testLspOrderId, refresh = false) }
+        whenever(blocktankRepo.getOrder(ID_ORDER, refresh = false))
             .thenReturn(Result.success(order))
 
         val result = sut.resolveChannelIdForTransfer(transfer, emptyList())
@@ -569,7 +569,7 @@ class TransferRepoTest : BaseUnitTest() {
 
     @Test
     fun `resolveChannelIdForTransfer returns null when funding tx does not match any channel`() = test {
-        val fundingTx = FundingTx(id = testFundingTxo.txid, vout = testFundingTxo.vout.toULong())
+        val fundingTx = FundingTx(id = fundingTxo.txid, vout = fundingTxo.vout.toULong())
 
         val channelMock = mock<IBtChannel>()
         whenever(channelMock.fundingTx).thenReturn(fundingTx)
@@ -578,12 +578,12 @@ class TransferRepoTest : BaseUnitTest() {
         whenever(order.channel).thenReturn(channelMock)
 
         val transfer = TransferEntity(
-            id = testTransferId,
+            id = ID_TRANSFER,
             type = TransferType.TO_SPENDING,
             amountSats = 50000L,
             channelId = null,
             fundingTxId = null,
-            lspOrderId = testLspOrderId,
+            lspOrderId = ID_ORDER,
             isSettled = false,
             createdAt = 1000L,
         )
@@ -592,7 +592,7 @@ class TransferRepoTest : BaseUnitTest() {
         val channelDetails = mock<ChannelDetails>()
         whenever(channelDetails.fundingTxo).thenReturn(differentFundingTxo)
 
-        wheneverBlocking { blocktankRepo.getOrder(testLspOrderId, refresh = false) }
+        whenever(blocktankRepo.getOrder(ID_ORDER, refresh = false))
             .thenReturn(Result.success(order))
 
         val result = sut.resolveChannelIdForTransfer(transfer, listOf(channelDetails))
@@ -600,7 +600,7 @@ class TransferRepoTest : BaseUnitTest() {
         assertNull(result)
     }
 
-    // activeTransfers Flow tests
+    // MARK: - activeTransfers
 
     @Test
     fun `activeTransfers emits transfers from dao`() = test {
@@ -638,6 +638,8 @@ class TransferRepoTest : BaseUnitTest() {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // MARK: - Helpers
 
     private fun setupClockNowMock(): Long = Clock.System.now()
         .also { whenever(clock.now()).thenReturn(it) }

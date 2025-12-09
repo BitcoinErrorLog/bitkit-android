@@ -17,13 +17,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.DelegatingNode
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.SemanticsModifierNode
@@ -33,6 +37,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import to.bitkit.ui.theme.Colors
@@ -145,6 +150,100 @@ fun Modifier.screen(
     .fillMaxSize()
     .then(if (noBackground) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
     .then(if (insets == null) Modifier else Modifier.windowInsetsPadding(insets))
+
+/**
+ * Draws an animated outer glow effect that extends beyond the component's bounds.
+ * Uses Canvas with setShadowLayer to create a blur effect.
+ *
+ * @param glowColor The color of the glow effect
+ * @param glowOpacity The animated opacity value (0.0 to 1.0)
+ * @param glowRadius The blur radius in dp (how far the glow extends)
+ * @param cornerRadius The corner radius of the glow shape in dp
+ */
+fun Modifier.outerGlow(
+    glowColor: Color,
+    glowOpacity: Float,
+    glowRadius: Dp = 12.dp,
+    cornerRadius: Dp = 16.dp,
+): Modifier = this.then(
+    OuterGlowElement(
+        glowColor = glowColor,
+        glowOpacity = glowOpacity,
+        glowRadius = glowRadius,
+        cornerRadius = cornerRadius
+    )
+)
+
+private data class OuterGlowElement(
+    val glowColor: Color,
+    val glowOpacity: Float,
+    val glowRadius: Dp,
+    val cornerRadius: Dp,
+) : ModifierNodeElement<OuterGlowNode>() {
+    override fun create(): OuterGlowNode = OuterGlowNode(
+        glowColor = glowColor,
+        glowOpacity = glowOpacity,
+        glowRadius = glowRadius,
+        cornerRadius = cornerRadius
+    )
+
+    override fun update(node: OuterGlowNode) {
+        node.glowColor = glowColor
+        node.glowOpacity = glowOpacity
+        node.glowRadius = glowRadius
+        node.cornerRadius = cornerRadius
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "outerGlow"
+        properties["glowColor"] = glowColor
+        properties["glowOpacity"] = glowOpacity
+        properties["glowRadius"] = glowRadius
+        properties["cornerRadius"] = cornerRadius
+    }
+}
+
+private class OuterGlowNode(
+    var glowColor: Color,
+    var glowOpacity: Float,
+    var glowRadius: Dp,
+    var cornerRadius: Dp,
+) : DrawModifierNode, Modifier.Node() {
+    override fun androidx.compose.ui.graphics.drawscope.ContentDrawScope.draw() {
+        val glowRadiusPx = glowRadius.toPx()
+        val cornerRadiusPx = cornerRadius.toPx()
+
+        drawIntoCanvas { canvas ->
+            val paint = Paint().apply {
+                color = glowColor.copy(alpha = 0f) // Transparent fill
+                isAntiAlias = true
+            }
+
+            // Draw blurred shadow behind the component
+            val frameworkPaint = paint.asFrameworkPaint()
+            frameworkPaint.color = glowColor.copy(alpha = 0f).toArgb()
+            frameworkPaint.setShadowLayer(
+                glowRadiusPx,
+                0f,
+                0f,
+                glowColor.copy(alpha = glowOpacity).toArgb()
+            )
+
+            canvas.drawRoundRect(
+                left = 0f,
+                top = 0f,
+                right = size.width,
+                bottom = size.height,
+                radiusX = cornerRadiusPx,
+                radiusY = cornerRadiusPx,
+                paint = paint
+            )
+        }
+
+        // Draw the actual content
+        drawContent()
+    }
+}
 
 fun Modifier.primaryButtonStyle(
     isEnabled: Boolean,

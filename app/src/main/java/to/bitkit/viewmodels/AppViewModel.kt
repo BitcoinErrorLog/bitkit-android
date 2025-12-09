@@ -338,6 +338,7 @@ class AppViewModel @Inject constructor(
             type = Toast.ToastType.LIGHTNING,
             title = context.getString(R.string.lightning__channel_opened_title),
             description = context.getString(R.string.lightning__channel_opened_msg),
+            testTag = "SpendingBalanceReadyToast",
         )
     }
 
