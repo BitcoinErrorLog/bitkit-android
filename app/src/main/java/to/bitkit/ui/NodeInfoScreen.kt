@@ -44,7 +44,7 @@ import to.bitkit.ext.amountSats
 import to.bitkit.ext.balanceUiText
 import to.bitkit.ext.channelId
 import to.bitkit.ext.createChannelDetails
-import to.bitkit.ext.formatted
+import to.bitkit.ext.formatToString
 import to.bitkit.ext.uri
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
@@ -68,7 +68,6 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.copyToClipboard
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.MainUiState
-import java.time.Instant
 
 @Composable
 fun NodeInfoScreen(
@@ -194,30 +193,53 @@ private fun NodeStateSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         SectionHeader("Node State")
         SettingsTextButtonRow(
-            title = "Node State:",
+            title = stringResource(R.string.lightning__status),
             value = nodeLifecycleState.uiText,
         )
 
         nodeStatus?.let { status ->
             SettingsTextButtonRow(
-                title = "Ready:",
+                title = stringResource(R.string.common_ready),
                 value = if (status.isRunning) "✅" else "⏳",
             )
             SettingsTextButtonRow(
-                title = "Lightning wallet sync time:",
-                value = status.latestLightningWalletSyncTimestamp
-                    ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
-                    ?: "Never",
-            )
-            SettingsTextButtonRow(
-                title = "Onchain wallet sync time:",
-                value = status.latestOnchainWalletSyncTimestamp
-                    ?.let { Instant.ofEpochSecond(it.toLong()).formatted() }
-                    ?: "Never",
-            )
-            SettingsTextButtonRow(
-                title = "Block height:",
+                title = stringResource(R.string.lightning__block_height),
                 value = "${status.currentBestBlock.height}",
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__monitor_height),
+                value = status.latestChannelMonitorArchivalHeight
+                    ?.let { "$it" }
+                    ?: stringResource(R.string.common__never),
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__node_sync_time),
+                value = status.latestLightningWalletSyncTimestamp
+                    ?.formatToString()
+                    ?: stringResource(R.string.common__never),
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__onchain_sync_time),
+                value = status.latestOnchainWalletSyncTimestamp
+                    ?.formatToString()
+                    ?: stringResource(R.string.common__never),
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__fee_rate_update_time),
+                value = status.latestFeeRateCacheUpdateTimestamp
+                    ?.formatToString()
+                    ?: stringResource(R.string.common__never),
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__rgs_snapshot_time),
+                value = status.latestRgsSnapshotTimestamp
+                    ?.formatToString()
+                    ?: stringResource(R.string.common__never),
+            )
+            SettingsTextButtonRow(
+                title = stringResource(R.string.lightning__scores_sync_time),
+                value = status.latestPathfindingScoresSyncTimestamp?.formatToString()
+                    ?: stringResource(R.string.common__never),
             )
         }
     }
@@ -226,23 +248,23 @@ private fun NodeStateSection(
 @Composable
 private fun WalletBalancesSection(balanceDetails: BalanceDetails) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        SectionHeader("Wallet Balances")
+        SectionHeader(stringResource(R.string.lightning__wallet_balances))
         Column {
             SettingsTextButtonRow(
-                title = "Total onchain:",
+                title = stringResource(R.string.lightning__total_onchain),
                 value = "₿ ${balanceDetails.totalOnchainBalanceSats.formatToModernDisplay()}",
             )
             SettingsTextButtonRow(
-                title = "Spendable onchain:",
+                title = stringResource(R.string.lightning__spendable_onchain),
                 value = "₿ ${balanceDetails.spendableOnchainBalanceSats.formatToModernDisplay()}",
             )
             SettingsTextButtonRow(
-                title = "Total anchor channels reserve:",
-                value = "₿ ${balanceDetails.totalAnchorChannelsReserveSats.formatToModernDisplay()}",
+                title = stringResource(R.string.lightning__total_lightning),
+                value = "₿ ${balanceDetails.totalLightningBalanceSats.formatToModernDisplay()}",
             )
             SettingsTextButtonRow(
-                title = "Total lightning:",
-                value = "₿ ${balanceDetails.totalLightningBalanceSats.formatToModernDisplay()}",
+                title = stringResource(R.string.lightning__total_anchor_channels_reserve),
+                value = "₿ ${balanceDetails.totalAnchorChannelsReserveSats.formatToModernDisplay()}",
             )
         }
     }
@@ -251,7 +273,7 @@ private fun WalletBalancesSection(balanceDetails: BalanceDetails) {
 @Composable
 private fun LightningBalancesSection(balances: List<LightningBalance>) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        SectionHeader("Lightning Balances")
+        SectionHeader(stringResource(R.string.lightning__lightning_balances))
         balances.forEach { balance ->
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -321,39 +343,39 @@ private fun ChannelsSection(
                 VerticalSpacer(8.dp)
 
                 ChannelDetailRow(
-                    title = "Ready:",
+                    title = stringResource(R.string.common_ready),
                     value = if (channel.isChannelReady) "✅" else "❌",
                 )
                 ChannelDetailRow(
-                    title = "Usable:",
+                    title = stringResource(R.string.common__usable),
                     value = if (channel.isUsable) "✅" else "❌",
                 )
                 ChannelDetailRow(
-                    title = "Announced:",
+                    title = stringResource(R.string.common__announced),
                     value = if (channel.isAnnounced) "🌐" else "🔒",
                 )
                 ChannelDetailRow(
-                    title = "Inbound capacity:",
+                    title = stringResource(R.string.lightning__inbound_capacity),
                     value = "₿ ${(channel.inboundCapacityMsat / 1000u).formatToModernDisplay()}",
                 )
                 ChannelDetailRow(
-                    title = "Inbound htlc max:",
+                    title = stringResource(R.string.lightning__inbound_htlc_max),
                     value = "₿ ${(channel.inboundHtlcMaximumMsat?.div(1000u) ?: 0u).formatToModernDisplay()}",
                 )
                 ChannelDetailRow(
-                    title = "Inbound htlc min:",
+                    title = stringResource(R.string.lightning__inbound_htlc_min),
                     value = "₿ ${(channel.inboundHtlcMinimumMsat / 1000u).formatToModernDisplay()}",
                 )
                 ChannelDetailRow(
-                    title = "Next outbound htlc limit:",
+                    title = stringResource(R.string.lightning__next_outbound_htlc_limit),
                     value = "₿ ${(channel.nextOutboundHtlcLimitMsat / 1000u).formatToModernDisplay()}",
                 )
                 ChannelDetailRow(
-                    title = "Next outbound htlc min:",
+                    title = stringResource(R.string.lightning__next_outbound_htlc_min),
                     value = "₿ ${(channel.nextOutboundHtlcMinimumMsat / 1000u).formatToModernDisplay()}",
                 )
                 ChannelDetailRow(
-                    title = "Confirmations:",
+                    title = stringResource(R.string.common_confirmations),
                     value = "${channel.confirmations ?: 0}/${channel.confirmationsRequired ?: 0}",
                 )
 
@@ -452,7 +474,6 @@ private fun PreviewDevMode() {
                 nodeLifecycleState = NodeLifecycleState.Running,
                 nodeStatus = NodeStatus(
                     isRunning = true,
-                    isListening = true,
                     currentBestBlock = BestBlock(
                         height = 1000u,
                         blockHash = "0123456789abcDef",
@@ -463,6 +484,7 @@ private fun PreviewDevMode() {
                     latestRgsSnapshotTimestamp = null,
                     latestNodeAnnouncementBroadcastTimestamp = null,
                     latestChannelMonitorArchivalHeight = null,
+                    latestPathfindingScoresSyncTimestamp = null,
                 ),
                 nodeId = "0348a2b7c2d3f4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
                 peers = listOf(Env.Peers.staging),
