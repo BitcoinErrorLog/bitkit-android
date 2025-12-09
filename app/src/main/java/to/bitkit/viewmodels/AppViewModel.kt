@@ -45,7 +45,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -68,6 +67,7 @@ import to.bitkit.ext.maxSendableSat
 import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ext.minSendableSat
 import to.bitkit.ext.minWithdrawableSat
+import to.bitkit.ext.nowMillis
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
@@ -104,7 +104,10 @@ import to.bitkit.utils.Logger
 import to.bitkit.utils.jsonLogOf
 import java.math.BigDecimal
 import javax.inject.Inject
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel @Inject constructor(
@@ -1704,7 +1707,8 @@ class AppViewModel @Inject constructor(
         handleScan(data.removeLightningSchemes())
     }
 
-    // Todo Temporaary fix while these schemes can't be decoded
+    // TODO Temporary fix while these schemes can't be decoded
+    @Suppress("SpellCheckingInspection")
     private fun String.removeLightningSchemes(): String {
         return this
             .replace("lnurl:", "")
@@ -1767,31 +1771,29 @@ class AppViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val currentTime = Clock.System.now().toEpochMilliseconds()
+            val currentTime = nowMillis()
 
             when (currentSheet) {
-                TimedSheetType.BACKUP -> {
-                    settingsStore.update { it.copy(backupWarningIgnoredMillis = currentTime) }
+                TimedSheetType.HIGH_BALANCE -> settingsStore.update {
+                    it.copy(
+                        balanceWarningTimes = it.balanceWarningTimes + 1,
+                        balanceWarningIgnoredMillis = currentTime,
+                    )
                 }
 
-                TimedSheetType.HIGH_BALANCE -> {
-                    settingsStore.update {
-                        it.copy(
-                            balanceWarningTimes = it.balanceWarningTimes + 1,
-                            balanceWarningIgnoredMillis = currentTime
-                        )
-                    }
+                TimedSheetType.NOTIFICATIONS -> settingsStore.update {
+                    it.copy(notificationsIgnoredMillis = currentTime)
+                }
+
+                TimedSheetType.BACKUP -> settingsStore.update {
+                    it.copy(backupWarningIgnoredMillis = currentTime)
+                }
+
+                TimedSheetType.QUICK_PAY -> settingsStore.update {
+                    it.copy(quickPayIntroSeen = true)
                 }
 
                 TimedSheetType.APP_UPDATE -> Unit
-
-                TimedSheetType.NOTIFICATIONS -> {
-                    settingsStore.update { it.copy(notificationsIgnoredMillis = currentTime) }
-                }
-
-                TimedSheetType.QUICK_PAY -> {
-                    settingsStore.update { it.copy(quickPayIntroSeen = true) }
-                }
             }
         }
 

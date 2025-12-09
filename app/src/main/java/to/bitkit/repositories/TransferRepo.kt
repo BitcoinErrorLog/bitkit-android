@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.data.dao.TransferDao
 import to.bitkit.data.entities.TransferEntity
@@ -12,10 +11,13 @@ import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.channelId
 import to.bitkit.models.TransferType
 import to.bitkit.utils.Logger
-import java.util.*
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Singleton
 class TransferRepo @Inject constructor(
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,

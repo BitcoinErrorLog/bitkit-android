@@ -6,7 +6,6 @@ import com.synonym.bitkitcore.IBtChannel
 import com.synonym.bitkitcore.IBtOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.Clock
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.BalanceDetails
@@ -30,15 +29,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class TransferRepoTest : BaseUnitTest() {
 
     private lateinit var sut: TransferRepo
 
-    private val transferDao: TransferDao = mock()
-    private val lightningRepo: LightningRepo = mock()
-    private val blocktankRepo: BlocktankRepo = mock()
-    private val clock: Clock = mock()
+    private val transferDao = mock<TransferDao>()
+    private val lightningRepo = mock<LightningRepo>()
+    private val blocktankRepo = mock<BlocktankRepo>()
+    private val clock = mock<Clock>()
 
     private val testTransferId = "test-transfer-id"
     private val testChannelId = "test-channel-id"

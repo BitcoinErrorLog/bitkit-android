@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.Clock
 import org.lightningdevkit.ldknode.ChannelDetails
 import to.bitkit.R
 import to.bitkit.data.CacheStore
@@ -50,13 +49,16 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
 
 @Suppress("LongParameterList")
+@OptIn(ExperimentalTime::class)
 @HiltViewModel
 class TransferViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -223,7 +225,7 @@ class TransferViewModel @Inject constructor(
                         lspOrderId = order.id,
                     )
                     launch { walletRepo.syncBalances() }
-                    watchOrder(order.id)
+                    launch { watchOrder(order.id) }
                 }
                 .onFailure { error ->
                     ToastEventBus.send(error)
@@ -367,8 +369,7 @@ class TransferViewModel @Inject constructor(
     }
 
     fun calculateTransferValues(clientBalanceSat: ULong): TransferValues {
-        val blocktankInfo = blocktankRepo.blocktankState.value.info
-        if (blocktankInfo == null) return TransferValues()
+        val blocktankInfo = blocktankRepo.blocktankState.value.info ?: return TransferValues()
 
         // Calculate the total value of existing Blocktank channels
         val channelsSize = totalBtChannelsValueSats(blocktankInfo)
