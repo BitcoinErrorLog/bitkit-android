@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.Event
+import org.lightningdevkit.ldknode.WordCount
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
@@ -564,7 +565,7 @@ class WalletRepo @Inject constructor(
     }
 
     private fun generateEntropyMnemonic(): String {
-        return org.lightningdevkit.ldknode.generateEntropyMnemonic()
+        return org.lightningdevkit.ldknode.generateEntropyMnemonic(wordCount = WordCount.WORDS12)
     }
 
     private companion object {

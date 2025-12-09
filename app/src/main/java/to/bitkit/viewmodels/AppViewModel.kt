@@ -251,6 +251,8 @@ class AppViewModel @Inject constructor(
                     is Event.PaymentForwarded -> Unit
                     is Event.PaymentReceived -> handlePaymentReceived(event)
                     is Event.PaymentSuccessful -> handlePaymentSuccessful(event)
+                    is Event.SpliceFailed -> Unit
+                    is Event.SplicePending -> Unit
                     is Event.SyncCompleted -> handleSyncCompleted()
                     is Event.SyncProgress -> Unit
                 }

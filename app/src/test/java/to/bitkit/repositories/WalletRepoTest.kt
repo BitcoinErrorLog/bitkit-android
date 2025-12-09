@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
@@ -15,7 +16,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
@@ -33,7 +33,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class WalletRepoTest : BaseUnitTest() {
-
     private lateinit var sut: WalletRepo
 
     private val keychain = mock<Keychain>()
@@ -46,37 +45,55 @@ class WalletRepoTest : BaseUnitTest() {
     private val deriveBalanceStateUseCase = mock<DeriveBalanceStateUseCase>()
     private val wipeWalletUseCase = mock<WipeWalletUseCase>()
 
+    companion object Fixtures {
+        const val ACTIVITY_TAG = "testTag"
+        const val ADDRESS = "bc1qTest"
+        const val ADDRESS_NEW = "newAddress"
+        const val INVOICE = "testInvoice"
+        const val SATS = 1000uL
+        val error = RuntimeException("Test Error")
+        val channels = listOf(
+            mock<ChannelDetails> {
+                on { inboundCapacityMsat } doReturn 500_000u
+                on { isChannelReady } doReturn true
+            },
+            mock<ChannelDetails> {
+                on { inboundCapacityMsat } doReturn 500_000u
+                on { isChannelReady } doReturn true
+            }
+        )
+        private val channelReady = Event.ChannelReady(
+            channelId = "testChannelId",
+            userChannelId = "testUserChannelId",
+            counterpartyNodeId = null,
+            fundingTxo = null,
+        )
+    }
+
     @Before
-    fun setUp() {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(bolt11 = "", onchainAddress = "testAddress")))
+    fun setUp() = runBlocking {
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(bolt11 = "", onchainAddress = ADDRESS)))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
         whenever(lightningRepo.nodeEvents).thenReturn(MutableSharedFlow())
-        wheneverBlocking { lightningRepo.listSpendableOutputs() }.thenReturn(Result.success(emptyList()))
-        wheneverBlocking { lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()) }
-            .thenReturn(Result.success(1000uL))
-        wheneverBlocking { lightningRepo.canReceive() }.thenReturn(false)
+        whenever(lightningRepo.listSpendableOutputs()).thenReturn(Result.success(emptyList()))
+        whenever(lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()))
+            .thenReturn(Result.success(SATS))
+        whenever(lightningRepo.canReceive()).thenReturn(false)
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
-        wheneverBlocking { deriveBalanceStateUseCase.invoke() }.thenReturn(Result.success(BalanceState()))
+        whenever(deriveBalanceStateUseCase.invoke()).thenReturn(Result.success(BalanceState()))
 
         whenever(keychain.loadString(Keychain.Key.BIP39_MNEMONIC.name)).thenReturn("test mnemonic")
         whenever(keychain.loadString(Keychain.Key.BIP39_PASSPHRASE.name)).thenReturn(null)
 
         whenever(coreService.onchain).thenReturn(onchainService)
-        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadataTags(any(), any()) }
-            .thenReturn(Result.success(Unit))
-        wheneverBlocking { preActivityMetadataRepo.removePreActivityMetadataTags(any(), any()) }
-            .thenReturn(Result.success(Unit))
-        wheneverBlocking { preActivityMetadataRepo.getPreActivityMetadata(any(), any()) }
-            .thenReturn(Result.success(null))
-        wheneverBlocking { preActivityMetadataRepo.upsertPreActivityMetadata(any()) }
-            .thenReturn(Result.success(Unit))
-        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadata(any()) }
-            .thenReturn(Result.success(Unit))
-        wheneverBlocking { preActivityMetadataRepo.resetPreActivityMetadataTags(any()) }
-            .thenReturn(Result.success(Unit))
-        wheneverBlocking { preActivityMetadataRepo.deletePreActivityMetadata(any()) }
-            .thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.addPreActivityMetadataTags(any(), any())).thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.removePreActivityMetadataTags(any(), any())).thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.getPreActivityMetadata(any(), any())).thenReturn(Result.success(null))
+        whenever(preActivityMetadataRepo.upsertPreActivityMetadata(any())).thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.addPreActivityMetadata(any())).thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.resetPreActivityMetadataTags(any())).thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.deletePreActivityMetadata(any())).thenReturn(Result.success(Unit))
         sut = createSut()
     }
 
@@ -149,7 +166,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should generate new address when current is empty`() = test {
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success(ADDRESS_NEW))
 
         val result = sut.refreshBip21()
 
@@ -159,8 +176,8 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should set receiveOnSpendingBalance false when shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, true))
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success(ADDRESS_NEW))
 
         val result = sut.refreshBip21()
 
@@ -170,8 +187,8 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should set receiveOnSpendingBalance true when shouldBlockLightning is false`() = test {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, false))
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, false))
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success(ADDRESS_NEW))
 
         val result = sut.refreshBip21()
 
@@ -181,10 +198,9 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21 should generate new address when current has transactions`() = test {
-        val testAddress = "testAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
-        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(true)
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = ADDRESS)))
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success(ADDRESS_NEW))
+        whenever(coreService.isAddressUsed(any())).thenReturn(true)
 
         val result = sut.refreshBip21()
 
@@ -196,7 +212,7 @@ class WalletRepoTest : BaseUnitTest() {
     fun `refreshBip21 should keep address when current has no transactions`() = test {
         val existingAddress = "existingAddress"
         whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = existingAddress)))
-        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(false)
+        whenever(coreService.isAddressUsed(any())).thenReturn(false)
         sut = createSut()
         sut.loadFromCache()
 
@@ -236,7 +252,7 @@ class WalletRepoTest : BaseUnitTest() {
                 paymentId = "",
                 paymentHash = "",
                 paymentPreimage = "",
-                feePaidMsat = 10uL
+                feePaidMsat = 10uL,
             )
         )
 
@@ -245,19 +261,18 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `updateBip21Invoice should create bolt11 when node can receive`() = test {
-        val testInvoice = "testInvoice"
         whenever(lightningRepo.canReceive()).thenReturn(true)
-        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(testInvoice))
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(INVOICE))
 
-        sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
-            assertEquals(testInvoice, sut.walletState.value.bolt11)
+            assertEquals(INVOICE, sut.walletState.value.bolt11)
         }
     }
 
     @Test
     fun `updateBip21Invoice should not create bolt11 when node cannot receive`() = test {
-        sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
             assertEquals("", sut.walletState.value.bolt11)
         }
@@ -265,15 +280,14 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `updateBip21Invoice should build correct BIP21 URL`() = test {
-        val testAddress = "testAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success("testInvoice"))
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = ADDRESS)))
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(INVOICE))
         sut = createSut()
         sut.loadFromCache()
 
-        sut.updateBip21Invoice(amountSats = 1000uL, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
-            assertTrue(sut.walletState.value.bip21.contains(testAddress))
+            assertTrue(sut.walletState.value.bip21.contains(ADDRESS))
             assertTrue(sut.walletState.value.bip21.contains("amount=0.00001"))
             assertTrue(sut.walletState.value.bip21.contains("message=test"))
         }
@@ -281,22 +295,18 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `setOnchainAddress should update storage and state`() = test {
-        val testAddress = "testAddress"
+        sut.setOnchainAddress(ADDRESS)
 
-        sut.setOnchainAddress(testAddress)
-
-        assertEquals(testAddress, sut.walletState.value.onchainAddress)
-        verify(cacheStore).setOnchainAddress(testAddress)
+        assertEquals(ADDRESS, sut.walletState.value.onchainAddress)
+        verify(cacheStore).setOnchainAddress(ADDRESS)
     }
 
     @Test
     fun `setBolt11 should update storage and state`() = test {
-        val testBolt11 = "testBolt11"
+        sut.setBolt11(INVOICE)
 
-        sut.setBolt11(testBolt11)
-
-        assertEquals(testBolt11, sut.walletState.value.bolt11)
-        verify(cacheStore).saveBolt11(testBolt11)
+        assertEquals(INVOICE, sut.walletState.value.bolt11)
+        verify(cacheStore).saveBolt11(INVOICE)
     }
 
     @Test
@@ -311,14 +321,11 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `buildBip21Url should create correct URL`() = test {
-        val testAddress = "testAddress"
-        val testAmount = 1000uL
         val testMessage = "test message"
-        val testInvoice = "testInvoice"
 
-        val result = sut.buildBip21Url(testAddress, testAmount, testMessage, testInvoice)
+        val result = sut.buildBip21Url(ADDRESS, SATS, testMessage, INVOICE)
 
-        assertTrue(result.contains(testAddress))
+        assertTrue(result.contains(ADDRESS))
         assertTrue(result.contains("amount=0.00001"))
         assertTrue(result.contains("message=test+message"))
         assertTrue(result.contains("lightning=testInvoice"))
@@ -335,7 +342,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `toggleReceiveOnSpendingBalance should return failure if shouldBlockLightning is true`() = test {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(true, true))
+        whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, true))
 
         if (sut.walletState.value.receiveOnSpendingBalance) {
             sut.toggleReceiveOnSpendingBalance()
@@ -348,33 +355,26 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `addTagToSelected should add tag and update lastUsedTags`() = test {
-        val testTag = "testTag"
-        val testAddress = "bc1qtest"
-
         // Set address in wallet state so paymentId() returns it
-        sut.setOnchainAddress(testAddress)
+        sut.setOnchainAddress(ADDRESS)
 
-        // Now add the tag
-        val result = sut.addTagToSelected(testTag)
+        val result = sut.addTagToSelected(ACTIVITY_TAG)
 
         assertTrue(result.isSuccess)
-        assertEquals(listOf(testTag), sut.walletState.value.selectedTags)
-        verify(settingsStore).addLastUsedTag(testTag)
-        verify(preActivityMetadataRepo).addPreActivityMetadataTags(testAddress, listOf(testTag))
+        assertEquals(listOf(ACTIVITY_TAG), sut.walletState.value.selectedTags)
+        verify(settingsStore).addLastUsedTag(ACTIVITY_TAG)
+        verify(preActivityMetadataRepo).addPreActivityMetadataTags(ADDRESS, listOf(ACTIVITY_TAG))
     }
 
     @Test
     fun `removeTag should remove tag`() = test {
-        val testTag = "testTag"
-        val testAddress = "bc1qtest"
-
         // Set address in wallet state so paymentId() returns it
-        sut.setOnchainAddress(testAddress)
+        sut.setOnchainAddress(ADDRESS)
 
-        val addResult = sut.addTagToSelected(testTag)
+        val addResult = sut.addTagToSelected(ACTIVITY_TAG)
         assertTrue(addResult.isSuccess)
 
-        val removeResult = sut.removeTag(testTag)
+        val removeResult = sut.removeTag(ACTIVITY_TAG)
         assertTrue(removeResult.isSuccess)
 
         assertTrue(sut.walletState.value.selectedTags.isEmpty())
@@ -383,7 +383,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `addTagToSelected should fail when payment ID is not available`() = test {
         // Don't set address, so paymentId() returns null
-        val result = sut.addTagToSelected("testTag")
+        val result = sut.addTagToSelected(ACTIVITY_TAG)
 
         assertTrue(result.isFailure)
         assertNotNull(result.exceptionOrNull())
@@ -394,7 +394,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `removeTag should fail when payment ID is not available`() = test {
         // Don't set address, so paymentId() returns null
-        val result = sut.removeTag("testTag")
+        val result = sut.removeTag(ACTIVITY_TAG)
 
         assertTrue(result.isFailure)
         assertNotNull(result.exceptionOrNull())
@@ -403,15 +403,11 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `addTagToSelected should fail when metadata repo fails`() = test {
-        val testTag = "testTag"
-        val testAddress = "bc1qtest"
-        val error = RuntimeException("Repo error")
-
-        sut.setOnchainAddress(testAddress)
-        wheneverBlocking { preActivityMetadataRepo.addPreActivityMetadataTags(testAddress, listOf(testTag)) }
+        sut.setOnchainAddress(ADDRESS)
+        whenever(preActivityMetadataRepo.addPreActivityMetadataTags(ADDRESS, listOf(ACTIVITY_TAG)))
             .thenReturn(Result.failure(error))
 
-        val result = sut.addTagToSelected(testTag)
+        val result = sut.addTagToSelected(ACTIVITY_TAG)
 
         assertTrue(result.isFailure)
         assertEquals(error, result.exceptionOrNull())
@@ -420,15 +416,11 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `removeTag should fail when metadata repo fails`() = test {
-        val testTag = "testTag"
-        val testAddress = "bc1qtest"
-        val error = RuntimeException("Repo error")
-
-        sut.setOnchainAddress(testAddress)
-        wheneverBlocking { preActivityMetadataRepo.removePreActivityMetadataTags(testAddress, listOf(testTag)) }
+        sut.setOnchainAddress(ADDRESS)
+        whenever(preActivityMetadataRepo.removePreActivityMetadataTags(ADDRESS, listOf(ACTIVITY_TAG)))
             .thenReturn(Result.failure(error))
 
-        val result = sut.removeTag(testTag)
+        val result = sut.removeTag(ACTIVITY_TAG)
 
         assertTrue(result.isFailure)
         assertEquals(error, result.exceptionOrNull())
@@ -436,52 +428,33 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `shouldRequestAdditionalLiquidity should return false when geoBlocked is true`() = test {
-        // Given
         whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, false))
         sut.toggleReceiveOnSpendingBalance() // Set to false (initial is true)
 
-        // When
         val result = sut.shouldRequestAdditionalLiquidity()
 
-        // Then
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
     }
 
     @Test
     fun `shouldRequestAdditionalLiquidity should return false when geo status is true`() = test {
-        // Given
         whenever(coreService.checkGeoBlock()).thenReturn(Pair(true, false))
 
-        // When
         val result = sut.shouldRequestAdditionalLiquidity()
 
-        // Then
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
     }
 
     @Test
     fun `shouldRequestAdditionalLiquidity should return true when amount exceeds inbound capacity`() = test {
-        // Given
         whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
-        val testChannels = listOf(
-            mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 500_000u
-                on { isChannelReady } doReturn true
-            },
-            mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 300_000u
-                on { isChannelReady } doReturn true
-            }
-        )
-        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState(channels = testChannels)))
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState(channels = channels)))
         sut.updateBip21Invoice(amountSats = 1000uL)
 
-        // When
         val result = sut.shouldRequestAdditionalLiquidity()
 
-        // Then
         assertTrue(result.isSuccess)
         assertTrue(result.getOrThrow())
     }
@@ -500,31 +473,20 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `shouldRequestAdditionalLiquidity should return false when amount is less than inbound capacity`() = test {
-        // Given
         whenever(coreService.checkGeoBlock()).thenReturn(Pair(false, false))
-        val testChannels = listOf(
-            mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 500_000u // 500 sats
-            },
-            mock<ChannelDetails> {
-                on { inboundCapacityMsat } doReturn 500_000u // 500 sats
-            }
-        )
-        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState(channels = testChannels)))
-        sut.updateBip21Invoice(amountSats = 900uL) // 900 sats
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState(channels = channels)))
+        sut.updateBip21Invoice(amountSats = 900uL)
 
-        // When
         val result = sut.shouldRequestAdditionalLiquidity()
 
-        // Then
         assertTrue(result.isSuccess)
         assertFalse(result.getOrThrow())
     }
 
     @Test
     fun `clearBip21State should clear all bip21 related state`() = test {
-        sut.setOnchainAddress("bc1qtest")
-        val addResult = sut.addTagToSelected("tag1")
+        sut.setOnchainAddress(ADDRESS)
+        val addResult = sut.addTagToSelected(ACTIVITY_TAG)
         assertTrue(addResult.isSuccess)
         sut.updateBip21Invoice(amountSats = 1000uL, description = "test")
 
@@ -538,11 +500,9 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `setBip21AmountSats should update state`() = test {
-        val testAmount = 5000uL
+        sut.setBip21AmountSats(SATS)
 
-        sut.setBip21AmountSats(testAmount)
-
-        assertEquals(testAmount, sut.walletState.value.bip21AmountSats)
+        assertEquals(SATS, sut.walletState.value.bip21AmountSats)
     }
 
     @Test
@@ -556,50 +516,35 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21ForEvent ChannelReady should update bolt11 and preserve amount`() = test {
-        val testAmount = 1000uL
         val testDescription = "test"
-        val testInvoice = "newInvoice"
-        sut.setBip21AmountSats(testAmount)
+        sut.setBip21AmountSats(SATS)
         sut.setBip21Description(testDescription)
         whenever(lightningRepo.canReceive()).thenReturn(true)
-        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(testInvoice))
+        whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(INVOICE))
 
-        sut.refreshBip21ForEvent(
-            Event.ChannelReady(
-                channelId = "testChannelId",
-                userChannelId = "testUserChannelId",
-                counterpartyNodeId = null
-            )
-        )
+        sut.refreshBip21ForEvent(channelReady)
 
-        assertEquals(testInvoice, sut.walletState.value.bolt11)
-        assertEquals(testAmount, sut.walletState.value.bip21AmountSats)
+        assertEquals(INVOICE, sut.walletState.value.bolt11)
+        assertEquals(SATS, sut.walletState.value.bip21AmountSats)
         assertEquals(testDescription, sut.walletState.value.bip21Description)
     }
 
     @Test
     fun `refreshBip21ForEvent ChannelReady should not create invoice when cannot receive`() = test {
-        sut.setBip21AmountSats(1000uL)
+        sut.setBip21AmountSats(SATS)
         whenever(lightningRepo.canReceive()).thenReturn(false)
 
-        sut.refreshBip21ForEvent(
-            Event.ChannelReady(
-                channelId = "testChannelId",
-                userChannelId = "testUserChannelId",
-                counterpartyNodeId = null
-            )
-        )
+        sut.refreshBip21ForEvent(channelReady)
 
         verify(lightningRepo, never()).createInvoice(anyOrNull(), any(), any())
     }
 
     @Test
     fun `refreshBip21ForEvent ChannelClosed should clear bolt11 when cannot receive`() = test {
-        val testAddress = "testAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = ADDRESS)))
         sut = createSut()
         sut.loadFromCache()
-        sut.setBolt11("existingInvoice")
+        sut.setBolt11(INVOICE)
         whenever(lightningRepo.canReceive()).thenReturn(false)
 
         sut.refreshBip21ForEvent(
@@ -616,8 +561,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21ForEvent ChannelClosed should not clear bolt11 when can still receive`() = test {
-        val testInvoice = "existingInvoice"
-        sut.setBolt11(testInvoice)
+        sut.setBolt11(INVOICE)
         whenever(lightningRepo.canReceive()).thenReturn(true)
 
         sut.refreshBip21ForEvent(
@@ -629,15 +573,14 @@ class WalletRepoTest : BaseUnitTest() {
             )
         )
 
-        assertEquals(testInvoice, sut.walletState.value.bolt11)
+        assertEquals(INVOICE, sut.walletState.value.bolt11)
     }
 
     @Test
     fun `refreshBip21ForEvent PaymentReceived should refresh address if used`() = test {
-        val testAddress = "testAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(true)
-        whenever(lightningRepo.newAddress()).thenReturn(Result.success("newAddress"))
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = ADDRESS)))
+        whenever(coreService.isAddressUsed(any())).thenReturn(true)
+        whenever(lightningRepo.newAddress()).thenReturn(Result.success(ADDRESS_NEW))
         sut = createSut()
         sut.loadFromCache()
 
@@ -655,9 +598,8 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `refreshBip21ForEvent PaymentReceived should not refresh address if not used`() = test {
-        val testAddress = "testAddress"
-        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = testAddress)))
-        wheneverBlocking { coreService.isAddressUsed(any()) }.thenReturn(false)
+        whenever(cacheStore.data).thenReturn(flowOf(AppCacheData(onchainAddress = ADDRESS)))
+        whenever(coreService.isAddressUsed(any())).thenReturn(false)
         sut = createSut()
         sut.loadFromCache()
 
@@ -675,7 +617,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `wipeWallet should call use case`() = test {
-        wheneverBlocking { wipeWalletUseCase.invoke(any(), any(), any()) }.thenReturn(Result.success(Unit))
+        whenever(wipeWalletUseCase.invoke(any(), any(), any())).thenReturn(Result.success(Unit))
 
         val result = sut.wipeWallet()
 
@@ -685,8 +627,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `wipeWallet should return failure when use case fails`() = test {
-        val error = RuntimeException("Reset failed")
-        wheneverBlocking { wipeWalletUseCase.invoke(any(), any(), any()) }.thenReturn(Result.failure(error))
+        whenever(wipeWalletUseCase.invoke(any(), any(), any())).thenReturn(Result.failure(error))
 
         val result = sut.wipeWallet()
 

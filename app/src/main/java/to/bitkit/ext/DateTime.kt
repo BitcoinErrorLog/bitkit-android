@@ -39,6 +39,10 @@ fun Instant.formatted(pattern: String = DatePattern.DATE_TIME): String {
     return dateTime.format(formatter)
 }
 
+fun ULong?.formatToString(pattern: String = DatePattern.DATE_TIME): String? {
+    return this?.let { Instant.ofEpochSecond(toLong()).formatted(pattern) }
+}
+
 fun Long.toTimeUTC(): String {
     val instant = Instant.ofEpochMilli(this)
     val dateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"))
