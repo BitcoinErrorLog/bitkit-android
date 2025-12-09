@@ -293,9 +293,9 @@ private fun ToastHost(
 @Composable
 fun ToastOverlay(
     toast: Toast?,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     hazeState: HazeState = rememberHazeState(blurEnabled = true),
-    onDismiss: () -> Unit,
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
 ) {
@@ -320,7 +320,6 @@ private fun ToastViewPreview() {
         ScreenColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.WARNING,

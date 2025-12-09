@@ -36,7 +36,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -351,7 +350,6 @@ fun ContentView(
         val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
 
         val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
-        val hazeState = rememberHazeState()
 
         Box(
             modifier = modifier.fillMaxSize()
