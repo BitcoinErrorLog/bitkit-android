@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -31,7 +30,9 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import to.bitkit.ui.theme.Colors
@@ -130,10 +131,51 @@ fun Modifier.outerGlow(
     glowOpacity: Float,
     glowRadius: Dp = 12.dp,
     cornerRadius: Dp = 16.dp,
-): Modifier = composed {
-    val density = LocalDensity.current.density
+): Modifier = this.then(
+    OuterGlowElement(
+        glowColor = glowColor,
+        glowOpacity = glowOpacity,
+        glowRadius = glowRadius,
+        cornerRadius = cornerRadius
+    )
+)
 
-    this.drawBehind {
+private data class OuterGlowElement(
+    val glowColor: Color,
+    val glowOpacity: Float,
+    val glowRadius: Dp,
+    val cornerRadius: Dp,
+) : ModifierNodeElement<OuterGlowNode>() {
+    override fun create(): OuterGlowNode = OuterGlowNode(
+        glowColor = glowColor,
+        glowOpacity = glowOpacity,
+        glowRadius = glowRadius,
+        cornerRadius = cornerRadius
+    )
+
+    override fun update(node: OuterGlowNode) {
+        node.glowColor = glowColor
+        node.glowOpacity = glowOpacity
+        node.glowRadius = glowRadius
+        node.cornerRadius = cornerRadius
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "outerGlow"
+        properties["glowColor"] = glowColor
+        properties["glowOpacity"] = glowOpacity
+        properties["glowRadius"] = glowRadius
+        properties["cornerRadius"] = cornerRadius
+    }
+}
+
+private class OuterGlowNode(
+    var glowColor: Color,
+    var glowOpacity: Float,
+    var glowRadius: Dp,
+    var cornerRadius: Dp,
+) : DrawModifierNode, Modifier.Node() {
+    override fun androidx.compose.ui.graphics.drawscope.ContentDrawScope.draw() {
         val glowRadiusPx = glowRadius.toPx()
         val cornerRadiusPx = cornerRadius.toPx()
 
@@ -163,6 +205,9 @@ fun Modifier.outerGlow(
                 paint = paint
             )
         }
+
+        // Draw the actual content
+        drawContent()
     }
 }
 
