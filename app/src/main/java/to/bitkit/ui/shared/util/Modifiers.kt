@@ -1,8 +1,6 @@
 package to.bitkit.ui.shared.util
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBars
@@ -21,103 +19,13 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
-import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsPropertyReceiver
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import to.bitkit.ui.theme.Colors
-
-/**
- * Adjusts the alpha of a composable when it is pressed and makes it clickable.
- * When pressed, the alpha is reduced to provide visual feedback.
- * If `onClick` is null, the clickable behavior is disabled.
- *
- * Analogue of `TouchableOpacity` in React Native.
- */
-fun Modifier.clickableAlpha(
-    pressedAlpha: Float = 0.7f,
-    onClick: (() -> Unit)?,
-): Modifier = if (onClick != null) {
-    this.then(ClickableAlphaElement(pressedAlpha, onClick))
-} else {
-    this
-}
-
-private data class ClickableAlphaElement(
-    val pressedAlpha: Float,
-    val onClick: () -> Unit,
-) : ModifierNodeElement<ClickableAlphaNode>() {
-    override fun create(): ClickableAlphaNode = ClickableAlphaNode(pressedAlpha, onClick)
-
-    override fun update(node: ClickableAlphaNode) {
-        node.pressedAlpha = pressedAlpha
-        node.onClick = onClick
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "clickableAlpha"
-        properties["pressedAlpha"] = pressedAlpha
-        properties["onClick"] = onClick
-    }
-}
-
-private class ClickableAlphaNode(
-    var pressedAlpha: Float,
-    var onClick: () -> Unit,
-) : DelegatingNode(), LayoutModifierNode, SemanticsModifierNode {
-
-    private val animatable = Animatable(1f)
-
-    init {
-        delegate(SuspendingPointerInputModifierNode {
-            detectTapGestures(
-                onPress = {
-                    coroutineScope.launch { animatable.animateTo(pressedAlpha) }
-                    val released = tryAwaitRelease()
-                    if (!released) {
-                        coroutineScope.launch { animatable.animateTo(1f) }
-                    }
-                },
-                onTap = {
-                    onClick()
-                    coroutineScope.launch {
-                        animatable.animateTo(pressedAlpha)
-                        animatable.animateTo(1f)
-                    }
-                }
-            )
-        })
-    }
-
-    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
-        val placeable = measurable.measure(constraints)
-        return layout(placeable.width, placeable.height) {
-            placeable.placeWithLayer(0, 0) {
-                this.alpha = animatable.value
-            }
-        }
-    }
-
-    override fun SemanticsPropertyReceiver.applySemantics() {
-        role = Role.Button
-        onClick(action = { onClick(); true })
-    }
-}
 
 fun Modifier.gradientBackground(
     startColor: Color = Colors.White08,

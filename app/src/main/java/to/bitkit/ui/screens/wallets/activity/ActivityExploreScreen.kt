@@ -41,7 +41,6 @@ import com.synonym.bitkitcore.PaymentType
 import org.lightningdevkit.ldknode.TransactionDetails
 import to.bitkit.R
 import to.bitkit.ext.ellipsisMiddle
-import to.bitkit.ext.isBoosted
 import to.bitkit.ext.isSent
 import to.bitkit.ext.rawId
 import to.bitkit.ext.totalValue
@@ -56,7 +55,7 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.wallets.activity.components.ActivityIcon
-import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.copyToClipboard
