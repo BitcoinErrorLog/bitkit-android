@@ -78,10 +78,10 @@ class ToastQueueManager(private val scope: CoroutineScope) {
      * Resume current toast timer with FULL duration (called on drag end).
      */
     fun resumeCurrentToast() {
-        if (isPaused && _currentToast.value != null) {
+        val toast = _currentToast.value
+        if (isPaused && toast != null) {
             isPaused = false
-            val toast = _currentToast.value
-            if (toast?.autoHide == true) {
+            if (toast.autoHide) {
                 startTimer(toast.visibilityTime)
             }
         }
