@@ -69,9 +69,10 @@ fun SpendingAdvancedScreen(
     val amountUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
 
-    val transferValues by remember(order.clientBalanceSat) {
+    val transferValues by viewModel.transferValues.collectAsStateWithLifecycle()
+
+    LaunchedEffect(order.clientBalanceSat) {
         viewModel.updateTransferValues(order.clientBalanceSat)
-        mutableStateOf(viewModel.transferValues.value)
     }
 
     LaunchedEffect(amountUiState.sats) {
