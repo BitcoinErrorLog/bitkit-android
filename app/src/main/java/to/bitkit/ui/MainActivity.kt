@@ -24,6 +24,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -96,6 +98,7 @@ class MainActivity : FragmentActivity() {
                 val walletExists by walletViewModel.walletState
                     .map { it.walletExists }
                     .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
+                val hazeState = rememberHazeState(blurEnabled = true)
 
                 LaunchedEffect(
                     walletExists,
@@ -128,6 +131,7 @@ class MainActivity : FragmentActivity() {
                             transferViewModel = transferViewModel,
                             settingsViewModel = settingsViewModel,
                             backupsViewModel = backupsViewModel,
+                            modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
                         )
                     }
 
@@ -164,6 +168,7 @@ class MainActivity : FragmentActivity() {
 
                 ToastOverlay(
                     toast = appViewModel.currentToast,
+                    hazeState = hazeState,
                     onDismiss = {
                         appViewModel.hideToast()
                     }
