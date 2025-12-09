@@ -456,10 +456,40 @@ fun ContentView(
                     )
 
                     if (showTabBar) {
+                        //TODO DONT COMMIT
                         TabBar(
-                            onSendClick = { appViewModel.showSheet(Sheet.Send()) },
-                            onReceiveClick = { appViewModel.showSheet(Sheet.Receive) },
-                            onScanClick = { navController.navigateToScanner() },
+                            onSendClick = { appViewModel.toast(
+                                Toast(
+                                    type = Toast.ToastType.SUCCESS,
+                                    title = "You're Back Online!",
+                                    description = "Successfully reconnected to the Internet.",
+                                    autoHide = true,
+                                )
+                            ) },
+                            onReceiveClick = { appViewModel.toast(
+                                Toast(
+                                    type = Toast.ToastType.INFO,
+                                    title = "General Message",
+                                    description = "Used for neutral content to inform the user.",
+                                    autoHide = false,
+                                )
+                            ) },
+                            onScanClick = {
+                                appViewModel.toast(
+                                    Toast(
+                                        type = Toast.ToastType.SUCCESS,
+                                        title = "You're Back Online!",
+                                        description = "success message 2",
+                                        autoHide = true,
+                                    )
+                                    // Toast(
+                                    //     type = Toast.ToastType.WARNING,
+                                    //     title = "Warning title",
+                                    //     description = "warning body",
+                                    //     autoHide = true,
+                                    // )
+                                )
+                            },
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
