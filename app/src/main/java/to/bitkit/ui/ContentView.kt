@@ -348,7 +348,6 @@ fun ContentView(
 
         val hasSeenWidgetsIntro by settingsViewModel.hasSeenWidgetsIntro.collectAsStateWithLifecycle()
         val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
-
         val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
 
         Box(

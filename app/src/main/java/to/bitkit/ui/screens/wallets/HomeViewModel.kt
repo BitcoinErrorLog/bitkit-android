@@ -8,10 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.data.SettingsStore
+import to.bitkit.models.ActivityBannerType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.TransferType
 import to.bitkit.models.WidgetType
@@ -88,6 +90,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { newState }
             }
         }
+        viewModelScope.launch { createBannersFlow() }
     }
 
     private fun setupArticleRotation() {
@@ -212,6 +215,22 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(isEditingWidgets = false) }
     }
 
+    private suspend fun createBannersFlow() {
+        transferRepo.activeTransfers
+            .distinctUntilChanged()
+            .collect { transfers ->
+                val banners = listOfNotNull(
+                    ActivityBannerType.SPENDING.takeIf {
+                        transfers.any { it.type == TransferType.TO_SPENDING || it.type == TransferType.MANUAL_SETUP }
+                    },
+                    ActivityBannerType.SAVINGS.takeIf {
+                        transfers.any { it.type == TransferType.COOP_CLOSE || it.type == TransferType.FORCE_CLOSE }
+                    },
+                )
+                _uiState.update { it.copy(banners = banners) }
+            }
+    }
+
     private fun createSuggestionsFlow() = combine(
         walletRepo.balanceState,
         settingsStore.data,
@@ -221,13 +240,6 @@ class HomeViewModel @Inject constructor(
             balanceState.totalLightningSats > 0uL -> { // With Lightning
                 listOfNotNull(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
-                    Suggestion.LIGHTNING_READY.takeIf {
-                        Suggestion.LIGHTNING_SETTING_UP in _uiState.value.suggestions &&
-                            transfers.all { it.type != TransferType.TO_SPENDING }
-                    },
-                    Suggestion.LIGHTNING_SETTING_UP.takeIf { transfers.any { it.type == TransferType.TO_SPENDING } },
-                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
-                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -244,9 +256,7 @@ class HomeViewModel @Inject constructor(
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.LIGHTNING.takeIf {
                         transfers.all { it.type != TransferType.TO_SPENDING }
-                    } ?: Suggestion.LIGHTNING_SETTING_UP,
-                    Suggestion.TRANSFER_CLOSING_CHANNEL.takeIf { transfers.any { it.type == TransferType.COOP_CLOSE } },
-                    Suggestion.TRANSFER_PENDING.takeIf { transfers.any { it.type == TransferType.FORCE_CLOSE } },
+                    },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.BUY,
                     Suggestion.SUPPORT,
@@ -261,7 +271,7 @@ class HomeViewModel @Inject constructor(
                     Suggestion.BUY,
                     Suggestion.LIGHTNING.takeIf {
                         transfers.all { it.type != TransferType.TO_SPENDING }
-                    } ?: Suggestion.LIGHTNING_SETTING_UP,
+                    },
                     Suggestion.BACK_UP.takeIf { !settings.backupVerified },
                     Suggestion.SECURE.takeIf { !settings.isPinEnabled },
                     Suggestion.SUPPORT,

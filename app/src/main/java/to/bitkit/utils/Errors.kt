@@ -30,6 +30,7 @@ sealed class ServiceError(message: String) : AppError(message) {
     data object NodeStillRunning : ServiceError("Node is still running")
     data object InvalidNodeSigningMessage : ServiceError("Invalid node signing message")
     data object CurrencyRateUnavailable : ServiceError("Currency rate unavailable")
+    data object BlocktankInfoUnavailable : ServiceError("Blocktank info not available")
     data object GeoBlocked : ServiceError("Geo blocked user")
 }
 
@@ -46,8 +47,6 @@ class LdkError(private val inner: LdkException) : AppError("Unknown LDK error.")
         class Build(exception: BuildException) : LdkException {
             override val message = when (exception) {
                 is BuildException.InvalidChannelMonitor -> "Invalid channel monitor."
-                is BuildException.InvalidSeedBytes -> "Invalid seed bytes."
-                is BuildException.InvalidSeedFile -> "Invalid seed file."
                 is BuildException.InvalidSystemTime -> "Invalid system time."
                 is BuildException.InvalidListeningAddresses -> "Invalid listening addresses."
                 is BuildException.ReadFailed -> "Read failed."
