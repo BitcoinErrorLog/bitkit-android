@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.BtOrderState2
-import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,20 +31,16 @@ import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.env.Env
 import to.bitkit.ext.amountOnClose
-import to.bitkit.models.EUR_CURRENCY
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.TransferType
 import to.bitkit.models.safe
 import to.bitkit.repositories.BlocktankRepo
-import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
-import to.bitkit.utils.ServiceError
-import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
@@ -63,7 +58,6 @@ class TransferViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val blocktankRepo: BlocktankRepo,
     private val walletRepo: WalletRepo,
-    private val currencyRepo: CurrencyRepo,
     private val settingsStore: SettingsStore,
     private val cacheStore: CacheStore,
     private val transferRepo: TransferRepo,
@@ -361,120 +355,17 @@ class TransferViewModel @Inject constructor(
     // region Balance Calc
 
     fun updateTransferValues(clientBalanceSat: ULong) {
-        viewModelScope.launch {
-            _transferValues.value = calculateTransferValues(clientBalanceSat)
-        }
-    }
-
-    fun calculateTransferValues(clientBalanceSat: ULong): TransferValues {
-        val blocktankInfo = blocktankRepo.blocktankState.value.info
-        if (blocktankInfo == null) return TransferValues()
-
-        // Calculate the total value of existing Blocktank channels
-        val channelsSize = totalBtChannelsValueSats(blocktankInfo)
-
-        val minChannelSizeSat = blocktankInfo.options.minChannelSizeSat
-        val maxChannelSizeSat = blocktankInfo.options.maxChannelSizeSat
-
-        // Because LSP limits constantly change depending on network fees
-        // Add a 2% buffer to avoid fluctuations while making the order
-        val maxChannelSize1 = (maxChannelSizeSat.toDouble() * 0.98).roundToLong().toULong()
-
-        // The maximum channel size the user can open including existing channels
-        val maxChannelSize2 = maxChannelSize1.safe() - channelsSize.safe()
-        val maxChannelSizeAvailableToIncrease = min(maxChannelSize1, maxChannelSize2)
-
-        val minLspBalance = getMinLspBalance(clientBalanceSat, minChannelSizeSat)
-        val maxLspBalance = maxChannelSizeAvailableToIncrease.safe() - clientBalanceSat.safe()
-        val defaultLspBalance = getDefaultLspBalance(clientBalanceSat, maxLspBalance)
-        val maxClientBalance = getMaxClientBalance(maxChannelSizeAvailableToIncrease)
-
-        if (maxChannelSizeAvailableToIncrease < clientBalanceSat) {
-            Logger.warn(
-                "Amount clientBalanceSat:$clientBalanceSat too large, max possible: $maxChannelSizeAvailableToIncrease",
-                context = TAG
+        val options = blocktankRepo.calculateLiquidityOptions(clientBalanceSat)
+        _transferValues.value = if (options != null) {
+            TransferValues(
+                defaultLspBalance = options.defaultLspBalanceSat,
+                minLspBalance = options.minLspBalanceSat,
+                maxLspBalance = options.maxLspBalanceSat,
+                maxClientBalance = options.maxClientBalanceSat,
             )
-        }
-
-        if (defaultLspBalance !in minLspBalance..maxLspBalance) {
-            Logger.warn(
-                "Invalid defaultLspBalance:$defaultLspBalance " +
-                    "min possible:$maxLspBalance, " +
-                    "max possible: $minLspBalance",
-                context = TAG
-            )
-        }
-
-        if (maxChannelSizeAvailableToIncrease <= 0u) {
-            Logger.warn("Max channel size reached. current size: $channelsSize sats", context = TAG)
-        }
-
-        if (maxClientBalance <= 0u) {
-            Logger.warn("No liquidity available to purchase $maxClientBalance", context = TAG)
-        }
-
-        return TransferValues(
-            defaultLspBalance = defaultLspBalance,
-            minLspBalance = minLspBalance,
-            maxLspBalance = maxLspBalance,
-            maxClientBalance = maxClientBalance,
-        )
-    }
-
-    private fun getDefaultLspBalance(clientBalanceSat: ULong, maxLspBalance: ULong): ULong {
-        // Calculate thresholds in sats
-        val threshold1 = currencyRepo.convertFiatToSats(BigDecimal(225), EUR_CURRENCY).getOrNull()
-        val threshold2 = currencyRepo.convertFiatToSats(BigDecimal(495), EUR_CURRENCY).getOrNull()
-        val defaultLspBalanceSats = currencyRepo.convertFiatToSats(BigDecimal(450), EUR_CURRENCY).getOrNull()
-
-        Logger.debug("getDefaultLspBalance - clientBalanceSat: $clientBalanceSat")
-        Logger.debug("getDefaultLspBalance - maxLspBalance: $maxLspBalance")
-        Logger.debug("getDefaultLspBalance - defaultLspBalanceSats: $defaultLspBalanceSats")
-
-        if (threshold1 == null || threshold2 == null || defaultLspBalanceSats == null) {
-            Logger.error("Failed to get rates for lspBalance calculation", context = TAG)
-            throw ServiceError.CurrencyRateUnavailable
-        }
-
-        val lspBalance = if (clientBalanceSat < threshold1) { // 0-225€: LSP balance = 450€ - client balance
-            defaultLspBalanceSats.safe() - clientBalanceSat.safe()
-        } else if (clientBalanceSat < threshold2) { // 225-495€: LSP balance = client balance
-            clientBalanceSat
-        } else if (clientBalanceSat < maxLspBalance) { // 495-950€: LSP balance = max - client balance
-            maxLspBalance.safe() - clientBalanceSat.safe()
         } else {
-            maxLspBalance
+            TransferValues()
         }
-
-        return min(lspBalance, maxLspBalance)
-    }
-
-    private fun getMinLspBalance(clientBalance: ULong, minChannelSize: ULong): ULong {
-        // LSP balance must be at least 2.5% of the channel size for LDK to accept (reserve balance)
-        val ldkMinimum = (clientBalance.toDouble() * 0.025).toULong()
-        // Channel size must be at least minChannelSize
-        val lspMinimum = minChannelSize.safe() - clientBalance.safe()
-
-        return max(ldkMinimum, lspMinimum)
-    }
-
-    private fun getMaxClientBalance(maxChannelSize: ULong): ULong {
-        // Remote balance must be at least 2.5% of the channel size for LDK to accept (reserve balance)
-        val minRemoteBalance = (maxChannelSize.toDouble() * 0.025).toULong()
-
-        return maxChannelSize.safe() - minRemoteBalance.safe()
-    }
-
-    /** Calculates the total value of channels connected to Blocktank nodes */
-    private fun totalBtChannelsValueSats(info: IBtInfo?): ULong {
-        val channels = lightningRepo.getChannels() ?: return 0u
-        val btNodeIds = info?.nodes?.map { it.pubkey } ?: return 0u
-
-        val btChannels = channels.filter { btNodeIds.contains(it.counterpartyNodeId) }
-
-        val totalValue = btChannels.sumOf { it.channelValueSats }
-
-        return totalValue
     }
 
     // endregion

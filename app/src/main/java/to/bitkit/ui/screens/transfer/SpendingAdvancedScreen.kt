@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,12 +66,12 @@ fun SpendingAdvancedScreen(
     val app = appViewModel ?: return
     val state by viewModel.spendingUiState.collectAsStateWithLifecycle()
     val order = state.order ?: return
-    val transferValues by viewModel.transferValues.collectAsState()
     val amountUiState by amountInputViewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(order.clientBalanceSat) {
+    val transferValues by remember(order.clientBalanceSat) {
         viewModel.updateTransferValues(order.clientBalanceSat)
+        mutableStateOf(viewModel.transferValues.value)
     }
 
     LaunchedEffect(amountUiState.sats) {
@@ -102,7 +101,7 @@ fun SpendingAdvancedScreen(
 
     val isValid = transferValues.let {
         val amount = amountUiState.sats.toULong()
-        amount > 0u && amount in it.minLspBalance..it.maxLspBalance
+        amount > 0u && it.maxLspBalance > 0u && amount in it.minLspBalance..it.maxLspBalance
     }
 
     Content(

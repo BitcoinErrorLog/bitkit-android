@@ -1,12 +1,17 @@
 package to.bitkit.repositories
 
 import com.synonym.bitkitcore.BtOrderState2
+import com.synonym.bitkitcore.ChannelLiquidityOptions
+import com.synonym.bitkitcore.ChannelLiquidityParams
 import com.synonym.bitkitcore.CreateCjitOptions
 import com.synonym.bitkitcore.CreateOrderOptions
+import com.synonym.bitkitcore.DefaultLspBalanceParams
 import com.synonym.bitkitcore.IBtEstimateFeeResponse2
 import com.synonym.bitkitcore.IBtInfo
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.IcJitEntry
+import com.synonym.bitkitcore.calculateChannelLiquidityOptions
+import com.synonym.bitkitcore.getDefaultLspBalance
 import com.synonym.bitkitcore.giftOrder
 import com.synonym.bitkitcore.giftPay
 import kotlinx.coroutines.CoroutineDispatcher
@@ -46,7 +51,6 @@ import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.math.ceil
-import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -345,38 +349,55 @@ class BlocktankRepo @Inject constructor(
             refreshInfo()
         }
 
-        val maxLspBalance = _blocktankState.value.info?.options?.maxChannelSizeSat ?: 0uL
+        val satsPerEur = getSatsPerEur()
+            ?: throw ServiceError.CurrencyRateUnavailable
 
-        // Calculate thresholds in sats
-        val threshold1 = currencyRepo.convertFiatToSats(BigDecimal(225), EUR_CURRENCY).getOrNull()
-        val threshold2 = currencyRepo.convertFiatToSats(BigDecimal(495), EUR_CURRENCY).getOrNull()
-        val defaultLspBalanceSats = currencyRepo.convertFiatToSats(BigDecimal(450), EUR_CURRENCY).getOrNull()
-
-        Logger.debug("getDefaultLspBalance - clientBalance: $clientBalance", context = TAG)
-        Logger.debug("getDefaultLspBalance - maxLspBalance: $maxLspBalance", context = TAG)
-        Logger.debug(
-            "getDefaultLspBalance - defaultLspBalance: $defaultLspBalanceSats",
-            context = TAG
+        val params = DefaultLspBalanceParams(
+            clientBalanceSat = clientBalance,
+            maxChannelSizeSat = _blocktankState.value.info?.options?.maxChannelSizeSat ?: 0uL,
+            satsPerEur = satsPerEur
         )
 
-        if (threshold1 == null || threshold2 == null || defaultLspBalanceSats == null) {
-            Logger.error("Failed to get rates for lspBalance calculation", context = TAG)
-            throw ServiceError.CurrencyRateUnavailable
+        return@withContext getDefaultLspBalance(params)
+    }
+
+    fun calculateLiquidityOptions(clientBalanceSat: ULong): ChannelLiquidityOptions? {
+        val blocktankInfo = blocktankState.value.info
+        if (blocktankInfo == null) {
+            Logger.warn("calculateLiquidityOptions: blocktankInfo is null", context = TAG)
+            return null
         }
 
-        // Safely calculate lspBalance to avoid arithmetic overflow
-        var lspBalance: ULong = 0u
-        if (defaultLspBalanceSats > clientBalance) {
-            lspBalance = defaultLspBalanceSats - clientBalance
-        }
-        if (clientBalance > threshold1) {
-            lspBalance = clientBalance
-        }
-        if (clientBalance > threshold2) {
-            lspBalance = maxLspBalance
+        val satsPerEur = getSatsPerEur()
+        if (satsPerEur == null) {
+            Logger.warn("calculateLiquidityOptions: satsPerEur is null", context = TAG)
+            return null
         }
 
-        return@withContext min(lspBalance, maxLspBalance)
+        val existingChannelsTotalSat = totalBtChannelsValueSats(blocktankInfo)
+
+        val params = ChannelLiquidityParams(
+            clientBalanceSat = clientBalanceSat,
+            existingChannelsTotalSat = existingChannelsTotalSat,
+            minChannelSizeSat = blocktankInfo.options.minChannelSizeSat,
+            maxChannelSizeSat = blocktankInfo.options.maxChannelSizeSat,
+            satsPerEur = satsPerEur
+        )
+
+        return calculateChannelLiquidityOptions(params)
+    }
+
+    private fun getSatsPerEur(): ULong? {
+        return currencyRepo.convertFiatToSats(BigDecimal(1), EUR_CURRENCY).getOrNull()
+    }
+
+    private fun totalBtChannelsValueSats(info: IBtInfo?): ULong {
+        val channels = lightningRepo.getChannels() ?: return 0u
+        val btNodeIds = info?.nodes?.map { it.pubkey } ?: return 0u
+
+        val btChannels = channels.filter { btNodeIds.contains(it.counterpartyNodeId) }
+
+        return btChannels.sumOf { it.channelValueSats }
     }
 
     suspend fun resetState() = withContext(bgDispatcher) {
