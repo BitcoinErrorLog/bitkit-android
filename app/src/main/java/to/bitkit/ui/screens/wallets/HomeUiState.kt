@@ -2,6 +2,7 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.compose.runtime.Stable
 import to.bitkit.data.dto.price.PriceDTO
+import to.bitkit.models.ActivityBannerType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.WidgetType
 import to.bitkit.models.WidgetWithPosition
@@ -17,6 +18,7 @@ import to.bitkit.ui.screens.widgets.blocks.WeatherModel
 @Stable
 data class HomeUiState(
     val suggestions: List<Suggestion> = listOf(),
+    val banners: List<ActivityBannerType> = listOf(),
     val showWidgets: Boolean = false,
     val showWidgetTitles: Boolean = false,
     val widgetsWithPosition: List<WidgetWithPosition> = emptyList(),

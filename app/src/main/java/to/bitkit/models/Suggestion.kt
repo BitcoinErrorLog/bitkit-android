@@ -67,40 +67,6 @@ enum class Suggestion(
         color = Colors.Green24,
         icon = R.drawable.fast_forward
     ),
-
-    /**Replaces LIGHTNING when a LN channel is being force closed*/
-    TRANSFER_PENDING(
-        title = R.string.cards__lightningSettingUp__title,
-        description = R.string.cards__transferPending__description,
-        color = Colors.Purple24,
-        icon = R.drawable.transfer,
-        dismissible = false
-    ),
-
-    /**When the LN channel could not be cooped closed immediately*/
-    TRANSFER_CLOSING_CHANNEL(
-        title = R.string.cards__transferClosingChannel__title,
-        description = R.string.cards__transferClosingChannel__description,
-        color = Colors.Red24,
-        icon = R.drawable.transfer,
-        dismissible = false
-    ),
-
-    /**Replaces LIGHTNING when the transfer to spending balance is in progress*/
-    LIGHTNING_SETTING_UP(
-        title = R.string.cards__lightningSettingUp__title,
-        description = R.string.cards__lightningSettingUp__description,
-        color = Colors.Purple24,
-        icon = R.drawable.transfer,
-        dismissible = false
-    ),
-    LIGHTNING_READY(
-        title = R.string.cards__lightningReady__title,
-        description = R.string.cards__lightningReady__description,
-        color = Colors.Purple24,
-        icon = R.drawable.transfer,
-        dismissible = false,
-    ),
     NOTIFICATIONS(
         title = R.string.cards__notifications__title,
         description = R.string.cards__notifications__description,
