@@ -41,11 +41,11 @@ val locales = listOf("en", "ar", "ca", "cs", "de", "el", "es", "fr", "it", "nl",
 
 android {
     namespace = "to.bitkit"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "to.bitkit"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 15
         versionName = "0.0.15"
         testInstrumentationRunner = "to.bitkit.test.HiltTestRunner"
