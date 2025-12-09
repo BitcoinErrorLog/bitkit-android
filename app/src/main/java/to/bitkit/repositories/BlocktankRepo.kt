@@ -361,18 +361,12 @@ class BlocktankRepo @Inject constructor(
         return@withContext getDefaultLspBalance(params)
     }
 
-    fun calculateLiquidityOptions(clientBalanceSat: ULong): ChannelLiquidityOptions? {
+    fun calculateLiquidityOptions(clientBalanceSat: ULong): Result<ChannelLiquidityOptions> {
         val blocktankInfo = blocktankState.value.info
-        if (blocktankInfo == null) {
-            Logger.warn("calculateLiquidityOptions: blocktankInfo is null", context = TAG)
-            return null
-        }
+            ?: return Result.failure(ServiceError.BlocktankInfoUnavailable)
 
         val satsPerEur = getSatsPerEur()
-        if (satsPerEur == null) {
-            Logger.warn("calculateLiquidityOptions: satsPerEur is null", context = TAG)
-            return null
-        }
+            ?: return Result.failure(ServiceError.CurrencyRateUnavailable)
 
         val existingChannelsTotalSat = totalBtChannelsValueSats(blocktankInfo)
 
@@ -384,7 +378,7 @@ class BlocktankRepo @Inject constructor(
             satsPerEur = satsPerEur
         )
 
-        return calculateChannelLiquidityOptions(params)
+        return Result.success(calculateChannelLiquidityOptions(params))
     }
 
     private fun getSatsPerEur(): ULong? {

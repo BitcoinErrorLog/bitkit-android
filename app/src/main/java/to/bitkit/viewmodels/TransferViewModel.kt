@@ -42,7 +42,6 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import javax.inject.Inject
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.minutes
@@ -88,7 +87,8 @@ class TransferViewModel @Inject constructor(
     // region Spending
 
     fun onConfirmAmount(satsAmount: Long) {
-        if (_transferValues.value.maxLspBalance == 0uL) {
+        val values = blocktankRepo.calculateLiquidityOptions(satsAmount.toULong()).getOrNull()
+        if (values == null || values.maxLspBalanceSat == 0uL) {
             setTransferEffect(
                 TransferEffect.ToastError(
                     title = context.getString(R.string.lightning__spending_amount__error_max__title),
@@ -99,28 +99,20 @@ class TransferViewModel @Inject constructor(
             )
             return
         }
+
+        val lspBalance = maxOf(values.defaultLspBalanceSat, values.minLspBalanceSat)
+
         viewModelScope.launch {
             _spendingUiState.update { it.copy(isLoading = true) }
-
-            val minAmount = getMinAmountToPurchase(satsAmount)
-            if (satsAmount < minAmount) {
-                setTransferEffect(
-                    TransferEffect.ToastError(
-                        title = context.getString(R.string.lightning__spending_amount__error_min__title),
-                        description = context.getString(
-                            R.string.lightning__spending_amount__error_min__description
-                        ).replace("{amount}", "$minAmount"),
-                    )
-                )
-                _spendingUiState.update { it.copy(isLoading = false) }
-                return@launch
-            }
 
             withTimeoutOrNull(1.minutes) {
                 isNodeRunning.first { it }
             }
 
-            blocktankRepo.createOrder(satsAmount.toULong())
+            blocktankRepo.createOrder(
+                spendingBalanceSats = satsAmount.toULong(),
+                receivingBalanceSats = lspBalance,
+            )
                 .onSuccess { order ->
                     settingsStore.update { it.copy(lightningSetupStep = 0) }
                     onOrderCreated(order)
@@ -269,11 +261,6 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getMinAmountToPurchase(satsAmount: Long = 0L): Long {
-        val fee = lightningRepo.calculateTotalFee(satsAmount.toULong()).getOrNull() ?: 0u
-        return max((fee + maxLspFee).toLong(), Env.TransactionDefaults.dustLimit.toLong())
-    }
-
     private suspend fun onOrderCreated(order: IBtOrder) {
         settingsStore.update { it.copy(lightningSetupStep = 0) }
         _spendingUiState.update { it.copy(order = order, isAdvanced = false, defaultOrder = null) }
@@ -355,7 +342,7 @@ class TransferViewModel @Inject constructor(
     // region Balance Calc
 
     fun updateTransferValues(clientBalanceSat: ULong) {
-        val options = blocktankRepo.calculateLiquidityOptions(clientBalanceSat)
+        val options = blocktankRepo.calculateLiquidityOptions(clientBalanceSat).getOrNull()
         _transferValues.value = if (options != null) {
             TransferValues(
                 defaultLspBalance = options.defaultLspBalanceSat,
