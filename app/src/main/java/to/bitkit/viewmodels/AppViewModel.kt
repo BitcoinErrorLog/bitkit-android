@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -96,6 +97,7 @@ import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
+import to.bitkit.ui.shared.toast.ToastQueueManager
 import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.sheets.SendRoute
@@ -1518,8 +1520,8 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Toasts
-    var currentToast by mutableStateOf<Toast?>(null)
-        private set
+    private val toastManager = ToastQueueManager(viewModelScope)
+    val currentToast: StateFlow<Toast?> = toastManager.currentToast
 
     fun toast(
         type: Toast.ToastType,
@@ -1529,20 +1531,16 @@ class AppViewModel @Inject constructor(
         visibilityTime: Long = Toast.VISIBILITY_TIME_DEFAULT,
         testTag: String? = null,
     ) {
-        currentToast = Toast(
-            type = type,
-            title = title,
-            description = description,
-            autoHide = autoHide,
-            visibilityTime = visibilityTime,
-            testTag = testTag,
+        toastManager.enqueue(
+            Toast(
+                type = type,
+                title = title,
+                description = description,
+                autoHide = autoHide,
+                visibilityTime = visibilityTime,
+                testTag = testTag,
+            )
         )
-        if (autoHide) {
-            viewModelScope.launch {
-                delay(visibilityTime)
-                currentToast = null
-            }
-        }
     }
 
     fun toast(error: Throwable) {
@@ -1560,7 +1558,19 @@ class AppViewModel @Inject constructor(
     }
 
     fun hideToast() {
-        currentToast = null
+        toastManager.dismissCurrentToast()
+    }
+
+    fun pauseToast() {
+        toastManager.pauseCurrentToast()
+    }
+
+    fun resumeToast() {
+        toastManager.resumeCurrentToast()
+    }
+
+    fun clearToastQueue() {
+        toastManager.clear()
     }
     // endregion
 
