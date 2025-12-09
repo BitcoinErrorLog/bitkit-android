@@ -233,47 +233,44 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private fun watchOrder(orderId: String, frequencyMs: Long = 2_500) {
-        var isSettled = false
-        var error: Throwable? = null
+    private suspend fun watchOrder(orderId: String, frequencyMs: Long = 2_500): Result<Boolean> {
+        Logger.debug("Started watching order: '$orderId'", context = TAG)
 
-        viewModelScope.launch {
-            Logger.debug("Started to watch order '$orderId'", context = TAG)
-
-            while (!isSettled && error == null) {
+        try {
+            while (true) {
                 try {
-                    Logger.debug("Refreshing order '$orderId'")
+                    // refresh
+                    Logger.debug("Refreshing order: '$orderId'")
                     val order = blocktankRepo.getOrder(orderId, refresh = true).getOrNull()
                     if (order == null) {
-                        error = Exception("Order not found '$orderId'").also {
-                            Logger.error(it.message, context = TAG)
-                        }
-                        break
+                        val error = Exception("Order not found: '$orderId'")
+                        Logger.error(error.message, context = TAG)
+                        return Result.failure(error)
                     }
 
+                    // update & claim if PAID
                     val step = updateOrder(order)
                     settingsStore.update { it.copy(lightningSetupStep = step) }
                     Logger.debug("LN setup step: $step")
 
+                    // run checks
                     if (order.state2 == BtOrderState2.EXPIRED) {
-                        error = Exception("Order expired '$orderId'").also {
-                            Logger.error(it.message, context = TAG)
-                        }
-                        break
+                        val error = Exception("Order expired: '$orderId'")
+                        Logger.error(error.message, context = TAG)
+                        return Result.failure(error)
                     }
                     if (step > 2) {
-                        Logger.debug("Order settled, stopping watch order '$orderId'", context = TAG)
-                        isSettled = true
-                        break
+                        Logger.debug("Order settled: '$orderId'", context = TAG)
+                        return Result.success(true)
                     }
                 } catch (e: Throwable) {
-                    Logger.error("Failed to watch order '$orderId'", e, context = TAG)
-                    error = e
-                    break
+                    Logger.error("Failed to watch order: '$orderId'", e, context = TAG)
+                    return Result.failure(e)
                 }
                 delay(frequencyMs)
             }
-            Logger.debug("Stopped watching order '$orderId'", context = TAG)
+        } finally {
+            Logger.debug("Stopped watching order: '$orderId'", context = TAG)
         }
     }
 
@@ -329,22 +326,32 @@ class TransferViewModel @Inject constructor(
     }
 
     private suspend fun updateOrder(order: IBtOrder): Int {
+        // Channel is open
         if (order.channel != null) {
             transferRepo.syncTransferStates()
             return LN_SETUP_STEP_3
         }
 
         when (order.state2) {
-            BtOrderState2.CREATED -> return 0
+            BtOrderState2.CREATED -> return LN_SETUP_STEP_0
 
             BtOrderState2.PAID -> {
-                blocktankRepo.openChannel(order.id)
-                return 1
+                // Attempt to claim the order by finalizing the channel open
+                val openResult = blocktankRepo.openChannel(order.id)
+                if (openResult.isSuccess) {
+                    // Channel opened successfully, refresh order to get updated state
+                    val updatedOrder = blocktankRepo.getOrder(order.id, refresh = true).getOrNull()
+                    if (updatedOrder?.channel != null) {
+                        transferRepo.syncTransferStates()
+                        return LN_SETUP_STEP_3
+                    }
+                }
+                return LN_SETUP_STEP_1
             }
 
-            BtOrderState2.EXECUTED -> return 2
+            BtOrderState2.EXECUTED -> return LN_SETUP_STEP_2
 
-            else -> return 0
+            else -> return LN_SETUP_STEP_0
         }
     }
 
@@ -614,6 +621,9 @@ class TransferViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TransferViewModel"
+        const val LN_SETUP_STEP_0 = 0
+        const val LN_SETUP_STEP_1 = 1
+        const val LN_SETUP_STEP_2 = 2
         const val LN_SETUP_STEP_3 = 3
     }
 }
