@@ -46,7 +46,6 @@ import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
-
 private val iconToTextGap = 4.dp
 private val iconSize = 20.dp
 

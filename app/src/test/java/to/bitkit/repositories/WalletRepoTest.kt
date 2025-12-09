@@ -50,8 +50,8 @@ class WalletRepoTest : BaseUnitTest() {
         const val ADDRESS = "bc1qTest"
         const val ADDRESS_NEW = "newAddress"
         const val INVOICE = "testInvoice"
+        const val SATS = 1000uL
         val error = RuntimeException("Test Error")
-        val amountSats = 1000uL
         val channels = listOf(
             mock<ChannelDetails> {
                 on { inboundCapacityMsat } doReturn 500_000u
@@ -78,7 +78,7 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(lightningRepo.nodeEvents).thenReturn(MutableSharedFlow())
         whenever(lightningRepo.listSpendableOutputs()).thenReturn(Result.success(emptyList()))
         whenever(lightningRepo.calculateTotalFee(any(), any(), any(), any(), anyOrNull()))
-            .thenReturn(Result.success(amountSats))
+            .thenReturn(Result.success(SATS))
         whenever(lightningRepo.canReceive()).thenReturn(false)
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
         whenever(deriveBalanceStateUseCase.invoke()).thenReturn(Result.success(BalanceState()))
@@ -264,7 +264,7 @@ class WalletRepoTest : BaseUnitTest() {
         whenever(lightningRepo.canReceive()).thenReturn(true)
         whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(INVOICE))
 
-        sut.updateBip21Invoice(amountSats = amountSats, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
             assertEquals(INVOICE, sut.walletState.value.bolt11)
         }
@@ -272,7 +272,7 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `updateBip21Invoice should not create bolt11 when node cannot receive`() = test {
-        sut.updateBip21Invoice(amountSats = amountSats, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
             assertEquals("", sut.walletState.value.bolt11)
         }
@@ -285,7 +285,7 @@ class WalletRepoTest : BaseUnitTest() {
         sut = createSut()
         sut.loadFromCache()
 
-        sut.updateBip21Invoice(amountSats = amountSats, description = "test").let { result ->
+        sut.updateBip21Invoice(amountSats = SATS, description = "test").let { result ->
             assertTrue(result.isSuccess)
             assertTrue(sut.walletState.value.bip21.contains(ADDRESS))
             assertTrue(sut.walletState.value.bip21.contains("amount=0.00001"))
@@ -323,7 +323,7 @@ class WalletRepoTest : BaseUnitTest() {
     fun `buildBip21Url should create correct URL`() = test {
         val testMessage = "test message"
 
-        val result = sut.buildBip21Url(ADDRESS, amountSats, testMessage, INVOICE)
+        val result = sut.buildBip21Url(ADDRESS, SATS, testMessage, INVOICE)
 
         assertTrue(result.contains(ADDRESS))
         assertTrue(result.contains("amount=0.00001"))
@@ -500,9 +500,9 @@ class WalletRepoTest : BaseUnitTest() {
 
     @Test
     fun `setBip21AmountSats should update state`() = test {
-        sut.setBip21AmountSats(amountSats)
+        sut.setBip21AmountSats(SATS)
 
-        assertEquals(amountSats, sut.walletState.value.bip21AmountSats)
+        assertEquals(SATS, sut.walletState.value.bip21AmountSats)
     }
 
     @Test
@@ -517,7 +517,7 @@ class WalletRepoTest : BaseUnitTest() {
     @Test
     fun `refreshBip21ForEvent ChannelReady should update bolt11 and preserve amount`() = test {
         val testDescription = "test"
-        sut.setBip21AmountSats(amountSats)
+        sut.setBip21AmountSats(SATS)
         sut.setBip21Description(testDescription)
         whenever(lightningRepo.canReceive()).thenReturn(true)
         whenever(lightningRepo.createInvoice(anyOrNull(), any(), any())).thenReturn(Result.success(INVOICE))
@@ -525,13 +525,13 @@ class WalletRepoTest : BaseUnitTest() {
         sut.refreshBip21ForEvent(channelReady)
 
         assertEquals(INVOICE, sut.walletState.value.bolt11)
-        assertEquals(amountSats, sut.walletState.value.bip21AmountSats)
+        assertEquals(SATS, sut.walletState.value.bip21AmountSats)
         assertEquals(testDescription, sut.walletState.value.bip21Description)
     }
 
     @Test
     fun `refreshBip21ForEvent ChannelReady should not create invoice when cannot receive`() = test {
-        sut.setBip21AmountSats(amountSats)
+        sut.setBip21AmountSats(SATS)
         whenever(lightningRepo.canReceive()).thenReturn(false)
 
         sut.refreshBip21ForEvent(channelReady)
