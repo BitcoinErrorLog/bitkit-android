@@ -31,9 +31,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
     private val _currentToast = MutableStateFlow<Toast?>(null)
     val currentToast: StateFlow<Toast?> = _currentToast.asStateFlow()
 
-    private val _queueSize = MutableStateFlow(0)
-    val queueSize: StateFlow<Int> = _queueSize.asStateFlow()
-
     // Internal queue state
     private val _queue = MutableStateFlow<List<Toast>>(emptyList())
     private var timerJob: Job? = null
@@ -50,7 +47,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
             } else {
                 current + toast
             }
-            _queueSize.value = newQueue.size
             newQueue
         }
         // If no toast is currently displayed, show this one immediately
@@ -97,7 +93,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
     fun clear() {
         cancelTimer()
         _queue.value = emptyList()
-        _queueSize.value = 0
         _currentToast.value = null
         isPaused = false
     }
@@ -110,7 +105,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
 
         // Remove from queue
         _queue.update { it.drop(1) }
-        _queueSize.value = _queue.value.size
 
         // Display toast
         _currentToast.value = nextToast
