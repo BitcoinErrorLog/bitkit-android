@@ -351,7 +351,6 @@ fun ContentView(
         val hasSeenShopIntro by settingsViewModel.hasSeenShopIntro.collectAsStateWithLifecycle()
 
         val currentSheet by appViewModel.currentSheet.collectAsStateWithLifecycle()
-        val hazeState = rememberHazeState()
 
         Box(
             modifier = modifier.fillMaxSize()

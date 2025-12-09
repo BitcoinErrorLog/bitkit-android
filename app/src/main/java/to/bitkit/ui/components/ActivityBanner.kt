@@ -42,11 +42,11 @@ private const val GLOW_ANIMATION_MILLIS = 1200
 
 @Composable
 fun ActivityBanner(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
     gradientColor: Color,
     title: String,
     @DrawableRes icon: Int,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
 
@@ -156,7 +156,6 @@ fun ActivityBanner(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
