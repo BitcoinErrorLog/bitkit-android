@@ -95,9 +95,11 @@ class LightningService @Inject constructor(
     private fun config(
         walletIndex: Int,
     ): Config {
-        // TODO get trustedLnPeers from blocktank info
-        val trustedPeerNodeIds = Env.trustedLnPeers.map { it.nodeId }
         val dirPath = Env.ldkStoragePath(walletIndex)
+
+        // TODO get trustedLnPeers from blocktank info
+        this.trustedPeers = Env.trustedLnPeers
+        val trustedPeerNodeIds = trustedPeers.map { it.nodeId }
 
         return defaultConfig().copy(
             storageDirPath = dirPath,
