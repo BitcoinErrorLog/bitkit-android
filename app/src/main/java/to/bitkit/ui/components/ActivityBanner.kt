@@ -43,12 +43,11 @@ private const val GLOW_ANIMATION_MILLIS = 1200
 @Composable
 fun ActivityBanner(
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     gradientColor: Color,
     title: String,
     @DrawableRes icon: Int,
-    onClick: (() -> Unit)? = null,
 ) {
-
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
 
     val innerShadowOpacity by infiniteTransition.animateFloat(
@@ -72,7 +71,7 @@ fun ActivityBanner(
     )
 
     val radialGradientOpacity by infiniteTransition.animateFloat(
-        initialValue = 0.6f,  // Increased from 0.4f for more prominent glow
+        initialValue = 0.6f,
         targetValue = 0.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = GLOW_ANIMATION_MILLIS),
@@ -116,8 +115,8 @@ fun ActivityBanner(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.Transparent,  // Transparent center
-                            gradientColor.copy(alpha = innerShadowOpacity)  // Full opacity for more visible glow
+                            Color.Transparent,
+                            gradientColor.copy(alpha = innerShadowOpacity)
                         ),
                         radius = 400f
                     )
@@ -126,7 +125,7 @@ fun ActivityBanner(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            gradientColor.copy(alpha = 0.32f),  // Increased from 0.24f for more visibility
+                            gradientColor.copy(alpha = 0.32f),
                             gradientColor.copy(alpha = 0f)
                         )
                     )

@@ -140,7 +140,7 @@ fun Modifier.outerGlow(
 
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
-                color = glowColor.copy(alpha = 0f)  // Transparent fill
+                color = glowColor.copy(alpha = 0f) // Transparent fill
                 isAntiAlias = true
             }
 
@@ -148,10 +148,10 @@ fun Modifier.outerGlow(
             val frameworkPaint = paint.asFrameworkPaint()
             frameworkPaint.color = glowColor.copy(alpha = 0f).toArgb()
             frameworkPaint.setShadowLayer(
-                glowRadiusPx,  // Blur radius
-                0f,  // X offset
-                0f,  // Y offset
-                glowColor.copy(alpha = glowOpacity).toArgb()  // Shadow color with animated opacity
+                glowRadiusPx,
+                0f,
+                0f,
+                glowColor.copy(alpha = glowOpacity).toArgb()
             )
 
             canvas.drawRoundRect(
