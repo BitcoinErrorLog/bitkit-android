@@ -637,7 +637,12 @@ private fun RootNavHost(
             composableWithDefaultTransitions<Routes.SettingUp> {
                 SettingUpScreen(
                     viewModel = transferViewModel,
-                    onContinueClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
+                    onContinueClick = {
+                        navController.navigateToHome(
+                            walletNavController = walletNavController,
+                            nestedRoute = HomeRoutes.Home
+                        )
+                    }
                 )
             }
             composableWithDefaultTransitions<Routes.Funding> {
