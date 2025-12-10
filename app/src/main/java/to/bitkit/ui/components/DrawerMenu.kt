@@ -142,21 +142,10 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
-                val isOnHome = rootNavController.currentBackStackEntry
-                    ?.destination?.hasRoute<Routes.Home>() == true && walletNavController.currentBackStackEntry
-                    ?.destination?.hasRoute<HomeRoutes.Home>() == true
-                if (!isOnHome) {
-                    walletNavController.run {
-                        val popped = popBackStack<HomeRoutes.Home>(inclusive = false)
-                        if (!popped) {
-                            navigate(HomeRoutes.Home) {
-                                popUpTo(graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                    rootNavController.navigateToHome()
-                }
+                rootNavController.navigateToHome(
+                    walletNavController = walletNavController,
+                    nestedRoute = HomeRoutes.Home
+                )
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")

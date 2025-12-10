@@ -87,6 +87,7 @@ import to.bitkit.ui.screens.transfer.external.ExternalNodeViewModel
 import to.bitkit.ui.screens.transfer.external.ExternalSuccessScreen
 import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen
 import to.bitkit.ui.screens.wallets.HomeNav
+import to.bitkit.ui.screens.wallets.HomeRoutes
 import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
@@ -1393,6 +1394,35 @@ private fun NavGraphBuilder.widgets(
 
 // region events
 fun NavController.navigateToHome() {
+    val popped = popBackStack<Routes.Home>(inclusive = false)
+    if (!popped) {
+        navigate(Routes.Home) {
+            popUpTo(graph.startDestinationId)
+            launchSingleTop = true
+        }
+    }
+}
+
+fun NavController.navigateToHome(
+    walletNavController: NavController?,
+    nestedRoute: Any?,
+) {
+    // Handle nested navigation if provided
+    walletNavController?.run {
+        when (nestedRoute) {
+            is HomeRoutes.Home -> {
+                val popped = popBackStack<HomeRoutes.Home>(inclusive = false)
+                if (!popped) {
+                    navigate(HomeRoutes.Home) {
+                        popUpTo(graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+    }
+
+    // Handle root navigation
     val popped = popBackStack<Routes.Home>(inclusive = false)
     if (!popped) {
         navigate(Routes.Home) {
