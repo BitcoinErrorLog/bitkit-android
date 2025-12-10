@@ -217,7 +217,6 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun createBannersFlow() {
         transferRepo.activeTransfers
-            .distinctUntilChanged()
             .collect { transfers ->
                 val banners = listOfNotNull(
                     ActivityBannerType.SPENDING.takeIf {
