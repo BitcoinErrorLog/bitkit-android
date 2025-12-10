@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -99,6 +100,7 @@ import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.shared.toast.ToastEventBus
+import to.bitkit.ui.shared.toast.ToastQueueManager
 import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.utils.Logger
@@ -130,6 +132,7 @@ class AppViewModel @Inject constructor(
     private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
     private val cacheStore: CacheStore,
     private val transferRepo: TransferRepo,
+    private val toastManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> ToastQueueManager,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -1536,8 +1539,8 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Toasts
-    var currentToast by mutableStateOf<Toast?>(null)
-        private set
+    private val toastManager = toastManagerProvider(viewModelScope)
+    val currentToast: StateFlow<Toast?> = toastManager.currentToast
 
     fun toast(
         type: Toast.ToastType,
@@ -1547,20 +1550,16 @@ class AppViewModel @Inject constructor(
         visibilityTime: Long = Toast.VISIBILITY_TIME_DEFAULT,
         testTag: String? = null,
     ) {
-        currentToast = Toast(
-            type = type,
-            title = title,
-            description = description,
-            autoHide = autoHide,
-            visibilityTime = visibilityTime,
-            testTag = testTag,
+        toastManager.enqueue(
+            Toast(
+                type = type,
+                title = title,
+                description = description,
+                autoHide = autoHide,
+                visibilityTime = visibilityTime,
+                testTag = testTag,
+            )
         )
-        if (autoHide) {
-            viewModelScope.launch {
-                delay(visibilityTime)
-                currentToast = null
-            }
-        }
     }
 
     fun toast(error: Throwable) {
@@ -1577,9 +1576,11 @@ class AppViewModel @Inject constructor(
         )
     }
 
-    fun hideToast() {
-        currentToast = null
-    }
+    fun hideToast() = toastManager.dismissCurrentToast()
+
+    fun pauseToast() = toastManager.pauseCurrentToast()
+
+    fun resumeToast() = toastManager.resumeCurrentToast()
     // endregion
 
     // region security
