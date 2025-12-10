@@ -221,10 +221,10 @@ class HomeViewModel @Inject constructor(
             .collect { transfers ->
                 val banners = listOfNotNull(
                     ActivityBannerType.SPENDING.takeIf {
-                        transfers.any { it.type == TransferType.TO_SPENDING || it.type == TransferType.MANUAL_SETUP }
+                        transfers.any { it.type.isToSpending() }
                     },
                     ActivityBannerType.SAVINGS.takeIf {
-                        transfers.any { it.type == TransferType.COOP_CLOSE || it.type == TransferType.FORCE_CLOSE }
+                        transfers.any { it.type.isToSavings() }
                     },
                 )
                 _uiState.update { it.copy(banners = banners) }
