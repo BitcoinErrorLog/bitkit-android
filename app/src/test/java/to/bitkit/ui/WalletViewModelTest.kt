@@ -28,23 +28,23 @@ import to.bitkit.viewmodels.WalletViewModel
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WalletViewModelTest : BaseUnitTest() {
-
     private lateinit var sut: WalletViewModel
 
-    private val walletRepo: WalletRepo = mock()
-    private val lightningRepo: LightningRepo = mock()
-    private val settingsStore: SettingsStore = mock()
-    private val backupRepo: BackupRepo = mock()
-    private val blocktankRepo: BlocktankRepo = mock()
-    private val mockLightningState = MutableStateFlow(LightningState())
-    private val mockWalletState = MutableStateFlow(WalletState())
-    private val mockBalanceState = MutableStateFlow(BalanceState())
-    private val mockIsRecoveryMode = MutableStateFlow(false)
+    private val walletRepo = mock<WalletRepo>()
+    private val lightningRepo = mock<LightningRepo>()
+    private val settingsStore = mock<SettingsStore>()
+    private val backupRepo = mock<BackupRepo>()
+    private val blocktankRepo = mock<BlocktankRepo>()
+
+    private val lightningState = MutableStateFlow(LightningState())
+    private val walletState = MutableStateFlow(WalletState())
+    private val balanceState = MutableStateFlow(BalanceState())
+    private val isRecoveryMode = MutableStateFlow(false)
 
     @Before
     fun setUp() {
-        whenever(walletRepo.walletState).thenReturn(mockWalletState)
-        whenever(lightningRepo.lightningState).thenReturn(mockLightningState)
+        whenever(walletRepo.walletState).thenReturn(walletState)
+        whenever(lightningRepo.lightningState).thenReturn(lightningState)
 
         sut = WalletViewModel(
             bgDispatcher = testDispatcher,
@@ -165,7 +165,7 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `backup restore should not be triggered when wallet exists while not restoring`() = test {
         assertEquals(RestoreState.Initial, sut.restoreState)
 
-        mockWalletState.value = mockWalletState.value.copy(walletExists = true)
+        walletState.value = walletState.value.copy(walletExists = true)
 
         verify(backupRepo, never()).performFullRestoreFromLatestBackup()
     }
@@ -173,7 +173,7 @@ class WalletViewModelTest : BaseUnitTest() {
     @Test
     fun `onBackupRestoreSuccess should reset restoreState`() = test {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
-        mockWalletState.value = mockWalletState.value.copy(walletExists = true)
+        walletState.value = walletState.value.copy(walletExists = true)
         sut.restoreWallet("mnemonic", "passphrase")
         assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
 
@@ -187,7 +187,7 @@ class WalletViewModelTest : BaseUnitTest() {
         val testError = Exception("Test error")
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.failure(testError))
         sut.restoreWallet("mnemonic", "passphrase")
-        mockWalletState.value = mockWalletState.value.copy(walletExists = true)
+        walletState.value = walletState.value.copy(walletExists = true)
         assertEquals(RestoreState.Completed, sut.restoreState)
 
         sut.proceedWithoutRestore(onDone = {})
@@ -203,7 +203,7 @@ class WalletViewModelTest : BaseUnitTest() {
         sut.restoreWallet("mnemonic", "passphrase")
         assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
 
-        mockWalletState.value = mockWalletState.value.copy(walletExists = true)
+        walletState.value = walletState.value.copy(walletExists = true)
         assertEquals(RestoreState.Completed, sut.restoreState)
 
         sut.onRestoreContinue()
@@ -221,10 +221,10 @@ class WalletViewModelTest : BaseUnitTest() {
 
         // Set up mocks BEFORE creating SUT
         whenever(testWalletRepo.walletState).thenReturn(testWalletState)
-        whenever(testWalletRepo.balanceState).thenReturn(mockBalanceState)
+        whenever(testWalletRepo.balanceState).thenReturn(balanceState)
         whenever(testWalletRepo.walletExists()).thenReturn(true)
-        whenever(testLightningRepo.lightningState).thenReturn(mockLightningState)
-        whenever(testLightningRepo.isRecoveryMode).thenReturn(mockIsRecoveryMode)
+        whenever(testLightningRepo.lightningState).thenReturn(lightningState)
+        whenever(testLightningRepo.isRecoveryMode).thenReturn(isRecoveryMode)
         whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(Unit))
 
@@ -258,11 +258,11 @@ class WalletViewModelTest : BaseUnitTest() {
 
         // Set up mocks BEFORE creating SUT
         whenever(testWalletRepo.walletState).thenReturn(testWalletState)
-        whenever(testWalletRepo.balanceState).thenReturn(mockBalanceState)
+        whenever(testWalletRepo.balanceState).thenReturn(balanceState)
         whenever(testWalletRepo.walletExists()).thenReturn(true)
         whenever(testWalletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.success(Unit))
-        whenever(testLightningRepo.lightningState).thenReturn(mockLightningState)
-        whenever(testLightningRepo.isRecoveryMode).thenReturn(mockIsRecoveryMode)
+        whenever(testLightningRepo.lightningState).thenReturn(lightningState)
+        whenever(testLightningRepo.isRecoveryMode).thenReturn(isRecoveryMode)
         whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(Unit))
 

@@ -105,6 +105,7 @@ import to.bitkit.utils.Logger
 import to.bitkit.utils.jsonLogOf
 import java.math.BigDecimal
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -262,6 +263,7 @@ class AppViewModel @Inject constructor(
                     is Event.SyncProgress -> Unit
                 }
             }.onFailure { e ->
+                if (e is CancellationException) throw e
                 Logger.error("LDK event handler error", e, context = TAG)
             }
         }

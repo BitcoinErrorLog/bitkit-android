@@ -161,6 +161,10 @@ class WalletRepo @Inject constructor(
     }
 
     suspend fun syncNodeAndWallet(): Result<Unit> = withContext(bgDispatcher) {
+        if (!lightningRepo.lightningState.value.nodeLifecycleState.isRunning()) {
+            Logger.debug("syncNodeAndWallet skipped: node not running", context = TAG)
+            return@withContext Result.failure(Exception("Node not running"))
+        }
         val startHeight = lightningRepo.lightningState.value.block()?.height
         Logger.verbose("syncNodeAndWallet started at block height=$startHeight", context = TAG)
         syncBalances()
