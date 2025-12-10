@@ -1560,21 +1560,11 @@ class AppViewModel @Inject constructor(
         )
     }
 
-    fun hideToast() {
-        toastManager.dismissCurrentToast()
-    }
+    fun hideToast() = toastManager.dismissCurrentToast()
 
-    fun pauseToast() {
-        toastManager.pauseCurrentToast()
-    }
+    fun pauseToast() = toastManager.pauseCurrentToast()
 
-    fun resumeToast() {
-        toastManager.resumeCurrentToast()
-    }
-
-    fun clearToastQueue() {
-        toastManager.clear()
-    }
+    fun resumeToast() = toastManager.resumeCurrentToast()
     // endregion
 
     // region security
