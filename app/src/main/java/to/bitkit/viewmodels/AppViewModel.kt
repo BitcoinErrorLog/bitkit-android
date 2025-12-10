@@ -126,6 +126,7 @@ class AppViewModel @Inject constructor(
     private val appUpdaterService: AppUpdaterService,
     private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
     private val cacheStore: CacheStore,
+    private val toastManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> ToastQueueManager,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -1522,7 +1523,7 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Toasts
-    private val toastManager = ToastQueueManager(viewModelScope)
+    private val toastManager = toastManagerProvider(viewModelScope)
     val currentToast: StateFlow<Toast?> = toastManager.currentToast
 
     fun toast(
