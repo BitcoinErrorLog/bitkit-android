@@ -8,11 +8,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -29,11 +26,11 @@ import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.RecoveryModeException
+import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.onboarding.LOADING_MS
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
-import to.bitkit.utils.ServiceError
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -65,10 +62,6 @@ class WalletViewModel @Inject constructor(
 
     @Deprecated("Prioritize get the wallet and lightning states from LightningRepo or WalletRepo")
     val uiState = _uiState.asStateFlow()
-
-    private val _walletEffect = MutableSharedFlow<WalletViewModelEffects>(extraBufferCapacity = 1)
-    val walletEffect = _walletEffect.asSharedFlow()
-    private fun walletEffect(effect: WalletViewModelEffects) = viewModelScope.launch { _walletEffect.emit(effect) }
 
     private var syncJob: Job? = null
 
@@ -146,7 +139,7 @@ class WalletViewModel @Inject constructor(
                 .onSuccess {
                     walletRepo.setWalletExistsState()
                     walletRepo.syncBalances()
-                    // Skip refreshing during restore, it will be called when it completes
+                    // Skip refresh during restore, it will be called after completion
                     if (restoreState.isIdle()) {
                         walletRepo.refreshBip21()
                     }
@@ -177,9 +170,7 @@ class WalletViewModel @Inject constructor(
             .onFailure { error ->
                 if (error is CancellationException) return@onFailure
                 Logger.error("Failed to refresh state: ${error.message}", error)
-                if (error !is TimeoutCancellationException) {
-                    ToastEventBus.send(error)
-                }
+                ToastEventBus.send(error)
             }
     }
 
@@ -192,7 +183,7 @@ class WalletViewModel @Inject constructor(
         syncJob = viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
             try {
-                walletRepo.syncNodeAndWallet()
+                walletRepo.syncNodeAndWallet(source = SyncSource.MANUAL)
             } finally {
                 _uiState.update { it.copy(isRefreshing = false) }
             }
@@ -230,21 +221,6 @@ class WalletViewModel @Inject constructor(
                     description = error.message ?: "Unknown error"
                 )
             }
-        }
-    }
-
-    fun toggleReceiveOnSpending() {
-        viewModelScope.launch {
-            walletRepo.toggleReceiveOnSpendingBalance()
-                .onSuccess {
-                    updateBip21Invoice()
-                }.onFailure { e ->
-                    if (e is ServiceError.GeoBlocked) {
-                        walletEffect(WalletViewModelEffects.NavigateGeoBlockScreen)
-                        return@launch
-                    }
-                    updateBip21Invoice()
-                }
         }
     }
 
@@ -303,10 +279,6 @@ class WalletViewModel @Inject constructor(
         walletRepo.resetPreActivityMetadataTagsForCurrentInvoice()
     }
 
-    fun loadTagsForCurrentInvoice() = viewModelScope.launch {
-        walletRepo.loadTagsForCurrentInvoice()
-    }
-
     fun updateBip21Description(newText: String) {
         if (newText.isEmpty()) {
             Logger.warn("Empty")
@@ -338,10 +310,6 @@ data class MainUiState(
     val bip21Description: String = "",
     val selectedTags: List<String> = listOf(),
 )
-
-sealed interface WalletViewModelEffects {
-    data object NavigateGeoBlockScreen : WalletViewModelEffects
-}
 
 sealed interface RestoreState {
     data object Initial : RestoreState

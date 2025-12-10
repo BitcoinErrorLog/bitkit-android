@@ -20,6 +20,7 @@ import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LightningState
+import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WalletState
 import to.bitkit.test.BaseUnitTest
@@ -82,7 +83,7 @@ class WalletViewModelTest : BaseUnitTest() {
     fun `onPullToRefresh should sync wallet`() = test {
         sut.onPullToRefresh()
 
-        verify(walletRepo).syncNodeAndWallet()
+        verify(walletRepo).syncNodeAndWallet(SyncSource.MANUAL)
     }
 
     @Test

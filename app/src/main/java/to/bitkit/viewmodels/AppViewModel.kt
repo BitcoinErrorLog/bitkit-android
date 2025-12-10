@@ -117,8 +117,9 @@ import kotlin.time.ExperimentalTime
 class AppViewModel @Inject constructor(
     connectivityRepo: ConnectivityRepo,
     healthRepo: HealthRepo,
-    @param:ApplicationContext private val context: Context,
-    @param:BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+    toastManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> ToastQueueManager,
+    @ApplicationContext private val context: Context,
+    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val keychain: Keychain,
     private val lightningRepo: LightningRepo,
     private val walletRepo: WalletRepo,
@@ -132,7 +133,6 @@ class AppViewModel @Inject constructor(
     private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
     private val cacheStore: CacheStore,
     private val transferRepo: TransferRepo,
-    private val toastManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> ToastQueueManager,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -272,7 +272,10 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleBalanceChanged() = walletRepo.syncBalances()
+    private suspend fun handleBalanceChanged() {
+        walletRepo.syncBalances()
+        transferRepo.syncTransferStates()
+    }
 
     private suspend fun handleChannelReady(event: Event.ChannelReady) {
         transferRepo.syncTransferStates()

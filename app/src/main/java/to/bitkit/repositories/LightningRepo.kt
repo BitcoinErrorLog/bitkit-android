@@ -30,6 +30,7 @@ import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BestBlock
 import org.lightningdevkit.ldknode.ChannelConfig
 import org.lightningdevkit.ldknode.ChannelDetails
+import org.lightningdevkit.ldknode.ClosureReason
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.NodeStatus
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -62,7 +63,6 @@ import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
 import to.bitkit.utils.errLogOf
-import to.bitkit.utils.measured
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -317,23 +317,19 @@ class LightningRepo @Inject constructor(
             return@executeWhenNodeRunning Result.success(Unit)
         }
 
-        Logger.debug("Sync started", context = TAG)
         try {
-            measured("Sync") {
-                do {
-                    syncPending.set(false)
-                    _lightningState.update { it.copy(isSyncingWallet = true) }
-                    lightningService.sync()
-                    refreshChannelCache()
-                    syncState()
-                    if (syncPending.get()) delay(SYNC_LOOP_DEBOUNCE_MS)
-                } while (syncPending.getAndSet(false))
-            }
+            do {
+                syncPending.set(false)
+                _lightningState.update { it.copy(isSyncingWallet = true) }
+                lightningService.sync()
+                refreshChannelCache()
+                syncState()
+                if (syncPending.get()) delay(SYNC_LOOP_DEBOUNCE_MS)
+            } while (syncPending.getAndSet(false))
         } finally {
             _lightningState.update { it.copy(isSyncingWallet = false) }
             syncMutex.unlock()
         }
-        Logger.debug("Sync completed", context = TAG)
 
         Result.success(Unit)
     }
@@ -352,39 +348,25 @@ class LightningRepo @Inject constructor(
 
     private fun handleLdkEvent(event: Event) {
         when (event) {
-            is Event.ChannelPending -> {
-                scope.launch {
-                    refreshChannelCache()
-                }
+            is Event.ChannelPending,
+            is Event.ChannelReady,
+                -> scope.launch { refreshChannelCache() }
+
+            is Event.ChannelClosed -> scope.launch {
+                registerClosedChannel(
+                    channelId = event.channelId,
+                    reason = event.reason,
+                )
             }
 
-            is Event.ChannelReady -> {
-                scope.launch {
-                    refreshChannelCache()
-                }
-            }
-
-            is Event.ChannelClosed -> {
-                val channelId = event.channelId
-                val reason = event.reason?.toString() ?: ""
-                scope.launch {
-                    registerClosedChannel(channelId, reason)
-                }
-            }
-
-            else -> {
-                // Other events don't need special handling
-            }
+            else -> Unit // Other events don't need special handling
         }
     }
 
-    private suspend fun registerClosedChannel(channelId: String, reason: String?) = withContext(bgDispatcher) {
+    private suspend fun registerClosedChannel(channelId: String, reason: ClosureReason?) = withContext(bgDispatcher) {
         try {
             val channel = channelCache[channelId] ?: run {
-                Logger.error(
-                    "Could not find channel details for closed channel: channelId=$channelId",
-                    context = TAG
-                )
+                Logger.error("Could not find channel details for closed channel: channelId=$channelId", context = TAG)
                 return@withContext
             }
 
@@ -416,7 +398,7 @@ class LightningRepo @Inject constructor(
                 forwardingFeeProportionalMillionths = channel.config.forwardingFeeProportionalMillionths,
                 forwardingFeeBaseMsat = channel.config.forwardingFeeBaseMsat,
                 channelName = channelName,
-                channelClosureReason = reason.orEmpty()
+                channelClosureReason = reason?.toString().orEmpty(),
             )
 
             coreService.activity.upsertClosedChannelList(listOf(closedChannel))

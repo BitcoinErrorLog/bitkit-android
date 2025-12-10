@@ -102,8 +102,10 @@ class TransferRepo @Inject constructor(
                     Logger.debug("Channel $channelId balance swept, settled transfer: ${transfer.id}", context = TAG)
                 }
             }
+        }.onSuccess {
+            Logger.verbose("syncTransferStates completed", context = TAG)
         }.onFailure { e ->
-            Logger.error("Failed to sync transfer states", e, context = TAG)
+            Logger.error("syncTransferStates error", e, context = TAG)
         }
     }
 
