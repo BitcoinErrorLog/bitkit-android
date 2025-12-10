@@ -195,6 +195,8 @@ fun ContentView(
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
+    val walletNavController = rememberNavController()
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -436,6 +438,7 @@ fun ContentView(
                 Box(modifier = Modifier.fillMaxSize()) {
                     RootNavHost(
                         navController = navController,
+                        walletNavController = walletNavController,
                         drawerState = drawerState,
                         walletViewModel = walletViewModel,
                         appViewModel = appViewModel,
@@ -466,6 +469,7 @@ fun ContentView(
             DrawerMenu(
                 drawerState = drawerState,
                 rootNavController = navController,
+                walletNavController = walletNavController,
                 hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                 hasSeenShopIntro = hasSeenShopIntro,
                 modifier = Modifier.align(Alignment.TopEnd),
@@ -477,6 +481,7 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
+    walletNavController: NavHostController,
     drawerState: DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
@@ -494,7 +499,8 @@ private fun RootNavHost(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             navController = navController,
-            drawerState = drawerState
+            walletNavController = walletNavController,
+            drawerState = drawerState,
         )
         allActivity(
             activityListViewModel = activityListViewModel,
@@ -741,6 +747,7 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
+    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
@@ -750,6 +757,7 @@ private fun NavGraphBuilder.home(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             rootNavController = navController,
+            walletNavController = walletNavController,
             drawerState = drawerState,
         )
     }

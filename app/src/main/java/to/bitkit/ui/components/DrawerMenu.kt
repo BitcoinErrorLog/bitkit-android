@@ -46,6 +46,7 @@ import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
 import to.bitkit.ui.navigateToHome
+import to.bitkit.ui.screens.wallets.HomeRoutes
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -62,6 +63,7 @@ private val drawerWidth = 200.dp
 fun DrawerMenu(
     drawerState: DrawerState,
     rootNavController: NavController,
+    walletNavController: NavController,
     hasSeenWidgetsIntro: Boolean,
     hasSeenShopIntro: Boolean,
     modifier: Modifier = Modifier,
@@ -97,6 +99,7 @@ fun DrawerMenu(
     ) {
         Menu(
             rootNavController = rootNavController,
+            walletNavController = walletNavController,
             drawerState = drawerState,
             onClickAddWidget = {
                 if (!hasSeenWidgetsIntro) {
@@ -119,6 +122,7 @@ fun DrawerMenu(
 @Composable
 private fun Menu(
     rootNavController: NavController,
+    walletNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
     onClickShop: () -> Unit,
@@ -139,8 +143,18 @@ private fun Menu(
             iconRes = R.drawable.ic_coins,
             onClick = {
                 val isOnHome = rootNavController.currentBackStackEntry
-                    ?.destination?.hasRoute<Routes.Home>() ?: false
+                    ?.destination?.hasRoute<Routes.Home>() == true && walletNavController.currentBackStackEntry
+                    ?.destination?.hasRoute<HomeRoutes.Home>() == true
                 if (!isOnHome) {
+                    walletNavController.run {
+                        val popped = popBackStack<HomeRoutes.Home>(inclusive = false)
+                        if (!popped) {
+                            navigate(HomeRoutes.Home) {
+                                popUpTo(graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                    }
                     rootNavController.navigateToHome()
                 }
                 scope.launch { drawerState.close() }
@@ -304,6 +318,7 @@ private fun Preview() {
         Box {
             DrawerMenu(
                 rootNavController = navController,
+                walletNavController = navController,
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
                 hasSeenWidgetsIntro = false,
                 hasSeenShopIntro = false,
