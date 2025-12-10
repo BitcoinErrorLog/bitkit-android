@@ -61,28 +61,31 @@ private class ClickableAlphaNode(
     private val animatable = Animatable(1f)
 
     init {
-        delegate(SuspendingPointerInputModifierNode {
-            detectTapGestures(
-                onPress = {
-                    coroutineScope.launch { animatable.animateTo(pressedAlpha) }
-                    val released = tryAwaitRelease()
-                    if (!released) {
-                        coroutineScope.launch { animatable.animateTo(1f) }
+        delegate(
+            SuspendingPointerInputModifierNode {
+                detectTapGestures(
+                    onPress = {
+                        coroutineScope.launch { animatable.animateTo(pressedAlpha) }
+                        val released = tryAwaitRelease()
+                        if (!released) {
+                            coroutineScope.launch { animatable.animateTo(1f) }
+                        }
+                    },
+                    onTap = {
+                        onClick()
+                        coroutineScope.launch {
+                            animatable.animateTo(pressedAlpha)
+                            animatable.animateTo(1f)
+                        }
                     }
-                },
-                onTap = {
-                    onClick()
-                    coroutineScope.launch {
-                        animatable.animateTo(pressedAlpha)
-                        animatable.animateTo(1f)
-                    }
-                }
-            )
-        })
+                )
+            }
+        )
     }
 
     override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
         val placeable = measurable.measure(constraints)
+
         return layout(placeable.width, placeable.height) {
             placeable.placeWithLayer(0, 0) {
                 this.alpha = animatable.value
@@ -92,6 +95,9 @@ private class ClickableAlphaNode(
 
     override fun SemanticsPropertyReceiver.applySemantics() {
         role = Role.Button
-        onClick(action = { onClick(); true })
+        onClick {
+            onClick()
+            true
+        }
     }
 }

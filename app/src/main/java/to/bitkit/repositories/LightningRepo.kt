@@ -21,9 +21,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.lightningdevkit.ldknode.Address
 import org.lightningdevkit.ldknode.BalanceDetails
@@ -61,9 +61,13 @@ import to.bitkit.services.NodeEventHandler
 import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
+import to.bitkit.utils.errLogOf
+import to.bitkit.utils.measured
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -95,6 +99,9 @@ class LightningRepo @Inject constructor(
     val isRecoveryMode = _isRecoveryMode.asStateFlow()
 
     private val channelCache = ConcurrentHashMap<String, ChannelDetails>()
+
+    private val syncMutex = Mutex()
+    private val syncPending = AtomicBoolean(false)
 
     /**
      * Executes the provided operation only if the node is running.
@@ -152,6 +159,9 @@ class LightningRepo @Inject constructor(
     ): Result<T> {
         return try {
             operation()
+        } catch (e: CancellationException) {
+            // Cancellation is expected during pull-to-refresh, rethrow per Kotlin best practices
+            throw e
         } catch (e: Throwable) {
             Logger.error("$operationName error", e, context = TAG)
             Result.failure(e)
@@ -300,22 +310,37 @@ class LightningRepo @Inject constructor(
     }
 
     suspend fun sync(): Result<Unit> = executeWhenNodeRunning("Sync") {
-        syncState()
-        if (_lightningState.value.isSyncingWallet) {
-            Logger.verbose("Sync already in progress, waiting for existing sync.", context = TAG)
+        // If sync is in progress, mark pending and skip
+        if (!syncMutex.tryLock()) {
+            syncPending.set(true)
+            Logger.verbose("Sync in progress, pending sync marked", context = TAG)
+            return@executeWhenNodeRunning Result.success(Unit)
         }
 
-        withTimeout(SYNC_TIMEOUT_MS) {
-            _lightningState.first { !it.isSyncingWallet }
+        Logger.debug("Sync started", context = TAG)
+        try {
+            measured("Sync") {
+                do {
+                    syncPending.set(false)
+                    _lightningState.update { it.copy(isSyncingWallet = true) }
+                    lightningService.sync()
+                    refreshChannelCache()
+                    syncState()
+                    if (syncPending.get()) delay(SYNC_LOOP_DEBOUNCE_MS)
+                } while (syncPending.getAndSet(false))
+            }
+        } finally {
+            _lightningState.update { it.copy(isSyncingWallet = false) }
+            syncMutex.unlock()
         }
-
-        _lightningState.update { it.copy(isSyncingWallet = true) }
-        lightningService.sync()
-        refreshChannelCache()
-        syncState()
-        _lightningState.update { it.copy(isSyncingWallet = false) }
+        Logger.debug("Sync completed", context = TAG)
 
         Result.success(Unit)
+    }
+
+    /** Clear pending sync flag. Called when manual pull-to-refresh takes priority. */
+    fun clearPendingSync() {
+        syncPending.set(false)
     }
 
     private suspend fun refreshChannelCache() = withContext(bgDispatcher) {
@@ -756,9 +781,11 @@ class LightningRepo @Inject constructor(
                 utxosToSpend = utxosToSpend,
             )
             Result.success(fee)
-        } catch (_: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
             val fallbackFee = 1000uL
-            Logger.warn("Error calculating fee, using fallback of $fallbackFee", context = TAG)
+            Logger.warn("Error calculating fee, using fallback of $fallbackFee ${errLogOf(e)}", context = TAG)
             Result.success(fallbackFee)
         }
     }
@@ -772,7 +799,9 @@ class LightningRepo @Inject constructor(
             val satsPerVByte = fees.getSatsPerVByteFor(speed)
             satsPerVByte.toULong()
         }.onFailure { e ->
-            Logger.error("Error getFeeRateForSpeed. speed:$speed", e, context = TAG)
+            if (e !is CancellationException) {
+                Logger.error("Error getFeeRateForSpeed. speed:$speed", e, context = TAG)
+            }
         }
     }
 
@@ -989,8 +1018,8 @@ class LightningRepo @Inject constructor(
 
     companion object {
         private const val TAG = "LightningRepo"
-        private const val SYNC_TIMEOUT_MS = 20_000L
         private const val CHANNEL_ID_PREVIEW_LENGTH = 10
+        private const val SYNC_LOOP_DEBOUNCE_MS = 500L
     }
 }
 

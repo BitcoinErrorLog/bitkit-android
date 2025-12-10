@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,6 +35,7 @@ import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.utils.Logger
 import to.bitkit.utils.ServiceError
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
@@ -67,6 +69,8 @@ class WalletViewModel @Inject constructor(
     private val _walletEffect = MutableSharedFlow<WalletViewModelEffects>(extraBufferCapacity = 1)
     val walletEffect = _walletEffect.asSharedFlow()
     private fun walletEffect(effect: WalletViewModelEffects) = viewModelScope.launch { _walletEffect.emit(effect) }
+
+    private var syncJob: Job? = null
 
     init {
         if (walletExists) {
@@ -171,6 +175,7 @@ class WalletViewModel @Inject constructor(
     fun refreshState() = viewModelScope.launch {
         walletRepo.syncNodeAndWallet()
             .onFailure { error ->
+                if (error is CancellationException) return@onFailure
                 Logger.error("Failed to refresh state: ${error.message}", error)
                 if (error !is TimeoutCancellationException) {
                     ToastEventBus.send(error)
@@ -179,10 +184,18 @@ class WalletViewModel @Inject constructor(
     }
 
     fun onPullToRefresh() {
-        viewModelScope.launch {
+        // Cancel any existing sync, manual or event triggered
+        syncJob?.cancel()
+        walletRepo.cancelSyncByEvent()
+        lightningRepo.clearPendingSync()
+
+        syncJob = viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            refreshState().join()
-            _uiState.update { it.copy(isRefreshing = false) }
+            try {
+                walletRepo.syncNodeAndWallet()
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 

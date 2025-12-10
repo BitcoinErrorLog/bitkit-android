@@ -312,7 +312,6 @@ private fun ToastViewPreview() {
         ScreenColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
             ToastView(
                 toast = Toast(
                     type = Toast.ToastType.WARNING,

@@ -269,9 +269,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleBalanceChanged() {
-        walletRepo.syncBalances()
-    }
+    private suspend fun handleBalanceChanged() = walletRepo.syncBalances()
 
     private suspend fun handleChannelReady(event: Event.ChannelReady) {
         transferRepo.syncTransferStates()
@@ -279,18 +277,14 @@ class AppViewModel @Inject constructor(
         notifyChannelReady(event)
     }
 
-    private suspend fun handleChannelPending() {
-        transferRepo.syncTransferStates()
-    }
+    private suspend fun handleChannelPending() = transferRepo.syncTransferStates()
 
     private suspend fun handleChannelClosed() {
         transferRepo.syncTransferStates()
         walletRepo.syncBalances()
     }
 
-    private suspend fun handleSyncCompleted() {
-        walletRepo.syncNodeAndWallet()
-    }
+    private fun handleSyncCompleted() = walletRepo.debounceSyncByEvent()
 
     private suspend fun handleOnchainTransactionConfirmed(event: Event.OnchainTransactionConfirmed) {
         activityRepo.handleOnchainTransactionConfirmed(event.txid, event.details)
