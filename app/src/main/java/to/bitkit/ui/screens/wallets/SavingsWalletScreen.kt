@@ -35,6 +35,7 @@ import to.bitkit.ui.components.IncomingTransfer
 import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.screens.wallets.activity.components.ActivityListGrouped
 import to.bitkit.ui.screens.wallets.activity.utils.previewOnchainActivityItems
@@ -82,6 +83,9 @@ fun SavingsWalletScreen(
                 titleText = stringResource(R.string.wallet__savings__title),
                 icon = painterResource(R.drawable.ic_btc_circle),
                 onBackClick = onBackClick,
+                actions = {
+                    DrawerNavIcon()
+                }
             )
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp)
