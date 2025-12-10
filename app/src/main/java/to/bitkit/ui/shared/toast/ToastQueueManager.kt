@@ -97,9 +97,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
         isPaused = false
     }
 
-    /**
-     * Show next toast from queue and start its timer.
-     */
     private fun showNextToast() {
         val nextToast = _queue.value.firstOrNull() ?: return
 
@@ -116,9 +113,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
         }
     }
 
-    /**
-     * Start auto-hide timer for current toast.
-     */
     private fun startTimer(duration: Long) {
         cancelTimer()
         timerJob = scope.launch {
@@ -131,18 +125,12 @@ class ToastQueueManager(private val scope: CoroutineScope) {
         }
     }
 
-    /**
-     * Show next toast if queue is not empty and no toast is currently displayed.
-     */
     private fun showNextToastIfAvailable() {
         if (_currentToast.value == null && _queue.value.isNotEmpty()) {
             showNextToast()
         }
     }
 
-    /**
-     * Cancel current timer (idempotent).
-     */
     private fun cancelTimer() {
         timerJob?.cancel()
         timerJob = null
