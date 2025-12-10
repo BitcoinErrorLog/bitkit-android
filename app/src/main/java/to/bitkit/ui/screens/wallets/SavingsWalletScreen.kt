@@ -75,6 +75,7 @@ fun SavingsWalletScreen(
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .align(Alignment.TopEnd)
+                .padding(top = 32.dp)
                 .offset(x = (120).dp)
                 .size(268.dp)
         )
