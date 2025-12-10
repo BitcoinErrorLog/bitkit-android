@@ -218,6 +218,7 @@ class TransferViewModel @Inject constructor(
         }
     }
 
+    @Suppress("NestedBlockDepth")
     private suspend fun watchOrder(orderId: String, frequencyMs: Long = 2_500): Result<Boolean> {
         Logger.debug("Started watching order: '$orderId'", context = TAG)
 
@@ -305,6 +306,7 @@ class TransferViewModel @Inject constructor(
         }
     }
 
+    @Suppress("ReturnCount")
     private suspend fun updateOrder(order: IBtOrder): Int {
         // Channel is open
         if (order.channel != null) {
