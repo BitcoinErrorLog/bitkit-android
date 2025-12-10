@@ -92,6 +92,7 @@ import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.HealthRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
+import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
 import to.bitkit.ui.Routes
@@ -127,6 +128,7 @@ class AppViewModel @Inject constructor(
     private val appUpdaterService: AppUpdaterService,
     private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
     private val cacheStore: CacheStore,
+    private val transferRepo: TransferRepo,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -241,9 +243,9 @@ class AppViewModel @Inject constructor(
             runCatching {
                 when (event) {
                     is Event.BalanceChanged -> handleBalanceChanged()
-                    is Event.ChannelClosed -> Unit
-                    is Event.ChannelPending -> Unit
-                    is Event.ChannelReady -> notifyChannelReady(event)
+                    is Event.ChannelClosed -> handleChannelClosed()
+                    is Event.ChannelPending -> handleChannelPending()
+                    is Event.ChannelReady -> handleChannelReady(event)
                     is Event.OnchainTransactionConfirmed -> handleOnchainTransactionConfirmed(event)
                     is Event.OnchainTransactionEvicted -> handleOnchainTransactionEvicted(event)
                     is Event.OnchainTransactionReceived -> handleOnchainTransactionReceived(event)
@@ -266,6 +268,21 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun handleBalanceChanged() {
+        walletRepo.syncBalances()
+    }
+
+    private suspend fun handleChannelReady(event: Event.ChannelReady) {
+        transferRepo.syncTransferStates()
+        walletRepo.syncBalances()
+        notifyChannelReady(event)
+    }
+
+    private suspend fun handleChannelPending() {
+        transferRepo.syncTransferStates()
+    }
+
+    private suspend fun handleChannelClosed() {
+        transferRepo.syncTransferStates()
         walletRepo.syncBalances()
     }
 
