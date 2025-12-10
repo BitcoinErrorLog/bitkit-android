@@ -638,7 +638,7 @@ private fun RootNavHost(
                 SettingUpScreen(
                     viewModel = transferViewModel,
                     onContinueClick = {
-                        navController.navigateToHome(
+                        navController.navigateToHomeNested(
                             walletNavController = walletNavController,
                             nestedRoute = HomeRoutes.Home
                         )
@@ -1408,7 +1408,7 @@ fun NavController.navigateToHome() {
     }
 }
 
-fun NavController.navigateToHome(
+fun NavController.navigateToHomeNested(
     walletNavController: NavController?,
     nestedRoute: Any?,
 ) {

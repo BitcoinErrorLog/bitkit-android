@@ -39,13 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
-import to.bitkit.ui.navigateToHome
+import to.bitkit.ui.navigateToHomeNested
 import to.bitkit.ui.screens.wallets.HomeRoutes
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
@@ -142,7 +141,7 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
-                rootNavController.navigateToHome(
+                rootNavController.navigateToHomeNested(
                     walletNavController = walletNavController,
                     nestedRoute = HomeRoutes.Home
                 )
