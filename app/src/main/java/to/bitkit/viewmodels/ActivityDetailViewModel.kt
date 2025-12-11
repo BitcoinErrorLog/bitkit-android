@@ -7,6 +7,7 @@ import com.synonym.bitkitcore.IBtOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,9 +42,53 @@ class ActivityDetailViewModel @Inject constructor(
 
     private var activity: Activity? = null
 
+    sealed interface ActivityLoadState {
+        data object Initial : ActivityLoadState
+        data object Loading : ActivityLoadState
+        data class Success(val activity: Activity) : ActivityLoadState
+        data class Error(val message: String) : ActivityLoadState
+    }
+
+    data class ActivityDetailUiState(
+        val activityLoadState: ActivityLoadState = ActivityLoadState.Initial,
+    )
+
+    private val _uiState = MutableStateFlow(ActivityDetailUiState())
+    val uiState: StateFlow<ActivityDetailUiState> = _uiState.asStateFlow()
+
     fun setActivity(activity: Activity) {
         this.activity = activity
         loadTags()
+    }
+
+    fun loadActivity(activityId: String) {
+        viewModelScope.launch(bgDispatcher) {
+            _uiState.update { it.copy(activityLoadState = ActivityLoadState.Loading) }
+
+            activityRepo.getActivity(activityId)
+                .onSuccess { activity ->
+                    if (activity != null) {
+                        this@ActivityDetailViewModel.activity = activity
+                        _uiState.update { it.copy(activityLoadState = ActivityLoadState.Success(activity)) }
+                        loadTags()
+                    } else {
+                        _uiState.update {
+                            it.copy(activityLoadState = ActivityLoadState.Error("Activity not found"))
+                        }
+                    }
+                }
+                .onFailure { e ->
+                    Logger.error("Failed to load activity $activityId", e, TAG)
+                    _uiState.update {
+                        it.copy(activityLoadState = ActivityLoadState.Error(e.message ?: "Failed to load activity"))
+                    }
+                }
+        }
+    }
+
+    fun clearActivityState() {
+        _uiState.update { it.copy(activityLoadState = ActivityLoadState.Initial) }
+        activity = null
     }
 
     fun loadTags() {
