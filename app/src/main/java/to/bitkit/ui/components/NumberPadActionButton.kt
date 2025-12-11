@@ -21,7 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import to.bitkit.R
-import to.bitkit.ui.shared.modifiers.clickableAlpha
+import to.bitkit.ui.shared.modifiers.alphaFeedback
 import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppButtonDefaults
 import to.bitkit.ui.theme.AppThemeSurface
@@ -42,21 +42,20 @@ fun NumberPadActionButton(
 
     if (enabled) {
         Button(
-            onClick = {},
+            onClick = onClick,
             colors = AppButtonDefaults.primaryColors.copy(
                 containerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent
             ),
             contentPadding = contentPadding,
             shape = buttonShape,
-            modifier = Modifier
+            modifier = modifier
                 .requiredHeight(height)
                 .primaryButtonStyle(
                     isEnabled = true,
                     shape = buttonShape,
                 )
-                .clickableAlpha { onClick() }
-                .then(modifier)
+                .alphaFeedback(enabled = enabled)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -83,9 +82,8 @@ fun NumberPadActionButton(
             colors = AppButtonDefaults.secondaryColors,
             contentPadding = contentPadding,
             border = BorderStroke(width = 1.dp, color = color),
-            modifier = Modifier
+            modifier = modifier
                 .requiredHeight(height)
-                .then(modifier)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
