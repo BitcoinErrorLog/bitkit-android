@@ -75,7 +75,7 @@ fun PrimaryButton(
         ),
         contentPadding = contentPadding,
         shape = buttonShape,
-        modifier = Modifier
+        modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
             .primaryButtonStyle(
@@ -84,7 +84,6 @@ fun PrimaryButton(
                 primaryColor = color
             )
             .alphaFeedback(enabled = enabled && !isLoading)
-            .then(modifier)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -141,10 +140,9 @@ fun SecondaryButton(
         colors = AppButtonDefaults.secondaryColors,
         contentPadding = contentPadding,
         border = border,
-        modifier = Modifier
+        modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
-            .then(modifier)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -199,10 +197,9 @@ fun TertiaryButton(
         enabled = enabled && !isLoading,
         colors = AppButtonDefaults.tertiaryColors,
         contentPadding = contentPadding,
-        modifier = Modifier
+        modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
-            .then(modifier)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -250,6 +247,11 @@ private fun PrimaryButtonPreview() {
         ) {
             PrimaryButton(
                 text = "Primary",
+                onClick = {},
+            )
+            PrimaryButton(
+                text = "Primary with padding",
+                modifier = Modifier.padding(horizontal = 32.dp),
                 onClick = {},
             )
             PrimaryButton(
@@ -371,6 +373,11 @@ private fun SecondaryButtonPreview() {
         ) {
             SecondaryButton(
                 text = "Secondary",
+                onClick = {},
+            )
+            SecondaryButton(
+                text = "Secondary With padding",
+                modifier = Modifier.padding(horizontal = 32.dp),
                 onClick = {},
             )
             SecondaryButton(
