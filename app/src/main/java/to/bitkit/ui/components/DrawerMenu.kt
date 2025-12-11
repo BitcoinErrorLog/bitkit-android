@@ -62,7 +62,6 @@ private val drawerWidth = 200.dp
 fun DrawerMenu(
     drawerState: DrawerState,
     rootNavController: NavController,
-    walletNavController: NavController,
     hasSeenWidgetsIntro: Boolean,
     hasSeenShopIntro: Boolean,
     modifier: Modifier = Modifier,
@@ -98,7 +97,6 @@ fun DrawerMenu(
     ) {
         Menu(
             rootNavController = rootNavController,
-            walletNavController = walletNavController,
             drawerState = drawerState,
             onClickAddWidget = {
                 if (!hasSeenWidgetsIntro) {
@@ -121,7 +119,6 @@ fun DrawerMenu(
 @Composable
 private fun Menu(
     rootNavController: NavController,
-    @Suppress("UNUSED_PARAMETER") walletNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
     onClickShop: () -> Unit,
@@ -304,7 +301,6 @@ private fun Preview() {
         Box {
             DrawerMenu(
                 rootNavController = navController,
-                walletNavController = navController,
                 drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
                 hasSeenWidgetsIntro = false,
                 hasSeenShopIntro = false,

@@ -472,7 +472,6 @@ fun ContentView(
             DrawerMenu(
                 drawerState = drawerState,
                 rootNavController = navController,
-                walletNavController = navController,
                 hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                 hasSeenShopIntro = hasSeenShopIntro,
                 modifier = Modifier.align(Alignment.TopEnd),
@@ -1465,15 +1464,6 @@ fun NavController.navigateToHome() {
             launchSingleTop = true
         }
     }
-}
-
-@Deprecated("Use navigateToHome() instead", ReplaceWith("navigateToHome()"))
-fun NavController.navigateToHomeNested(
-    @Suppress("UNUSED_PARAMETER") walletNavController: NavController?,
-    @Suppress("UNUSED_PARAMETER") nestedRoute: Any?,
-) {
-    // walletNavController and nestedRoute are no longer needed
-    navigateToHome()
 }
 
 fun NavController.navigateToAllActivity() {
