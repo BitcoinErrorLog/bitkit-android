@@ -72,56 +72,48 @@ fun PrimaryButton(
             containerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent
         ),
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = contentPadding,
         shape = buttonShape,
         modifier = Modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .requiredHeight(size.height)
+            .primaryButtonStyle(
+                isEnabled = enabled && !isLoading,
+                shape = buttonShape,
+                primaryColor = color
+            )
             .then(modifier)
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-                .requiredHeight(size.height)
-                .primaryButtonStyle(
-                    isEnabled = enabled && !isLoading,
-                    shape = buttonShape,
-                    primaryColor = color
-                )
-                .padding(contentPadding)
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Colors.White32,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(size.height / 2)
-                )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (icon != null) {
-                        Box(
-                            modifier = if (enabled) {
-                                Modifier
-                            } else {
-                                Modifier.graphicsLayer {
-                                    colorFilter = ColorFilter.tint(Colors.White32)
-                                }
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Colors.White32,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(size.height / 2)
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (icon != null) {
+                    Box(
+                        modifier = if (enabled) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                colorFilter = ColorFilter.tint(Colors.White32)
                             }
-                        ) {
-                            icon()
                         }
+                    ) {
+                        icon()
                     }
-                    text?.let {
-                        Text(
-                            text = text,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                }
+                text?.let {
+                    Text(
+                        text = text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -292,6 +284,25 @@ private fun PrimaryButtonPreview() {
                 size = ButtonSize.Small,
                 onClick = {},
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PrimaryButton(
+                    text = "Primary Small",
+                    fullWidth = false,
+                    size = ButtonSize.Small,
+                    modifier = Modifier.weight(1f),
+                    onClick = {},
+                )
+                PrimaryButton(
+                    text = "Primary Small",
+                    fullWidth = false,
+                    size = ButtonSize.Small,
+                    modifier = Modifier.weight(1f),
+                    onClick = {},
+                )
+            }
             PrimaryButton(
                 text = "Primary Small Color Not Full",
                 size = ButtonSize.Small,
