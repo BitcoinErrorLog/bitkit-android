@@ -349,8 +349,9 @@ class LightningRepo @Inject constructor(
     private fun handleLdkEvent(event: Event) {
         when (event) {
             is Event.ChannelPending,
-            is Event.ChannelReady,
-                -> scope.launch { refreshChannelCache() }
+            is Event.ChannelReady -> scope.launch {
+                refreshChannelCache()
+            }
 
             is Event.ChannelClosed -> scope.launch {
                 registerClosedChannel(
