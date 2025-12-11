@@ -547,6 +547,7 @@ private fun RootNavHost(
                         navController.navigateToTransferFunding()
                         settingsViewModel.setHasSeenTransferIntro(true)
                     },
+                    onBackClick = {},
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsIntro> {
@@ -890,7 +891,8 @@ private fun NavGraphBuilder.profile(
             onContinue = {
                 settingsViewModel.setHasSeenProfileIntro(true)
                 navController.navigate(Routes.CreateProfile)
-            }
+            },
+            onBackClick = { navController.popBackStack() }
         )
     }
     composableWithDefaultTransitions<Routes.CreateProfile> {
@@ -910,6 +912,9 @@ private fun NavGraphBuilder.shop(
             onContinue = {
                 settingsViewModel.setHasSeenShopIntro(true)
                 navController.navigate(Routes.ShopDiscover)
+            },
+            onBackClick = {
+                navController.popBackStack()
             }
         )
     }
@@ -1300,7 +1305,8 @@ private fun NavGraphBuilder.widgets(
             onContinue = {
                 settingsViewModel.setHasSeenWidgetsIntro(true)
                 navController.navigate(Routes.AddWidget)
-            }
+            },
+            onBackClick = {},
         )
     }
     composableWithDefaultTransitions<Routes.AddWidget> {
@@ -1316,6 +1322,7 @@ private fun NavGraphBuilder.widgets(
                 }
             },
             fiatSymbol = LocalCurrencies.current.currencySymbol,
+            onBackCLick = { navController.popBackStack() }
         )
     }
     composableWithDefaultTransitions<Routes.CalculatorPreview> {
