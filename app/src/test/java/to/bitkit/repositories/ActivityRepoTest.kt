@@ -8,7 +8,6 @@ import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.Clock
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.PaymentDetails
@@ -31,8 +30,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 @Suppress("LargeClass")
+@OptIn(ExperimentalTime::class)
 class ActivityRepoTest : BaseUnitTest() {
 
     private val coreService = mock<CoreService>()
@@ -140,7 +142,7 @@ class ActivityRepoTest : BaseUnitTest() {
     }
 
     private fun setupSyncActivitiesMocks(
-        cacheData: AppCacheData
+        cacheData: AppCacheData,
     ) {
         whenever(cacheStore.data).thenReturn(flowOf(cacheData))
         wheneverBlocking { lightningRepo.getPayments() }.thenReturn(Result.success(emptyList()))

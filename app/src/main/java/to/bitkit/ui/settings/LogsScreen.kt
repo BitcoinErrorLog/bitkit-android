@@ -39,7 +39,7 @@ import to.bitkit.ui.components.Caption
 import to.bitkit.ui.navigateToLogDetail
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
-import to.bitkit.ui.shared.util.clickableAlpha
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.theme.Colors
 import to.bitkit.viewmodels.LogsViewModel
 
