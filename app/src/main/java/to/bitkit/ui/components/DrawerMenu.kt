@@ -39,13 +39,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
-import to.bitkit.ui.navigateToHomeNested
-import to.bitkit.ui.screens.wallets.HomeRoutes
+import to.bitkit.ui.navigateToHome
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.shared.util.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
@@ -121,7 +121,7 @@ fun DrawerMenu(
 @Composable
 private fun Menu(
     rootNavController: NavController,
-    walletNavController: NavController,
+    @Suppress("UNUSED_PARAMETER") walletNavController: NavController,
     drawerState: DrawerState,
     onClickAddWidget: () -> Unit,
     onClickShop: () -> Unit,
@@ -141,10 +141,8 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
-                rootNavController.navigateToHomeNested(
-                    walletNavController = walletNavController,
-                    nestedRoute = HomeRoutes.Home
-                )
+                val isInHome = rootNavController.currentBackStackEntry?.destination?.hasRoute<Routes.Home>() ?: false
+                if (!isInHome) rootNavController.navigateToHome()
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")

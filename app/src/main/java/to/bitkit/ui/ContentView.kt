@@ -36,6 +36,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -86,8 +88,9 @@ import to.bitkit.ui.screens.transfer.external.ExternalFeeCustomScreen
 import to.bitkit.ui.screens.transfer.external.ExternalNodeViewModel
 import to.bitkit.ui.screens.transfer.external.ExternalSuccessScreen
 import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen
-import to.bitkit.ui.screens.wallets.HomeNav
-import to.bitkit.ui.screens.wallets.HomeRoutes
+import to.bitkit.ui.screens.wallets.HomeScreen
+import to.bitkit.ui.screens.wallets.SavingsWalletScreen
+import to.bitkit.ui.screens.wallets.SpendingWalletScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen
 import to.bitkit.ui.screens.wallets.activity.ActivityExploreScreen
 import to.bitkit.ui.screens.wallets.activity.AllActivityScreen
@@ -167,6 +170,7 @@ import to.bitkit.ui.sheets.SendSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
+import to.bitkit.ui.utils.RequestNotificationPermissions
 import to.bitkit.ui.utils.Transitions
 import to.bitkit.ui.utils.composableWithDefaultTransitions
 import to.bitkit.ui.utils.navigationWithDefaultTransitions
@@ -196,7 +200,6 @@ fun ContentView(
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
-    val walletNavController = rememberNavController()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
@@ -439,7 +442,6 @@ fun ContentView(
                 Box(modifier = Modifier.fillMaxSize()) {
                     RootNavHost(
                         navController = navController,
-                        walletNavController = walletNavController,
                         drawerState = drawerState,
                         walletViewModel = walletViewModel,
                         appViewModel = appViewModel,
@@ -470,7 +472,7 @@ fun ContentView(
             DrawerMenu(
                 drawerState = drawerState,
                 rootNavController = navController,
-                walletNavController = walletNavController,
+                walletNavController = navController,
                 hasSeenWidgetsIntro = hasSeenWidgetsIntro,
                 hasSeenShopIntro = hasSeenShopIntro,
                 modifier = Modifier.align(Alignment.TopEnd),
@@ -482,7 +484,6 @@ fun ContentView(
 @Composable
 private fun RootNavHost(
     navController: NavHostController,
-    walletNavController: NavHostController,
     drawerState: DrawerState,
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
@@ -500,7 +501,6 @@ private fun RootNavHost(
             activityListViewModel = activityListViewModel,
             settingsViewModel = settingsViewModel,
             navController = navController,
-            walletNavController = walletNavController,
             drawerState = drawerState,
         )
         allActivity(
@@ -638,10 +638,7 @@ private fun RootNavHost(
                 SettingUpScreen(
                     viewModel = transferViewModel,
                     onContinueClick = {
-                        navController.navigateToHomeNested(
-                            walletNavController = walletNavController,
-                            nestedRoute = HomeRoutes.Home
-                        )
+                        navController.navigateToHome()
                     }
                 )
             }
@@ -753,18 +750,80 @@ private fun NavGraphBuilder.home(
     activityListViewModel: ActivityListViewModel,
     settingsViewModel: SettingsViewModel,
     navController: NavHostController,
-    walletNavController: NavHostController,
     drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
-        HomeNav(
-            walletViewModel = walletViewModel,
-            appViewModel = appViewModel,
-            activityListViewModel = activityListViewModel,
-            settingsViewModel = settingsViewModel,
-            rootNavController = navController,
-            walletNavController = walletNavController,
-            drawerState = drawerState,
+        val uiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+        val hazeState = rememberHazeState()
+
+        RequestNotificationPermissions(
+            onPermissionChange = { granted ->
+                settingsViewModel.setNotificationPreference(granted)
+            }
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+        ) {
+            HomeScreen(
+                mainUiState = uiState,
+                drawerState = drawerState,
+                rootNavController = navController,
+                walletNavController = navController,
+                settingsViewModel = settingsViewModel,
+                walletViewModel = walletViewModel,
+                appViewModel = appViewModel,
+                activityListViewModel = activityListViewModel,
+            )
+        }
+    }
+    composable<Routes.Savings>(
+        enterTransition = { Transitions.slideInHorizontally },
+        exitTransition = { Transitions.slideOutHorizontally },
+    ) {
+        val hasSeenSpendingIntro by settingsViewModel.hasSeenSpendingIntro.collectAsStateWithLifecycle()
+        val isGeoBlocked by appViewModel.isGeoBlocked.collectAsStateWithLifecycle()
+        val onchainActivities by activityListViewModel.onchainActivities.collectAsStateWithLifecycle()
+
+        SavingsWalletScreen(
+            isGeoBlocked = isGeoBlocked,
+            onchainActivities = onchainActivities.orEmpty(),
+            onAllActivityButtonClick = { navController.navigateToAllActivity() },
+            onActivityItemClick = { navController.navigateToActivityItem(it) },
+            onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
+            onTransferToSpendingClick = {
+                if (!hasSeenSpendingIntro) {
+                    navController.navigateToTransferSpendingIntro()
+                } else {
+                    navController.navigateToTransferSpendingAmount()
+                }
+            },
+            onBackClick = { navController.popBackStack() },
+        )
+    }
+    composable<Routes.Spending>(
+        enterTransition = { Transitions.slideInHorizontally },
+        exitTransition = { Transitions.slideOutHorizontally },
+    ) {
+        val hasSeenSavingsIntro by settingsViewModel.hasSeenSavingsIntro.collectAsStateWithLifecycle()
+        val uiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+        val lightningActivities by activityListViewModel.lightningActivities.collectAsStateWithLifecycle()
+
+        SpendingWalletScreen(
+            uiState = uiState,
+            lightningActivities = lightningActivities.orEmpty(),
+            onAllActivityButtonClick = { navController.navigateToAllActivity() },
+            onActivityItemClick = { navController.navigateToActivityItem(it) },
+            onEmptyActivityRowClick = { appViewModel.showSheet(Sheet.Receive) },
+            onTransferToSavingsClick = {
+                if (!hasSeenSavingsIntro) {
+                    navController.navigateToTransferSavingsIntro()
+                } else {
+                    navController.navigateToTransferSavingsAvailability()
+                }
+            },
+            onBackClick = { navController.popBackStack() },
         )
     }
 }
@@ -1408,33 +1467,13 @@ fun NavController.navigateToHome() {
     }
 }
 
+@Deprecated("Use navigateToHome() instead", ReplaceWith("navigateToHome()"))
 fun NavController.navigateToHomeNested(
-    walletNavController: NavController?,
-    nestedRoute: Any?,
+    @Suppress("UNUSED_PARAMETER") walletNavController: NavController?,
+    @Suppress("UNUSED_PARAMETER") nestedRoute: Any?,
 ) {
-    // Handle nested navigation if provided
-    walletNavController?.run {
-        when (nestedRoute) {
-            is HomeRoutes.Home -> {
-                val popped = popBackStack<HomeRoutes.Home>(inclusive = false)
-                if (!popped) {
-                    navigate(HomeRoutes.Home) {
-                        popUpTo(graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                }
-            }
-        }
-    }
-
-    // Handle root navigation
-    val popped = popBackStack<Routes.Home>(inclusive = false)
-    if (!popped) {
-        navigate(Routes.Home) {
-            popUpTo(graph.startDestinationId)
-            launchSingleTop = true
-        }
-    }
+    // walletNavController and nestedRoute are no longer needed
+    navigateToHome()
 }
 
 fun NavController.navigateToAllActivity() {
@@ -1604,6 +1643,12 @@ fun NavController.navigateToAboutSettings() = navigate(
 sealed interface Routes {
     @Serializable
     data object Home : Routes
+
+    @Serializable
+    data object Savings : Routes
+
+    @Serializable
+    data object Spending : Routes
 
     @Serializable
     data object Settings : Routes
