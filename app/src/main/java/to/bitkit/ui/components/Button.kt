@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.shared.util.primaryButtonStyle
 import to.bitkit.ui.theme.AppButtonDefaults
 import to.bitkit.ui.theme.AppThemeSurface
@@ -66,7 +67,7 @@ fun PrimaryButton(
     val buttonShape = MaterialTheme.shapes.large
 
     Button(
-        onClick = onClick,
+        onClick = {},
         enabled = enabled && !isLoading,
         colors = AppButtonDefaults.primaryColors.copy(
             containerColor = Color.Transparent,
@@ -82,6 +83,7 @@ fun PrimaryButton(
                 shape = buttonShape,
                 primaryColor = color
             )
+            .clickableAlpha { onClick() }
             .then(modifier)
     ) {
         if (isLoading) {
