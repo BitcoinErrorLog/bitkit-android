@@ -1,10 +1,12 @@
 package to.bitkit.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.IBtOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lightningdevkit.ldknode.TransactionDetails
+import to.bitkit.R
 import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.rawId
@@ -25,6 +28,7 @@ import javax.inject.Inject
 @Suppress("TooManyFunctions")
 @HiltViewModel
 class ActivityDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val activityRepo: ActivityRepo,
     private val settingsStore: SettingsStore,
@@ -62,14 +66,22 @@ class ActivityDetailViewModel @Inject constructor(
                         loadTags()
                     } else {
                         _uiState.update {
-                            it.copy(activityLoadState = ActivityLoadState.Error("Activity not found"))
+                            it.copy(
+                                activityLoadState = ActivityLoadState.Error(
+                                    context.getString(R.string.wallet__activity_error_not_found)
+                                )
+                            )
                         }
                     }
                 }
                 .onFailure { e ->
                     Logger.error("Failed to load activity $activityId", e, TAG)
                     _uiState.update {
-                        it.copy(activityLoadState = ActivityLoadState.Error(e.message ?: "Failed to load activity"))
+                        it.copy(
+                            activityLoadState = ActivityLoadState.Error(
+                                e.message ?: context.getString(R.string.wallet__activity_error_load_failed)
+                            )
+                        )
                     }
                 }
         }

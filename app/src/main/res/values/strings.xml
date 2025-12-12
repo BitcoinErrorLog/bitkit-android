@@ -1025,6 +1025,8 @@
     <string name="wallet__activity_error_get">Transaction Retrieval Failed</string>
     <string name="wallet__activity_error_get_description">Bitkit was not able to fetch the transaction data.</string>
     <string name="wallet__activity_error_tx_not_found">The transaction was not found.</string>
+    <string name="wallet__activity_error_not_found">Activity not found</string>
+    <string name="wallet__activity_error_load_failed">Failed to load activity</string>
     <string name="wallet__activity_confirming">Confirming</string>
     <string name="wallet__activity_confirmed">Confirmed</string>
     <string name="wallet__activity_removed">Removed from Mempool</string>
