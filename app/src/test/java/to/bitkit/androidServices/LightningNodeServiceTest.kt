@@ -55,7 +55,7 @@ import to.bitkit.test.BaseUnitTest
 
 @HiltAndroidTest
 @UninstallModules(DispatchersModule::class, DbModule::class)
-@Config(application = HiltTestApplication::class)
+@Config(application = HiltTestApplication::class, sdk = [34]) // Pin Robolectric to an SDK that supports Java 17
 @RunWith(RobolectricTestRunner::class)
 class LightningNodeServiceTest : BaseUnitTest() {
 
@@ -74,14 +74,14 @@ class LightningNodeServiceTest : BaseUnitTest() {
     @BindValue
     val cacheStore = mock<CacheStore>()
 
-    private val handlerCaptor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
+    private val captor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
     private val cacheDataFlow = MutableSharedFlow<AppCacheData>(replay = 1)
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
     fun setUp() = runBlocking {
         hiltRule.inject()
-        whenever(lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), handlerCaptor.capture()))
+        whenever(lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), captor.capture()))
             .thenReturn(Result.success(Unit))
         whenever(lightningRepo.stop()).thenReturn(Result.success(Unit))
 
@@ -121,7 +121,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
         controller.create().startCommand(0, 0)
         testScheduler.advanceUntilIdle()
 
-        val capturedHandler = handlerCaptor.lastValue
+        val capturedHandler = captor.lastValue
         assertNotNull("Event handler should be captured", capturedHandler)
 
         val event = Event.PaymentReceived(
@@ -168,7 +168,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        handlerCaptor.lastValue?.invoke(event)
+        captor.lastValue?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -196,7 +196,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        handlerCaptor.lastValue?.invoke(event)
+        captor.lastValue?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
