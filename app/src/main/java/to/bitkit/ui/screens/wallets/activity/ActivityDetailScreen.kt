@@ -1,6 +1,5 @@
 package to.bitkit.ui.screens.wallets.activity
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

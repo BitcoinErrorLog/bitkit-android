@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -1632,6 +1633,7 @@ fun NavController.navigateToAboutSettings() = navigate(
 )
 // endregion
 
+@Stable
 sealed interface Routes {
     @Serializable
     data object Home : Routes
