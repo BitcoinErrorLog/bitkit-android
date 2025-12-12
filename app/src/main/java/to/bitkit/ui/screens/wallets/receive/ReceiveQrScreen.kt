@@ -354,31 +354,36 @@ private fun ReceiveQrView(
                         modifier = Modifier.size(18.dp)
                     )
                 },
-                modifier = Modifier.testTag("SpecifyInvoiceButton")
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("SpecifyInvoiceButton")
             )
-            Tooltip(
-                text = stringResource(R.string.wallet__receive_copied),
-                tooltipState = qrButtonTooltipState
-            ) {
-                PrimaryButton(
-                    text = stringResource(R.string.common__copy),
-                    size = ButtonSize.Small,
-                    onClick = {
-                        context.setClipboardText(uri)
-                        coroutineScope.launch { qrButtonTooltipState.show() }
-                    },
-                    fullWidth = false,
-                    color = Colors.White10,
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_copy),
-                            contentDescription = null,
-                            tint = tab.accentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    modifier = Modifier.testTag("ReceiveCopyQR")
-                )
+            Box(modifier = Modifier.weight(1f)) {
+                Tooltip(
+                    text = stringResource(R.string.wallet__receive_copied),
+                    tooltipState = qrButtonTooltipState
+                ) {
+                    PrimaryButton(
+                        text = stringResource(R.string.common__copy),
+                        size = ButtonSize.Small,
+                        onClick = {
+                            context.setClipboardText(uri)
+                            coroutineScope.launch { qrButtonTooltipState.show() }
+                        },
+                        fullWidth = true,
+                        color = Colors.White10,
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_copy),
+                                contentDescription = null,
+                                tint = tab.accentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .testTag("ReceiveCopyQR")
+                    )
+                }
             }
             PrimaryButton(
                 text = stringResource(R.string.common__share),
@@ -398,6 +403,7 @@ private fun ReceiveQrView(
                         modifier = Modifier.size(18.dp)
                     )
                 },
+                modifier = Modifier.weight(1f)
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
