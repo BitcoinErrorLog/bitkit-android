@@ -42,17 +42,6 @@ class ActivityDetailViewModel @Inject constructor(
 
     private var activity: Activity? = null
 
-    sealed interface ActivityLoadState {
-        data object Initial : ActivityLoadState
-        data object Loading : ActivityLoadState
-        data class Success(val activity: Activity) : ActivityLoadState
-        data class Error(val message: String) : ActivityLoadState
-    }
-
-    data class ActivityDetailUiState(
-        val activityLoadState: ActivityLoadState = ActivityLoadState.Initial,
-    )
-
     private val _uiState = MutableStateFlow(ActivityDetailUiState())
     val uiState: StateFlow<ActivityDetailUiState> = _uiState.asStateFlow()
 
@@ -191,4 +180,15 @@ class ActivityDetailViewModel @Inject constructor(
     private companion object {
         const val TAG = "ActivityDetailViewModel"
     }
+
+    sealed interface ActivityLoadState {
+        data object Initial : ActivityLoadState
+        data object Loading : ActivityLoadState
+        data class Success(val activity: Activity) : ActivityLoadState
+        data class Error(val message: String) : ActivityLoadState
+    }
+
+    data class ActivityDetailUiState(
+        val activityLoadState: ActivityLoadState = ActivityLoadState.Initial,
+    )
 }
