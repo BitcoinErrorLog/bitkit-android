@@ -236,6 +236,7 @@ fun ReceiveQrScreen(
                                     tab = tab,
                                     walletState = walletState,
                                     cjitInvoice = cjitInvoice,
+                                    onClickEditInvoice = onClickEditInvoice,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -458,6 +459,7 @@ private fun ReceiveDetailsView(
     tab: ReceiveTab,
     walletState: MainUiState,
     cjitInvoice: String?,
+    onClickEditInvoice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -477,6 +479,7 @@ private fun ReceiveDetailsView(
                             ),
                             body = walletState.onchainAddress,
                             type = CopyAddressType.ONCHAIN,
+                            onClickEditInvoice = onClickEditInvoice,
                             testTag = "ReceiveOnchainAddress",
                         )
                     }
@@ -493,6 +496,7 @@ private fun ReceiveDetailsView(
                             ),
                             body = walletState.onchainAddress,
                             type = CopyAddressType.ONCHAIN,
+                            onClickEditInvoice = onClickEditInvoice,
                             testTag = "ReceiveOnchainAddress",
                         )
                     }
@@ -501,6 +505,7 @@ private fun ReceiveDetailsView(
                             title = stringResource(R.string.wallet__receive_lightning_invoice),
                             address = cjitInvoice ?: walletState.bolt11,
                             type = CopyAddressType.LIGHTNING,
+                            onClickEditInvoice = onClickEditInvoice,
                             testTag = "ReceiveLightningAddress",
                         )
                     }
@@ -512,6 +517,7 @@ private fun ReceiveDetailsView(
                             title = stringResource(R.string.wallet__receive_lightning_invoice),
                             address = cjitInvoice ?: walletState.bolt11,
                             type = CopyAddressType.LIGHTNING,
+                            onClickEditInvoice = onClickEditInvoice,
                             testTag = "ReceiveLightningAddress",
                         )
                     }
@@ -529,6 +535,7 @@ private fun CopyAddressCard(
     title: String,
     address: String,
     type: CopyAddressType,
+    onClickEditInvoice: () -> Unit,
     body: String? = null,
     testTag: String? = null,
 ) {
@@ -559,28 +566,48 @@ private fun CopyAddressCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PrimaryButton(
+                text = stringResource(R.string.common__edit),
+                size = ButtonSize.Small,
+                onClick = onClickEditInvoice,
+                fullWidth = false,
+                color = Colors.White10,
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pencil_simple),
+                        contentDescription = null,
+                        tint = if (type == CopyAddressType.ONCHAIN) Colors.Brand else Colors.Purple,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("SpecifyInvoiceButton")
+            )
             Tooltip(
                 text = stringResource(R.string.wallet__receive_copied),
                 tooltipState = tooltipState,
             ) {
-                PrimaryButton(
-                    text = stringResource(R.string.common__copy),
-                    size = ButtonSize.Small,
-                    onClick = {
-                        context.setClipboardText(address)
-                        coroutineScope.launch { tooltipState.show() }
-                    },
-                    fullWidth = false,
-                    color = Colors.White10,
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_copy),
-                            contentDescription = null,
-                            tint = if (type == CopyAddressType.ONCHAIN) Colors.Brand else Colors.Purple,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                )
+                Box(modifier = Modifier.weight(1f)) {
+                    PrimaryButton(
+                        text = stringResource(R.string.common__copy),
+                        size = ButtonSize.Small,
+                        onClick = {
+                            context.setClipboardText(address)
+                            coroutineScope.launch { tooltipState.show() }
+                        },
+                        fullWidth = false,
+                        color = Colors.White10,
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_copy),
+                                contentDescription = null,
+                                tint = if (type == CopyAddressType.ONCHAIN) Colors.Brand else Colors.Purple,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                    )
+                }
             }
             PrimaryButton(
                 text = stringResource(R.string.common__share),
@@ -810,6 +837,7 @@ private fun PreviewDetailsMode() {
                     bolt11 = "lnbcrt500u1pn7umn7pp5x0s9lt9fwrff6rp70pz3guwnjgw97sjuv79...",
                 ),
                 cjitInvoice = null,
+                onClickEditInvoice = {},
                 modifier = Modifier.weight(1f)
             )
         }
