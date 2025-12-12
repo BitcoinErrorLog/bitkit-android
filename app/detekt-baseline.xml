@@ -467,7 +467,6 @@
     <ID>TooManyFunctions:LightningRepo.kt$LightningRepo</ID>
     <ID>TooManyFunctions:LightningService.kt$LightningService : BaseCoroutineScope</ID>
     <ID>TooManyFunctions:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:TagMetadataDao.kt$TagMetadataDao</ID>
     <ID>TooManyFunctions:Text.kt$to.bitkit.ui.components.Text.kt</ID>
     <ID>TooManyFunctions:TransferViewModel.kt$TransferViewModel : ViewModel</ID>
     <ID>TooManyFunctions:WalletRepo.kt$WalletRepo</ID>
