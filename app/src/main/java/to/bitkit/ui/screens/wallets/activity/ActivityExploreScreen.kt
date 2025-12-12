@@ -42,9 +42,7 @@ import com.synonym.bitkitcore.PaymentType
 import org.lightningdevkit.ldknode.TransactionDetails
 import to.bitkit.R
 import to.bitkit.ext.ellipsisMiddle
-import to.bitkit.ext.isBoosted
 import to.bitkit.ext.isSent
-import to.bitkit.ext.rawId
 import to.bitkit.ext.totalValue
 import to.bitkit.models.Toast
 import to.bitkit.ui.Routes
@@ -65,11 +63,9 @@ import to.bitkit.ui.utils.getBlockExplorerUrl
 import to.bitkit.ui.utils.getScreenTitleRes
 import to.bitkit.ui.utils.localizedPlural
 import to.bitkit.viewmodels.ActivityDetailViewModel
-import to.bitkit.viewmodels.ActivityListViewModel
 
 @Composable
 fun ActivityExploreScreen(
-    listViewModel: ActivityListViewModel,
     detailViewModel: ActivityDetailViewModel = hiltViewModel(),
     route: Routes.ActivityExplore,
     onBackClick: () -> Unit,
@@ -92,8 +88,7 @@ fun ActivityExploreScreen(
         when (val loadState = uiState.activityLoadState) {
             is ActivityDetailViewModel.ActivityLoadState.Initial,
             is ActivityDetailViewModel.ActivityLoadState.Loading,
-            -> {
-                // Loading state
+                -> {
                 AppTopBar(
                     titleText = stringResource(R.string.wallet__activity),
                     onBackClick = onBackClick,
@@ -110,7 +105,6 @@ fun ActivityExploreScreen(
             }
 
             is ActivityDetailViewModel.ActivityLoadState.Error -> {
-                // Error state
                 AppTopBar(
                     titleText = stringResource(R.string.wallet__activity),
                     onBackClick = onBackClick,
