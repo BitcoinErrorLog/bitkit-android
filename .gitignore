@@ -13,7 +13,7 @@ local.properties
 .ai
 .cursor
 *.local.*
-CLAUDE.md
+!*.local.template*
 # Secrets
 google-services.json
 .env
