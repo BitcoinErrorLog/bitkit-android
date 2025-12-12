@@ -2,8 +2,13 @@ package to.bitkit.ui.shared.modifiers
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
@@ -100,4 +105,34 @@ private class ClickableAlphaNode(
             true
         }
     }
+}
+
+/**
+ * Applies alpha animation feedback on press without consuming click events.
+ * This allows the Button's onClick to work while providing full-area visual feedback.
+ */
+@Composable
+fun Modifier.alphaFeedback(
+    pressedAlpha: Float = 0.7f,
+    enabled: Boolean = true,
+): Modifier = if (enabled) {
+    val animatable = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+
+    this
+        .pointerInput(Unit) {
+            detectTapGestures(
+                onPress = {
+                    scope.launch { animatable.animateTo(pressedAlpha) }
+                    tryAwaitRelease()
+                    scope.launch { animatable.animateTo(1f) }
+                },
+                onTap = null // Don't consume tap - let Button handle it
+            )
+        }
+        .graphicsLayer {
+            alpha = animatable.value
+        }
+} else {
+    this
 }
