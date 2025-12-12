@@ -76,7 +76,8 @@ class ActivityRepoTest : BaseUnitTest() {
         channelId = null,
         transferTxId = null,
         createdAt = null,
-        updatedAt = null
+        updatedAt = null,
+        seenAt = null,
     )
 
     @Suppress("LongParameterList")

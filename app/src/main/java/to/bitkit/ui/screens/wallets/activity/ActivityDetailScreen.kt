@@ -780,6 +780,7 @@ private fun PreviewLightningSent() {
                     preimage = null,
                     createdAt = null,
                     updatedAt = null,
+                    seenAt = null,
                 )
             ),
             tags = listOf("Lunch", "Drinks"),
@@ -818,6 +819,7 @@ private fun PreviewOnchain() {
                     transferTxId = null,
                     createdAt = null,
                     updatedAt = null,
+                    seenAt = null,
                 )
             ),
             tags = emptyList(),
@@ -852,6 +854,7 @@ private fun PreviewSheetSmallScreen() {
                         preimage = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 ),
                 tags = listOf("Lunch", "Drinks"),

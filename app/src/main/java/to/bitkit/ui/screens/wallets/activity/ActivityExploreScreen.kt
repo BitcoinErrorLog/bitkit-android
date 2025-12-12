@@ -340,6 +340,7 @@ private fun PreviewLightning() {
                     preimage = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                     createdAt = null,
                     updatedAt = null,
+                    seenAt = null,
                 ),
             ),
         )
@@ -371,6 +372,7 @@ private fun PreviewOnchain() {
                     transferTxId = null,
                     createdAt = null,
                     updatedAt = null,
+                    seenAt = null,
                 ),
             ),
         )

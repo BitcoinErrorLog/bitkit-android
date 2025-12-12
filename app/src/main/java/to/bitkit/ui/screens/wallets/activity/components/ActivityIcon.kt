@@ -131,8 +131,8 @@ fun CircularIcon(
     icon: Painter,
     iconColor: Color,
     backgroundColor: Color,
-    size: Dp = 32.dp,
     modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -172,6 +172,7 @@ private fun Preview() {
                         preimage = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -191,6 +192,7 @@ private fun Preview() {
                         preimage = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -210,6 +212,7 @@ private fun Preview() {
                         preimage = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -236,6 +239,7 @@ private fun Preview() {
                         transferTxId = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -262,6 +266,7 @@ private fun Preview() {
                         transferTxId = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -288,6 +293,7 @@ private fun Preview() {
                         transferTxId = null,
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -314,6 +320,7 @@ private fun Preview() {
                         transferTxId = "transferTxId",
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )
@@ -340,6 +347,7 @@ private fun Preview() {
                         transferTxId = "transferTxId",
                         createdAt = null,
                         updatedAt = null,
+                        seenAt = null,
                     )
                 )
             )

@@ -485,6 +485,7 @@ class ActivityService(
                 preimage = kind.preimage,
                 createdAt = payment.latestUpdateTimestamp,
                 updatedAt = payment.latestUpdateTimestamp,
+                seenAt = null, // TODO implement synonymdev/bitkit-ios#270 changes
             )
         }
 
@@ -616,6 +617,7 @@ class ActivityService(
             transferTxId = null,
             createdAt = confirmationData.timestamp,
             updatedAt = confirmationData.timestamp,
+            seenAt = null, // TODO implement synonymdev/bitkit-ios#270 changes
         )
     }
 
@@ -737,7 +739,8 @@ class ActivityService(
                             timestamp = txTimestamp,
                             preimage = if (Random.nextBoolean()) "preimage$i" else null,
                             createdAt = txTimestamp,
-                            updatedAt = txTimestamp
+                            updatedAt = txTimestamp,
+                            seenAt = null, // TODO implement synonymdev/bitkit-ios#270 changes
                         )
                     )
                 } else {
@@ -762,6 +765,7 @@ class ActivityService(
                             transferTxId = null,
                             createdAt = txTimestamp,
                             updatedAt = txTimestamp,
+                            seenAt = null, // TODO implement synonymdev/bitkit-ios#270 changes
                         )
                     )
                 }

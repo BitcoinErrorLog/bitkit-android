@@ -58,7 +58,8 @@ class BoostTransactionViewModelTest : BaseUnitTest() {
         channelId = null,
         transferTxId = null,
         createdAt = null,
-        updatedAt = null
+        updatedAt = null,
+        seenAt = null,
     )
 
     private val mockActivitySent = Activity.Onchain(v1 = mockOnchainActivity)

@@ -38,6 +38,7 @@ val previewActivityItems = buildList {
                 transferTxId = "transferTxId",
                 createdAt = today.epochSecond() - 30_000u,
                 updatedAt = today.epochSecond(),
+                seenAt = null,
             )
         )
     )
@@ -57,6 +58,7 @@ val previewActivityItems = buildList {
                 preimage = "preimage1",
                 createdAt = yesterday.epochSecond(),
                 updatedAt = yesterday.epochSecond(),
+                seenAt = null,
             )
         )
     )
@@ -76,6 +78,7 @@ val previewActivityItems = buildList {
                 preimage = "preimage2",
                 createdAt = thisWeek.epochSecond(),
                 updatedAt = thisWeek.epochSecond(),
+                seenAt = null,
             )
         )
     )
@@ -102,6 +105,7 @@ val previewActivityItems = buildList {
                 transferTxId = "transferTxId",
                 createdAt = thisMonth.epochSecond(),
                 updatedAt = thisMonth.epochSecond(),
+                seenAt = null,
             )
         )
     )
@@ -121,6 +125,7 @@ val previewActivityItems = buildList {
                 preimage = null,
                 createdAt = lastYear.epochSecond(),
                 updatedAt = lastYear.epochSecond(),
+                seenAt = null,
             )
         )
     )

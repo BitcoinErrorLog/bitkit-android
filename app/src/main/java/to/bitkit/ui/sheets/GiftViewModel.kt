@@ -110,6 +110,7 @@ class GiftViewModel @Inject constructor(
             preimage = null,
             createdAt = nowTimestamp,
             updatedAt = null,
+            seenAt = null,
         )
 
         activityRepo.insertActivity(Activity.Lightning(lightningActivity)).getOrThrow()
