@@ -88,7 +88,7 @@ fun ActivityExploreScreen(
         when (val loadState = uiState.activityLoadState) {
             is ActivityDetailViewModel.ActivityLoadState.Initial,
             is ActivityDetailViewModel.ActivityLoadState.Loading,
-                -> {
+            -> {
                 AppTopBar(
                     titleText = stringResource(R.string.wallet__activity),
                     onBackClick = onBackClick,

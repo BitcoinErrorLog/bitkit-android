@@ -110,7 +110,7 @@ fun ActivityDetailScreen(
         when (val loadState = uiState.activityLoadState) {
             is ActivityDetailViewModel.ActivityLoadState.Initial,
             is ActivityDetailViewModel.ActivityLoadState.Loading,
-                -> {
+            -> {
                 Column(modifier = Modifier.background(Colors.Black)) {
                     AppTopBar(
                         titleText = stringResource(R.string.wallet__activity),
