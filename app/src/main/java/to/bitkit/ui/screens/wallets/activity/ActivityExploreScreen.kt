@@ -40,6 +40,7 @@ import com.synonym.bitkitcore.PaymentState
 import com.synonym.bitkitcore.PaymentType
 import org.lightningdevkit.ldknode.TransactionDetails
 import to.bitkit.R
+import to.bitkit.ext.create
 import to.bitkit.ext.ellipsisMiddle
 import to.bitkit.ext.isSent
 import to.bitkit.ext.rawId
@@ -328,19 +329,16 @@ private fun PreviewLightning() {
     AppThemeSurface {
         ActivityExploreContent(
             item = Activity.Lightning(
-                v1 = LightningActivity(
+                v1 = LightningActivity.create(
                     id = "test-lightning-1",
                     txType = PaymentType.SENT,
                     status = PaymentState.SUCCEEDED,
                     value = 50000UL,
-                    fee = 1UL,
                     invoice = "lnbc...",
-                    message = "Thanks for paying at the bar. Here's my share.",
                     timestamp = (System.currentTimeMillis() / 1000).toULong(),
+                    fee = 1UL,
+                    message = "Thanks for paying at the bar. Here's my share.",
                     preimage = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-                    createdAt = null,
-                    updatedAt = null,
-                    seenAt = null,
                 ),
             ),
         )
@@ -353,26 +351,17 @@ private fun PreviewOnchain() {
     AppThemeSurface {
         ActivityExploreContent(
             item = Activity.Onchain(
-                v1 = OnchainActivity(
+                v1 = OnchainActivity.create(
                     id = "test-onchain-1",
                     txType = PaymentType.RECEIVED,
                     txId = "abc123",
                     value = 100000UL,
                     fee = 500UL,
-                    feeRate = 8UL,
                     address = "bc1...",
-                    confirmed = true,
                     timestamp = (System.currentTimeMillis() / 1000 - 3600).toULong(),
-                    isBoosted = false,
-                    boostTxIds = emptyList(),
-                    isTransfer = false,
-                    doesExist = true,
+                    confirmed = true,
+                    feeRate = 8UL,
                     confirmTimestamp = (System.currentTimeMillis() / 1000).toULong(),
-                    channelId = null,
-                    transferTxId = null,
-                    createdAt = null,
-                    updatedAt = null,
-                    seenAt = null,
                 ),
             ),
         )

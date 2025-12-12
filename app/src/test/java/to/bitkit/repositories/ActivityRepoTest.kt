@@ -24,6 +24,7 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.dto.PendingBoostActivity
+import to.bitkit.ext.create
 import to.bitkit.services.CoreService
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
@@ -58,26 +59,15 @@ class ActivityRepoTest : BaseUnitTest() {
         on { v1 } doReturn testActivityV1
     }
 
-    private val baseOnchainActivity = OnchainActivity(
+    private val baseOnchainActivity = OnchainActivity.create(
         id = "base_activity_id",
         txType = PaymentType.SENT,
         txId = "base_tx_id",
         value = 1000uL,
         fee = 100uL,
-        feeRate = 10uL,
         address = "bc1test",
-        confirmed = false,
         timestamp = 1234567890uL,
-        isBoosted = false,
-        boostTxIds = emptyList(),
-        isTransfer = false,
-        doesExist = true,
-        confirmTimestamp = null,
-        channelId = null,
-        transferTxId = null,
-        createdAt = null,
-        updatedAt = null,
-        seenAt = null,
+        feeRate = 10uL,
     )
 
     @Suppress("LongParameterList")
