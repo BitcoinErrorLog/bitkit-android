@@ -70,19 +70,19 @@ class LightningNodeServiceTest : BaseUnitTest() {
 
     @BindValue
     @JvmField
-    val lightningRepo: LightningRepo = mock()
+    val lightningRepo = mock<LightningRepo>()
 
     @BindValue
     @JvmField
-    val walletRepo: WalletRepo = mock()
+    val walletRepo = mock<WalletRepo>()
 
     @BindValue
     @JvmField
-    val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler = mock()
+    val notifyPaymentReceivedHandler = mock<NotifyPaymentReceivedHandler>()
 
     @BindValue
     @JvmField
-    val cacheStore: CacheStore = mock()
+    val cacheStore = mock<CacheStore>()
 
     @BindValue
     @UiDispatcher
@@ -99,16 +99,15 @@ class LightningNodeServiceTest : BaseUnitTest() {
     @JvmField
     val ioDispatcher: CoroutineDispatcher = testDispatcher
 
-    private val eventHandlerCaptor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
+    private val handlerCaptor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
     private val cacheDataFlow = MutableSharedFlow<AppCacheData>(replay = 1)
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Before
     fun setUp() = runBlocking {
         hiltRule.inject()
-        whenever(
-            lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), eventHandlerCaptor.capture())
-        ).thenReturn(Result.success(Unit))
+        whenever(lightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), handlerCaptor.capture()))
+            .thenReturn(Result.success(Unit))
         whenever(lightningRepo.stop()).thenReturn(Result.success(Unit))
 
         // Set up CacheStore mock
@@ -125,9 +124,8 @@ class LightningNodeServiceTest : BaseUnitTest() {
             title = context.getString(R.string.notification_received_title),
             body = "Received ₿ 100 ($0.10)",
         )
-        whenever(notifyPaymentReceivedHandler.invoke(any())).thenReturn(
-            Result.success(NotifyPaymentReceived.Result.ShowNotification(sheet, notification))
-        )
+        whenever(notifyPaymentReceivedHandler.invoke(any()))
+            .thenReturn(Result.success(NotifyPaymentReceived.Result.ShowNotification(sheet, notification)))
 
         // Grant permissions for notifications
         val app = context as Application
@@ -148,7 +146,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
         controller.create().startCommand(0, 0)
         testScheduler.advanceUntilIdle()
 
-        val capturedHandler = eventHandlerCaptor.lastValue
+        val capturedHandler = handlerCaptor.lastValue
         assertNotNull("Event handler should be captured", capturedHandler)
 
         val event = Event.PaymentReceived(
@@ -195,7 +193,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        eventHandlerCaptor.lastValue?.invoke(event)
+        handlerCaptor.lastValue?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -223,7 +221,7 @@ class LightningNodeServiceTest : BaseUnitTest() {
             customRecords = emptyList()
         )
 
-        eventHandlerCaptor.lastValue?.invoke(event)
+        handlerCaptor.lastValue?.invoke(event)
         testScheduler.advanceUntilIdle()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -235,6 +233,6 @@ class LightningNodeServiceTest : BaseUnitTest() {
         assertNotNull("Payment notification should be present", paymentNotification)
 
         val body = paymentNotification?.extras?.getString(Notification.EXTRA_TEXT)
-        assertEquals("Received ₿ 100 (\$0.10)", body)
+        assertEquals($$"Received ₿ 100 ($0.10)", body)
     }
 }
