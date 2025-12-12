@@ -529,6 +529,7 @@ class ActivityRepo @Inject constructor(
                         preimage = null,
                         createdAt = now,
                         updatedAt = null,
+                        seenAt = null, // TODO implement synonymdev/bitkit-ios#270 changes
                     )
                 )
             )

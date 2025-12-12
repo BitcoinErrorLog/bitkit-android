@@ -2,7 +2,6 @@ import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.Properties
@@ -176,7 +175,6 @@ android {
 
 composeCompiler {
     featureFlags = setOf(
-        ComposeFeatureFlag.OptimizeNonSkippingGroups,
     )
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
 }
