@@ -49,6 +49,7 @@
     <ID>LargeClass:AppViewModel.kt$AppViewModel : ViewModel</ID>
     <ID>LargeClass:LightningRepo.kt$LightningRepo</ID>
     <ID>LongMethod:AppViewModel.kt$AppViewModel$private suspend fun proceedWithPayment()</ID>
+    <ID>LongMethod:ContentView.kt$@Suppress("LongParameterList") private fun NavGraphBuilder.home( walletViewModel: WalletViewModel, appViewModel: AppViewModel, activityListViewModel: ActivityListViewModel, settingsViewModel: SettingsViewModel, navController: NavHostController, drawerState: DrawerState, )</ID>
     <ID>LongMethod:ContentView.kt$private fun NavGraphBuilder.widgets( navController: NavHostController, settingsViewModel: SettingsViewModel, currencyViewModel: CurrencyViewModel, )</ID>
     <ID>LongMethod:CoreService.kt$ActivityService$suspend fun generateRandomTestData(count: Int = 100)</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
@@ -150,6 +151,7 @@
     <ID>NestedBlockDepth:LogsRepo.kt$LogsRepo$private fun createZipBase64(logFiles: List&lt;LogFile&gt;): String</ID>
     <ID>NestedBlockDepth:MonetaryVisualTransformation.kt$MonetaryVisualTransformation$private fun createOffsetMapping(original: String, transformed: String): OffsetMapping</ID>
     <ID>NestedBlockDepth:ShopWebViewInterface.kt$ShopWebViewInterface$@JavascriptInterface fun postMessage(message: String)</ID>
+    <ID>NoUnusedImports:ActivityDetailScreen.kt$to.bitkit.ui.screens.wallets.activity.ActivityDetailScreen.kt</ID>
     <ID>NoWildcardImports:LightningChannel.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>PrintStackTrace:ShareSheet.kt$e</ID>
     <ID>ReturnCount:AppViewModel.kt$AppViewModel$private suspend fun handleSanityChecks(amountSats: ULong)</ID>
