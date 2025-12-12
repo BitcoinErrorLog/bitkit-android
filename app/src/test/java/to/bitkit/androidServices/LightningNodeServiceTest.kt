@@ -12,7 +12,6 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import dagger.hilt.android.testing.UninstallModules
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -41,10 +40,8 @@ import to.bitkit.CurrentActivity
 import to.bitkit.R
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
-import to.bitkit.di.BgDispatcher
+import to.bitkit.di.DbModule
 import to.bitkit.di.DispatchersModule
-import to.bitkit.di.IoDispatcher
-import to.bitkit.di.UiDispatcher
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
 import to.bitkit.models.NewTransactionSheetDetails
@@ -57,47 +54,25 @@ import to.bitkit.services.NodeEventHandler
 import to.bitkit.test.BaseUnitTest
 
 @HiltAndroidTest
-@UninstallModules(DispatchersModule::class)
+@UninstallModules(DispatchersModule::class, DbModule::class)
 @Config(application = HiltTestApplication::class)
 @RunWith(RobolectricTestRunner::class)
 class LightningNodeServiceTest : BaseUnitTest() {
-
-    @get:Rule(order = 0)
-    val mainDispatcherRule = coroutinesTestRule
 
     @get:Rule(order = 1)
     var hiltRule = HiltAndroidRule(this)
 
     @BindValue
-    @JvmField
     val lightningRepo = mock<LightningRepo>()
 
     @BindValue
-    @JvmField
     val walletRepo = mock<WalletRepo>()
 
     @BindValue
-    @JvmField
     val notifyPaymentReceivedHandler = mock<NotifyPaymentReceivedHandler>()
 
     @BindValue
-    @JvmField
     val cacheStore = mock<CacheStore>()
-
-    @BindValue
-    @UiDispatcher
-    @JvmField
-    val uiDispatcher: CoroutineDispatcher = testDispatcher
-
-    @BindValue
-    @BgDispatcher
-    @JvmField
-    val bgDispatcher: CoroutineDispatcher = testDispatcher
-
-    @BindValue
-    @IoDispatcher
-    @JvmField
-    val ioDispatcher: CoroutineDispatcher = testDispatcher
 
     private val handlerCaptor: KArgumentCaptor<NodeEventHandler?> = argumentCaptor()
     private val cacheDataFlow = MutableSharedFlow<AppCacheData>(replay = 1)
