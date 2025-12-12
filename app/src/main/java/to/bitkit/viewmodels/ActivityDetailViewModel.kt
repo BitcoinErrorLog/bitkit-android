@@ -8,6 +8,7 @@ import com.synonym.bitkitcore.IBtOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,7 @@ class ActivityDetailViewModel @Inject constructor(
     val boostSheetVisible = _boostSheetVisible.asStateFlow()
 
     private var activity: Activity? = null
+    private var observeJob: Job? = null
 
     private val _uiState = MutableStateFlow(ActivityDetailUiState())
     val uiState: StateFlow<ActivityDetailUiState> = _uiState.asStateFlow()
@@ -64,6 +66,7 @@ class ActivityDetailViewModel @Inject constructor(
                         this@ActivityDetailViewModel.activity = activity
                         _uiState.update { it.copy(activityLoadState = ActivityLoadState.Success(activity)) }
                         loadTags()
+                        observeActivityChanges(activityId)
                     } else {
                         _uiState.update {
                             it.copy(
@@ -88,8 +91,37 @@ class ActivityDetailViewModel @Inject constructor(
     }
 
     fun clearActivityState() {
+        observeJob?.cancel()
+        observeJob = null
         _uiState.update { it.copy(activityLoadState = ActivityLoadState.Initial) }
         activity = null
+        _tags.value = emptyList()
+    }
+
+    private fun observeActivityChanges(activityId: String) {
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch(bgDispatcher) {
+            activityRepo.activitiesChanged.collect {
+                reloadActivity(activityId)
+            }
+        }
+    }
+
+    private suspend fun reloadActivity(activityId: String) {
+        activityRepo.getActivity(activityId)
+            .onSuccess { updatedActivity ->
+                if (updatedActivity != null) {
+                    activity = updatedActivity
+                    _uiState.update {
+                        it.copy(activityLoadState = ActivityLoadState.Success(updatedActivity))
+                    }
+                    loadTags()
+                }
+            }
+            .onFailure { error ->
+                Logger.warn("Failed to reload activity $activityId", error, context = TAG)
+                // Keep showing last known state on reload failure
+            }
     }
 
     fun loadTags() {
