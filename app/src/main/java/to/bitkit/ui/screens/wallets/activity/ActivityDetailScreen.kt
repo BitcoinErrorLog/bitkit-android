@@ -1,5 +1,6 @@
 package to.bitkit.ui.screens.wallets.activity
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -176,6 +177,7 @@ fun ActivityDetailScreen(
 
         if (boostSheetVisible) {
             (item as? Activity.Onchain)?.let {
+                @SuppressLint("LocalContextGetResourceValueCall")
                 BoostTransactionSheet(
                     onDismiss = detailViewModel::onDismissBoostSheet,
                     item = it,
@@ -200,7 +202,7 @@ fun ActivityDetailScreen(
                         app.toast(
                             type = Toast.ToastType.ERROR,
                             title = context.getString(R.string.wallet__send_fee_error),
-                            description = "Unable to increase the fee any further. Otherwise, it will exceed half the current input balance" // TODO CREATE STRING RESOURCE
+                            description = context.getString(R.string.wallet__boost_error_msg_max)
                         )
                     },
                     onMinFee = {
