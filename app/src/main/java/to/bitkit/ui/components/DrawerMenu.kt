@@ -138,11 +138,8 @@ private fun Menu(
             label = stringResource(R.string.wallet__drawer__wallet),
             iconRes = R.drawable.ic_coins,
             onClick = {
-                val isOnHome = rootNavController.currentBackStackEntry
-                    ?.destination?.hasRoute<Routes.Home>() ?: false
-                if (!isOnHome) {
-                    rootNavController.navigateToHome()
-                }
+                val isInHome = rootNavController.currentBackStackEntry?.destination?.hasRoute<Routes.Home>() ?: false
+                if (!isInHome) rootNavController.navigateToHome()
                 scope.launch { drawerState.close() }
             },
             modifier = Modifier.testTag("DrawerWallet")

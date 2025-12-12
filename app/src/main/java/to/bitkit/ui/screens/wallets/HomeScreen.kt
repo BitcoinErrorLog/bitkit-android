@@ -359,7 +359,7 @@ private fun Content(
                             sats = balances.totalOnchainSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_btc_circle),
                             modifier = Modifier
-                                .clickableAlpha { walletNavController.navigate(HomeRoutes.Savings) }
+                                .clickableAlpha { walletNavController.navigate(Routes.Savings) }
                                 .padding(vertical = 4.dp)
                                 .testTag("ActivitySavings")
                         )
@@ -370,7 +370,7 @@ private fun Content(
                             sats = balances.totalLightningSats.toLong(),
                             icon = painterResource(id = R.drawable.ic_ln_circle),
                             modifier = Modifier
-                                .clickableAlpha { walletNavController.navigate(HomeRoutes.Spending) }
+                                .clickableAlpha { walletNavController.navigate(Routes.Spending) }
                                 .padding(vertical = 4.dp)
                                 .testTag("ActivitySpending")
                         )
