@@ -40,6 +40,7 @@ class ToastQueueManager(private val scope: CoroutineScope) {
      * Add toast to queue. If queue is full, drops oldest.
      */
     fun enqueue(toast: Toast) {
+        dismissCurrentToast()
         _queue.update { current ->
             val newQueue = if (current.size >= MAX_QUEUE_SIZE) {
                 // Drop oldest (first item) when queue full
@@ -49,8 +50,6 @@ class ToastQueueManager(private val scope: CoroutineScope) {
             }
             newQueue
         }
-
-        dismissCurrentToast()
     }
 
     /**
