@@ -106,7 +106,7 @@ class NoisePaymentService @Inject constructor(
      */
     suspend fun sendPaymentRequest(request: NoisePaymentRequest): NoisePaymentResponse = withContext(Dispatchers.IO) {
         // Step 1: Discover Noise endpoint for recipient
-        val endpoint = directoryService.discoverNoiseEndpoint(forRecipient = request.payeePubkey)
+        val endpoint = directoryService.discoverNoiseEndpoint(request.payeePubkey)
             ?: throw NoisePaymentError.EndpointNotFound
 
         // Step 2: Connect to endpoint

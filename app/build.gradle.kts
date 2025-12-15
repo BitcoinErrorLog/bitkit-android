@@ -280,9 +280,8 @@ dependencies {
     detektPlugins(libs.detekt.compose.rules)
 }
 // https://developer.android.com/jetpack/androidx/releases/room#gradle-plugin
-// Note: Using /tmp path to avoid spaces in iCloud paths breaking Room schema generation
 room {
-    schemaDirectory("/tmp/bitkit-room-schemas")
+    schemaDirectory("$projectDir/schemas")
 }
 
 // region Tasks

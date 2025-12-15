@@ -70,8 +70,8 @@ fun PaykitDashboardScreen(
                 item {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacing(12.dp),
-                        verticalArrangement = Arrangement.spacing(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         item {
                             StatCard(
@@ -115,8 +115,8 @@ fun PaykitDashboardScreen(
                         
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacing(12.dp),
-                            verticalArrangement = Arrangement.spacing(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             if (autoPayEnabled) {
                                 item {

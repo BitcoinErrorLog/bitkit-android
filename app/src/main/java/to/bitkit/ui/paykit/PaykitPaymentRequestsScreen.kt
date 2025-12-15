@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +32,7 @@ fun PaykitPaymentRequestsScreen(
     paymentRequestStorage: PaymentRequestStorage? = null
 ) {
     // TODO: Create ViewModel for PaymentRequests
-    val requests = remember { mutableStateOf<List<PaymentRequest>>(emptyList()) }
+    val requests = remember { mutableStateOf(emptyList<PaymentRequest>()) }
     val isLoading = remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
@@ -70,7 +72,10 @@ fun PaykitPaymentRequestsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(requests.value) { request ->
+                items(
+                    items = requests.value,
+                    key = { it.id }
+                ) { request ->
                     PaymentRequestRow(request = request)
                 }
             }

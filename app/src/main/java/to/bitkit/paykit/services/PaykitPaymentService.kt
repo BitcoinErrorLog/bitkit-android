@@ -392,7 +392,7 @@ enum class PaykitReceiptStatus {
 }
 
 /** Errors specific to payment operations. */
-sealed class PaykitPaymentError(open val message: String) : Exception(message) {
+sealed class PaykitPaymentError(override val message: String) : Exception(message) {
     object NotInitialized : PaykitPaymentError("Payment service not initialized")
     data class InvalidRecipient(val recipient: String) : PaykitPaymentError("Invalid recipient: $recipient")
     object AmountRequired : PaykitPaymentError("Amount is required for this payment type")
@@ -417,18 +417,4 @@ sealed class PaykitPaymentError(open val message: String) : Exception(message) {
 }
 
 // MARK: - Receipt Store
-
-/** Thread-safe in-memory receipt store. */
-class PaykitReceiptStore {
-    private val receipts = ConcurrentHashMap<String, PaykitReceipt>()
-
-    fun store(receipt: PaykitReceipt) {
-        receipts[receipt.id] = receipt
-    }
-
-    fun get(id: String): PaykitReceipt? = receipts[id]
-
-    fun getAll(): List<PaykitReceipt> = receipts.values.sortedByDescending { it.timestamp }
-
-    fun clear() = receipts.clear()
-}
+// Note: PaykitReceiptStore is defined in PaykitReceiptStore.kt

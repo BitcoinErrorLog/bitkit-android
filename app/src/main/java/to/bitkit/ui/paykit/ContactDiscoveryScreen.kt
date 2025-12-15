@@ -26,7 +26,7 @@ import to.bitkit.ui.scaffold.ScreenColumn
 @Composable
 fun ContactDiscoveryScreen(
     onNavigateBack: () -> Unit,
-    onContactDiscovered: (DiscoveredContact) -> Unit = {},
+    onContactDiscovered: (to.bitkit.paykit.models.Contact) -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel()
 ) {
     val discoveredContacts by viewModel.discoveredContacts.collectAsState()
@@ -106,7 +106,7 @@ fun ContactDiscoveryScreen(
 
 @Composable
 fun DiscoveredContactRow(
-    discovered: DiscoveredContact,
+    discovered: to.bitkit.paykit.models.Contact,
     onAdd: () -> Unit
 ) {
     Card(
@@ -122,22 +122,15 @@ fun DiscoveredContactRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = discovered.name ?: discovered.pubkey.take(16) + "...",
+                    text = discovered.name.ifEmpty { discovered.publicKeyZ32.take(16) + "..." },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = discovered.pubkey,
+                    text = discovered.publicKeyZ32,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (discovered.hasPaymentMethods) {
-                    Text(
-                        text = "Has payment methods: ${discovered.supportedMethods.joinToString()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
             IconButton(onClick = onAdd) {
                 Icon(

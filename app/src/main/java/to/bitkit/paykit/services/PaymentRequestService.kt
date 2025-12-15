@@ -170,11 +170,11 @@ class PaymentRequestService @Inject constructor(
         val paymentMethods = directoryService.discoverPaymentMethods(request.fromPubkey)
         
         // Find matching method - PaymentMethod from FFI has methodId and endpoint
-        val matchingMethod = paymentMethods.firstOrNull { it.methodId == request.methodId }
+        val matchingMethod = paymentMethods.firstOrNull { it.`methodId` == request.methodId }
             ?: throw IllegalStateException("Payment method not found: ${request.methodId}")
         
         // Return the endpoint from the discovered payment method
-        return matchingMethod.endpoint
+        return matchingMethod.`endpoint`
     }
 }
 

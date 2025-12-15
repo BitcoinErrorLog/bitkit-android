@@ -194,7 +194,7 @@ class DirectoryService @Inject constructor(
                         pubkey = followPubkey,
                         name = null, // Could fetch from Pubky profile
                         hasPaymentMethods = true,
-                        supportedMethods = paymentMethods.map { it.methodId }
+                        supportedMethods = paymentMethods.map { it.`methodId` }
                     )
                 )
             }

@@ -137,8 +137,10 @@ class AutoPayViewModel @Inject constructor(
         peerLimit?.let { limit ->
             val resetLimit = limit.resetIfNeeded()
             if (resetLimit != limit) {
-                // Update the limit in storage
-                autoPayStorage.savePeerLimit(resetLimit)
+                // Update the limit in storage (launch coroutine for suspend function)
+                viewModelScope.launch {
+                    autoPayStorage.savePeerLimit(resetLimit)
+                }
                 // Note: We don't reload here to avoid blocking, but the reset is saved
             }
             
