@@ -534,6 +534,7 @@ private fun RootNavHost(
         logs(navController)
         suggestions(navController)
         support(navController)
+        paykit(navController)
         widgets(navController, settingsViewModel, currencyViewModel)
         update()
         recoveryMode(navController, appViewModel)
@@ -1624,6 +1625,14 @@ fun NavController.navigateToLanguageSettings() = navigate(
     route = Routes.LanguageSettings,
 )
 
+fun NavController.navigateToPaykitDashboard() = navigate(
+    route = Routes.PaykitDashboard,
+)
+
+fun NavController.navigateToPaykitContacts() = navigate(
+    route = Routes.PaykitContacts,
+)
+
 fun NavController.navigateToAdvancedSettings() = navigate(
     route = Routes.AdvancedSettings,
 )
@@ -1632,6 +1641,74 @@ fun NavController.navigateToAboutSettings() = navigate(
     route = Routes.AboutSettings,
 )
 // endregion
+
+private fun NavGraphBuilder.paykit(navController: NavHostController) {
+    composableWithDefaultTransitions<Routes.PaykitDashboard> {
+        to.bitkit.ui.paykit.PaykitDashboardScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToReceipts = { navController.navigate(Routes.PaykitReceipts) },
+            onNavigateToContacts = { navController.navigate(Routes.PaykitContacts) },
+            onNavigateToSubscriptions = { navController.navigate(Routes.PaykitSubscriptions) },
+            onNavigateToAutoPay = { navController.navigate(Routes.PaykitAutoPay) }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitContacts> {
+        to.bitkit.ui.paykit.PaykitContactsScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToContactDiscovery = { navController.navigate(Routes.PaykitContactDiscovery) },
+            onNavigateToContactDetail = { id -> /* TODO: Navigate to contact detail */ }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitContactDiscovery> {
+        to.bitkit.ui.paykit.ContactDiscoveryScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onContactDiscovered = { /* TODO: Handle discovered contact */ }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitReceipts> {
+        to.bitkit.ui.paykit.PaykitReceiptsScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToReceiptDetail = { id -> navController.navigate(Routes.PaykitReceiptDetail(id)) }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitReceiptDetail> {
+        // TODO: Create ReceiptDetailScreen
+        to.bitkit.ui.paykit.PaykitReceiptsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitSubscriptions> {
+        to.bitkit.ui.paykit.PaykitSubscriptionsScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToSubscriptionDetail = { id -> /* TODO: Navigate to subscription detail */ }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitAutoPay> {
+        to.bitkit.ui.paykit.PaykitAutoPayScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitPaymentRequests> {
+        to.bitkit.ui.paykit.PaykitPaymentRequestsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitNoisePayment> {
+        to.bitkit.ui.paykit.NoisePaymentScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitPrivateEndpoints> {
+        to.bitkit.ui.paykit.PrivateEndpointsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitRotationSettings> {
+        to.bitkit.ui.paykit.RotationSettingsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+}
 
 @Stable
 sealed interface Routes {
@@ -1945,4 +2022,38 @@ sealed interface Routes {
 
     @Serializable
     data object AllActivity : Routes
+
+    // Paykit routes
+    @Serializable
+    data object PaykitDashboard : Routes
+
+    @Serializable
+    data object PaykitContacts : Routes
+
+    @Serializable
+    data object PaykitContactDiscovery : Routes
+
+    @Serializable
+    data object PaykitReceipts : Routes
+
+    @Serializable
+    data class PaykitReceiptDetail(val id: String) : Routes
+
+    @Serializable
+    data object PaykitSubscriptions : Routes
+
+    @Serializable
+    data object PaykitAutoPay : Routes
+
+    @Serializable
+    data object PaykitPaymentRequests : Routes
+
+    @Serializable
+    data object PaykitNoisePayment : Routes
+
+    @Serializable
+    data object PaykitPrivateEndpoints : Routes
+
+    @Serializable
+    data object PaykitRotationSettings : Routes
 }

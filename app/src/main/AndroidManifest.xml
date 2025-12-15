@@ -82,6 +82,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="bitkit" />
+                <data android:scheme="paykit" />
                 <data android:scheme="slash" />
                 <data android:scheme="slashauth" />
                 <data android:scheme="bitcoin" />
@@ -106,6 +107,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="bitkit" />
+                <data android:scheme="paykit" />
                 <data android:scheme="slash" />
                 <data android:scheme="slashauth" />
                 <data android:scheme="bitcoin" />

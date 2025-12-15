@@ -1,5 +1,7 @@
 package to.bitkit.paykit.executors
 
+import com.paykit.mobile.BitcoinExecutorFfi
+import com.paykit.mobile.BitcoinTxResultFfi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -15,7 +17,7 @@ import to.bitkit.utils.Logger
  */
 class BitkitBitcoinExecutor(
     private val lightningRepo: LightningRepo,
-) {
+) : BitcoinExecutorFfi {
     companion object {
         private const val TAG = "BitkitBitcoinExecutor"
         private const val TIMEOUT_MS = 60_000L
@@ -33,11 +35,11 @@ class BitkitBitcoinExecutor(
      * @return Transaction result with txid and fee details
      * @throws PaykitException on failure
      */
-    fun sendToAddress(
-        address: String,
-        amountSats: ULong,
-        feeRate: Double?,
-    ): BitcoinTxResult = runBlocking(Dispatchers.IO) {
+    override fun `sendToAddress`(
+        `address`: String,
+        `amountSats`: ULong,
+        `feeRate`: Double?,
+    ): BitcoinTxResultFfi = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
             Logger.debug("Sending $amountSats sats to $address", context = TAG)
 
@@ -58,14 +60,14 @@ class BitkitBitcoinExecutor(
                     // Estimate fee based on typical tx size
                     val estimatedFee = (TYPICAL_TX_SIZE_VBYTES.toDouble() * (feeRate ?: 1.0)).toULong()
                     
-                    BitcoinTxResult(
-                        txid = txid,
-                        rawTx = null,
-                        vout = 0u,
-                        feeSats = estimatedFee,
-                        feeRate = feeRate ?: 1.0,
-                        blockHeight = null,
-                        confirmations = 0uL,
+                    BitcoinTxResultFfi(
+                        `txid` = txid,
+                        `rawTx` = null,
+                        `vout` = 0u,
+                        `feeSats` = estimatedFee,
+                        `feeRate` = feeRate ?: 1.0,
+                        `blockHeight` = null,
+                        `confirmations` = 0uL,
                     )
                 },
                 onFailure = { error ->
@@ -84,10 +86,10 @@ class BitkitBitcoinExecutor(
      * @param targetBlocks Confirmation target (1 = high priority, 6 = normal, 144 = low)
      * @return Estimated fee in satoshis
      */
-    fun estimateFee(
-        address: String,
-        amountSats: ULong,
-        targetBlocks: UInt,
+    override fun `estimateFee`(
+        `address`: String,
+        `amountSats`: ULong,
+        `targetBlocks`: UInt,
     ): ULong = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
             Logger.debug("Estimating fee for $amountSats sats to $address", context = TAG)
@@ -125,7 +127,7 @@ class BitkitBitcoinExecutor(
      * @param txid Transaction ID (hex-encoded)
      * @return Transaction details if found, null otherwise
      */
-    fun getTransaction(txid: String): BitcoinTxResult? = runBlocking(Dispatchers.IO) {
+    override fun `getTransaction`(`txid`: String): BitcoinTxResultFfi? = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
             Logger.debug("getTransaction called for txid: $txid", context = TAG)
             
@@ -152,26 +154,15 @@ class BitkitBitcoinExecutor(
      * @param amountSats Expected amount
      * @return true if transaction matches expectations
      */
-    fun verifyTransaction(
-        txid: String,
-        address: String,
-        amountSats: ULong,
+    override fun `verifyTransaction`(
+        `txid`: String,
+        `address`: String,
+        `amountSats`: ULong,
     ): Boolean {
         Logger.debug("verifyTransaction called for txid: $txid", context = TAG)
-        val tx = getTransaction(txid) ?: return false
-        return tx.txid == txid
+        val tx = `getTransaction`(`txid`) ?: return false
+        return tx.`txid` == `txid`
     }
 }
 
-/**
- * Result of a Bitcoin transaction for Paykit FFI.
- */
-data class BitcoinTxResult(
-    val txid: String,
-    val rawTx: String?,
-    val vout: UInt,
-    val feeSats: ULong,
-    val feeRate: Double,
-    val blockHeight: ULong?,
-    val confirmations: ULong,
-)
+// Note: BitcoinTxResultFfi is used from com.paykit.mobile package
