@@ -4,6 +4,9 @@ import kotlinx.serialization.Serializable
 import java.util.Calendar
 import java.util.UUID
 
+/**
+ * Represents a recurring payment subscription
+ */
 @Serializable
 data class Subscription(
     val id: String,

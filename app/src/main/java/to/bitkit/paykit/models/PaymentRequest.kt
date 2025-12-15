@@ -3,6 +3,9 @@ package to.bitkit.paykit.models
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
+/**
+ * Status of a payment request
+ */
 @Serializable
 enum class PaymentRequestStatus {
     PENDING, ACCEPTED, DECLINED, EXPIRED, PAID
