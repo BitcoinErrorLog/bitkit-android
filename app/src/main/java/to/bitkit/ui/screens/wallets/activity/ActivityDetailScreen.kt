@@ -52,6 +52,7 @@ import to.bitkit.ext.ellipsisMiddle
 import to.bitkit.ext.isSent
 import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
+import to.bitkit.ext.timestamp
 import to.bitkit.ext.toActivityItemDate
 import to.bitkit.ext.toActivityItemTime
 import to.bitkit.ext.totalValue
@@ -303,13 +304,7 @@ private fun ActivityDetailContent(
     }
 
     val amountPrefix = if (isSent) "-" else "+"
-    val timestamp = when (item) {
-        is Activity.Lightning -> item.v1.timestamp
-        is Activity.Onchain -> when (item.v1.confirmed) {
-            true -> item.v1.confirmTimestamp ?: item.v1.timestamp
-            else -> item.v1.timestamp
-        }
-    }
+    val timestamp = item.timestamp()
     val paymentValue = when (item) {
         is Activity.Lightning -> item.v1.value
         is Activity.Onchain -> item.v1.value

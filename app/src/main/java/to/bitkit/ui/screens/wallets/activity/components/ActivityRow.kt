@@ -34,6 +34,7 @@ import to.bitkit.ext.formatted
 import to.bitkit.ext.isSent
 import to.bitkit.ext.isTransfer
 import to.bitkit.ext.rawId
+import to.bitkit.ext.timestamp
 import to.bitkit.ext.totalValue
 import to.bitkit.ext.txType
 import to.bitkit.models.PrimaryDisplay
@@ -66,10 +67,7 @@ fun ActivityRow(
         is Activity.Onchain -> null
     }
     val isLightning = item is Activity.Lightning
-    val timestamp = when (item) {
-        is Activity.Lightning -> item.v1.timestamp
-        is Activity.Onchain -> item.v1.timestamp
-    }
+    val timestamp = item.timestamp()
     val txType: PaymentType = item.txType()
     val isSent = item.isSent()
     val amountPrefix = if (isSent) "-" else "+"
