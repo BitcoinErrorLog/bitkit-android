@@ -117,7 +117,7 @@ class DirectoryService @Inject constructor(
     /**
      * Discover payment methods for a recipient
      */
-    suspend fun discoverPaymentMethods(pubkey: String): List<PaymentMethod> {
+    suspend fun discoverPaymentMethods(pubkey: String): List<com.paykit.mobile.PaymentMethod> {
         val client = paykitClient ?: run {
             Logger.error("DirectoryService: PaykitClient not initialized", null, context = TAG)
             return emptyList()
@@ -162,7 +162,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            client.`removePaymentEndpoint`(transport, methodId)
+            client.`removePaymentEndpointFromDirectory`(transport, methodId)
             Logger.info("Removed payment method: $methodId", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove payment method $methodId", e, context = TAG)

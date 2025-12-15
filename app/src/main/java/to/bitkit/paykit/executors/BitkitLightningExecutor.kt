@@ -148,12 +148,13 @@ class BitkitLightningExecutor(
     override fun `decodeInvoice`(`invoice`: String): DecodedInvoiceFfi {
         Logger.debug("decodeInvoice called for: ${`invoice`.take(20)}...", context = TAG)
         return try {
+            // Use LDK Node's Bolt11Invoice to decode
             val bolt11 = Bolt11Invoice.fromStr(`invoice`)
             DecodedInvoiceFfi(
                 `paymentHash` = bolt11.paymentHash().toString(),
                 `amountMsat` = bolt11.amountMilliSatoshis(),
                 `description` = bolt11.description()?.intoInner()?.toString(),
-                `descriptionHash` = null,
+                `descriptionHash` = null, // LDK Node doesn't expose description hash directly
                 `payee` = bolt11.payeePubKey()?.toString() ?: "",
                 `expiry` = bolt11.expiryTime(),
                 `timestamp` = bolt11.timestamp(),

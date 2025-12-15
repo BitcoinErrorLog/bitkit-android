@@ -7,10 +7,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.paykit.mobile.BitcoinTxResultFfi
+import com.paykit.mobile.LightningPaymentResultFfi
 import to.bitkit.paykit.PaykitException
 import to.bitkit.paykit.PaykitIntegrationHelper
-import to.bitkit.paykit.executors.BitcoinTxResult
-import to.bitkit.paykit.executors.LightningPaymentResult
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import java.util.Date
