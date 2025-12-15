@@ -144,6 +144,7 @@ suspend fun getData(): Result<Data> = withContext(Dispatchers.IO) {
 - ALWAYS run `./gradlew compileDevDebugKotlin` after code changes to verify code compiles
 - ALWAYS run `./gradlew testDevDebugUnitTest` after code changes to verify tests succeed and fix accordingly
 - ALWAYS run `./gradlew detekt` after code changes to check for new lint issues and fix accordingly
+- ALWAYS ask clarifying questions to ensure an optimal plan when encountering functional or technical uncertainties in requests
 - ALWAYS when fixing lint or test failures prefer to do the minimal amount of changes to fix the issues
 - USE single-line commit messages under 50 chars; use template format: `feat: add something new`
 - USE `git diff HEAD sourceFilePath` to diff an uncommitted file against the last commit
