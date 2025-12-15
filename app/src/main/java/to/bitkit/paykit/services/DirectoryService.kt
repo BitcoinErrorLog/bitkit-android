@@ -55,7 +55,7 @@ class DirectoryService @Inject constructor(
     /**
      * Discover noise endpoint for a recipient
      */
-    suspend fun discoverNoiseEndpoint(forRecipient recipientPubkey: String): NoiseEndpointInfo? {
+    suspend fun discoverNoiseEndpoint(recipientPubkey: String): NoiseEndpointInfo? {
         val client = paykitClient ?: run {
             Logger.error("DirectoryService: PaykitClient not initialized", null, context = TAG)
             return null
@@ -117,7 +117,7 @@ class DirectoryService @Inject constructor(
     /**
      * Discover payment methods for a recipient
      */
-    suspend fun discoverPaymentMethods(forPubkey pubkey: String): List<PaymentMethod> {
+    suspend fun discoverPaymentMethods(pubkey: String): List<PaymentMethod> {
         val client = paykitClient ?: run {
             Logger.error("DirectoryService: PaykitClient not initialized", null, context = TAG)
             return emptyList()

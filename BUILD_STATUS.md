@@ -2,52 +2,54 @@
 
 ## Phase 3: Build Verification
 
-### Status: Requires Environment Configuration
+### Status: Kotlin Compilation Errors to Fix
 
-The Android build requires GitHub credentials to access private packages from GitHub Packages.
+The build progresses past environment setup (GitHub creds, SDK) but fails on Kotlin compilation errors in Paykit integration code.
 
-### Issues to Resolve
+### Environment Setup (Resolved)
 
-1. **GitHub Packages Authentication**
-   - `bitkit-core-android` and `vss-client-android` are hosted on GitHub Packages
-   - Build fails with "Username must not be null!"
-   
-   **Action Required**: Set up GitHub credentials:
-   
-   Option A - Environment Variables:
-   ```bash
-   export GITHUB_USER=your_username
-   export GITHUB_TOKEN=your_personal_access_token
-   ```
-   
-   Option B - `~/.gradle/gradle.properties`:
-   ```properties
-   gpr.user=your_username
-   gpr.key=your_personal_access_token
-   ```
-
-2. **Android SDK** (Resolved)
-   - SDK location set in `local.properties`
-   - Build tools and platform installed
+1. ✅ **GitHub Credentials** - configured in `~/.gradle/gradle.properties`
+2. ✅ **Android SDK** - configured in `local.properties`
+3. ✅ **google-services.json** - placeholder created for local builds
+4. ⚠️ **iCloud Path** - Build must run from a path without spaces (copy to `~/bitkit-android-build`)
 
 ### Native Libraries Status
 
-The following native libraries are present in `app/src/main/jniLibs/`:
+✅ All present in `app/src/main/jniLibs/`:
+- `libpaykit_mobile.so` (arm64-v8a, x86_64)
+- `libpubky_noise.so` (arm64-v8a, x86_64)
 
-- ✅ `arm64-v8a/libpaykit_mobile.so`
-- ✅ `x86_64/libpaykit_mobile.so`
-- ✅ `arm64-v8a/libpubky_noise.so`
-- ✅ `x86_64/libpubky_noise.so`
+### Kotlin Compilation Errors to Fix
+
+Files with errors:
+
+| File | Issues |
+|------|--------|
+| `PaykitReceiptStore.kt` | Missing member references (isLoaded, prefs, cache, gson) |
+| `PaymentRequestService.kt` | Unresolved references (methodId, endpoint) |
+| `AutoPayViewModel.kt` | Suspend function call from non-coroutine context |
+| `ContactDiscoveryScreen.kt` | Type mismatch (Contact vs DiscoveredContact) |
+| `PaykitDashboardScreen.kt` | Unresolved reference 'spacing' |
+| `PaykitPaymentRequestsScreen.kt` | Missing Compose imports (remember, mutableStateOf) |
+| `PrivateEndpointsScreen.kt` | Type inference issues |
+| `RotationSettingsScreen.kt` | Missing ViewModel state references |
 
 ### Build Command
 
 ```bash
-./gradlew assembleDebug
+# Must build from path without spaces
+cp -R "bitkit-android" ~/bitkit-android-build
+cd ~/bitkit-android-build
+./gradlew assembleDevDebug
 ```
+
+### Syntax Fixes Applied
+
+- ✅ `DirectoryService.kt` - Removed Swift-style parameter labels
+- ✅ `PrivateEndpointStorage.kt` - Removed Swift-style parameter labels
 
 ### Next Steps
 
-1. Configure GitHub credentials for package access
+1. Fix remaining Kotlin compilation errors in Paykit files
 2. Re-run build verification
 3. Run E2E tests
-

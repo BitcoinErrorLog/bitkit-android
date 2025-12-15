@@ -51,7 +51,7 @@ class PrivateEndpointStorage @Inject constructor(
     /**
      * Save a private endpoint
      */
-    suspend fun save(endpoint: PrivateEndpointOffer, forPeer peerPubkey: String) {
+    suspend fun save(endpoint: PrivateEndpointOffer, peerPubkey: String) {
         val all = loadAllEndpoints().toMutableMap()
         
         // Get or create list for this peer
