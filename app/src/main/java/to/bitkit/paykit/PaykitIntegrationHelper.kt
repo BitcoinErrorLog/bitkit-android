@@ -4,10 +4,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import com.paykit.mobile.BitcoinTxResultFfi
+import com.paykit.mobile.LightningPaymentResultFfi
 import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
-import to.bitkit.paykit.executors.BitcoinTxResult
-import to.bitkit.paykit.executors.LightningPaymentResult
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 
@@ -90,7 +90,7 @@ object PaykitIntegrationHelper {
         lightningRepo: LightningRepo,
         invoice: String,
         amountSats: ULong?,
-    ): LightningPaymentResult {
+    ): LightningPaymentResultFfi {
         if (!isReady) {
             throw PaykitException.NotInitialized
         }
@@ -98,10 +98,10 @@ object PaykitIntegrationHelper {
         val executor = BitkitLightningExecutor(lightningRepo)
         val amountMsat = amountSats?.let { it * 1000uL }
 
-        return executor.payInvoice(
-            invoice = invoice,
-            amountMsat = amountMsat,
-            maxFeeMsat = null,
+        return executor.`payInvoice`(
+            `invoice` = invoice,
+            `amountMsat` = amountMsat,
+            `maxFeeMsat` = null,
         )
     }
 
@@ -120,17 +120,17 @@ object PaykitIntegrationHelper {
         address: String,
         amountSats: ULong,
         feeRate: Double?,
-    ): BitcoinTxResult {
+    ): BitcoinTxResultFfi {
         if (!isReady) {
             throw PaykitException.NotInitialized
         }
 
         val executor = BitkitBitcoinExecutor(lightningRepo)
 
-        return executor.sendToAddress(
-            address = address,
-            amountSats = amountSats,
-            feeRate = feeRate,
+        return executor.`sendToAddress`(
+            `address` = address,
+            `amountSats` = amountSats,
+            `feeRate` = feeRate,
         )
     }
 

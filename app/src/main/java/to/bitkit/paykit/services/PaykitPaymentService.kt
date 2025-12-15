@@ -297,7 +297,7 @@ class PaykitPaymentService @Inject constructor() {
     fun getReceipt(id: String): PaykitReceipt? = receiptStore.get(id)
 
     /** Clear all receipts. */
-    fun clearReceipts() = receiptStore.clear()
+    suspend fun clearReceipts() = receiptStore.clear()
 
     // MARK: - Helpers
 

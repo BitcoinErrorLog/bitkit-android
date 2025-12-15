@@ -168,7 +168,7 @@ fun paykitInfo(message: String, category: String = "general", context: Map<Strin
 }
 
 /** Log a warning message to Paykit logger. */
-fun paykitWarning(message: String, category: String = "general", context: Map<String, Any>? = nil) {
+fun paykitWarning(message: String, category: String = "general", context: Map<String, Any>? = null) {
     PaykitLogger.warning(message, category, context)
 }
 

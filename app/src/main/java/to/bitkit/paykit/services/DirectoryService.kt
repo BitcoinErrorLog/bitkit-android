@@ -131,7 +131,7 @@ class DirectoryService @Inject constructor(
         }
 
         return try {
-            fetchSupportedPayments(transport, pubkey)
+            client.`fetchSupportedPayments`(transport, pubkey)
         } catch (e: Exception) {
             Logger.error("Failed to discover payment methods for $pubkey", e, context = TAG)
             emptyList()
@@ -146,7 +146,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            publishPaymentEndpoint(transport, methodId, endpoint)
+            client.`publishPaymentEndpoint`(transport, methodId, endpoint)
             Logger.info("Published payment method: $methodId", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish payment method $methodId", e, context = TAG)
@@ -162,7 +162,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            removePaymentEndpointFromDirectory(transport, methodId)
+            client.`removePaymentEndpoint`(transport, methodId)
             Logger.info("Removed payment method: $methodId", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove payment method $methodId", e, context = TAG)

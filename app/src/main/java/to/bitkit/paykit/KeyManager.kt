@@ -103,7 +103,7 @@ class KeyManager @Inject constructor(
      * Derive X25519 keypair for Noise protocol
      */
     fun deriveX25519Keypair(epoch: UInt = currentEpoch): X25519Keypair {
-        val secretHex = getSecretKeyHex() ?: throw PaykitException("No identity configured")
+        val secretHex = getSecretKeyHex() ?: throw PaykitException.Unknown("No identity configured")
         return deriveX25519Keypair(secretHex, deviceId, epoch)
     }
 

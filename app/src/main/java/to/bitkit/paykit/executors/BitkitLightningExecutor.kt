@@ -1,5 +1,9 @@
 package to.bitkit.paykit.executors
 
+import com.paykit.mobile.DecodedInvoiceFfi
+import com.paykit.mobile.LightningExecutorFfi
+import com.paykit.mobile.LightningPaymentResultFfi
+import com.paykit.mobile.LightningPaymentStatusFfi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -20,7 +24,7 @@ import java.security.MessageDigest
  */
 class BitkitLightningExecutor(
     private val lightningRepo: LightningRepo,
-) {
+) : LightningExecutorFfi {
     companion object {
         private const val TAG = "BitkitLightningExecutor"
         private const val TIMEOUT_MS = 60_000L
@@ -38,18 +42,18 @@ class BitkitLightningExecutor(
      * @return Payment result with preimage proof
      * @throws PaykitException on failure
      */
-    fun payInvoice(
-        invoice: String,
-        amountMsat: ULong?,
-        maxFeeMsat: ULong?,
-    ): LightningPaymentResult = runBlocking(Dispatchers.IO) {
+    override fun `payInvoice`(
+        `invoice`: String,
+        `amountMsat`: ULong?,
+        `maxFeeMsat`: ULong?,
+    ): LightningPaymentResultFfi = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
             Logger.debug("Paying invoice: ${invoice.take(20)}...", context = TAG)
 
-            val sats = amountMsat?.let { it / 1000uL }
+            val sats = `amountMsat`?.let { it / 1000uL }
 
             val result = lightningRepo.payInvoice(
-                bolt11 = invoice,
+                bolt11 = `invoice`,
                 sats = sats,
             )
 
@@ -70,7 +74,7 @@ class BitkitLightningExecutor(
     /**
      * Poll for payment completion to extract preimage.
      */
-    private suspend fun pollForPaymentCompletion(paymentHash: String): LightningPaymentResult {
+    private suspend fun pollForPaymentCompletion(paymentHash: String): LightningPaymentResultFfi {
         val startTime = System.currentTimeMillis()
 
         while (System.currentTimeMillis() - startTime < TIMEOUT_MS) {
@@ -112,19 +116,26 @@ class BitkitLightningExecutor(
     private fun extractPaymentResult(
         payment: PaymentDetails,
         status: LightningPaymentStatus,
-    ): LightningPaymentResult {
+    ): LightningPaymentResultFfi {
         // Extract preimage from LDK PaymentDetails
-        val preimage = payment.preimage?.toString() ?: ""
+        // Note: Preimage may not be available until payment succeeds - may need to get from payment events
+        val preimage = "" // TODO: Extract preimage from payment completion event or Activity
         val amountMsat = payment.amountMsat ?: 0uL
-        val feeMsat = payment.feeMsat ?: 0uL
+        val feeMsat = (payment.feePaidMsat ?: 0uL) // feePaidMsat exists on PaymentDetails
 
-        return LightningPaymentResult(
-            preimage = preimage,
-            paymentHash = payment.id.toString(),
-            amountMsat = amountMsat,
-            feeMsat = feeMsat,
-            hops = 0u,
-            status = status,
+        val statusFfi = when (status) {
+            LightningPaymentStatus.SUCCEEDED -> LightningPaymentStatusFfi.SUCCEEDED
+            LightningPaymentStatus.FAILED -> LightningPaymentStatusFfi.FAILED
+            LightningPaymentStatus.PENDING -> LightningPaymentStatusFfi.PENDING
+        }
+
+        return LightningPaymentResultFfi(
+            `preimage` = preimage,
+            `paymentHash` = payment.id.toString(),
+            `amountMsat` = amountMsat,
+            `feeMsat` = feeMsat,
+            `hops` = 0u,
+            `status` = statusFfi,
         )
     }
 
@@ -134,19 +145,19 @@ class BitkitLightningExecutor(
      * @param invoice BOLT11 invoice string
      * @return Decoded invoice details
      */
-    fun decodeInvoice(invoice: String): DecodedInvoice {
-        Logger.debug("decodeInvoice called for: ${invoice.take(20)}...", context = TAG)
+    override fun `decodeInvoice`(`invoice`: String): DecodedInvoiceFfi {
+        Logger.debug("decodeInvoice called for: ${`invoice`.take(20)}...", context = TAG)
         return try {
-            val bolt11 = Bolt11Invoice.fromStr(invoice)
-            DecodedInvoice(
-                paymentHash = bolt11.paymentHash().toString(),
-                amountMsat = bolt11.amountMilliSatoshis(),
-                description = bolt11.description()?.intoInner()?.toString(),
-                descriptionHash = null,
-                payee = bolt11.payeePubKey()?.toString() ?: "",
-                expiry = bolt11.expiryTime(),
-                timestamp = bolt11.timestamp(),
-                expired = bolt11.isExpired(),
+            val bolt11 = Bolt11Invoice.fromStr(`invoice`)
+            DecodedInvoiceFfi(
+                `paymentHash` = bolt11.paymentHash().toString(),
+                `amountMsat` = bolt11.amountMilliSatoshis(),
+                `description` = bolt11.description()?.intoInner()?.toString(),
+                `descriptionHash` = null,
+                `payee` = bolt11.payeePubKey()?.toString() ?: "",
+                `expiry` = bolt11.expiryTime(),
+                `timestamp` = bolt11.timestamp(),
+                `expired` = bolt11.isExpired(),
             )
         } catch (e: Exception) {
             Logger.error("Failed to decode invoice", e, context = TAG)
@@ -160,11 +171,11 @@ class BitkitLightningExecutor(
      * @param invoice BOLT11 invoice
      * @return Estimated fee in millisatoshis
      */
-    fun estimateFee(invoice: String): ULong = runBlocking(Dispatchers.IO) {
+    override fun `estimateFee`(`invoice`: String): ULong = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
-            Logger.debug("Estimating routing fee for: ${invoice.take(20)}...", context = TAG)
+            Logger.debug("Estimating routing fee for: ${`invoice`.take(20)}...", context = TAG)
 
-            val result = lightningRepo.estimateRoutingFees(invoice)
+            val result = lightningRepo.estimateRoutingFees(`invoice`)
 
             result.fold(
                 onSuccess = { fee ->
@@ -175,7 +186,7 @@ class BitkitLightningExecutor(
                     Logger.warn("Fee estimation failed: ${error.message}", context = TAG)
                     // Estimate 1% fee with 1000 msat minimum
                     try {
-                        val bolt11 = Bolt11Invoice.fromStr(invoice)
+                        val bolt11 = Bolt11Invoice.fromStr(`invoice`)
                         val amountMsat = bolt11.amountMilliSatoshis() ?: 0uL
                         val percentFee = amountMsat / 100uL
                         maxOf(1000uL, percentFee)
@@ -193,15 +204,15 @@ class BitkitLightningExecutor(
      * @param paymentHash Payment hash (hex-encoded)
      * @return Payment result if found, null otherwise
      */
-    fun getPayment(paymentHash: String): LightningPaymentResult? = runBlocking(Dispatchers.IO) {
+    override fun `getPayment`(`paymentHash`: String): LightningPaymentResultFfi? = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
-            Logger.debug("getPayment called for: $paymentHash", context = TAG)
+            Logger.debug("getPayment called for: $`paymentHash`", context = TAG)
 
             val result = lightningRepo.getPayments()
 
             result.fold(
                 onSuccess = { payments ->
-                    val payment = payments.find { it.id.toString() == paymentHash }
+                    val payment = payments.find { it.id.toString() == `paymentHash` }
                     if (payment != null) {
                         val status = when (payment.status) {
                             PaymentStatus.SUCCEEDED -> LightningPaymentStatus.SUCCEEDED
@@ -225,14 +236,14 @@ class BitkitLightningExecutor(
      * @param paymentHash Payment hash (hex-encoded)
      * @return true if preimage hashes to payment hash
      */
-    fun verifyPreimage(preimage: String, paymentHash: String): Boolean {
+    override fun `verifyPreimage`(`preimage`: String, `paymentHash`: String): Boolean {
         return try {
-            val preimageBytes = preimage.hexToByteArray()
+            val preimageBytes = `preimage`.hexToByteArray()
             val digest = MessageDigest.getInstance("SHA-256")
             val hash = digest.digest(preimageBytes)
             val computedHash = hash.toHexString()
 
-            computedHash.equals(paymentHash, ignoreCase = true)
+            computedHash.equals(`paymentHash`, ignoreCase = true)
         } catch (e: Exception) {
             Logger.error("Preimage verification failed", e, context = TAG)
             false
@@ -260,36 +271,10 @@ class BitkitLightningExecutor(
 }
 
 /**
- * Result of a Lightning payment for Paykit FFI.
- */
-data class LightningPaymentResult(
-    val preimage: String,
-    val paymentHash: String,
-    val amountMsat: ULong,
-    val feeMsat: ULong,
-    val hops: UInt,
-    val status: LightningPaymentStatus,
-)
-
-/**
- * Lightning payment status.
+ * Lightning payment status (local enum for internal use).
  */
 enum class LightningPaymentStatus {
     PENDING,
     SUCCEEDED,
     FAILED;
 }
-
-/**
- * Decoded BOLT11 invoice.
- */
-data class DecodedInvoice(
-    val paymentHash: String,
-    val amountMsat: ULong?,
-    val description: String?,
-    val descriptionHash: String?,
-    val payee: String,
-    val expiry: ULong,
-    val timestamp: ULong,
-    val expired: Boolean,
-)

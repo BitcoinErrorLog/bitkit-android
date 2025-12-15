@@ -90,8 +90,8 @@ class PaykitManager @Inject constructor() {
 
         val paykitClient = client ?: throw PaykitException.NotInitialized
 
-        paykitClient.registerBitcoinExecutor(bitcoinExecutor!!)
-        paykitClient.registerLightningExecutor(lightningExecutor!!)
+        paykitClient.`registerBitcoinExecutor`(bitcoinExecutor!! as com.paykit.mobile.BitcoinExecutorFfi)
+        paykitClient.`registerLightningExecutor`(lightningExecutor!! as com.paykit.mobile.LightningExecutorFfi)
 
         hasExecutors = true
         Logger.info("Paykit executors registered successfully", context = TAG)
