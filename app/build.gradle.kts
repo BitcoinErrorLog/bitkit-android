@@ -146,6 +146,15 @@ android {
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }
+    
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+        getByName("androidTest") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
     testOptions {
         unitTests {
             isReturnDefaultValues = true // mockito

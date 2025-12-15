@@ -74,6 +74,7 @@ fun GeneralSettingsScreen(
                 navController.navigate(Routes.BackgroundPaymentsIntro)
             }
         },
+        onPaykitClick = { navController.navigate(Routes.PaykitDashboard) },
         selectedLanguage = languageUiState.selectedLanguage.displayName,
         notificationsGranted = notificationsGranted
     )
@@ -96,6 +97,7 @@ private fun GeneralSettingsContent(
     onLanguageSettingsClick: () -> Unit = {},
     onTagsClick: () -> Unit = {},
     onBgPaymentsClick: () -> Unit = {},
+    onPaykitClick: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(
@@ -159,6 +161,11 @@ private fun GeneralSettingsContent(
                 onClick = onBgPaymentsClick,
                 value = SettingsButtonValue.StringValue(if (notificationsGranted) "On" else "Off"),
                 modifier = Modifier.testTag("BackgroundPaymentSettings")
+            )
+            SettingsButtonRow(
+                title = "Paykit",
+                onClick = onPaykitClick,
+                modifier = Modifier.testTag("PaykitDashboard")
             )
         }
     }
