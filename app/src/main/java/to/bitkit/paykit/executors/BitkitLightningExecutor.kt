@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.lightningdevkit.ldknode.Bolt11Invoice
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentStatus
 import to.bitkit.paykit.PaykitException
@@ -112,13 +113,16 @@ class BitkitLightningExecutor(
         payment: PaymentDetails,
         status: LightningPaymentStatus,
     ): LightningPaymentResult {
-        // TODO: Extract actual preimage from payment details
-        // The preimage field location depends on LDK-node PaymentDetails structure
+        // Extract preimage from LDK PaymentDetails
+        val preimage = payment.preimage?.toString() ?: ""
+        val amountMsat = payment.amountMsat ?: 0uL
+        val feeMsat = payment.feeMsat ?: 0uL
+
         return LightningPaymentResult(
-            preimage = "", // TODO: Extract from payment.preimage
+            preimage = preimage,
             paymentHash = payment.id.toString(),
-            amountMsat = 0uL, // TODO: Extract from payment
-            feeMsat = 0uL, // TODO: Extract from payment
+            amountMsat = amountMsat,
+            feeMsat = feeMsat,
             hops = 0u,
             status = status,
         )
@@ -131,18 +135,23 @@ class BitkitLightningExecutor(
      * @return Decoded invoice details
      */
     fun decodeInvoice(invoice: String): DecodedInvoice {
-        // TODO: Use BitkitCore.decode() when available
         Logger.debug("decodeInvoice called for: ${invoice.take(20)}...", context = TAG)
-        return DecodedInvoice(
-            paymentHash = "",
-            amountMsat = null,
-            description = null,
-            descriptionHash = null,
-            payee = "",
-            expiry = 3600uL,
-            timestamp = (System.currentTimeMillis() / 1000).toULong(),
-            expired = false,
-        )
+        return try {
+            val bolt11 = Bolt11Invoice.fromStr(invoice)
+            DecodedInvoice(
+                paymentHash = bolt11.paymentHash().toString(),
+                amountMsat = bolt11.amountMilliSatoshis(),
+                description = bolt11.description()?.intoInner()?.toString(),
+                descriptionHash = null,
+                payee = bolt11.payeePubKey()?.toString() ?: "",
+                expiry = bolt11.expiryTime(),
+                timestamp = bolt11.timestamp(),
+                expired = bolt11.isExpired(),
+            )
+        } catch (e: Exception) {
+            Logger.error("Failed to decode invoice", e, context = TAG)
+            throw PaykitException.PaymentFailed("Failed to decode invoice: ${e.message}")
+        }
     }
 
     /**
@@ -164,8 +173,15 @@ class BitkitLightningExecutor(
                 },
                 onFailure = { error ->
                     Logger.warn("Fee estimation failed: ${error.message}", context = TAG)
-                    // Default routing fee estimate (1% base)
-                    1000uL
+                    // Estimate 1% fee with 1000 msat minimum
+                    try {
+                        val bolt11 = Bolt11Invoice.fromStr(invoice)
+                        val amountMsat = bolt11.amountMilliSatoshis() ?: 0uL
+                        val percentFee = amountMsat / 100uL
+                        maxOf(1000uL, percentFee)
+                    } catch (e: Exception) {
+                        1000uL
+                    }
                 }
             )
         }
@@ -253,17 +269,7 @@ data class LightningPaymentResult(
     val feeMsat: ULong,
     val hops: UInt,
     val status: LightningPaymentStatus,
-) {
-    // TODO: Uncomment when PaykitMobile bindings are available
-    // fun toFfi(): LightningPaymentResultFfi = LightningPaymentResultFfi(
-    //     preimage = preimage,
-    //     paymentHash = paymentHash,
-    //     amountMsat = amountMsat,
-    //     feeMsat = feeMsat,
-    //     hops = hops,
-    //     status = status.toFfi(),
-    // )
-}
+)
 
 /**
  * Lightning payment status.
@@ -272,13 +278,6 @@ enum class LightningPaymentStatus {
     PENDING,
     SUCCEEDED,
     FAILED;
-
-    // TODO: Uncomment when PaykitMobile bindings are available
-    // fun toFfi(): LightningPaymentStatusFfi = when (this) {
-    //     PENDING -> LightningPaymentStatusFfi.PENDING
-    //     SUCCEEDED -> LightningPaymentStatusFfi.SUCCEEDED
-    //     FAILED -> LightningPaymentStatusFfi.FAILED
-    // }
 }
 
 /**
