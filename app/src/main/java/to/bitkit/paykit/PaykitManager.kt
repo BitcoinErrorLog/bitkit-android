@@ -105,7 +105,20 @@ class PaykitManager @Inject constructor() {
         hasExecutors = false
         Logger.info("PaykitManager reset", context = TAG)
     }
+    
+    /**
+     * Get the PaykitClient instance
+     * @throws PaykitException.NotInitialized if not initialized
+     */
+    fun getClient(): PaykitClient {
+        return client ?: throw PaykitException.NotInitialized
+    }
 }
+
+/**
+ * Extension function to get PaykitClient from PaykitManager
+ */
+fun PaykitManager.getClient(): PaykitClient = getClient()
 
 enum class BitcoinNetworkConfig {
     MAINNET,

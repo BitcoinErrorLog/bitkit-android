@@ -262,15 +262,22 @@ class NoisePaymentService @Inject constructor(
 
     /**
      * Receive a payment request (server mode)
-     * Note: Server mode implementation would require a ServerSocket listener
+     * Note: Server mode is implemented via startServer() and handleClientConnection()
+     * This method is kept for backward compatibility but server mode should be used
+     * via the server infrastructure (startServer, handleClientConnection, etc.)
      */
     suspend fun receivePaymentRequest(): NoisePaymentRequest? {
-        // TODO: Implement server mode with ServerSocket and FfiNoiseManager.newServer
-        // This would require:
-        // 1. Start ServerSocket listener
-        // 2. Accept incoming connections
-        // 3. Perform server-side Noise handshake
-        // 4. Decrypt and parse payment request
+        // Server mode is implemented via:
+        // 1. startServer() - starts ServerSocket listener
+        // 2. handleClientConnection() - accepts incoming connections
+        // 3. handleServerMessage() - performs server-side Noise handshake and processes messages
+        // 
+        // To receive payment requests, use the server mode:
+        // - Call startServer() to begin listening
+        // - Set onPendingPaymentRequest callback to receive requests
+        // - Payment requests will be delivered via the callback
+        
+        // This method returns null as server mode uses callbacks instead
         return null
     }
 
