@@ -12,6 +12,7 @@ import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
 import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.services.PubkyRingBridge
+import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
@@ -22,7 +23,10 @@ import javax.inject.Singleton
  * Manages PaykitClient lifecycle and executor registration for Bitkit Android.
  */
 @Singleton
-class PaykitManager @Inject constructor() {
+class PaykitManager @Inject constructor(
+    private val pubkyRingBridge: PubkyRingBridge,
+    private val pubkySDKService: PubkySDKService,
+) {
 
     companion object {
         private const val TAG = "PaykitManager"
@@ -30,11 +34,18 @@ class PaykitManager @Inject constructor() {
         @Volatile
         private var instance: PaykitManager? = null
 
+        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitManager"))
         fun getInstance(): PaykitManager {
-            return instance ?: synchronized(this) {
-                instance ?: PaykitManager().also { instance = it }
-            }
+            return instance ?: throw IllegalStateException("PaykitManager not initialized. Use dependency injection.")
         }
+        
+        internal fun setInstance(manager: PaykitManager) {
+            instance = manager
+        }
+    }
+    
+    init {
+        setInstance(this)
     }
 
     private var client: PaykitClient? = null
@@ -85,6 +96,11 @@ class PaykitManager @Inject constructor() {
             bitcoinNetwork = bitcoinNetwork.toFfi(),
             lightningNetwork = lightningNetwork.toFfi()
         )
+
+        // Restore persisted sessions and configure SDK
+        pubkyRingBridge.restoreSessions()
+        pubkySDKService.restoreSessions()
+        pubkySDKService.configure()
 
         isInitialized = true
         Logger.info("PaykitManager initialized successfully", context = TAG)

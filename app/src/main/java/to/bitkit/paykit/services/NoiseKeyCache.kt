@@ -12,10 +12,28 @@ import javax.inject.Singleton
  */
 @Singleton
 class NoiseKeyCache @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
 ) {
     companion object {
         private const val TAG = "NoiseKeyCache"
+        
+        @Volatile
+        private var instance: NoiseKeyCache? = null
+        
+        /**
+         * Get singleton instance (for non-DI access)
+         */
+        fun getInstance(): NoiseKeyCache {
+            return instance ?: throw IllegalStateException("NoiseKeyCache not initialized. Use dependency injection.")
+        }
+        
+        internal fun setInstance(cache: NoiseKeyCache) {
+            instance = cache
+        }
+    }
+    
+    init {
+        setInstance(this)
     }
 
     private val memoryCache = mutableMapOf<String, ByteArray>()
@@ -24,7 +42,7 @@ class NoiseKeyCache @Inject constructor(
     var maxCachedEpochs: Int = 5
 
     /**
-     * Get a cached key if available
+     * Get a cached key if available (suspend version with full persistence check)
      */
     suspend fun getKey(deviceId: String, epoch: UInt): ByteArray? {
         val key = cacheKey(deviceId, epoch)
@@ -45,9 +63,19 @@ class NoiseKeyCache @Inject constructor(
 
         return null
     }
+    
+    /**
+     * Get a cached key from memory only (non-suspend, for callbacks)
+     */
+    fun getKeySync(deviceId: String, epoch: UInt): ByteArray? {
+        val key = cacheKey(deviceId, epoch)
+        return synchronized(memoryCache) {
+            memoryCache[key]
+        }
+    }
 
     /**
-     * Store a key in the cache
+     * Store a key in the cache (suspend version with persistence)
      */
     suspend fun setKey(keyData: ByteArray, deviceId: String, epoch: UInt) {
         val key = cacheKey(deviceId, epoch)
@@ -66,6 +94,35 @@ class NoiseKeyCache @Inject constructor(
 
         // Cleanup old epochs if needed
         cleanupOldEpochs(deviceId, epoch)
+    }
+    
+    /**
+     * Store a key in memory cache only (non-suspend, for callbacks)
+     * Call persistKey() later to persist to keychain
+     */
+    fun setKeySync(keyData: ByteArray, deviceId: String, epoch: UInt) {
+        val key = cacheKey(deviceId, epoch)
+        synchronized(memoryCache) {
+            memoryCache[key] = keyData
+        }
+        Logger.debug("Stored key in memory cache: $key", context = TAG)
+    }
+    
+    /**
+     * Persist a key from memory cache to keychain (suspend)
+     */
+    suspend fun persistKey(deviceId: String, epoch: UInt) {
+        val key = cacheKey(deviceId, epoch)
+        val keyData = synchronized(memoryCache) {
+            memoryCache[key]
+        } ?: return
+        
+        try {
+            keychain.store(key, keyData)
+            Logger.debug("Persisted key to keychain: $key", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to persist key: $key", e, context = TAG)
+        }
     }
 
     /**

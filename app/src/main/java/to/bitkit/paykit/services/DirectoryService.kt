@@ -47,6 +47,8 @@ class DirectoryService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
     private val pubkyStorage: PubkyStorageAdapter,
+    private val pubkySDKService: PubkySDKService,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
@@ -315,8 +317,44 @@ class DirectoryService @Inject constructor(
 
     /**
      * Fetch profile for a pubkey from Pubky directory
+     * Uses PubkySDKService first, falls back to direct FFI if unavailable
      */
-    suspend fun fetchProfile(pubkey: String): PubkyProfile? {
+    suspend fun fetchProfile(pubkey: String, context: Context? = null): PubkyProfile? {
+        // Try PubkySDKService first (preferred, direct homeserver access)
+        try {
+            val sdkProfile = pubkySDKService.fetchProfile(pubkey)
+            // Convert to local PubkyProfile type
+            return PubkyProfile(
+                name = sdkProfile.name,
+                bio = sdkProfile.bio,
+                avatar = sdkProfile.image, // SDK uses 'image', DirectoryService uses 'avatar'
+                links = sdkProfile.links?.map { PubkyProfileLink(title = it.title, url = it.url) }
+            )
+        } catch (e: Exception) {
+            Logger.debug("PubkySDKService profile fetch failed: ${e.message}", context = TAG)
+        }
+        
+        // Try PubkyRingBridge if Pubky-ring is installed and context is provided
+        if (context != null && pubkyRingBridge.isPubkyRingInstalled(context)) {
+            try {
+                val profile = pubkyRingBridge.requestProfile(context, pubkey)
+                if (profile != null) {
+                    Logger.debug("Got profile from Pubky-ring", context = TAG)
+                    return profile
+                }
+            } catch (e: Exception) {
+                Logger.debug("PubkyRingBridge profile fetch failed: ${e.message}", context = TAG)
+            }
+        }
+
+        // Fallback to direct FFI
+        return fetchProfileViaFFI(pubkey)
+    }
+
+    /**
+     * Fetch profile using direct FFI (fallback)
+     */
+    private suspend fun fetchProfileViaFFI(pubkey: String): PubkyProfile? {
         val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverBaseURL)
         val profilePath = "/pub/pubky.app/profile.json"
 
@@ -390,9 +428,39 @@ class DirectoryService @Inject constructor(
 
     /**
      * Fetch list of pubkeys user follows
+     * Uses PubkySDKService first, falls back to direct FFI if unavailable
      */
-    suspend fun fetchFollows(): List<String> {
+    suspend fun fetchFollows(context: Context? = null): List<String> {
         val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return emptyList()
+
+        // Try PubkySDKService first (preferred, direct homeserver access)
+        try {
+            return pubkySDKService.fetchFollows(ownerPubkey)
+        } catch (e: Exception) {
+            Logger.debug("PubkySDKService follows fetch failed: ${e.message}", context = TAG)
+        }
+        
+        // Try PubkyRingBridge if Pubky-ring is installed and context is provided
+        if (context != null && pubkyRingBridge.isPubkyRingInstalled(context)) {
+            try {
+                val follows = pubkyRingBridge.requestFollows(context)
+                if (follows.isNotEmpty()) {
+                    Logger.debug("Got ${follows.size} follows from Pubky-ring", context = TAG)
+                    return follows
+                }
+            } catch (e: Exception) {
+                Logger.debug("PubkyRingBridge follows fetch failed: ${e.message}", context = TAG)
+            }
+        }
+
+        // Fallback to direct FFI
+        return fetchFollowsViaFFI(ownerPubkey)
+    }
+
+    /**
+     * Fetch follows using direct FFI (fallback)
+     */
+    private suspend fun fetchFollowsViaFFI(ownerPubkey: String): List<String> {
         val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverBaseURL)
         val followsPath = "/pub/pubky.app/follows/"
 

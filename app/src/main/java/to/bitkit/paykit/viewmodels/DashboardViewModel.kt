@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import to.bitkit.paykit.models.Receipt
 import to.bitkit.paykit.storage.*
 import javax.inject.Inject
@@ -58,8 +59,38 @@ class DashboardViewModel @Inject constructor(
     val publishedMethodsCount: StateFlow<Int> = _publishedMethodsCount.asStateFlow()
 
     fun loadDashboard() {
+        // #region agent log
+        try {
+            val logData = mapOf(
+                "location" to "DashboardViewModel.kt:60",
+                "message" to "loadDashboard called",
+                "data" to emptyMap<String, Any>(),
+                "timestamp" to System.currentTimeMillis(),
+                "sessionId" to "debug-session",
+                "runId" to "run1",
+                "hypothesisId" to "B"
+            )
+            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
+        } catch (e: Exception) {}
+        // #endregion
+        
         viewModelScope.launch {
             _isLoading.value = true
+
+            // #region agent log
+            try {
+                val logData = mapOf(
+                    "location" to "DashboardViewModel.kt:68",
+                    "message" to "Before loading receipts",
+                    "data" to emptyMap<String, Any>(),
+                    "timestamp" to System.currentTimeMillis(),
+                    "sessionId" to "debug-session",
+                    "runId" to "run1",
+                    "hypothesisId" to "B"
+                )
+                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
+            } catch (e: Exception) {}
+            // #endregion
 
             // Load recent receipts
             _recentReceipts.value = receiptStorage.recentReceipts(limit = 5)
