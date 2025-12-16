@@ -101,7 +101,7 @@ fun ActivityListFilter(
 }
 
 enum class ActivityTab : TabItem {
-    ALL, SENT, RECEIVED, OTHER;
+    ALL, SENT, RECEIVED, OTHER, PAYKIT;
 
     override val uiText: String
         @Composable
@@ -110,6 +110,7 @@ enum class ActivityTab : TabItem {
             SENT -> stringResource(R.string.wallet__activity_tabs__sent)
             RECEIVED -> stringResource(R.string.wallet__activity_tabs__received)
             OTHER -> stringResource(R.string.wallet__activity_tabs__other)
+            PAYKIT -> "Paykit"
         }
 }
 

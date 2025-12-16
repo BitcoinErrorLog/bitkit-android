@@ -1779,7 +1779,7 @@ class AppViewModel @Inject constructor(
         // Get AutoPayViewModel for autopay evaluation
         // Note: In production, this would be injected via Hilt
         val keychainStorage = PaykitKeychainStorage(keychain)
-        val autoPayStorage = AutoPayStorage()
+        val autoPayStorage = AutoPayStorage(keychainStorage)
         val autoPayViewModel = AutoPayViewModel(autoPayStorage)
         
         // Create PaymentRequestService

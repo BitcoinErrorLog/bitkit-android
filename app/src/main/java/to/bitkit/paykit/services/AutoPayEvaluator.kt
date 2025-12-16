@@ -1,5 +1,6 @@
 package to.bitkit.paykit.services
 
+import kotlinx.serialization.Serializable
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SpendingLimitStorage
 import to.bitkit.paykit.workers.AutoPayDecision
@@ -104,6 +105,7 @@ data class AutoPayRule(
 /**
  * Spending limit configuration
  */
+@Serializable
 data class SpendingLimit(
     val totalLimitSats: Long,
     val currentSpentSats: Long,

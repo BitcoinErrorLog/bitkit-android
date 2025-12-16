@@ -35,6 +35,7 @@ import to.bitkit.ui.navigateToAdvancedSettings
 import to.bitkit.ui.navigateToBackupSettings
 import to.bitkit.ui.navigateToDevSettings
 import to.bitkit.ui.navigateToGeneralSettings
+import to.bitkit.ui.navigateToPaykitDashboard
 import to.bitkit.ui.navigateToSecuritySettings
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
@@ -62,6 +63,7 @@ fun SettingsScreen(
         onSecurityClick = { navController.navigateToSecuritySettings() },
         onBackupClick = { navController.navigateToBackupSettings() },
         onAdvancedClick = { navController.navigateToAdvancedSettings() },
+        onPaykitClick = { navController.navigateToPaykitDashboard() },
         onSupportClick = { navController.navigate(Routes.Support) },
         onAboutClick = { navController.navigateToAboutSettings() },
         onDevClick = { navController.navigateToDevSettings() },
@@ -97,6 +99,7 @@ fun SettingsScreenContent(
     onSecurityClick: () -> Unit,
     onBackupClick: () -> Unit,
     onAdvancedClick: () -> Unit,
+    onPaykitClick: () -> Unit,
     onSupportClick: () -> Unit,
     onAboutClick: () -> Unit,
     onDevClick: () -> Unit,
@@ -138,6 +141,12 @@ fun SettingsScreenContent(
                 iconRes = R.drawable.ic_settings_advanced,
                 onClick = onAdvancedClick,
                 modifier = Modifier.testTag("AdvancedSettings")
+            )
+            SettingsButtonRow(
+                title = "Paykit",
+                iconRes = R.drawable.ic_transfer,
+                onClick = onPaykitClick,
+                modifier = Modifier.testTag("PaykitSettings")
             )
             SettingsButtonRow(
                 title = stringResource(R.string.settings__support_title),
@@ -184,6 +193,7 @@ private fun Preview() {
             onSecurityClick = {},
             onBackupClick = {},
             onAdvancedClick = {},
+            onPaykitClick = {},
             onSupportClick = {},
             onAboutClick = {},
             onDevClick = {},

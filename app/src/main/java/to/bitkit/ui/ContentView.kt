@@ -1688,6 +1688,11 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
             onNavigateBack = { navController.popBackStack() }
         )
     }
+    composableWithDefaultTransitions<Routes.PaykitProfileEdit> {
+        to.bitkit.ui.paykit.ProfileEditScreen(
+            onBackClick = { navController.popBackStack() }
+        )
+    }
     composableWithDefaultTransitions<Routes.PaykitPaymentRequests> {
         to.bitkit.ui.paykit.PaykitPaymentRequestsScreen(
             onNavigateBack = { navController.popBackStack() }
@@ -2044,6 +2049,9 @@ sealed interface Routes {
 
     @Serializable
     data object PaykitAutoPay : Routes
+
+    @Serializable
+    data object PaykitProfileEdit : Routes
 
     @Serializable
     data object PaykitPaymentRequests : Routes

@@ -58,10 +58,15 @@ import to.bitkit.viewmodels.CurrencyViewModel
 import to.bitkit.viewmodels.MainScreenEffect
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.TransferViewModel
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.viewmodels.WalletViewModel
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
     private val appViewModel by viewModels<AppViewModel>()
     private val walletViewModel by viewModels<WalletViewModel>()
     private val blocktankViewModel by viewModels<BlocktankViewModel>()
@@ -82,7 +87,7 @@ class MainActivity : FragmentActivity() {
             desc = "Channel for LightningNodeService",
             importance = NotificationManager.IMPORTANCE_LOW
         )
-        appViewModel.handleDeeplinkIntent(intent)
+        handleIntent(intent)
 
         installSplashScreen()
         enableAppEdgeToEdge()
@@ -192,6 +197,21 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleIntent(intent)
+    }
+
+    /**
+     * Handle incoming intents, checking for Pubky-ring callbacks first.
+     */
+    private fun handleIntent(intent: Intent) {
+        intent.data?.let { uri ->
+            // Check for Pubky-ring callbacks first (session, keypair, profile, follows)
+            if (PubkyRingBridge.getInstance().handleCallback(uri)) {
+                Logger.info("Handled Pubky-ring callback: ${uri.host}", context = TAG)
+                return
+            }
+        }
+        // Delegate to AppViewModel for other deep links
         appViewModel.handleDeeplinkIntent(intent)
     }
 

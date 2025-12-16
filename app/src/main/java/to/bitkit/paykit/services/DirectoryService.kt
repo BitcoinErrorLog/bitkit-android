@@ -8,6 +8,36 @@ import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// MARK: - Pubky Homeserver Configuration
+
+/**
+ * Configuration for Pubky homeserver connections
+ */
+object PubkyConfig {
+    /** Production homeserver pubkey (Synonym mainnet) */
+    const val PRODUCTION_HOMESERVER = "8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty"
+
+    /** Staging homeserver pubkey (Synonym staging) */
+    const val STAGING_HOMESERVER = "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"
+
+    /** Default homeserver to use */
+    const val DEFAULT_HOMESERVER = PRODUCTION_HOMESERVER
+
+    /** Pubky app URL for production */
+    const val PRODUCTION_APP_URL = "https://pubky.app"
+
+    /** Pubky app URL for staging */
+    const val STAGING_APP_URL = "https://staging.pubky.app"
+
+    /**
+     * Get the homeserver base URL for directory operations
+     */
+    fun homeserverUrl(homeserver: String = DEFAULT_HOMESERVER): String {
+        // The homeserver pubkey is used as the base for directory operations
+        return homeserver
+    }
+}
+
 /**
  * Service for interacting with the Pubky directory
  * Uses PaykitClient FFI methods for directory operations
@@ -16,7 +46,7 @@ import javax.inject.Singleton
 class DirectoryService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
-    private val pubkyStorage: PubkyStorageAdapter
+    private val pubkyStorage: PubkyStorageAdapter,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
@@ -37,20 +67,41 @@ class DirectoryService @Inject constructor(
 
     /**
      * Configure Pubky transport for directory operations
+     * @param homeserverBaseURL The homeserver pubkey (defaults to PubkyConfig.DEFAULT_HOMESERVER)
      */
     fun configurePubkyTransport(homeserverBaseURL: String? = null) {
-        this.homeserverBaseURL = homeserverBaseURL
-        val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+        this.homeserverBaseURL = homeserverBaseURL ?: PubkyConfig.DEFAULT_HOMESERVER
+        val adapter = PubkyUnauthenticatedStorageAdapter(this.homeserverBaseURL)
         unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(adapter)
     }
 
     /**
      * Configure authenticated transport with session
+     * @param sessionId The session ID from Pubky-ring
+     * @param ownerPubkey The owner's public key
+     * @param homeserverBaseURL The homeserver pubkey (defaults to PubkyConfig.DEFAULT_HOMESERVER)
      */
     fun configureAuthenticatedTransport(sessionId: String, ownerPubkey: String, homeserverBaseURL: String? = null) {
-        this.homeserverBaseURL = homeserverBaseURL
-        val adapter = PubkyAuthenticatedStorageAdapter(sessionId, homeserverBaseURL)
+        this.homeserverBaseURL = homeserverBaseURL ?: PubkyConfig.DEFAULT_HOMESERVER
+        val adapter = PubkyAuthenticatedStorageAdapter(sessionId, this.homeserverBaseURL)
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, ownerPubkey)
+    }
+
+    /**
+     * Configure transport using a Pubky session from Pubky-ring
+     */
+    fun configureWithPubkySession(session: PubkySession) {
+        homeserverBaseURL = PubkyConfig.DEFAULT_HOMESERVER
+
+        // Configure authenticated transport
+        val adapter = PubkyAuthenticatedStorageAdapter(session.sessionSecret, homeserverBaseURL)
+        authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, session.pubkey)
+
+        // Also configure unauthenticated transport
+        val unauthAdapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+        unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(unauthAdapter)
+
+        Logger.info("Configured DirectoryService with Pubky session for ${session.pubkey}", context = TAG)
     }
 
     /**
