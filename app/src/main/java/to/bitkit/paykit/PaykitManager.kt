@@ -9,6 +9,7 @@ import org.lightningdevkit.ldknode.Network
 import to.bitkit.env.Env
 import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
+import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -42,6 +43,19 @@ class PaykitManager @Inject constructor() {
         private set
 
     var hasExecutors: Boolean = false
+        private set
+
+    /**
+     * Owner public key for Paykit operations.
+     * This is set during initialization from the wallet's identity key.
+     */
+    var ownerPubkey: String? = null
+        private set
+
+    /**
+     * Payment service instance for executing payments.
+     */
+    var paymentService: PaykitPaymentService? = null
         private set
 
     val bitcoinNetwork: BitcoinNetworkConfig = mapNetwork(Env.network).first

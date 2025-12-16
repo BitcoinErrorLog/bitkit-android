@@ -108,7 +108,7 @@ import to.bitkit.utils.jsonLogOf
 import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.services.PaymentRequestService
 import to.bitkit.paykit.services.PaymentRequestProcessingResult
-import to.bitkit.paykit.services.AutopayEvaluator
+import to.bitkit.paykit.services.IAutopayEvaluator
 import to.bitkit.paykit.viewmodels.AutoPayViewModel
 import to.bitkit.paykit.viewmodels.asAutopayEvaluator
 import to.bitkit.paykit.storage.AutoPayStorage
@@ -1779,7 +1779,7 @@ class AppViewModel @Inject constructor(
         // Get AutoPayViewModel for autopay evaluation
         // Note: In production, this would be injected via Hilt
         val keychainStorage = PaykitKeychainStorage(keychain)
-        val autoPayStorage = AutoPayStorage(keychainStorage)
+        val autoPayStorage = AutoPayStorage()
         val autoPayViewModel = AutoPayViewModel(autoPayStorage)
         
         // Create PaymentRequestService

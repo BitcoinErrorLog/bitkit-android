@@ -10,7 +10,7 @@ import to.bitkit.paykit.models.AutoPaySettings
 import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.services.AutopayEvaluationResult
-import to.bitkit.paykit.services.AutopayEvaluator
+import to.bitkit.paykit.services.IAutopayEvaluator
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -166,9 +166,9 @@ class AutoPayViewModel @Inject constructor(
     }
 }
 
-// Make AutoPayViewModel implement AutopayEvaluator
-fun AutoPayViewModel.asAutopayEvaluator(): AutopayEvaluator {
-    return object : AutopayEvaluator {
+// Make AutoPayViewModel implement IAutopayEvaluator
+fun AutoPayViewModel.asAutopayEvaluator(): IAutopayEvaluator {
+    return object : IAutopayEvaluator {
         override fun evaluate(peerPubkey: String, amount: Long, methodId: String): AutopayEvaluationResult {
             return this@asAutopayEvaluator.evaluate(peerPubkey, amount, methodId)
         }

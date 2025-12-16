@@ -2,6 +2,7 @@ package to.bitkit.paykit.services
 
 import android.content.Context
 import com.paykit.mobile.*
+import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -18,7 +19,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class PubkyStorageAdapter @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val TAG = "PubkyStorageAdapter"
@@ -70,6 +71,58 @@ class PubkyStorageAdapter @Inject constructor(
             throw PubkyStorageException("Failed to list: ${result.error}")
         }
         return result.entries
+    }
+
+    /**
+     * Store data in Pubky storage using authenticated transport
+     */
+    suspend fun store(path: String, data: ByteArray, transport: AuthenticatedTransportFfi) {
+        // For now, use OkHttpClient directly since transport is an FFI wrapper
+        val content = String(data)
+        val urlString = "https://homeserver.pubky.app$path"
+        
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+        
+        val mediaType = "application/json".toMediaType()
+        val requestBody = content.toRequestBody(mediaType)
+        
+        val request = Request.Builder()
+            .url(urlString)
+            .put(requestBody)
+            .header("Content-Type", "application/json")
+            .build()
+        
+        val response = client.newCall(request).execute()
+        if (response.code !in 200..299) {
+            throw PubkyStorageException("Failed to store: HTTP ${response.code}")
+        }
+        Logger.debug("Stored data to Pubky: $path", context = TAG)
+    }
+
+    /**
+     * Delete from Pubky storage using authenticated transport
+     */
+    suspend fun delete(path: String, transport: AuthenticatedTransportFfi) {
+        val urlString = "https://homeserver.pubky.app$path"
+        
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+        
+        val request = Request.Builder()
+            .url(urlString)
+            .delete()
+            .build()
+        
+        val response = client.newCall(request).execute()
+        if (response.code !in 200..299 && response.code != 404) {
+            throw PubkyStorageException("Failed to delete: HTTP ${response.code}")
+        }
+        Logger.debug("Deleted from Pubky: $path", context = TAG)
     }
 }
 

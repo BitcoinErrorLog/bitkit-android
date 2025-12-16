@@ -90,6 +90,7 @@ data class PeerSpendingLimit(
 data class AutoPayRule(
     val id: String = UUID.randomUUID().toString(),
     var name: String,
+    var peerPubkey: String? = null,
     var isEnabled: Boolean = true,
     var maxAmountSats: Long? = null,
     var allowedMethods: List<String> = emptyList(),
@@ -100,8 +101,10 @@ data class AutoPayRule(
     fun matches(amount: Long, method: String, peer: String): Boolean {
         if (!isEnabled) return false
         maxAmountSats?.let { max -> if (amount > max) return false }
-        if (allowedMethods.isNotEmpty() && !allowedMethods.contains(method)) return false
-        if (allowedPeers.isNotEmpty() && !allowedPeers.contains(peer)) return false
+        if (allowedMethods.isNotEmpty() && method !in allowedMethods) return false
+        if (allowedPeers.isNotEmpty() && peer !in allowedPeers) return false
+        // Also check peerPubkey if set
+        if (peerPubkey != null && peerPubkey != peer) return false
         return true
     }
 }

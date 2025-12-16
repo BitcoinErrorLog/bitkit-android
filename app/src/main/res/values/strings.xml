@@ -1172,8 +1172,13 @@
     <string name="notification_payment_request_title">Payment Request Received</string>
     <string name="notification_received_body_amount">Received %s</string>
     <string name="notification_received_body_hidden">Open Bitkit to see details</string>
+    <string name="notification_payment_failed_body">Payment failed: %1$s</string>
+    <string name="notification_payment_request_body_with_amount">%1$s is requesting %2$s</string>
+    <string name="notification_payment_sent_body">Sent %1$s to %2$s</string>
     <string name="notification_received_title">Payment Received</string>
     <string name="notification_running_in_background">Bitkit is running in background so you can receive Lightning payments</string>
+    <string name="notification_subscription_proposal_body">%1$s is proposing a subscription for %2$s</string>
+    <string name="notification_subscription_proposal_title">Subscription Proposal</string>
     <string name="notification_sent">sent</string>
     <string name="notification_stop_app">Stop App</string>
     <string name="notification_subscription_due_body">Processing payment...</string>

@@ -35,7 +35,7 @@ sealed class PaymentRequestProcessingResult {
 /**
  * Protocol for autopay evaluation
  */
-interface AutopayEvaluator {
+interface IAutopayEvaluator {
     /**
      * Evaluate if a payment should be auto-approved
      */
@@ -49,7 +49,7 @@ interface AutopayEvaluator {
 @Singleton
 class PaymentRequestService @Inject constructor(
     private val paykitClient: PaykitClient,
-    private val autopayEvaluator: AutopayEvaluator,
+    private val autopayEvaluator: IAutopayEvaluator,
     private val paymentRequestStorage: PaymentRequestStorage,
     private val directoryService: DirectoryService
 ) {
