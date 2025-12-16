@@ -30,7 +30,10 @@ import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.onboarding.LOADING_MS
 import to.bitkit.ui.shared.toast.ToastEventBus
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import to.bitkit.paykit.PaykitIntegrationHelper
+import to.bitkit.paykit.workers.SubscriptionCheckWorker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -38,6 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class WalletViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
@@ -165,6 +169,8 @@ class WalletViewModel @Inject constructor(
             PaykitIntegrationHelper.setup(lightningRepo)
         }.onSuccess {
             Logger.info("Paykit initialized successfully after node started", context = TAG)
+            // Schedule subscription check worker
+            SubscriptionCheckWorker.schedule(appContext)
         }.onFailure { error ->
             Logger.error("Failed to initialize Paykit after node started", error, context = TAG)
         }

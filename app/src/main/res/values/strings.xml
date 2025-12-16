@@ -1166,6 +1166,8 @@
     <string name="notification_payment_failed_title">Payment failed</string>
     <string name="notification_please_try_again_body">Please try again</string>
     <string name="notification_autopay_executed_title">Auto-Pay Executed</string>
+    <string name="notification_channel_subscriptions_description">Notifications for subscription payments</string>
+    <string name="notification_channel_subscriptions_name">Subscriptions</string>
     <string name="notification_payment_request_body">Tap to review and pay</string>
     <string name="notification_payment_request_title">Payment Request Received</string>
     <string name="notification_received_body_amount">Received %s</string>
@@ -1177,6 +1179,8 @@
     <string name="notification_subscription_due_body">Processing payment...</string>
     <string name="notification_subscription_due_title">Subscription Payment Due</string>
     <string name="notification_subscription_failed_title">Subscription Payment Failed</string>
+    <string name="notification_subscription_paid_title">Subscription Payment Sent</string>
+    <string name="notification_subscription_pending_title">Subscription Payment Pending</string>
     <string name="notification_unknown_error">Unknown error</string>
     <string name="notification_via_new_channel_body">Via new channel</string>
     <string name="lightning__node_sync_time">Lightning Wallet Sync Time</string>
