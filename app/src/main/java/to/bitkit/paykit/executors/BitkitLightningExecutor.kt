@@ -13,6 +13,7 @@ import com.synonym.bitkitcore.Scanner
 import org.lightningdevkit.ldknode.Bolt11Invoice
 import to.bitkit.ext.toHex
 import org.lightningdevkit.ldknode.PaymentDetails
+import org.lightningdevkit.ldknode.PaymentKind
 import org.lightningdevkit.ldknode.PaymentStatus
 import to.bitkit.paykit.PaykitException
 import to.bitkit.repositories.LightningRepo
@@ -120,11 +121,14 @@ class BitkitLightningExecutor(
         payment: PaymentDetails,
         status: LightningPaymentStatus,
     ): LightningPaymentResultFfi {
-        // Extract preimage from LDK PaymentDetails
-        // Note: Preimage may not be available until payment succeeds - may need to get from payment events
-        val preimage = "" // TODO: Extract preimage from payment completion event or Activity
+        // Extract preimage from PaymentKind.Bolt11
+        val preimage = when (val kind = payment.kind) {
+            is PaymentKind.Bolt11 -> kind.preimage ?: ""
+            else -> ""
+        }
+
         val amountMsat = payment.amountMsat ?: 0uL
-        val feeMsat = (payment.feePaidMsat ?: 0uL) // feePaidMsat exists on PaymentDetails
+        val feeMsat = payment.feePaidMsat ?: 0uL
 
         val statusFfi = when (status) {
             LightningPaymentStatus.SUCCEEDED -> LightningPaymentStatusFfi.SUCCEEDED
