@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.models.AutoPaySettings
 import to.bitkit.paykit.models.PeerSpendingLimit
-import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.services.AutopayEvaluationResult
-import to.bitkit.paykit.services.AutopayEvaluator
+import to.bitkit.paykit.services.IAutopayEvaluator
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -21,23 +21,23 @@ import javax.inject.Inject
 class AutoPayViewModel @Inject constructor(
     private val autoPayStorage: AutoPayStorage
 ) : ViewModel() {
-    
+
     private val _settings = MutableStateFlow(AutoPaySettings())
     val settings: StateFlow<AutoPaySettings> = _settings.asStateFlow()
-    
+
     private val _peerLimits = MutableStateFlow<List<PeerSpendingLimit>>(emptyList())
     val peerLimits: StateFlow<List<PeerSpendingLimit>> = _peerLimits.asStateFlow()
-    
+
     private val _rules = MutableStateFlow<List<AutoPayRule>>(emptyList())
     val rules: StateFlow<List<AutoPayRule>> = _rules.asStateFlow()
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
     init {
         loadSettings()
     }
-    
+
     fun loadSettings() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -47,7 +47,7 @@ class AutoPayViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
-    
+
     fun saveSettings() {
         viewModelScope.launch {
             try {
@@ -57,7 +57,7 @@ class AutoPayViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun addPeerLimit(limit: PeerSpendingLimit) {
         viewModelScope.launch {
             try {
@@ -68,7 +68,7 @@ class AutoPayViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deletePeerLimit(limit: PeerSpendingLimit) {
         viewModelScope.launch {
             try {
@@ -79,7 +79,7 @@ class AutoPayViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun addRule(rule: AutoPayRule) {
         viewModelScope.launch {
             try {
@@ -90,7 +90,7 @@ class AutoPayViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deleteRule(rule: AutoPayRule) {
         viewModelScope.launch {
             try {
@@ -101,37 +101,37 @@ class AutoPayViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateSettings(settings: AutoPaySettings) {
         _settings.value = settings
         saveSettings()
     }
-    
+
     /**
      * Evaluate if a payment should be auto-approved
      * Implements AutopayEvaluator interface for PaymentRequestService
      */
     fun evaluate(peerPubkey: String, amount: Long, methodId: String): AutopayEvaluationResult {
         val settings = _settings.value
-        
+
         // Check if autopay is enabled
         if (!settings.isEnabled) {
             return AutopayEvaluationResult.Denied("Auto-pay is disabled")
         }
-        
+
         // Reset daily limits if needed
         val resetSettings = settings.resetIfNeeded()
         if (resetSettings != settings) {
             _settings.value = resetSettings
         }
-        
+
         // Check global daily limit
         val globalDailyLimit = resetSettings.globalDailyLimitSats
         val currentDailySpent = resetSettings.currentDailySpentSats
         if (currentDailySpent + amount > globalDailyLimit) {
             return AutopayEvaluationResult.Denied("Would exceed daily limit")
         }
-        
+
         // Check peer-specific limit
         val peerLimit = _peerLimits.value.firstOrNull { it.peerPubkey == peerPubkey }
         peerLimit?.let { limit ->
@@ -143,35 +143,34 @@ class AutoPayViewModel @Inject constructor(
                 }
                 // Note: We don't reload here to avoid blocking, but the reset is saved
             }
-            
+
             val limitToCheck = if (resetLimit != limit) resetLimit else limit
             if (limitToCheck.spentSats + amount > limitToCheck.limitSats) {
                 return AutopayEvaluationResult.Denied("Would exceed peer limit")
             }
         }
-        
+
         // Check auto-pay rules
         val matchingRule = _rules.value.firstOrNull { rule ->
             rule.matches(amount, methodId, peerPubkey)
         }
-        
+
         if (matchingRule != null) {
             return AutopayEvaluationResult.Approved(
                 ruleId = matchingRule.id,
                 ruleName = matchingRule.name
             )
         }
-        
+
         return AutopayEvaluationResult.NeedsApproval
     }
 }
 
-// Make AutoPayViewModel implement AutopayEvaluator
-fun AutoPayViewModel.asAutopayEvaluator(): AutopayEvaluator {
-    return object : AutopayEvaluator {
+// Make AutoPayViewModel implement IAutopayEvaluator
+fun AutoPayViewModel.asAutopayEvaluator(): IAutopayEvaluator {
+    return object : IAutopayEvaluator {
         override fun evaluate(peerPubkey: String, amount: Long, methodId: String): AutopayEvaluationResult {
             return this@asAutopayEvaluator.evaluate(peerPubkey, amount, methodId)
         }
     }
 }
-

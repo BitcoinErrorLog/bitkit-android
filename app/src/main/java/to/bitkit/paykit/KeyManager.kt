@@ -3,6 +3,7 @@ package to.bitkit.paykit
 import android.content.Context
 import android.os.Build
 import com.paykit.mobile.*
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class KeyManager @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val keychain: Keychain
 ) {
     companion object {
@@ -171,4 +172,3 @@ class KeyManager @Inject constructor(
         keychain.upsertString(KEY_EPOCH, epoch.toString())
     }
 }
-

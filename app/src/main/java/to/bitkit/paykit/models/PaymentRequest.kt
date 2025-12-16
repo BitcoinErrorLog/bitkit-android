@@ -1,7 +1,6 @@
 package to.bitkit.paykit.models
 
 import kotlinx.serialization.Serializable
-import java.util.UUID
 
 /**
  * Status of a payment request

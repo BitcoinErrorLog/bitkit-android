@@ -1,0 +1,503 @@
+package to.bitkit.paykit.ui
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import to.bitkit.paykit.services.CrossDeviceRequest
+import to.bitkit.paykit.services.PubkyRingBridge
+import to.bitkit.paykit.services.PubkySession
+import to.bitkit.ui.theme.Colors
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PubkyRingAuthScreen(
+    onNavigateBack: () -> Unit,
+    onSessionReceived: (PubkySession) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val bridge = remember { PubkyRingBridge.getInstance() }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
+
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var crossDeviceRequest by remember { mutableStateOf<CrossDeviceRequest?>(null) }
+    var isPolling by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var manualPubkey by remember { mutableStateOf("") }
+    var manualSessionSecret by remember { mutableStateOf("") }
+    var timeRemaining by remember { mutableLongStateOf(0L) }
+
+    val isPubkyRingInstalled = remember { bridge.isPubkyRingInstalled(context) }
+    val recommendedMethod = remember { bridge.getRecommendedAuthMethod(context) }
+
+    // Set initial tab based on availability
+    LaunchedEffect(Unit) {
+        if (!isPubkyRingInstalled) {
+            selectedTab = 1 // QR code tab
+        }
+    }
+
+    // Timer for countdown
+    LaunchedEffect(crossDeviceRequest) {
+        while (crossDeviceRequest != null && !crossDeviceRequest!!.isExpired) {
+            timeRemaining = crossDeviceRequest!!.timeRemainingMs / 1000
+            delay(1000)
+        }
+        if (crossDeviceRequest?.isExpired == true) {
+            crossDeviceRequest = null
+            isPolling = false
+        }
+    }
+
+    // Show error snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            errorMessage = null
+        }
+    }
+
+    val tabs = if (isPubkyRingInstalled) {
+        listOf("Same Device", "QR Code", "Manual")
+    } else {
+        listOf("QR Code", "Manual")
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Connect Pubky") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+        modifier = modifier,
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            TabRow(selectedTabIndex = selectedTab) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title) },
+                    )
+                }
+            }
+
+            val pageIndex = if (isPubkyRingInstalled) selectedTab else selectedTab + 1
+
+            when (pageIndex) {
+                0 -> SameDeviceTabContent(
+                    onAuthenticate = {
+                        scope.launch {
+                            try {
+                                val session = bridge.requestSession(context)
+                                onSessionReceived(session)
+                            } catch (e: Exception) {
+                                errorMessage = e.message
+                            }
+                        }
+                    },
+                )
+                1 -> CrossDeviceTabContent(
+                    crossDeviceRequest = crossDeviceRequest,
+                    timeRemaining = timeRemaining,
+                    isPolling = isPolling,
+                    onGenerateRequest = {
+                        crossDeviceRequest = bridge.generateCrossDeviceRequest()
+                        isPolling = true
+                        scope.launch {
+                            try {
+                                val requestId = crossDeviceRequest?.requestId ?: return@launch
+                                val session = bridge.pollForCrossDeviceSession(requestId)
+                                isPolling = false
+                                onSessionReceived(session)
+                            } catch (e: Exception) {
+                                isPolling = false
+                                errorMessage = e.message
+                            }
+                        }
+                    },
+                    onCopyLink = {
+                        crossDeviceRequest?.url?.let { url ->
+                            clipboardManager.setText(AnnotatedString(url))
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Link copied to clipboard")
+                            }
+                        }
+                    },
+                )
+                2 -> ManualEntryTabContent(
+                    pubkey = manualPubkey,
+                    onPubkeyChange = { manualPubkey = it },
+                    sessionSecret = manualSessionSecret,
+                    onSessionSecretChange = { manualSessionSecret = it },
+                    onImport = {
+                        val session = bridge.importSession(
+                            pubkey = manualPubkey.trim(),
+                            sessionSecret = manualSessionSecret.trim(),
+                        )
+                        onSessionReceived(session)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SameDeviceTabContent(
+    onAuthenticate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Link,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Connect with Pubky-ring",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Pubky-ring is installed on this device. Tap the button below to connect.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Colors.White64,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onAuthenticate,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.Link, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Open Pubky-ring")
+        }
+    }
+}
+
+@Composable
+private fun CrossDeviceTabContent(
+    crossDeviceRequest: CrossDeviceRequest?,
+    timeRemaining: Long,
+    isPolling: Boolean,
+    onGenerateRequest: () -> Unit,
+    onCopyLink: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (crossDeviceRequest != null && !crossDeviceRequest.isExpired) {
+            // Show QR code and link
+            Text(
+                text = "Scan this QR code",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            crossDeviceRequest.qrCodeBitmap?.let { bitmap ->
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .padding(8.dp),
+                ) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "QR Code",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (timeRemaining < 60) MaterialTheme.colorScheme.error else Colors.White64,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Expires in ${timeRemaining}s",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (timeRemaining < 60) MaterialTheme.colorScheme.error else Colors.White64,
+                )
+            }
+
+            if (isPolling) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Waiting for authentication...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Colors.White64,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Or share this link:",
+                style = MaterialTheme.typography.bodySmall,
+                color = Colors.White64,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Colors.White10, RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = crossDeviceRequest.url,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onCopyLink) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy link",
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onGenerateRequest,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Colors.White10,
+                ),
+            ) {
+                Text("Generate New Code")
+            }
+        } else {
+            // Setup view
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Icon(
+                imageVector = Icons.Default.QrCode,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Scan from Another Device",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Generate a QR code to scan with a device that has Pubky-ring installed.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Colors.White64,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onGenerateRequest,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                ),
+            ) {
+                Icon(Icons.Default.QrCode, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Generate QR Code")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualEntryTabContent(
+    pubkey: String,
+    onPubkeyChange: (String) -> Unit,
+    sessionSecret: String,
+    onSessionSecretChange: (String) -> Unit,
+    onImport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Keyboard,
+            contentDescription = null,
+            modifier = Modifier.size(60.dp),
+            tint = Colors.Brand,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Manual Entry",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Enter your Pubky credentials manually if other methods aren't available.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Colors.White64,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = pubkey,
+            onValueChange = onPubkeyChange,
+            label = { Text("Public Key (z-base32)") },
+            placeholder = { Text("e.g., z6mk...") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = sessionSecret,
+            onValueChange = onSessionSecretChange,
+            label = { Text("Session Secret") },
+            placeholder = { Text("Secret from Pubky-ring") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onImport,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = pubkey.isNotBlank() && sessionSecret.isNotBlank(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Colors.Brand,
+            ),
+        ) {
+            Text("Import Session")
+        }
+    }
+}

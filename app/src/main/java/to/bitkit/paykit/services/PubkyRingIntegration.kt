@@ -61,4 +61,3 @@ class PubkyRingIntegration @Inject constructor(
         return deriveX25519Keypair(deviceId, epoch)
     }
 }
-

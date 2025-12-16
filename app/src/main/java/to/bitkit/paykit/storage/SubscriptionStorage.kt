@@ -1,7 +1,7 @@
 package to.bitkit.paykit.storage
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.utils.Logger
@@ -18,18 +18,18 @@ class SubscriptionStorage @Inject constructor(
     companion object {
         private const val TAG = "SubscriptionStorage"
     }
-    
+
     private var subscriptionsCache: List<Subscription>? = null
     private val identityName: String = "default"
-    
+
     private val storageKey: String
         get() = "subscriptions.$identityName"
-    
+
     fun listSubscriptions(): List<Subscription> {
         if (subscriptionsCache != null) {
             return subscriptionsCache!!
         }
-        
+
         return try {
             val data = keychain.retrieve(storageKey) ?: return emptyList()
             val json = String(data)
@@ -41,11 +41,11 @@ class SubscriptionStorage @Inject constructor(
             emptyList()
         }
     }
-    
+
     fun getSubscription(id: String): Subscription? {
         return listSubscriptions().firstOrNull { it.id == id }
     }
-    
+
     suspend fun saveSubscription(subscription: Subscription) {
         val subscriptions = listSubscriptions().toMutableList()
         val index = subscriptions.indexOfFirst { it.id == subscription.id }
@@ -56,13 +56,13 @@ class SubscriptionStorage @Inject constructor(
         }
         persistSubscriptions(subscriptions)
     }
-    
+
     suspend fun deleteSubscription(id: String) {
         val subscriptions = listSubscriptions().toMutableList()
         subscriptions.removeAll { it.id == id }
         persistSubscriptions(subscriptions)
     }
-    
+
     suspend fun toggleActive(id: String) {
         val subscriptions = listSubscriptions().toMutableList()
         val index = subscriptions.indexOfFirst { it.id == id }
@@ -71,24 +71,37 @@ class SubscriptionStorage @Inject constructor(
             persistSubscriptions(subscriptions)
         }
     }
-    
+
     suspend fun recordPayment(subscriptionId: String) {
+        recordPayment(subscriptionId, paymentHash = null, preimage = null, feeSats = null)
+    }
+
+    suspend fun recordPayment(
+        subscriptionId: String,
+        paymentHash: String?,
+        preimage: String?,
+        feeSats: ULong?,
+    ) {
         val subscriptions = listSubscriptions().toMutableList()
         val index = subscriptions.indexOfFirst { it.id == subscriptionId }
         if (index >= 0) {
-            subscriptions[index] = subscriptions[index].recordPayment()
+            subscriptions[index] = subscriptions[index].recordPayment(
+                paymentHash = paymentHash,
+                preimage = preimage,
+                feeSats = feeSats,
+            )
             persistSubscriptions(subscriptions)
         }
     }
-    
+
     fun activeSubscriptions(): List<Subscription> {
         return listSubscriptions().filter { it.isActive }
     }
-    
+
     suspend fun clearAll() {
         persistSubscriptions(emptyList())
     }
-    
+
     private suspend fun persistSubscriptions(subscriptions: List<Subscription>) {
         try {
             val json = Json.encodeToString(subscriptions)
@@ -100,4 +113,3 @@ class SubscriptionStorage @Inject constructor(
         }
     }
 }
-

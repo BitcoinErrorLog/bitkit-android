@@ -17,7 +17,7 @@ data class AutoPaySettings(
         val today = calendar.get(Calendar.DAY_OF_YEAR)
         calendar.timeInMillis = lastResetDate
         val resetDay = calendar.get(Calendar.DAY_OF_YEAR)
-        
+
         return if (today != resetDay) {
             copy(
                 currentDailySpentSats = 0L,
@@ -27,14 +27,16 @@ data class AutoPaySettings(
             this
         }
     }
-    
+
     val remainingDailyLimitSats: Long
         get() = maxOf(0L, globalDailyLimitSats - currentDailySpentSats)
-    
+
     val dailyUsagePercent: Double
         get() = if (globalDailyLimitSats > 0) {
             currentDailySpentSats.toDouble() / globalDailyLimitSats.toDouble() * 100.0
-        } else 0.0
+        } else {
+            0.0
+        }
 }
 
 @Serializable
@@ -58,38 +60,41 @@ data class PeerSpendingLimit(
             )
         }
     }
-    
+
     fun resetIfNeeded(): PeerSpendingLimit {
         val calendar = Calendar.getInstance()
         val calendarReset = Calendar.getInstance().apply { timeInMillis = lastResetDate }
-        
+
         val shouldReset = when (period.lowercase()) {
             "daily" -> calendar.get(Calendar.DAY_OF_YEAR) != calendarReset.get(Calendar.DAY_OF_YEAR)
             "weekly" -> calendar.get(Calendar.WEEK_OF_YEAR) != calendarReset.get(Calendar.WEEK_OF_YEAR)
             "monthly" -> calendar.get(Calendar.MONTH) != calendarReset.get(Calendar.MONTH)
             else -> false
         }
-        
+
         return if (shouldReset) {
             copy(spentSats = 0L, lastResetDate = System.currentTimeMillis())
         } else {
             this
         }
     }
-    
+
     val remainingSats: Long
         get() = maxOf(0L, limitSats - spentSats)
-    
+
     val usagePercent: Double
         get() = if (limitSats > 0) {
             spentSats.toDouble() / limitSats.toDouble() * 100.0
-        } else 0.0
+        } else {
+            0.0
+        }
 }
 
 @Serializable
 data class AutoPayRule(
     val id: String = UUID.randomUUID().toString(),
     var name: String,
+    var peerPubkey: String? = null,
     var isEnabled: Boolean = true,
     var maxAmountSats: Long? = null,
     var allowedMethods: List<String> = emptyList(),
@@ -100,8 +105,10 @@ data class AutoPayRule(
     fun matches(amount: Long, method: String, peer: String): Boolean {
         if (!isEnabled) return false
         maxAmountSats?.let { max -> if (amount > max) return false }
-        if (allowedMethods.isNotEmpty() && !allowedMethods.contains(method)) return false
-        if (allowedPeers.isNotEmpty() && !allowedPeers.contains(peer)) return false
+        if (allowedMethods.isNotEmpty() && method !in allowedMethods) return false
+        if (allowedPeers.isNotEmpty() && peer !in allowedPeers) return false
+        // Also check peerPubkey if set
+        if (peerPubkey != null && peerPubkey != peer) return false
         return true
     }
 }

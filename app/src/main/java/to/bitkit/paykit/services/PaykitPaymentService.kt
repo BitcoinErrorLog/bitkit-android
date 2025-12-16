@@ -6,16 +6,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import com.paykit.mobile.BitcoinTxResultFfi
-import com.paykit.mobile.LightningPaymentResultFfi
 import to.bitkit.paykit.PaykitException
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import java.util.Date
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -89,21 +85,21 @@ class PaykitPaymentService @Inject constructor() {
 
         return when {
             lowercased.startsWith("lnbc") ||
-            lowercased.startsWith("lntb") ||
-            lowercased.startsWith("lnbcrt") -> DetectedPaymentType.LIGHTNING
+                lowercased.startsWith("lntb") ||
+                lowercased.startsWith("lnbcrt") -> DetectedPaymentType.LIGHTNING
 
             lowercased.startsWith("bc1") ||
-            lowercased.startsWith("tb1") ||
-            lowercased.startsWith("bcrt1") -> DetectedPaymentType.ONCHAIN
+                lowercased.startsWith("tb1") ||
+                lowercased.startsWith("bcrt1") -> DetectedPaymentType.ONCHAIN
 
             lowercased.startsWith("1") ||
-            lowercased.startsWith("3") ||
-            lowercased.startsWith("m") ||
-            lowercased.startsWith("n") ||
-            lowercased.startsWith("2") -> DetectedPaymentType.ONCHAIN
+                lowercased.startsWith("3") ||
+                lowercased.startsWith("m") ||
+                lowercased.startsWith("n") ||
+                lowercased.startsWith("2") -> DetectedPaymentType.ONCHAIN
 
             lowercased.startsWith("paykit:") ||
-            lowercased.startsWith("pip:") -> DetectedPaymentType.PAYKIT
+                lowercased.startsWith("pip:") -> DetectedPaymentType.PAYKIT
 
             else -> DetectedPaymentType.UNKNOWN
         }
@@ -120,6 +116,7 @@ class PaykitPaymentService @Inject constructor() {
      * @param recipient Address, invoice, or Paykit URI
      * @param amountSats Amount in satoshis (required for onchain, optional for invoices)
      * @param feeRate Fee rate for onchain payments (sat/vB)
+     * @param peerPubkey Optional peer pubkey for spending limit enforcement
      * @return Payment result with receipt
      */
     suspend fun pay(
@@ -127,6 +124,7 @@ class PaykitPaymentService @Inject constructor() {
         recipient: String,
         amountSats: ULong? = null,
         feeRate: Double? = null,
+        peerPubkey: String? = null,
     ): PaykitPaymentResult {
         if (!PaykitIntegrationHelper.isReady) {
             return PaykitPaymentResult(
@@ -137,6 +135,19 @@ class PaykitPaymentService @Inject constructor() {
         }
 
         val paymentType = detectPaymentType(recipient)
+
+        // If peer pubkey is provided and spending limit manager is initialized, use atomic spending
+        val spendingLimitManager = SpendingLimitManager.getInstance()
+        if (peerPubkey != null && amountSats != null && spendingLimitManager.isInitialized) {
+            return payWithSpendingLimit(
+                lightningRepo = lightningRepo,
+                recipient = recipient,
+                amountSats = amountSats,
+                feeRate = feeRate,
+                peerPubkey = peerPubkey,
+                paymentType = paymentType,
+            )
+        }
 
         return when (paymentType) {
             DetectedPaymentType.LIGHTNING -> payLightning(lightningRepo, recipient, amountSats)
@@ -160,6 +171,49 @@ class PaykitPaymentService @Inject constructor() {
                 receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
                 error = PaykitPaymentError.InvalidRecipient(recipient)
             )
+        }
+    }
+
+    /**
+     * Execute a payment with atomic spending limit enforcement.
+     *
+     * Uses reserve/commit/rollback pattern to prevent race conditions.
+     */
+    private suspend fun payWithSpendingLimit(
+        lightningRepo: LightningRepo,
+        recipient: String,
+        amountSats: ULong,
+        feeRate: Double?,
+        peerPubkey: String,
+        paymentType: DetectedPaymentType,
+    ): PaykitPaymentResult {
+        val spendingLimitManager = SpendingLimitManager.getInstance()
+
+        return runCatching {
+            spendingLimitManager.executeWithSpendingLimit(
+                peerPubkey = peerPubkey,
+                amountSats = amountSats.toLong(),
+            ) {
+                when (paymentType) {
+                    DetectedPaymentType.LIGHTNING -> payLightning(lightningRepo, recipient, amountSats)
+                    DetectedPaymentType.ONCHAIN -> payOnchain(lightningRepo, recipient, amountSats, feeRate)
+                    else -> throw PaykitPaymentError.UnsupportedPaymentType
+                }
+            }
+        }.getOrElse { error ->
+            Logger.error("Payment with spending limit failed", error as? Exception, context = TAG)
+            when (error) {
+                is SpendingLimitException.WouldExceedLimit -> PaykitPaymentResult(
+                    success = false,
+                    receipt = createFailedReceipt(recipient, amountSats, PaykitReceiptType.LIGHTNING),
+                    error = PaykitPaymentError.SpendingLimitExceeded(error.remaining)
+                )
+                else -> PaykitPaymentResult(
+                    success = false,
+                    receipt = createFailedReceipt(recipient, amountSats, PaykitReceiptType.LIGHTNING),
+                    error = mapError(error as? Exception ?: Exception(error.message))
+                )
+            }
         }
     }
 
@@ -400,6 +454,9 @@ sealed class PaykitPaymentError(override val message: String) : Exception(messag
     data class PaymentFailed(override val message: String) : PaykitPaymentError(message)
     object Timeout : PaykitPaymentError("Payment timed out")
     object UnsupportedPaymentType : PaykitPaymentError("Unsupported payment type")
+    data class SpendingLimitExceeded(val remainingSats: Long) : PaykitPaymentError(
+        "Spending limit exceeded ($remainingSats sats remaining)"
+    )
     data class Unknown(override val message: String) : PaykitPaymentError(message)
 
     /** User-friendly message for display. */
@@ -412,6 +469,7 @@ sealed class PaykitPaymentError(override val message: String) : Exception(messag
             is PaymentFailed -> "Payment could not be completed. Please try again."
             is Timeout -> "Payment is taking longer than expected"
             is UnsupportedPaymentType -> "This payment type is not supported yet"
+            is SpendingLimitExceeded -> "This payment would exceed your spending limit"
             is Unknown -> "An unexpected error occurred"
         }
 }

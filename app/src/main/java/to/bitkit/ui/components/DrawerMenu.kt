@@ -46,6 +46,7 @@ import to.bitkit.R
 import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateIfNotCurrent
 import to.bitkit.ui.navigateToHome
+import to.bitkit.ui.navigateToPaykitContacts
 import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.shared.util.blockPointerInputPassthrough
 import to.bitkit.ui.theme.AppThemeSurface
@@ -158,7 +159,10 @@ private fun Menu(
         DrawerItem(
             label = stringResource(R.string.wallet__drawer__contacts),
             iconRes = R.drawable.ic_users,
-            onClick = null, // TODO IMPLEMENT CONTACTS
+            onClick = {
+                rootNavController.navigateToPaykitContacts()
+                scope.launch { drawerState.close() }
+            },
             modifier = Modifier.testTag("DrawerContacts")
         )
 

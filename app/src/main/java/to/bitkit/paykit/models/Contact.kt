@@ -35,7 +35,7 @@ data class Contact(
             )
         }
     }
-    
+
     /**
      * Record a payment to this contact
      */
@@ -45,7 +45,7 @@ data class Contact(
             paymentCount = paymentCount + 1
         )
     }
-    
+
     /**
      * Abbreviated public key for display (first and last 8 chars)
      */

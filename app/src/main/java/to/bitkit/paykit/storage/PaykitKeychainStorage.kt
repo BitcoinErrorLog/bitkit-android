@@ -17,7 +17,7 @@ class PaykitKeychainStorage @Inject constructor(
         private const val TAG = "PaykitKeychainStorage"
         private const val SERVICE_PREFIX = "paykit."
     }
-    
+
     suspend fun store(key: String, data: ByteArray) {
         try {
             val fullKey = "$SERVICE_PREFIX$key"
@@ -28,7 +28,7 @@ class PaykitKeychainStorage @Inject constructor(
             throw PaykitStorageException.SaveFailed(key)
         }
     }
-    
+
     fun retrieve(key: String): ByteArray? {
         return try {
             val fullKey = "$SERVICE_PREFIX$key"
@@ -38,7 +38,7 @@ class PaykitKeychainStorage @Inject constructor(
             null
         }
     }
-    
+
     suspend fun delete(key: String) {
         try {
             val fullKey = "$SERVICE_PREFIX$key"
@@ -49,7 +49,7 @@ class PaykitKeychainStorage @Inject constructor(
             throw PaykitStorageException.DeleteFailed(key)
         }
     }
-    
+
     fun exists(key: String): Boolean {
         return try {
             val fullKey = "$SERVICE_PREFIX$key"
@@ -67,4 +67,3 @@ sealed class PaykitStorageException(message: String) : Exception(message) {
     object EncodingFailed : PaykitStorageException("Failed to encode Paykit data")
     object DecodingFailed : PaykitStorageException("Failed to decode Paykit data")
 }
-

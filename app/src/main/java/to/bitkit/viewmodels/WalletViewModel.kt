@@ -1,11 +1,13 @@
 package to.bitkit.viewmodels
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,6 +24,8 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
+import to.bitkit.paykit.PaykitIntegrationHelper
+import to.bitkit.paykit.workers.SubscriptionCheckWorker
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
@@ -37,6 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class WalletViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val walletRepo: WalletRepo,
     private val lightningRepo: LightningRepo,
@@ -44,6 +49,10 @@ class WalletViewModel @Inject constructor(
     private val backupRepo: BackupRepo,
     private val blocktankRepo: BlocktankRepo,
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "WalletViewModel"
+    }
 
     val lightningState = lightningRepo.lightningState
     val walletState = walletRepo.walletState
@@ -143,6 +152,8 @@ class WalletViewModel @Inject constructor(
                     if (restoreState.isIdle()) {
                         walletRepo.refreshBip21()
                     }
+                    // Initialize Paykit after node is running
+                    initializePaykit()
                 }
                 .onFailure { error ->
                     Logger.error("Node startup error", error)
@@ -150,6 +161,18 @@ class WalletViewModel @Inject constructor(
                         ToastEventBus.send(error)
                     }
                 }
+        }
+    }
+
+    private suspend fun initializePaykit() {
+        runCatching {
+            PaykitIntegrationHelper.setup(lightningRepo)
+        }.onSuccess {
+            Logger.info("Paykit initialized successfully after node started", context = TAG)
+            // Schedule subscription check worker
+            SubscriptionCheckWorker.schedule(appContext)
+        }.onFailure { error ->
+            Logger.error("Failed to initialize Paykit after node started", error, context = TAG)
         }
     }
 

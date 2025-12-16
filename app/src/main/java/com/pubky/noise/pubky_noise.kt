@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package com.pubky.noise;
+package com.pubky.noise
 
 // Common helper code.
 //
@@ -17,12 +17,12 @@ package com.pubky.noise;
 // compile the Rust component. The easiest way to ensure this is to bundle the Kotlin
 // helpers directly inline like we're doing here.
 
-import com.sun.jna.Library
+import com.sun.jna.Callback
 import com.sun.jna.IntegerType
+import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
-import com.sun.jna.Callback
 import com.sun.jna.ptr.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -39,19 +39,21 @@ import java.util.concurrent.atomic.AtomicLong
 @Structure.FieldOrder("capacity", "len", "data")
 open class RustBuffer : Structure() {
     @JvmField var capacity: Int = 0
+
     @JvmField var len: Int = 0
+
     @JvmField var data: Pointer? = null
 
-    class ByValue: RustBuffer(), Structure.ByValue
-    class ByReference: RustBuffer(), Structure.ByReference
+    class ByValue : RustBuffer(), Structure.ByValue
+    class ByReference : RustBuffer(), Structure.ByReference
 
     companion object {
-        internal fun alloc(size: Int = 0) = uniffiRustCall() { status ->
+        internal fun alloc(size: Int = 0) = uniffiRustCall { status ->
             UniffiLib.INSTANCE.ffi_pubky_noise_rustbuffer_alloc(size, status)
         }.also {
-            if(it.data == null) {
-               throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
-           }
+            if (it.data == null) {
+                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=$size)")
+            }
         }
 
         internal fun create(capacity: Int, len: Int, data: Pointer?): RustBuffer.ByValue {
@@ -62,7 +64,7 @@ open class RustBuffer : Structure() {
             return buf
         }
 
-        internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall() { status ->
+        internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall { status ->
             UniffiLib.INSTANCE.ffi_pubky_noise_rustbuffer_free(buf, status)
         }
     }
@@ -115,10 +117,12 @@ class RustBufferByReference : ByReference(16) {
 @Structure.FieldOrder("len", "data")
 open class ForeignBytes : Structure() {
     @JvmField var len: Int = 0
+
     @JvmField var data: Pointer? = null
 
     class ByValue : ForeignBytes(), Structure.ByValue
 }
+
 // The FfiConverter interface handles converter types to and from the FFI
 //
 // All implementing objects should be public to support external types.  When a
@@ -174,11 +178,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun liftFromRustBuffer(rbuf: RustBuffer.ByValue): KotlinType {
         val byteBuf = rbuf.asByteBuffer()!!
         try {
-           val item = read(byteBuf)
-           if (byteBuf.hasRemaining()) {
-               throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
-           }
-           return item
+            val item = read(byteBuf)
+            if (byteBuf.hasRemaining()) {
+                throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
+            }
+            return item
         } finally {
             RustBuffer.free(rbuf)
         }
@@ -186,19 +190,21 @@ public interface FfiConverter<KotlinType, FfiType> {
 }
 
 // FfiConverter that uses `RustBuffer` as the FfiType
-public interface FfiConverterRustBuffer<KotlinType>: FfiConverter<KotlinType, RustBuffer.ByValue> {
+public interface FfiConverterRustBuffer<KotlinType> : FfiConverter<KotlinType, RustBuffer.ByValue> {
     override fun lift(value: RustBuffer.ByValue) = liftFromRustBuffer(value)
     override fun lower(value: KotlinType) = lowerIntoRustBuffer(value)
 }
+
 // A handful of classes and functions to support the generated data structures.
 // This would be a good candidate for isolating in its own ffi-support lib.
 // Error runtime.
 @Structure.FieldOrder("code", "error_buf")
 internal open class UniffiRustCallStatus : Structure() {
     @JvmField var code: Byte = 0
+
     @JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()
 
-    class ByValue: UniffiRustCallStatus(), Structure.ByValue
+    class ByValue : UniffiRustCallStatus(), Structure.ByValue
 
     fun isSuccess(): Boolean {
         return code == 0.toByte()
@@ -217,7 +223,7 @@ class InternalException(message: String) : Exception(message)
 
 // Each top-level error class has a companion object that can lift the error from the call status's rust buffer
 interface UniffiRustCallStatusErrorHandler<E> {
-    fun lift(error_buf: RustBuffer.ByValue): E;
+    fun lift(error_buf: RustBuffer.ByValue): E
 }
 
 // Helpers for calling Rust
@@ -225,15 +231,21 @@ interface UniffiRustCallStatusErrorHandler<E> {
 // synchronize itself
 
 // Call a rust function that returns a Result<>.  Pass in the Error class companion that corresponds to the Err
-private inline fun <U, E: Exception> uniffiRustCallWithError(errorHandler: UniffiRustCallStatusErrorHandler<E>, callback: (UniffiRustCallStatus) -> U): U {
-    var status = UniffiRustCallStatus();
+private inline fun <U, E : Exception> uniffiRustCallWithError(
+    errorHandler: UniffiRustCallStatusErrorHandler<E>,
+    callback: (UniffiRustCallStatus) -> U
+): U {
+    var status = UniffiRustCallStatus()
     val return_value = callback(status)
     uniffiCheckCallStatus(errorHandler, status)
     return return_value
 }
 
 // Check UniffiRustCallStatus and throw an error if the call wasn't successful
-private fun<E: Exception> uniffiCheckCallStatus(errorHandler: UniffiRustCallStatusErrorHandler<E>, status: UniffiRustCallStatus) {
+private fun<E : Exception> uniffiCheckCallStatus(
+    errorHandler: UniffiRustCallStatusErrorHandler<E>,
+    status: UniffiRustCallStatus
+) {
     if (status.isSuccess()) {
         return
     } else if (status.isError()) {
@@ -253,7 +265,7 @@ private fun<E: Exception> uniffiCheckCallStatus(errorHandler: UniffiRustCallStat
 }
 
 // UniffiRustCallStatusErrorHandler implementation for times when we don't expect a CALL_ERROR
-object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<InternalException> {
+object UniffiNullRustCallStatusErrorHandler : UniffiRustCallStatusErrorHandler<InternalException> {
     override fun lift(error_buf: RustBuffer.ByValue): InternalException {
         RustBuffer.free(error_buf)
         return InternalException("Unexpected CALL_ERROR")
@@ -262,13 +274,14 @@ object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<In
 
 // Call a rust function that returns a plain value
 private inline fun <U> uniffiRustCall(callback: (UniffiRustCallStatus) -> U): U {
-    return uniffiRustCallWithError(UniffiNullRustCallStatusErrorHandler, callback);
+    return uniffiRustCallWithError(UniffiNullRustCallStatusErrorHandler, callback)
 }
 
 // IntegerType that matches Rust's `usize` / C's `size_t`
 public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, true) {
     // This is needed to fill in the gaps of IntegerType's implementation of Number for Kotlin.
     override fun toByte() = toInt().toByte()
+
     // Needed until https://youtrack.jetbrains.com/issue/KT-47902 is fixed.
     @Deprecated("`toInt().toChar()` is deprecated")
     override fun toChar() = toInt().toChar()
@@ -293,7 +306,7 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
         val size: Int
             get() = Native.SIZE_T_SIZE
 
-        fun readFromBuffer(buf: ByteBuffer) : USize {
+        fun readFromBuffer(buf: ByteBuffer): USize {
             // Make sure we always read usize integers using native byte-order, since they may be
             // casted from pointer values
             buf.order(ByteOrder.nativeOrder())
@@ -310,7 +323,6 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
     }
 }
 
-
 // Map handles to objects
 //
 // This is used when the Rust code expects an opaque pointer to represent some foreign object.
@@ -321,8 +333,9 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
 // Rust when it needs an opaque pointer.
 //
 // TODO: refactor callbacks to use this class
-internal class UniFfiHandleMap<T: Any> {
+internal class UniFfiHandleMap<T : Any> {
     private val map = ConcurrentHashMap<USize, T>()
+
     // Use AtomicInteger for our counter, since we may be on a 32-bit system.  4 billion possible
     // values seems like enough. If somehow we generate 4 billion handles, then this will wrap
     // around back to zero and we can assume the first handle generated will have been dropped by
@@ -349,7 +362,7 @@ internal class UniFfiHandleMap<T: Any> {
 
 // FFI type for Rust future continuations
 internal interface UniFffiRustFutureContinuationCallbackType : com.sun.jna.Callback {
-    fun callback(continuationHandle: USize, pollResult: Byte);
+    fun callback(continuationHandle: USize, pollResult: Byte)
 }
 
 // Contains loading, initialization code,
@@ -376,213 +389,356 @@ internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
             loadIndirect<UniffiLib>(componentName = "pubky_noise")
-            .also { lib: UniffiLib ->
-                uniffiCheckContractApiVersion(lib)
-                uniffiCheckApiChecksums(lib)
+                .also { lib: UniffiLib ->
+                    uniffiCheckContractApiVersion(lib)
+                    uniffiCheckApiChecksums(lib)
                 }
         }
-        
+
         // The Cleaner for the whole library
         internal val CLEANER: UniffiCleaner by lazy {
             UniffiCleaner.create()
         }
     }
 
-    fun uniffi_pubky_noise_fn_clone_ffinoisemanager(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_clone_ffinoisemanager(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_pubky_noise_fn_free_ffinoisemanager(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_free_ffinoisemanager(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_client(`config`: RustBuffer.ByValue,`clientSeed`: RustBuffer.ByValue,`clientKid`: RustBuffer.ByValue,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_client(
+        `config`: RustBuffer.ByValue,
+        `clientSeed`: RustBuffer.ByValue,
+        `clientKid`: RustBuffer.ByValue,
+        `deviceId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_server(`config`: RustBuffer.ByValue,`serverSeed`: RustBuffer.ByValue,`serverKid`: RustBuffer.ByValue,`deviceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_server(
+        `config`: RustBuffer.ByValue,
+        `serverSeed`: RustBuffer.ByValue,
+        `serverKid`: RustBuffer.ByValue,
+        `deviceId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_accept_connection(`ptr`: Pointer,`firstMsg`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_accept_connection(
+        `ptr`: Pointer,
+        `firstMsg`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_complete_connection(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`serverResponse`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_complete_connection(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        `serverResponse`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_connect_client(`ptr`: Pointer,`serverPk`: RustBuffer.ByValue,`hint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_connect_client(
+        `ptr`: Pointer,
+        `serverPk`: RustBuffer.ByValue,
+        `hint`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_decrypt(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`ciphertext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_decrypt(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        `ciphertext`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_encrypt(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_encrypt(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        `plaintext`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_get_status(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_get_status(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_initiate_connection(`ptr`: Pointer,`serverPk`: RustBuffer.ByValue,`hint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_initiate_connection(
+        `ptr`: Pointer,
+        `serverPk`: RustBuffer.ByValue,
+        `hint`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_list_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_list_sessions(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_remove_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_remove_session(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_restore_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_restore_state(
+        `ptr`: Pointer,
+        `state`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_save_state(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_save_state(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_method_ffinoisemanager_set_status(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_method_ffinoisemanager_set_status(
+        `ptr`: Pointer,
+        `sessionId`: RustBuffer.ByValue,
+        `status`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_pubky_noise_fn_func_battery_saver_config(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_func_battery_saver_config(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_func_default_config(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_func_default_config(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_func_derive_device_key(`seed`: RustBuffer.ByValue,`deviceId`: RustBuffer.ByValue,`epoch`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_func_derive_device_key(
+        `seed`: RustBuffer.ByValue,
+        `deviceId`: RustBuffer.ByValue,
+        `epoch`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_func_performance_config(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_func_performance_config(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_pubky_noise_fn_func_public_key_from_secret(`secret`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_pubky_noise_fn_func_public_key_from_secret(
+        `secret`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_pubky_noise_rustbuffer_alloc(`size`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rustbuffer_alloc(
+        `size`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_pubky_noise_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rustbuffer_from_bytes(
+        `bytes`: ForeignBytes.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_pubky_noise_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rustbuffer_free(
+        `buf`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun ffi_pubky_noise_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rustbuffer_reserve(
+        `buf`: RustBuffer.ByValue,
+        `additional`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_pubky_noise_rust_future_poll_u8(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_u8(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_u8(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_u8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_u8(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_u8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_u8(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_u8(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun ffi_pubky_noise_rust_future_poll_i8(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_i8(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_i8(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_i8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_i8(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_i8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_i8(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_i8(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun ffi_pubky_noise_rust_future_poll_u16(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_u16(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_u16(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_u16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_u16(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_u16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_u16(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_u16(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Short
-    fun ffi_pubky_noise_rust_future_poll_i16(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_i16(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_i16(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_i16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_i16(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_i16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_i16(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_i16(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Short
-    fun ffi_pubky_noise_rust_future_poll_u32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_u32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_u32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_u32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_u32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_u32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_u32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_u32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun ffi_pubky_noise_rust_future_poll_i32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_i32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_i32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_i32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_i32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_i32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_i32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_i32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun ffi_pubky_noise_rust_future_poll_u64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_u64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_u64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_u64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_u64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_u64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_u64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_u64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Long
-    fun ffi_pubky_noise_rust_future_poll_i64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_i64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_i64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_i64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_i64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_i64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_i64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_i64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Long
-    fun ffi_pubky_noise_rust_future_poll_f32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_f32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_f32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_f32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_f32(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_f32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_f32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_f32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Float
-    fun ffi_pubky_noise_rust_future_poll_f64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_f64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_f64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_f64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_f64(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_f64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_f64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_f64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Double
-    fun ffi_pubky_noise_rust_future_poll_pointer(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_pointer(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_pointer(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_pointer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_pointer(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_pointer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_pointer(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_pointer(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun ffi_pubky_noise_rust_future_poll_rust_buffer(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_rust_buffer(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_rust_buffer(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_rust_buffer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_rust_buffer(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_rust_buffer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_rust_buffer(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_rust_buffer(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_pubky_noise_rust_future_poll_void(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_pubky_noise_rust_future_poll_void(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_pubky_noise_rust_future_cancel_void(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_cancel_void(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_free_void(`handle`: Pointer,
+    fun ffi_pubky_noise_rust_future_free_void(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_pubky_noise_rust_future_complete_void(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_pubky_noise_rust_future_complete_void(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_pubky_noise_checksum_func_battery_saver_config(
-    ): Short
-    fun uniffi_pubky_noise_checksum_func_default_config(
-    ): Short
-    fun uniffi_pubky_noise_checksum_func_derive_device_key(
-    ): Short
-    fun uniffi_pubky_noise_checksum_func_performance_config(
-    ): Short
-    fun uniffi_pubky_noise_checksum_func_public_key_from_secret(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_accept_connection(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_complete_connection(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_connect_client(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_decrypt(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_encrypt(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_get_status(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_initiate_connection(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_list_sessions(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_remove_session(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_restore_state(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_save_state(
-    ): Short
-    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_set_status(
-    ): Short
-    fun uniffi_pubky_noise_checksum_constructor_ffinoisemanager_new_client(
-    ): Short
-    fun uniffi_pubky_noise_checksum_constructor_ffinoisemanager_new_server(
-    ): Short
-    fun ffi_pubky_noise_uniffi_contract_version(
-    ): Int
-    
+    fun uniffi_pubky_noise_checksum_func_battery_saver_config(): Short
+    fun uniffi_pubky_noise_checksum_func_default_config(): Short
+    fun uniffi_pubky_noise_checksum_func_derive_device_key(): Short
+    fun uniffi_pubky_noise_checksum_func_performance_config(): Short
+    fun uniffi_pubky_noise_checksum_func_public_key_from_secret(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_accept_connection(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_complete_connection(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_connect_client(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_decrypt(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_encrypt(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_get_status(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_initiate_connection(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_list_sessions(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_remove_session(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_restore_state(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_save_state(): Short
+    fun uniffi_pubky_noise_checksum_method_ffinoisemanager_set_status(): Short
+    fun uniffi_pubky_noise_checksum_constructor_ffinoisemanager_new_client(): Short
+    fun uniffi_pubky_noise_checksum_constructor_ffinoisemanager_new_server(): Short
+    fun ffi_pubky_noise_uniffi_contract_version(): Int
 }
 
 private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
@@ -660,7 +816,6 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
 
 // Public interface members begin here.
 
-
 // Interface implemented by anything that can contain an object reference.
 //
 // Such types expose a `destroy()` method that must be called to cleanly
@@ -691,7 +846,7 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
         }
     }
 
-public object FfiConverterUInt: FfiConverter<UInt, Int> {
+public object FfiConverterUInt : FfiConverter<UInt, Int> {
     override fun lift(value: Int): UInt {
         return value.toUInt()
     }
@@ -711,7 +866,7 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
     }
 }
 
-public object FfiConverterULong: FfiConverter<ULong, Long> {
+public object FfiConverterULong : FfiConverter<ULong, Long> {
     override fun lift(value: Long): ULong {
         return value.toULong()
     }
@@ -731,7 +886,7 @@ public object FfiConverterULong: FfiConverter<ULong, Long> {
     }
 }
 
-public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
+public object FfiConverterBoolean : FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
     }
@@ -751,7 +906,7 @@ public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     }
 }
 
-public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
+public object FfiConverterString : FfiConverter<String, RustBuffer.ByValue> {
     // Note: we don't inherit from FfiConverterRustBuffer, because we use a
     // special encoding when lowering/lifting.  We can use `RustBuffer.len` to
     // store our length and avoid writing it out to the buffer.
@@ -805,7 +960,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
     }
 }
 
-public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+public object FfiConverterByteArray : FfiConverterRustBuffer<ByteArray> {
     override fun read(buf: ByteBuffer): ByteArray {
         val len = buf.getInt()
         val byteArr = ByteArray(len)
@@ -820,8 +975,6 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
         buf.put(value)
     }
 }
-
-
 
 // The cleaner interface for Object finalization code to run.
 // This is the entry point to any implementation that we're using.
@@ -978,7 +1131,7 @@ private class JavaLangRefCleanable(
 //
 // [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
 //
-abstract class FFIObject: Disposable, AutoCloseable {
+abstract class FFIObject : Disposable, AutoCloseable {
 
     constructor(pointer: Pointer) {
         this.pointer = pointer
@@ -1036,7 +1189,7 @@ abstract class FFIObject: Disposable, AutoCloseable {
             if (c == Long.MAX_VALUE) {
                 throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
             }
-        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        } while (!this.callCounter.compareAndSet(c, c + 1L))
         // Now we can safely do the method call without the pointer being freed concurrently.
         try {
             return block(this.uniffiClonePointer())
@@ -1052,26 +1205,25 @@ abstract class FFIObject: Disposable, AutoCloseable {
 /** Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly. */
 object NoPointer
 
-
 /**
  * FFI wrapper around NoiseManager
  *
  * Uses internal Mutex for thread safety across FFI boundary.
  */
 public interface FfiNoiseManagerInterface {
-    
+
     /**
      * Accept a client connection (server-side handshake).
      *
      * Returns FfiAcceptResult with session_id and response_message to send to client.
      */
     fun `acceptConnection`(`firstMsg`: ByteArray): FfiAcceptResult
-    
+
     /**
      * Complete a client connection after receiving server response.
      */
     fun `completeConnection`(`sessionId`: String, `serverResponse`: ByteArray): String
-    
+
     /**
      * Initiate a client connection (step 1 of 3-step handshake).
      *
@@ -1079,30 +1231,30 @@ public interface FfiNoiseManagerInterface {
      * After sending the message and receiving a response, call `complete_connection`.
      */
     fun `connectClient`(`serverPk`: ByteArray, `hint`: String?): String
-    
+
     fun `decrypt`(`sessionId`: String, `ciphertext`: ByteArray): ByteArray
-    
+
     fun `encrypt`(`sessionId`: String, `plaintext`: ByteArray): ByteArray
-    
+
     fun `getStatus`(`sessionId`: String): FfiConnectionStatus?
-    
+
     /**
      * Initiate a client connection and get the handshake message.
      *
      * Returns FfiInitiateResult with session_id and first_message to send to server.
      */
     fun `initiateConnection`(`serverPk`: ByteArray, `hint`: String?): FfiInitiateResult
-    
+
     fun `listSessions`(): List<String>
-    
+
     fun `removeSession`(`sessionId`: String)
-    
+
     fun `restoreState`(`state`: FfiSessionState)
-    
+
     fun `saveState`(`sessionId`: String): FfiSessionState
-    
+
     fun `setStatus`(`sessionId`: String, `status`: FfiConnectionStatus)
-    
+
     companion object
 }
 
@@ -1113,7 +1265,7 @@ public interface FfiNoiseManagerInterface {
  */
 open class FfiNoiseManager : FFIObject, FfiNoiseManagerInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -1123,7 +1275,7 @@ open class FfiNoiseManager : FFIObject, FfiNoiseManagerInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -1140,188 +1292,229 @@ open class FfiNoiseManager : FFIObject, FfiNoiseManagerInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_pubky_noise_fn_clone_ffinoisemanager(pointer!!, status)
         }
     }
 
-    
     /**
      * Accept a client connection (server-side handshake).
      *
      * Returns FfiAcceptResult with session_id and response_message to send to client.
      */
-    @Throws(FfiNoiseException::class)override fun `acceptConnection`(`firstMsg`: ByteArray): FfiAcceptResult =
+    @Throws(FfiNoiseException::class)
+    override fun `acceptConnection`(`firstMsg`: ByteArray): FfiAcceptResult =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_accept_connection(it,
-        FfiConverterByteArray.lower(`firstMsg`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_accept_connection(
+                    it,
+                    FfiConverterByteArray.lower(`firstMsg`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeFfiAcceptResult.lift(it)
         }
-    
-    
+
     /**
      * Complete a client connection after receiving server response.
      */
-    @Throws(FfiNoiseException::class)override fun `completeConnection`(`sessionId`: String, `serverResponse`: ByteArray): String =
+    @Throws(
+        FfiNoiseException::class
+        )
+    override fun `completeConnection`(`sessionId`: String, `serverResponse`: ByteArray): String =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_complete_connection(it,
-        FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`serverResponse`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_complete_connection(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    FfiConverterByteArray.lower(`serverResponse`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Initiate a client connection (step 1 of 3-step handshake).
      *
      * Returns the temporary session ID and the first handshake message to send.
      * After sending the message and receiving a response, call `complete_connection`.
      */
-    @Throws(FfiNoiseException::class)override fun `connectClient`(`serverPk`: ByteArray, `hint`: String?): String =
+    @Throws(FfiNoiseException::class)
+    override fun `connectClient`(`serverPk`: ByteArray, `hint`: String?): String =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_connect_client(it,
-        FfiConverterByteArray.lower(`serverPk`),FfiConverterOptionalString.lower(`hint`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_connect_client(
+                    it,
+                    FfiConverterByteArray.lower(`serverPk`),
+                    FfiConverterOptionalString.lower(`hint`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
-    @Throws(FfiNoiseException::class)override fun `decrypt`(`sessionId`: String, `ciphertext`: ByteArray): ByteArray =
+
+    @Throws(FfiNoiseException::class)
+    override fun `decrypt`(`sessionId`: String, `ciphertext`: ByteArray): ByteArray =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_decrypt(it,
-        FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`ciphertext`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_decrypt(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    FfiConverterByteArray.lower(`ciphertext`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterByteArray.lift(it)
         }
-    
-    
-    @Throws(FfiNoiseException::class)override fun `encrypt`(`sessionId`: String, `plaintext`: ByteArray): ByteArray =
+
+    @Throws(FfiNoiseException::class)
+    override fun `encrypt`(`sessionId`: String, `plaintext`: ByteArray): ByteArray =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_encrypt(it,
-        FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`plaintext`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_encrypt(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    FfiConverterByteArray.lower(`plaintext`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterByteArray.lift(it)
         }
-    
+
     override fun `getStatus`(`sessionId`: String): FfiConnectionStatus? =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_get_status(it,
-        FfiConverterString.lower(`sessionId`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_get_status(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeFfiConnectionStatus.lift(it)
         }
-    
-    
+
     /**
      * Initiate a client connection and get the handshake message.
      *
      * Returns FfiInitiateResult with session_id and first_message to send to server.
      */
-    @Throws(FfiNoiseException::class)override fun `initiateConnection`(`serverPk`: ByteArray, `hint`: String?): FfiInitiateResult =
+    @Throws(
+        FfiNoiseException::class
+        )
+    override fun `initiateConnection`(`serverPk`: ByteArray, `hint`: String?): FfiInitiateResult =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_initiate_connection(it,
-        FfiConverterByteArray.lower(`serverPk`),FfiConverterOptionalString.lower(`hint`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_initiate_connection(
+                    it,
+                    FfiConverterByteArray.lower(`serverPk`),
+                    FfiConverterOptionalString.lower(`hint`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeFfiInitiateResult.lift(it)
         }
-    
+
     override fun `listSessions`(): List<String> =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_list_sessions(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_list_sessions(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
+
     override fun `removeSession`(`sessionId`: String) =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_remove_session(it,
-        FfiConverterString.lower(`sessionId`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_remove_session(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    _status
+                )
+            }
         }
-    
-    
-    
-    @Throws(FfiNoiseException::class)override fun `restoreState`(`state`: FfiSessionState) =
+
+    @Throws(FfiNoiseException::class)
+    override fun `restoreState`(`state`: FfiSessionState) =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_restore_state(it,
-        FfiConverterTypeFfiSessionState.lower(`state`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_restore_state(
+                    it,
+                    FfiConverterTypeFfiSessionState.lower(`state`),
+                    _status
+                )
+            }
         }
-    
-    
-    
-    @Throws(FfiNoiseException::class)override fun `saveState`(`sessionId`: String): FfiSessionState =
+
+    @Throws(FfiNoiseException::class)
+    override fun `saveState`(`sessionId`: String): FfiSessionState =
         callWithPointer {
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_save_state(it,
-        FfiConverterString.lower(`sessionId`),
-        _status)
-}
+            uniffiRustCallWithError(FfiNoiseException) { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_save_state(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeFfiSessionState.lift(it)
         }
-    
+
     override fun `setStatus`(`sessionId`: String, `status`: FfiConnectionStatus) =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_set_status(it,
-        FfiConverterString.lower(`sessionId`),FfiConverterTypeFfiConnectionStatus.lower(`status`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_pubky_noise_fn_method_ffinoisemanager_set_status(
+                    it,
+                    FfiConverterString.lower(`sessionId`),
+                    FfiConverterTypeFfiConnectionStatus.lower(`status`),
+                    _status
+                )
+            }
         }
-    
-    
-    
 
     companion object {
-        
+
         fun `newClient`(`config`: FfiMobileConfig, `clientSeed`: ByteArray, `clientKid`: String, `deviceId`: ByteArray): FfiNoiseManager =
             FfiNoiseManager(
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_client(FfiConverterTypeFfiMobileConfig.lower(`config`),FfiConverterByteArray.lower(`clientSeed`),FfiConverterString.lower(`clientKid`),FfiConverterByteArray.lower(`deviceId`),_status)
-})
-        
+                uniffiRustCallWithError(FfiNoiseException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_client(
+                        FfiConverterTypeFfiMobileConfig.lower(`config`),
+                        FfiConverterByteArray.lower(`clientSeed`),
+                        FfiConverterString.lower(`clientKid`),
+                        FfiConverterByteArray.lower(`deviceId`),
+                        _status
+                    )
+                }
+            )
+
         fun `newServer`(`config`: FfiMobileConfig, `serverSeed`: ByteArray, `serverKid`: String, `deviceId`: ByteArray): FfiNoiseManager =
             FfiNoiseManager(
-    uniffiRustCallWithError(FfiNoiseException) { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_server(FfiConverterTypeFfiMobileConfig.lower(`config`),FfiConverterByteArray.lower(`serverSeed`),FfiConverterString.lower(`serverKid`),FfiConverterByteArray.lower(`deviceId`),_status)
-})
-        
+                uniffiRustCallWithError(FfiNoiseException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_constructor_ffinoisemanager_new_server(
+                        FfiConverterTypeFfiMobileConfig.lower(`config`),
+                        FfiConverterByteArray.lower(`serverSeed`),
+                        FfiConverterString.lower(`serverKid`),
+                        FfiConverterByteArray.lower(`deviceId`),
+                        _status
+                    )
+                }
+            )
     }
-    
 }
 
-public object FfiConverterTypeFfiNoiseManager: FfiConverter<FfiNoiseManager, Pointer> {
+public object FfiConverterTypeFfiNoiseManager : FfiConverter<FfiNoiseManager, Pointer> {
 
     override fun lower(value: FfiNoiseManager): Pointer {
         return value.uniffiClonePointer()
@@ -1346,20 +1539,18 @@ public object FfiConverterTypeFfiNoiseManager: FfiConverter<FfiNoiseManager, Poi
     }
 }
 
-
-
 /**
  * FFI-safe result for accept_connection
  */
-data class FfiAcceptResult (
-    var `sessionId`: String, 
+data class FfiAcceptResult(
+    var `sessionId`: String,
     var `responseMessage`: ByteArray
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeFfiAcceptResult: FfiConverterRustBuffer<FfiAcceptResult> {
+public object FfiConverterTypeFfiAcceptResult : FfiConverterRustBuffer<FfiAcceptResult> {
     override fun read(buf: ByteBuffer): FfiAcceptResult {
         return FfiAcceptResult(
             FfiConverterString.read(buf),
@@ -1368,30 +1559,28 @@ public object FfiConverterTypeFfiAcceptResult: FfiConverterRustBuffer<FfiAcceptR
     }
 
     override fun allocationSize(value: FfiAcceptResult) = (
-            FfiConverterString.allocationSize(value.`sessionId`) +
+        FfiConverterString.allocationSize(value.`sessionId`) +
             FfiConverterByteArray.allocationSize(value.`responseMessage`)
-    )
+        )
 
     override fun write(value: FfiAcceptResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`sessionId`, buf)
-            FfiConverterByteArray.write(value.`responseMessage`, buf)
+        FfiConverterString.write(value.`sessionId`, buf)
+        FfiConverterByteArray.write(value.`responseMessage`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe result for initiate_connection
  */
-data class FfiInitiateResult (
-    var `sessionId`: String, 
+data class FfiInitiateResult(
+    var `sessionId`: String,
     var `firstMessage`: ByteArray
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeFfiInitiateResult: FfiConverterRustBuffer<FfiInitiateResult> {
+public object FfiConverterTypeFfiInitiateResult : FfiConverterRustBuffer<FfiInitiateResult> {
     override fun read(buf: ByteBuffer): FfiInitiateResult {
         return FfiInitiateResult(
             FfiConverterString.read(buf),
@@ -1400,33 +1589,31 @@ public object FfiConverterTypeFfiInitiateResult: FfiConverterRustBuffer<FfiIniti
     }
 
     override fun allocationSize(value: FfiInitiateResult) = (
-            FfiConverterString.allocationSize(value.`sessionId`) +
+        FfiConverterString.allocationSize(value.`sessionId`) +
             FfiConverterByteArray.allocationSize(value.`firstMessage`)
-    )
+        )
 
     override fun write(value: FfiInitiateResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`sessionId`, buf)
-            FfiConverterByteArray.write(value.`firstMessage`, buf)
+        FfiConverterString.write(value.`sessionId`, buf)
+        FfiConverterByteArray.write(value.`firstMessage`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe mobile configuration wrapper
  */
-data class FfiMobileConfig (
-    var `autoReconnect`: Boolean, 
-    var `maxReconnectAttempts`: UInt, 
-    var `reconnectDelayMs`: ULong, 
-    var `batterySaver`: Boolean, 
+data class FfiMobileConfig(
+    var `autoReconnect`: Boolean,
+    var `maxReconnectAttempts`: UInt,
+    var `reconnectDelayMs`: ULong,
+    var `batterySaver`: Boolean,
     var `chunkSize`: ULong
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeFfiMobileConfig: FfiConverterRustBuffer<FfiMobileConfig> {
+public object FfiConverterTypeFfiMobileConfig : FfiConverterRustBuffer<FfiMobileConfig> {
     override fun read(buf: ByteBuffer): FfiMobileConfig {
         return FfiMobileConfig(
             FfiConverterBoolean.read(buf),
@@ -1438,39 +1625,37 @@ public object FfiConverterTypeFfiMobileConfig: FfiConverterRustBuffer<FfiMobileC
     }
 
     override fun allocationSize(value: FfiMobileConfig) = (
-            FfiConverterBoolean.allocationSize(value.`autoReconnect`) +
+        FfiConverterBoolean.allocationSize(value.`autoReconnect`) +
             FfiConverterUInt.allocationSize(value.`maxReconnectAttempts`) +
             FfiConverterULong.allocationSize(value.`reconnectDelayMs`) +
             FfiConverterBoolean.allocationSize(value.`batterySaver`) +
             FfiConverterULong.allocationSize(value.`chunkSize`)
-    )
+        )
 
     override fun write(value: FfiMobileConfig, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`autoReconnect`, buf)
-            FfiConverterUInt.write(value.`maxReconnectAttempts`, buf)
-            FfiConverterULong.write(value.`reconnectDelayMs`, buf)
-            FfiConverterBoolean.write(value.`batterySaver`, buf)
-            FfiConverterULong.write(value.`chunkSize`, buf)
+        FfiConverterBoolean.write(value.`autoReconnect`, buf)
+        FfiConverterUInt.write(value.`maxReconnectAttempts`, buf)
+        FfiConverterULong.write(value.`reconnectDelayMs`, buf)
+        FfiConverterBoolean.write(value.`batterySaver`, buf)
+        FfiConverterULong.write(value.`chunkSize`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe session state wrapper.
  */
-data class FfiSessionState (
-    var `sessionId`: String, 
-    var `peerStaticPk`: ByteArray, 
-    var `writeCounter`: ULong, 
-    var `readCounter`: ULong, 
+data class FfiSessionState(
+    var `sessionId`: String,
+    var `peerStaticPk`: ByteArray,
+    var `writeCounter`: ULong,
+    var `readCounter`: ULong,
     var `status`: FfiConnectionStatus
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeFfiSessionState: FfiConverterRustBuffer<FfiSessionState> {
+public object FfiConverterTypeFfiSessionState : FfiConverterRustBuffer<FfiSessionState> {
     override fun read(buf: ByteBuffer): FfiSessionState {
         return FfiSessionState(
             FfiConverterString.read(buf),
@@ -1482,29 +1667,27 @@ public object FfiConverterTypeFfiSessionState: FfiConverterRustBuffer<FfiSession
     }
 
     override fun allocationSize(value: FfiSessionState) = (
-            FfiConverterString.allocationSize(value.`sessionId`) +
+        FfiConverterString.allocationSize(value.`sessionId`) +
             FfiConverterByteArray.allocationSize(value.`peerStaticPk`) +
             FfiConverterULong.allocationSize(value.`writeCounter`) +
             FfiConverterULong.allocationSize(value.`readCounter`) +
             FfiConverterTypeFfiConnectionStatus.allocationSize(value.`status`)
-    )
+        )
 
     override fun write(value: FfiSessionState, buf: ByteBuffer) {
-            FfiConverterString.write(value.`sessionId`, buf)
-            FfiConverterByteArray.write(value.`peerStaticPk`, buf)
-            FfiConverterULong.write(value.`writeCounter`, buf)
-            FfiConverterULong.write(value.`readCounter`, buf)
-            FfiConverterTypeFfiConnectionStatus.write(value.`status`, buf)
+        FfiConverterString.write(value.`sessionId`, buf)
+        FfiConverterByteArray.write(value.`peerStaticPk`, buf)
+        FfiConverterULong.write(value.`writeCounter`, buf)
+        FfiConverterULong.write(value.`readCounter`, buf)
+        FfiConverterTypeFfiConnectionStatus.write(value.`status`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe connection status wrapper
  */
 enum class FfiConnectionStatus {
-    
+
     CONNECTED,
     RECONNECTING,
     DISCONNECTED,
@@ -1512,7 +1695,7 @@ enum class FfiConnectionStatus {
     companion object
 }
 
-public object FfiConverterTypeFfiConnectionStatus: FfiConverterRustBuffer<FfiConnectionStatus> {
+public object FfiConverterTypeFfiConnectionStatus : FfiConverterRustBuffer<FfiConnectionStatus> {
     override fun read(buf: ByteBuffer) = try {
         FfiConnectionStatus.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -1526,290 +1709,277 @@ public object FfiConverterTypeFfiConnectionStatus: FfiConverterRustBuffer<FfiCon
     }
 }
 
+sealed class FfiNoiseException : Exception() {
 
-
-
-
-
-
-sealed class FfiNoiseException: Exception() {
-    
     class Ring(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Pkarr(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Snow(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Serde(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
-    class IdentityVerify(
-        ) : FfiNoiseException() {
+
+    class IdentityVerify() : FfiNoiseException() {
         override val message
             get() = ""
     }
-    
-    class RemoteStaticMissing(
-        ) : FfiNoiseException() {
+
+    class RemoteStaticMissing() : FfiNoiseException() {
         override val message
             get() = ""
     }
-    
+
     class Policy(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
-    class InvalidPeerKey(
-        ) : FfiNoiseException() {
+
+    class InvalidPeerKey() : FfiNoiseException() {
         override val message
             get() = ""
     }
-    
+
     class Network(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Timeout(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Storage(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Decryption(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class RateLimited(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
-    class MaxSessionsExceeded(
-        ) : FfiNoiseException() {
+
+    class MaxSessionsExceeded() : FfiNoiseException() {
         override val message
             get() = ""
     }
-    
+
     class SessionExpired(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class ConnectionReset(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
+
     class Other(
-        
+
         val `msg`: String
-        ) : FfiNoiseException() {
+    ) : FfiNoiseException() {
         override val message
             get() = "message=${ `msg` }"
     }
-    
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<FfiNoiseException> {
-        override fun lift(error_buf: RustBuffer.ByValue): FfiNoiseException = FfiConverterTypeFfiNoiseError.lift(error_buf)
+        override fun lift(error_buf: RustBuffer.ByValue): FfiNoiseException = FfiConverterTypeFfiNoiseError.lift(
+            error_buf
+        )
     }
-
-    
 }
 
 public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseException> {
     override fun read(buf: ByteBuffer): FfiNoiseException {
-        
-
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> FfiNoiseException.Ring(
                 FfiConverterString.read(buf),
-                )
+            )
             2 -> FfiNoiseException.Pkarr(
                 FfiConverterString.read(buf),
-                )
+            )
             3 -> FfiNoiseException.Snow(
                 FfiConverterString.read(buf),
-                )
+            )
             4 -> FfiNoiseException.Serde(
                 FfiConverterString.read(buf),
-                )
+            )
             5 -> FfiNoiseException.IdentityVerify()
             6 -> FfiNoiseException.RemoteStaticMissing()
             7 -> FfiNoiseException.Policy(
                 FfiConverterString.read(buf),
-                )
+            )
             8 -> FfiNoiseException.InvalidPeerKey()
             9 -> FfiNoiseException.Network(
                 FfiConverterString.read(buf),
-                )
+            )
             10 -> FfiNoiseException.Timeout(
                 FfiConverterString.read(buf),
-                )
+            )
             11 -> FfiNoiseException.Storage(
                 FfiConverterString.read(buf),
-                )
+            )
             12 -> FfiNoiseException.Decryption(
                 FfiConverterString.read(buf),
-                )
+            )
             13 -> FfiNoiseException.RateLimited(
                 FfiConverterString.read(buf),
-                )
+            )
             14 -> FfiNoiseException.MaxSessionsExceeded()
             15 -> FfiNoiseException.SessionExpired(
                 FfiConverterString.read(buf),
-                )
+            )
             16 -> FfiNoiseException.ConnectionReset(
                 FfiConverterString.read(buf),
-                )
+            )
             17 -> FfiNoiseException.Other(
                 FfiConverterString.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
 
     override fun allocationSize(value: FfiNoiseException): Int {
-        return when(value) {
+        return when (value) {
             is FfiNoiseException.Ring -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Pkarr -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Snow -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Serde -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.IdentityVerify -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-            )
+                )
             is FfiNoiseException.RemoteStaticMissing -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-            )
+                )
             is FfiNoiseException.Policy -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.InvalidPeerKey -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-            )
+                )
             is FfiNoiseException.Network -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Timeout -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Storage -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Decryption -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.RateLimited -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.MaxSessionsExceeded -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4
-            )
+                )
             is FfiNoiseException.SessionExpired -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.ConnectionReset -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is FfiNoiseException.Other -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
         }
     }
 
     override fun write(value: FfiNoiseException, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is FfiNoiseException.Ring -> {
                 buf.putInt(1)
                 FfiConverterString.write(value.`msg`, buf)
@@ -1893,13 +2063,9 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
-
 }
 
-
-
-
-public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
+public object FfiConverterOptionalString : FfiConverterRustBuffer<String?> {
     override fun read(buf: ByteBuffer): String? {
         if (buf.get().toInt() == 0) {
             return null
@@ -1925,10 +2091,7 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeFfiConnectionStatus: FfiConverterRustBuffer<FfiConnectionStatus?> {
+public object FfiConverterOptionalTypeFfiConnectionStatus : FfiConverterRustBuffer<FfiConnectionStatus?> {
     override fun read(buf: ByteBuffer): FfiConnectionStatus? {
         if (buf.get().toInt() == 0) {
             return null
@@ -1954,10 +2117,7 @@ public object FfiConverterOptionalTypeFfiConnectionStatus: FfiConverterRustBuffe
     }
 }
 
-
-
-
-public object FfiConverterSequenceString: FfiConverterRustBuffer<List<String>> {
+public object FfiConverterSequenceString : FfiConverterRustBuffer<List<String>> {
     override fun read(buf: ByteBuffer): List<String> {
         val len = buf.getInt()
         return List<String>(len) {
@@ -1981,41 +2141,45 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<String>> {
 
 fun `batterySaverConfig`(): FfiMobileConfig {
     return FfiConverterTypeFfiMobileConfig.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_battery_saver_config(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_battery_saver_config(_status)
+        }
+    )
 }
-
 
 fun `defaultConfig`(): FfiMobileConfig {
     return FfiConverterTypeFfiMobileConfig.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_default_config(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_default_config(_status)
+        }
+    )
 }
-
 
 fun `deriveDeviceKey`(`seed`: ByteArray, `deviceId`: ByteArray, `epoch`: UInt): ByteArray {
     return FfiConverterByteArray.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_derive_device_key(FfiConverterByteArray.lower(`seed`),FfiConverterByteArray.lower(`deviceId`),FfiConverterUInt.lower(`epoch`),_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_derive_device_key(
+                FfiConverterByteArray.lower(`seed`),
+                FfiConverterByteArray.lower(`deviceId`),
+                FfiConverterUInt.lower(`epoch`),
+                _status
+            )
+        }
+    )
 }
-
 
 fun `performanceConfig`(): FfiMobileConfig {
     return FfiConverterTypeFfiMobileConfig.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_performance_config(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_performance_config(_status)
+        }
+    )
 }
-
 
 fun `publicKeyFromSecret`(`secret`: ByteArray): ByteArray {
     return FfiConverterByteArray.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_public_key_from_secret(FfiConverterByteArray.lower(`secret`),_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_public_key_from_secret(FfiConverterByteArray.lower(`secret`), _status)
+        }
+    )
 }
-
-

@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package com.paykit.mobile;
+package com.paykit.mobile
 
 // Common helper code.
 //
@@ -17,12 +17,12 @@ package com.paykit.mobile;
 // compile the Rust component. The easiest way to ensure this is to bundle the Kotlin
 // helpers directly inline like we're doing here.
 
-import com.sun.jna.Library
+import com.sun.jna.Callback
 import com.sun.jna.IntegerType
+import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
-import com.sun.jna.Callback
 import com.sun.jna.ptr.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -41,19 +41,21 @@ import kotlin.concurrent.withLock
 @Structure.FieldOrder("capacity", "len", "data")
 open class RustBuffer : Structure() {
     @JvmField var capacity: Int = 0
+
     @JvmField var len: Int = 0
+
     @JvmField var data: Pointer? = null
 
-    class ByValue: RustBuffer(), Structure.ByValue
-    class ByReference: RustBuffer(), Structure.ByReference
+    class ByValue : RustBuffer(), Structure.ByValue
+    class ByReference : RustBuffer(), Structure.ByReference
 
     companion object {
-        internal fun alloc(size: Int = 0) = uniffiRustCall() { status ->
+        internal fun alloc(size: Int = 0) = uniffiRustCall { status ->
             UniffiLib.INSTANCE.ffi_paykit_mobile_rustbuffer_alloc(size, status)
         }.also {
-            if(it.data == null) {
-               throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
-           }
+            if (it.data == null) {
+                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=$size)")
+            }
         }
 
         internal fun create(capacity: Int, len: Int, data: Pointer?): RustBuffer.ByValue {
@@ -64,7 +66,7 @@ open class RustBuffer : Structure() {
             return buf
         }
 
-        internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall() { status ->
+        internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall { status ->
             UniffiLib.INSTANCE.ffi_paykit_mobile_rustbuffer_free(buf, status)
         }
     }
@@ -117,10 +119,12 @@ class RustBufferByReference : ByReference(16) {
 @Structure.FieldOrder("len", "data")
 open class ForeignBytes : Structure() {
     @JvmField var len: Int = 0
+
     @JvmField var data: Pointer? = null
 
     class ByValue : ForeignBytes(), Structure.ByValue
 }
+
 // The FfiConverter interface handles converter types to and from the FFI
 //
 // All implementing objects should be public to support external types.  When a
@@ -176,11 +180,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun liftFromRustBuffer(rbuf: RustBuffer.ByValue): KotlinType {
         val byteBuf = rbuf.asByteBuffer()!!
         try {
-           val item = read(byteBuf)
-           if (byteBuf.hasRemaining()) {
-               throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
-           }
-           return item
+            val item = read(byteBuf)
+            if (byteBuf.hasRemaining()) {
+                throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
+            }
+            return item
         } finally {
             RustBuffer.free(rbuf)
         }
@@ -188,19 +192,21 @@ public interface FfiConverter<KotlinType, FfiType> {
 }
 
 // FfiConverter that uses `RustBuffer` as the FfiType
-public interface FfiConverterRustBuffer<KotlinType>: FfiConverter<KotlinType, RustBuffer.ByValue> {
+public interface FfiConverterRustBuffer<KotlinType> : FfiConverter<KotlinType, RustBuffer.ByValue> {
     override fun lift(value: RustBuffer.ByValue) = liftFromRustBuffer(value)
     override fun lower(value: KotlinType) = lowerIntoRustBuffer(value)
 }
+
 // A handful of classes and functions to support the generated data structures.
 // This would be a good candidate for isolating in its own ffi-support lib.
 // Error runtime.
 @Structure.FieldOrder("code", "error_buf")
 internal open class UniffiRustCallStatus : Structure() {
     @JvmField var code: Byte = 0
+
     @JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()
 
-    class ByValue: UniffiRustCallStatus(), Structure.ByValue
+    class ByValue : UniffiRustCallStatus(), Structure.ByValue
 
     fun isSuccess(): Boolean {
         return code == 0.toByte()
@@ -219,7 +225,7 @@ class InternalException(message: String) : Exception(message)
 
 // Each top-level error class has a companion object that can lift the error from the call status's rust buffer
 interface UniffiRustCallStatusErrorHandler<E> {
-    fun lift(error_buf: RustBuffer.ByValue): E;
+    fun lift(error_buf: RustBuffer.ByValue): E
 }
 
 // Helpers for calling Rust
@@ -227,15 +233,21 @@ interface UniffiRustCallStatusErrorHandler<E> {
 // synchronize itself
 
 // Call a rust function that returns a Result<>.  Pass in the Error class companion that corresponds to the Err
-private inline fun <U, E: Exception> uniffiRustCallWithError(errorHandler: UniffiRustCallStatusErrorHandler<E>, callback: (UniffiRustCallStatus) -> U): U {
-    var status = UniffiRustCallStatus();
+private inline fun <U, E : Exception> uniffiRustCallWithError(
+    errorHandler: UniffiRustCallStatusErrorHandler<E>,
+    callback: (UniffiRustCallStatus) -> U
+): U {
+    var status = UniffiRustCallStatus()
     val return_value = callback(status)
     uniffiCheckCallStatus(errorHandler, status)
     return return_value
 }
 
 // Check UniffiRustCallStatus and throw an error if the call wasn't successful
-private fun<E: Exception> uniffiCheckCallStatus(errorHandler: UniffiRustCallStatusErrorHandler<E>, status: UniffiRustCallStatus) {
+private fun<E : Exception> uniffiCheckCallStatus(
+    errorHandler: UniffiRustCallStatusErrorHandler<E>,
+    status: UniffiRustCallStatus
+) {
     if (status.isSuccess()) {
         return
     } else if (status.isError()) {
@@ -255,7 +267,7 @@ private fun<E: Exception> uniffiCheckCallStatus(errorHandler: UniffiRustCallStat
 }
 
 // UniffiRustCallStatusErrorHandler implementation for times when we don't expect a CALL_ERROR
-object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<InternalException> {
+object UniffiNullRustCallStatusErrorHandler : UniffiRustCallStatusErrorHandler<InternalException> {
     override fun lift(error_buf: RustBuffer.ByValue): InternalException {
         RustBuffer.free(error_buf)
         return InternalException("Unexpected CALL_ERROR")
@@ -264,13 +276,14 @@ object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<In
 
 // Call a rust function that returns a plain value
 private inline fun <U> uniffiRustCall(callback: (UniffiRustCallStatus) -> U): U {
-    return uniffiRustCallWithError(UniffiNullRustCallStatusErrorHandler, callback);
+    return uniffiRustCallWithError(UniffiNullRustCallStatusErrorHandler, callback)
 }
 
 // IntegerType that matches Rust's `usize` / C's `size_t`
 public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, true) {
     // This is needed to fill in the gaps of IntegerType's implementation of Number for Kotlin.
     override fun toByte() = toInt().toByte()
+
     // Needed until https://youtrack.jetbrains.com/issue/KT-47902 is fixed.
     @Deprecated("`toInt().toChar()` is deprecated")
     override fun toChar() = toInt().toChar()
@@ -295,7 +308,7 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
         val size: Int
             get() = Native.SIZE_T_SIZE
 
-        fun readFromBuffer(buf: ByteBuffer) : USize {
+        fun readFromBuffer(buf: ByteBuffer): USize {
             // Make sure we always read usize integers using native byte-order, since they may be
             // casted from pointer values
             buf.order(ByteOrder.nativeOrder())
@@ -312,7 +325,6 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
     }
 }
 
-
 // Map handles to objects
 //
 // This is used when the Rust code expects an opaque pointer to represent some foreign object.
@@ -323,8 +335,9 @@ public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, tru
 // Rust when it needs an opaque pointer.
 //
 // TODO: refactor callbacks to use this class
-internal class UniFfiHandleMap<T: Any> {
+internal class UniFfiHandleMap<T : Any> {
     private val map = ConcurrentHashMap<USize, T>()
+
     // Use AtomicInteger for our counter, since we may be on a 32-bit system.  4 billion possible
     // values seems like enough. If somehow we generate 4 billion handles, then this will wrap
     // around back to zero and we can assume the first handle generated will have been dropped by
@@ -351,7 +364,7 @@ internal class UniFfiHandleMap<T: Any> {
 
 // FFI type for Rust future continuations
 internal interface UniFffiRustFutureContinuationCallbackType : com.sun.jna.Callback {
-    fun callback(continuationHandle: USize, pollResult: Byte);
+    fun callback(continuationHandle: USize, pollResult: Byte)
 }
 
 // Contains loading, initialization code,
@@ -378,776 +391,1202 @@ internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
             loadIndirect<UniffiLib>(componentName = "paykit_mobile")
-            .also { lib: UniffiLib ->
-                uniffiCheckContractApiVersion(lib)
-                uniffiCheckApiChecksums(lib)
-                uniffiCallbackInterfaceBitcoinExecutorFFI.register(lib)
-                uniffiCallbackInterfaceLightningExecutorFFI.register(lib)
-                uniffiCallbackInterfacePubkyAuthenticatedStorageCallback.register(lib)
-                uniffiCallbackInterfacePubkyUnauthenticatedStorageCallback.register(lib)
-                uniffiCallbackInterfaceReceiptGeneratorCallback.register(lib)
+                .also { lib: UniffiLib ->
+                    uniffiCheckContractApiVersion(lib)
+                    uniffiCheckApiChecksums(lib)
+                    uniffiCallbackInterfaceBitcoinExecutorFFI.register(lib)
+                    uniffiCallbackInterfaceLightningExecutorFFI.register(lib)
+                    uniffiCallbackInterfacePubkyAuthenticatedStorageCallback.register(lib)
+                    uniffiCallbackInterfacePubkyUnauthenticatedStorageCallback.register(lib)
+                    uniffiCallbackInterfaceReceiptGeneratorCallback.register(lib)
                 }
         }
-        
+
         // The Cleaner for the whole library
         internal val CLEANER: UniffiCleaner by lazy {
             UniffiCleaner.create()
         }
     }
 
-    fun uniffi_paykit_mobile_fn_clone_authenticatedtransportffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_authenticatedtransportffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_authenticatedtransportffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_authenticatedtransportffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_callback(`callback`: Long,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_callback(
+        `callback`: Long,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_session_json(`sessionJson`: RustBuffer.ByValue,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_session_json(
+        `sessionJson`: RustBuffer.ByValue,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_new_mock(`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_new_mock(
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_delete(`ptr`: Pointer,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_delete(
+        `ptr`: Pointer,
+        `path`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_get(`ptr`: Pointer,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_get(
+        `ptr`: Pointer,
+        `path`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_is_mock(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_is_mock(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_list(`ptr`: Pointer,`prefix`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_list(
+        `ptr`: Pointer,
+        `prefix`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_owner_pubkey(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_owner_pubkey(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_put(`ptr`: Pointer,`path`: RustBuffer.ByValue,`content`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_authenticatedtransportffi_put(
+        `ptr`: Pointer,
+        `path`: RustBuffer.ByValue,
+        `content`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_clone_contactcacheffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_contactcacheffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_contactcacheffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_contactcacheffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_contactcacheffi_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_contactcacheffi_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_add(`ptr`: Pointer,`pubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_add(
+        `ptr`: Pointer,
+        `pubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_add_with_name(`ptr`: Pointer,`pubkey`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_add_with_name(
+        `ptr`: Pointer,
+        `pubkey`: RustBuffer.ByValue,
+        `name`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_clear(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_clear(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_contains(`ptr`: Pointer,`pubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_contains(
+        `ptr`: Pointer,
+        `pubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_count(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_count(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_get(`ptr`: Pointer,`pubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_get(
+        `ptr`: Pointer,
+        `pubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_get_all(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_get_all(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_remove(`ptr`: Pointer,`pubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_remove(
+        `ptr`: Pointer,
+        `pubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_contactcacheffi_sync(`ptr`: Pointer,`remotePubkeys`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_contactcacheffi_sync(
+        `ptr`: Pointer,
+        `remotePubkeys`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_clone_directoryoperationsasync(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_directoryoperationsasync(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_directoryoperationsasync(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_directoryoperationsasync(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_directoryoperationsasync_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_directoryoperationsasync_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_add_contact(`ptr`: Pointer,`transport`: Pointer,`contactPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_add_contact(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `contactPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_known_contacts(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_known_contacts(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_payment_endpoint(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_payment_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_supported_payments(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_supported_payments(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_list_contacts(`ptr`: Pointer,`transport`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_list_contacts(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_publish_payment_endpoint(`ptr`: Pointer,`transport`: Pointer,`methodId`: RustBuffer.ByValue,`endpointData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_publish_payment_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpointData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_contact(`ptr`: Pointer,`transport`: Pointer,`contactPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_contact(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `contactPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_payment_endpoint(`ptr`: Pointer,`transport`: Pointer,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_payment_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_clone_executorasyncbridge(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_executorasyncbridge(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_executorasyncbridge(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_executorasyncbridge(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_executorasyncbridge_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_executorasyncbridge_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_executorasyncbridge_with_timeout(`timeoutMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_executorasyncbridge_with_timeout(
+        `timeoutMs`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_executorasyncbridge_default_timeout_ms(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_executorasyncbridge_default_timeout_ms(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Long
-    fun uniffi_paykit_mobile_fn_clone_paykitclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_paykitclient(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_paykitclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_paykitclient(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_paykitclient_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_paykitclient_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_paykitclient_new_with_network(`bitcoinNetwork`: RustBuffer.ByValue,`lightningNetwork`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_paykitclient_new_with_network(
+        `bitcoinNetwork`: RustBuffer.ByValue,
+        `lightningNetwork`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_paykitclient_add_contact(`ptr`: Pointer,`transport`: Pointer,`contactPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_add_contact(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `contactPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_bitcoin_network(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_bitcoin_network(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_calculate_proration(`ptr`: Pointer,`currentAmountSats`: Long,`newAmountSats`: Long,`periodStart`: Long,`periodEnd`: Long,`changeDate`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_calculate_proration(
+        `ptr`: Pointer,
+        `currentAmountSats`: Long,
+        `newAmountSats`: Long,
+        `periodStart`: Long,
+        `periodEnd`: Long,
+        `changeDate`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_check_health(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_check_health(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_noise_error_message(`ptr`: Pointer,`code`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_noise_error_message(
+        `ptr`: Pointer,
+        `code`: RustBuffer.ByValue,
+        `message`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_payment_request(`ptr`: Pointer,`fromPubkey`: RustBuffer.ByValue,`toPubkey`: RustBuffer.ByValue,`amountSats`: Long,`currency`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`description`: RustBuffer.ByValue,`expiresInSecs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_payment_request(
+        `ptr`: Pointer,
+        `fromPubkey`: RustBuffer.ByValue,
+        `toPubkey`: RustBuffer.ByValue,
+        `amountSats`: Long,
+        `currency`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `description`: RustBuffer.ByValue,
+        `expiresInSecs`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt(`ptr`: Pointer,`payer`: RustBuffer.ByValue,`payee`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt(
+        `ptr`: Pointer,
+        `payer`: RustBuffer.ByValue,
+        `payee`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_confirmation_message(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,`payerPubkey`: RustBuffer.ByValue,`payeePubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,`signature`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_confirmation_message(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        `payerPubkey`: RustBuffer.ByValue,
+        `payeePubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        `signature`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_request_message(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,`payerPubkey`: RustBuffer.ByValue,`payeePubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_request_message(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        `payerPubkey`: RustBuffer.ByValue,
+        `payeePubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_create_subscription(`ptr`: Pointer,`subscriber`: RustBuffer.ByValue,`provider`: RustBuffer.ByValue,`terms`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_create_subscription(
+        `ptr`: Pointer,
+        `subscriber`: RustBuffer.ByValue,
+        `provider`: RustBuffer.ByValue,
+        `terms`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_days_remaining_in_period(`ptr`: Pointer,`periodEnd`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_days_remaining_in_period(
+        `ptr`: Pointer,
+        `periodEnd`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun uniffi_paykit_mobile_fn_method_paykitclient_discover_noise_endpoint(`ptr`: Pointer,`transport`: Pointer,`recipientPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_discover_noise_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `recipientPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_execute_payment(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,`endpoint`: RustBuffer.ByValue,`amountSats`: Long,`metadataJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_execute_payment(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpoint`: RustBuffer.ByValue,
+        `amountSats`: Long,
+        `metadataJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_extract_key_from_qr(`ptr`: Pointer,`scannedData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_extract_key_from_qr(
+        `ptr`: Pointer,
+        `scannedData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_extract_method_from_qr(`ptr`: Pointer,`scannedData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_extract_method_from_qr(
+        `ptr`: Pointer,
+        `scannedData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_known_contacts(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_known_contacts(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_payment_endpoint(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_payment_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_supported_payments(`ptr`: Pointer,`transport`: Pointer,`ownerPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_fetch_supported_payments(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_generate_payment_proof(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,`executionDataJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_generate_payment_proof(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `executionDataJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_get_health_status(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_get_health_status(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_get_in_progress_payments(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_get_in_progress_payments(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_get_payment_status(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_get_payment_status(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_has_bitcoin_executor(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_has_bitcoin_executor(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_paykitclient_has_lightning_executor(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_has_lightning_executor(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_paykitclient_is_method_usable(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_is_method_usable(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_paykitclient_is_paykit_qr(`ptr`: Pointer,`scannedData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_is_paykit_qr(
+        `ptr`: Pointer,
+        `scannedData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_paykitclient_lightning_network(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_lightning_network(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_list_contacts(`ptr`: Pointer,`transport`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_list_contacts(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_list_methods(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_list_methods(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_noise_payment_message(`ptr`: Pointer,`json`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_noise_payment_message(
+        `ptr`: Pointer,
+        `json`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_receipt_metadata(`ptr`: Pointer,`metadataJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_receipt_metadata(
+        `ptr`: Pointer,
+        `metadataJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_scanned_qr(`ptr`: Pointer,`scannedData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_parse_scanned_qr(
+        `ptr`: Pointer,
+        `scannedData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_publish_noise_endpoint(`ptr`: Pointer,`transport`: Pointer,`host`: RustBuffer.ByValue,`port`: Short,`noisePubkey`: RustBuffer.ByValue,`metadata`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_publish_noise_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `host`: RustBuffer.ByValue,
+        `port`: Short,
+        `noisePubkey`: RustBuffer.ByValue,
+        `metadata`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_publish_payment_endpoint(`ptr`: Pointer,`transport`: Pointer,`methodId`: RustBuffer.ByValue,`endpointData`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_publish_payment_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpointData`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_register_bitcoin_executor(`ptr`: Pointer,`executor`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_register_bitcoin_executor(
+        `ptr`: Pointer,
+        `executor`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_register_lightning_executor(`ptr`: Pointer,`executor`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_register_lightning_executor(
+        `ptr`: Pointer,
+        `executor`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_contact(`ptr`: Pointer,`transport`: Pointer,`contactPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_contact(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `contactPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_noise_endpoint(`ptr`: Pointer,`transport`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_noise_endpoint(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_payment_endpoint_from_directory(`ptr`: Pointer,`transport`: Pointer,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_remove_payment_endpoint_from_directory(
+        `ptr`: Pointer,
+        `transport`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_paykitclient_select_method(`ptr`: Pointer,`supportedMethods`: RustBuffer.ByValue,`amountSats`: Long,`preferences`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_select_method(
+        `ptr`: Pointer,
+        `supportedMethods`: RustBuffer.ByValue,
+        `amountSats`: Long,
+        `preferences`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitclient_validate_endpoint(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,`endpoint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitclient_validate_endpoint(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpoint`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_clone_paykitinteractivemanagerffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_paykitinteractivemanagerffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_paykitinteractivemanagerffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_paykitinteractivemanagerffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_paykitinteractivemanagerffi_new(`store`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_paykitinteractivemanagerffi_new(
+        `store`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_endpoint_offer(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,`endpoint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_endpoint_offer(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpoint`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_payment_request(`ptr`: Pointer,`payer`: RustBuffer.ByValue,`payee`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,`metadataJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_payment_request(
+        `ptr`: Pointer,
+        `payer`: RustBuffer.ByValue,
+        `payee`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        `metadataJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_private_endpoint(`ptr`: Pointer,`peer`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_private_endpoint(
+        `ptr`: Pointer,
+        `peer`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_receipt(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_receipt(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_store(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_store(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_message(`ptr`: Pointer,`messageJson`: RustBuffer.ByValue,`peerPubkey`: RustBuffer.ByValue,`myPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_message(
+        `ptr`: Pointer,
+        `messageJson`: RustBuffer.ByValue,
+        `peerPubkey`: RustBuffer.ByValue,
+        `myPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_payment_response(`ptr`: Pointer,`responseJson`: RustBuffer.ByValue,`originalReceiptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_payment_response(
+        `ptr`: Pointer,
+        `responseJson`: RustBuffer.ByValue,
+        `originalReceiptId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_private_endpoints(`ptr`: Pointer,`peer`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_private_endpoints(
+        `ptr`: Pointer,
+        `peer`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_receipts(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_receipts(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_set_generator(`ptr`: Pointer,`generator`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_set_generator(
+        `ptr`: Pointer,
+        `generator`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_clone_paykitmessagebuilder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_paykitmessagebuilder(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_paykitmessagebuilder(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_paykitmessagebuilder(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_paykitmessagebuilder_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_paykitmessagebuilder_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_ack(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_ack(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_endpoint_offer(`ptr`: Pointer,`methodId`: RustBuffer.ByValue,`endpoint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_endpoint_offer(
+        `ptr`: Pointer,
+        `methodId`: RustBuffer.ByValue,
+        `endpoint`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_error(`ptr`: Pointer,`code`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_error(
+        `ptr`: Pointer,
+        `code`: RustBuffer.ByValue,
+        `message`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_confirm(`ptr`: Pointer,`receipt`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_confirm(
+        `ptr`: Pointer,
+        `receipt`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_request(`ptr`: Pointer,`request`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_request(
+        `ptr`: Pointer,
+        `request`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_get_message_type(`ptr`: Pointer,`messageJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_get_message_type(
+        `ptr`: Pointer,
+        `messageJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_parse_message(`ptr`: Pointer,`messageJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_paykitmessagebuilder_parse_message(
+        `ptr`: Pointer,
+        `messageJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_clone_receiptstore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_receiptstore(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_receiptstore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_receiptstore(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_receiptstore_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_receiptstore_new(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_receiptstore_clear(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_clear(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_receiptstore_delete_receipt(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_delete_receipt(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_receiptstore_export_receipts_json(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_export_receipts_json(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_receiptstore_get_private_endpoint(`ptr`: Pointer,`peer`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_get_private_endpoint(
+        `ptr`: Pointer,
+        `peer`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_receiptstore_get_receipt(`ptr`: Pointer,`receiptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_get_receipt(
+        `ptr`: Pointer,
+        `receiptId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_receiptstore_import_receipts_json(`ptr`: Pointer,`json`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_import_receipts_json(
+        `ptr`: Pointer,
+        `json`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun uniffi_paykit_mobile_fn_method_receiptstore_list_private_endpoints(`ptr`: Pointer,`peer`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_list_private_endpoints(
+        `ptr`: Pointer,
+        `peer`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_receiptstore_list_receipts(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_list_receipts(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_receiptstore_save_private_endpoint(`ptr`: Pointer,`peer`: RustBuffer.ByValue,`offer`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_save_private_endpoint(
+        `ptr`: Pointer,
+        `peer`: RustBuffer.ByValue,
+        `offer`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_method_receiptstore_save_receipt(`ptr`: Pointer,`receipt`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_receiptstore_save_receipt(
+        `ptr`: Pointer,
+        `receipt`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_clone_unauthenticatedtransportffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_clone_unauthenticatedtransportffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_free_unauthenticatedtransportffi(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_free_unauthenticatedtransportffi(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_authenticated(`auth`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_authenticated(
+        `auth`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_callback(`callback`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_callback(
+        `callback`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_config_json(`configJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_config_json(
+        `configJson`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_new_mock(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_new_mock(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_get(`ptr`: Pointer,`ownerPubkey`: RustBuffer.ByValue,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_get(
+        `ptr`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        `path`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_is_mock(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_is_mock(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_list(`ptr`: Pointer,`ownerPubkey`: RustBuffer.ByValue,`prefix`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_list(
+        `ptr`: Pointer,
+        `ownerPubkey`: RustBuffer.ByValue,
+        `prefix`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_init_callback_bitcoinexecutorffi(`handle`: ForeignCallback,
+    fun uniffi_paykit_mobile_fn_init_callback_bitcoinexecutorffi(
+        `handle`: ForeignCallback,
     ): Unit
-    fun uniffi_paykit_mobile_fn_init_callback_lightningexecutorffi(`handle`: ForeignCallback,
+    fun uniffi_paykit_mobile_fn_init_callback_lightningexecutorffi(
+        `handle`: ForeignCallback,
     ): Unit
-    fun uniffi_paykit_mobile_fn_init_callback_pubkyauthenticatedstoragecallback(`handle`: ForeignCallback,
+    fun uniffi_paykit_mobile_fn_init_callback_pubkyauthenticatedstoragecallback(
+        `handle`: ForeignCallback,
     ): Unit
-    fun uniffi_paykit_mobile_fn_init_callback_pubkyunauthenticatedstoragecallback(`handle`: ForeignCallback,
+    fun uniffi_paykit_mobile_fn_init_callback_pubkyunauthenticatedstoragecallback(
+        `handle`: ForeignCallback,
     ): Unit
-    fun uniffi_paykit_mobile_fn_init_callback_receiptgeneratorcallback(`handle`: ForeignCallback,
+    fun uniffi_paykit_mobile_fn_init_callback_receiptgeneratorcallback(
+        `handle`: ForeignCallback,
     ): Unit
-    fun uniffi_paykit_mobile_fn_func_create_contact_cache(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_contact_cache(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_directory_operations_async(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_directory_operations_async(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_error_message(`code`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_error_message(
+        `code`: RustBuffer.ByValue,
+        `message`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_executor_async_bridge(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_executor_async_bridge(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_executor_async_bridge_with_timeout(`timeoutMs`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_executor_async_bridge_with_timeout(
+        `timeoutMs`: Long,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_interactive_manager(`store`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_interactive_manager(
+        `store`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_message_builder(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_message_builder(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_noise_server_config(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_noise_server_config(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_noise_server_config_with_port(`port`: Short,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_noise_server_config_with_port(
+        `port`: Short,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_paykit_client(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_paykit_client(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_create_private_endpoint_offer_message(`methodId`: RustBuffer.ByValue,`endpoint`: RustBuffer.ByValue,`expiresInSecs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_private_endpoint_offer_message(
+        `methodId`: RustBuffer.ByValue,
+        `endpoint`: RustBuffer.ByValue,
+        `expiresInSecs`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_receipt_confirmation_message(`receiptId`: RustBuffer.ByValue,`payerPubkey`: RustBuffer.ByValue,`payeePubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,`signature`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_receipt_confirmation_message(
+        `receiptId`: RustBuffer.ByValue,
+        `payerPubkey`: RustBuffer.ByValue,
+        `payeePubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        `signature`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_receipt_request_message(`receiptId`: RustBuffer.ByValue,`payerPubkey`: RustBuffer.ByValue,`payeePubkey`: RustBuffer.ByValue,`methodId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`currency`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_receipt_request_message(
+        `receiptId`: RustBuffer.ByValue,
+        `payerPubkey`: RustBuffer.ByValue,
+        `payeePubkey`: RustBuffer.ByValue,
+        `methodId`: RustBuffer.ByValue,
+        `amount`: RustBuffer.ByValue,
+        `currency`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_create_receipt_store(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_create_receipt_store(
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun uniffi_paykit_mobile_fn_func_derive_x25519_keypair(`ed25519SecretHex`: RustBuffer.ByValue,`deviceId`: RustBuffer.ByValue,`epoch`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_derive_x25519_keypair(
+        `ed25519SecretHex`: RustBuffer.ByValue,
+        `deviceId`: RustBuffer.ByValue,
+        `epoch`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_discover_noise_endpoint(`transport`: Pointer,`recipientPubkey`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_discover_noise_endpoint(
+        `transport`: Pointer,
+        `recipientPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_ed25519_keypair_from_secret(`secretKeyHex`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_ed25519_keypair_from_secret(
+        `secretKeyHex`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_export_keypair_to_backup(`secretKeyHex`: RustBuffer.ByValue,`password`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_export_keypair_to_backup(
+        `secretKeyHex`: RustBuffer.ByValue,
+        `password`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_format_public_key_z32(`publicKeyHex`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_format_public_key_z32(
+        `publicKeyHex`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_generate_device_id(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_generate_device_id(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_generate_ed25519_keypair(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_generate_ed25519_keypair(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_get_version(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_get_version(
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_import_keypair_from_backup(`backup`: RustBuffer.ByValue,`password`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_import_keypair_from_backup(
+        `backup`: RustBuffer.ByValue,
+        `password`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_parse_payment_message(`json`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_parse_payment_message(
+        `json`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_parse_public_key_z32(`publicKeyZ32`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_parse_public_key_z32(
+        `publicKeyZ32`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_publish_noise_endpoint(`transport`: Pointer,`host`: RustBuffer.ByValue,`port`: Short,`noisePubkey`: RustBuffer.ByValue,`metadata`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_publish_noise_endpoint(
+        `transport`: Pointer,
+        `host`: RustBuffer.ByValue,
+        `port`: Short,
+        `noisePubkey`: RustBuffer.ByValue,
+        `metadata`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_func_remove_noise_endpoint(`transport`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_remove_noise_endpoint(
+        `transport`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_fn_func_sign_message(`secretKeyHex`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_sign_message(
+        `secretKeyHex`: RustBuffer.ByValue,
+        `message`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun uniffi_paykit_mobile_fn_func_verify_signature(`publicKeyHex`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`signatureHex`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_paykit_mobile_fn_func_verify_signature(
+        `publicKeyHex`: RustBuffer.ByValue,
+        `message`: RustBuffer.ByValue,
+        `signatureHex`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun ffi_paykit_mobile_rustbuffer_alloc(`size`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rustbuffer_alloc(
+        `size`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_paykit_mobile_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rustbuffer_from_bytes(
+        `bytes`: ForeignBytes.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_paykit_mobile_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rustbuffer_free(
+        `buf`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun ffi_paykit_mobile_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rustbuffer_reserve(
+        `buf`: RustBuffer.ByValue,
+        `additional`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_paykit_mobile_rust_future_poll_u8(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_u8(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_u8(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_u8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_u8(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_u8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_u8(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_u8(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun ffi_paykit_mobile_rust_future_poll_i8(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_i8(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_i8(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_i8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_i8(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_i8(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_i8(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_i8(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Byte
-    fun ffi_paykit_mobile_rust_future_poll_u16(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_u16(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_u16(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_u16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_u16(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_u16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_u16(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_u16(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Short
-    fun ffi_paykit_mobile_rust_future_poll_i16(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_i16(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_i16(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_i16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_i16(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_i16(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_i16(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_i16(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Short
-    fun ffi_paykit_mobile_rust_future_poll_u32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_u32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_u32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_u32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_u32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_u32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_u32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_u32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun ffi_paykit_mobile_rust_future_poll_i32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_i32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_i32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_i32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_i32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_i32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_i32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_i32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Int
-    fun ffi_paykit_mobile_rust_future_poll_u64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_u64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_u64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_u64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_u64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_u64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_u64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_u64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Long
-    fun ffi_paykit_mobile_rust_future_poll_i64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_i64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_i64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_i64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_i64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_i64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_i64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_i64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Long
-    fun ffi_paykit_mobile_rust_future_poll_f32(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_f32(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_f32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_f32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_f32(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_f32(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_f32(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_f32(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Float
-    fun ffi_paykit_mobile_rust_future_poll_f64(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_f64(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_f64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_f64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_f64(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_f64(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_f64(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_f64(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Double
-    fun ffi_paykit_mobile_rust_future_poll_pointer(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_pointer(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_pointer(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_pointer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_pointer(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_pointer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_pointer(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_pointer(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
-    fun ffi_paykit_mobile_rust_future_poll_rust_buffer(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_rust_buffer(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_rust_buffer(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_rust_buffer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_rust_buffer(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_rust_buffer(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_rust_buffer(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_rust_buffer(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
-    fun ffi_paykit_mobile_rust_future_poll_void(`handle`: Pointer,`callback`: UniFffiRustFutureContinuationCallbackType,`callbackData`: USize,
+    fun ffi_paykit_mobile_rust_future_poll_void(
+        `handle`: Pointer,
+        `callback`: UniFffiRustFutureContinuationCallbackType,
+        `callbackData`: USize,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_cancel_void(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_cancel_void(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_free_void(`handle`: Pointer,
+    fun ffi_paykit_mobile_rust_future_free_void(
+        `handle`: Pointer,
     ): Unit
-    fun ffi_paykit_mobile_rust_future_complete_void(`handle`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_paykit_mobile_rust_future_complete_void(
+        `handle`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_paykit_mobile_checksum_func_create_contact_cache(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_directory_operations_async(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_error_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_executor_async_bridge(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_executor_async_bridge_with_timeout(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_interactive_manager(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_message_builder(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_noise_server_config(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_noise_server_config_with_port(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_paykit_client(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_private_endpoint_offer_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_receipt_confirmation_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_receipt_request_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_create_receipt_store(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_derive_x25519_keypair(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_discover_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_ed25519_keypair_from_secret(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_export_keypair_to_backup(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_format_public_key_z32(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_generate_device_id(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_generate_ed25519_keypair(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_get_version(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_import_keypair_from_backup(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_parse_payment_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_parse_public_key_z32(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_publish_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_remove_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_sign_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_func_verify_signature(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_delete(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_get(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_is_mock(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_list(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_owner_pubkey(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_put(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_add(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_add_with_name(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_clear(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_contains(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_count(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_get(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_get_all(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_remove(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_sync(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_add_contact(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_known_contacts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_payment_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_supported_payments(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_list_contacts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_publish_payment_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_remove_contact(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_remove_payment_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_executorasyncbridge_default_timeout_ms(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_add_contact(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_bitcoin_network(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_calculate_proration(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_check_health(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_noise_error_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_payment_request(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt_confirmation_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt_request_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_subscription(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_days_remaining_in_period(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_discover_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_execute_payment(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_extract_key_from_qr(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_extract_method_from_qr(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_known_contacts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_payment_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_supported_payments(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_generate_payment_proof(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_health_status(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_in_progress_payments(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_payment_status(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_has_bitcoin_executor(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_has_lightning_executor(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_is_method_usable(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_is_paykit_qr(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_lightning_network(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_list_contacts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_list_methods(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_noise_payment_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_receipt_metadata(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_scanned_qr(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_publish_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_publish_payment_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_register_bitcoin_executor(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_register_lightning_executor(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_contact(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_noise_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_payment_endpoint_from_directory(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_select_method(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitclient_validate_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_create_endpoint_offer(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_create_payment_request(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_private_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_receipt(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_store(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_handle_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_handle_payment_response(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_list_private_endpoints(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_list_receipts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_set_generator(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_ack(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_endpoint_offer(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_error(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_receipt_confirm(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_receipt_request(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_get_message_type(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_parse_message(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_clear(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_delete_receipt(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_export_receipts_json(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_get_private_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_get_receipt(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_import_receipts_json(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_list_private_endpoints(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_list_receipts(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_save_private_endpoint(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptstore_save_receipt(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_get(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_is_mock(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_list(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_from_callback(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_from_session_json(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_new_mock(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_contactcacheffi_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_directoryoperationsasync_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_executorasyncbridge_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_executorasyncbridge_with_timeout(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_paykitclient_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_paykitclient_new_with_network(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_paykitinteractivemanagerffi_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_paykitmessagebuilder_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_receiptstore_new(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_authenticated(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_callback(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_config_json(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_new_mock(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_send_to_address(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_estimate_fee(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_get_transaction(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_verify_transaction(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_pay_invoice(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_decode_invoice(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_estimate_fee(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_get_payment(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_verify_preimage(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_put(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_get(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_delete(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_list(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyunauthenticatedstoragecallback_get(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_pubkyunauthenticatedstoragecallback_list(
-    ): Short
-    fun uniffi_paykit_mobile_checksum_method_receiptgeneratorcallback_generate_receipt(
-    ): Short
-    fun ffi_paykit_mobile_uniffi_contract_version(
-    ): Int
-    
+    fun uniffi_paykit_mobile_checksum_func_create_contact_cache(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_directory_operations_async(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_error_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_executor_async_bridge(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_executor_async_bridge_with_timeout(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_interactive_manager(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_message_builder(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_noise_server_config(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_noise_server_config_with_port(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_paykit_client(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_private_endpoint_offer_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_receipt_confirmation_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_receipt_request_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_create_receipt_store(): Short
+    fun uniffi_paykit_mobile_checksum_func_derive_x25519_keypair(): Short
+    fun uniffi_paykit_mobile_checksum_func_discover_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_func_ed25519_keypair_from_secret(): Short
+    fun uniffi_paykit_mobile_checksum_func_export_keypair_to_backup(): Short
+    fun uniffi_paykit_mobile_checksum_func_format_public_key_z32(): Short
+    fun uniffi_paykit_mobile_checksum_func_generate_device_id(): Short
+    fun uniffi_paykit_mobile_checksum_func_generate_ed25519_keypair(): Short
+    fun uniffi_paykit_mobile_checksum_func_get_version(): Short
+    fun uniffi_paykit_mobile_checksum_func_import_keypair_from_backup(): Short
+    fun uniffi_paykit_mobile_checksum_func_parse_payment_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_parse_public_key_z32(): Short
+    fun uniffi_paykit_mobile_checksum_func_publish_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_func_remove_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_func_sign_message(): Short
+    fun uniffi_paykit_mobile_checksum_func_verify_signature(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_delete(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_get(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_is_mock(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_list(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_owner_pubkey(): Short
+    fun uniffi_paykit_mobile_checksum_method_authenticatedtransportffi_put(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_add(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_add_with_name(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_clear(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_contains(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_count(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_get(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_get_all(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_remove(): Short
+    fun uniffi_paykit_mobile_checksum_method_contactcacheffi_sync(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_add_contact(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_known_contacts(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_payment_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_fetch_supported_payments(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_list_contacts(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_publish_payment_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_remove_contact(): Short
+    fun uniffi_paykit_mobile_checksum_method_directoryoperationsasync_remove_payment_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_executorasyncbridge_default_timeout_ms(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_add_contact(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_bitcoin_network(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_calculate_proration(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_check_health(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_noise_error_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_payment_request(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt_confirmation_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_receipt_request_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_create_subscription(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_days_remaining_in_period(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_discover_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_execute_payment(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_extract_key_from_qr(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_extract_method_from_qr(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_known_contacts(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_payment_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_fetch_supported_payments(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_generate_payment_proof(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_health_status(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_in_progress_payments(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_get_payment_status(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_has_bitcoin_executor(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_has_lightning_executor(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_is_method_usable(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_is_paykit_qr(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_lightning_network(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_list_contacts(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_list_methods(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_noise_payment_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_receipt_metadata(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_parse_scanned_qr(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_publish_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_publish_payment_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_register_bitcoin_executor(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_register_lightning_executor(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_contact(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_noise_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_remove_payment_endpoint_from_directory(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_select_method(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitclient_validate_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_create_endpoint_offer(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_create_payment_request(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_private_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_receipt(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_get_store(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_handle_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_handle_payment_response(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_list_private_endpoints(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_list_receipts(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitinteractivemanagerffi_set_generator(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_ack(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_endpoint_offer(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_error(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_receipt_confirm(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_create_receipt_request(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_get_message_type(): Short
+    fun uniffi_paykit_mobile_checksum_method_paykitmessagebuilder_parse_message(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_clear(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_delete_receipt(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_export_receipts_json(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_get_private_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_get_receipt(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_import_receipts_json(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_list_private_endpoints(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_list_receipts(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_save_private_endpoint(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptstore_save_receipt(): Short
+    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_get(): Short
+    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_is_mock(): Short
+    fun uniffi_paykit_mobile_checksum_method_unauthenticatedtransportffi_list(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_from_callback(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_from_session_json(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_authenticatedtransportffi_new_mock(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_contactcacheffi_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_directoryoperationsasync_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_executorasyncbridge_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_executorasyncbridge_with_timeout(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_paykitclient_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_paykitclient_new_with_network(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_paykitinteractivemanagerffi_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_paykitmessagebuilder_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_receiptstore_new(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_authenticated(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_callback(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_from_config_json(): Short
+    fun uniffi_paykit_mobile_checksum_constructor_unauthenticatedtransportffi_new_mock(): Short
+    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_send_to_address(): Short
+    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_estimate_fee(): Short
+    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_get_transaction(): Short
+    fun uniffi_paykit_mobile_checksum_method_bitcoinexecutorffi_verify_transaction(): Short
+    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_pay_invoice(): Short
+    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_decode_invoice(): Short
+    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_estimate_fee(): Short
+    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_get_payment(): Short
+    fun uniffi_paykit_mobile_checksum_method_lightningexecutorffi_verify_preimage(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_put(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_get(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_delete(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyauthenticatedstoragecallback_list(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyunauthenticatedstoragecallback_get(): Short
+    fun uniffi_paykit_mobile_checksum_method_pubkyunauthenticatedstoragecallback_list(): Short
+    fun uniffi_paykit_mobile_checksum_method_receiptgeneratorcallback_generate_receipt(): Short
+    fun ffi_paykit_mobile_uniffi_contract_version(): Int
 }
 
 private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
@@ -1636,7 +2075,6 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
 
 // Public interface members begin here.
 
-
 // Interface implemented by anything that can contain an object reference.
 //
 // Such types expose a `destroy()` method that must be called to cleanly
@@ -1667,7 +2105,7 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
         }
     }
 
-public object FfiConverterUByte: FfiConverter<UByte, Byte> {
+public object FfiConverterUByte : FfiConverter<UByte, Byte> {
     override fun lift(value: Byte): UByte {
         return value.toUByte()
     }
@@ -1687,7 +2125,7 @@ public object FfiConverterUByte: FfiConverter<UByte, Byte> {
     }
 }
 
-public object FfiConverterUShort: FfiConverter<UShort, Short> {
+public object FfiConverterUShort : FfiConverter<UShort, Short> {
     override fun lift(value: Short): UShort {
         return value.toUShort()
     }
@@ -1707,7 +2145,7 @@ public object FfiConverterUShort: FfiConverter<UShort, Short> {
     }
 }
 
-public object FfiConverterUInt: FfiConverter<UInt, Int> {
+public object FfiConverterUInt : FfiConverter<UInt, Int> {
     override fun lift(value: Int): UInt {
         return value.toUInt()
     }
@@ -1727,7 +2165,7 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
     }
 }
 
-public object FfiConverterULong: FfiConverter<ULong, Long> {
+public object FfiConverterULong : FfiConverter<ULong, Long> {
     override fun lift(value: Long): ULong {
         return value.toULong()
     }
@@ -1747,7 +2185,7 @@ public object FfiConverterULong: FfiConverter<ULong, Long> {
     }
 }
 
-public object FfiConverterLong: FfiConverter<Long, Long> {
+public object FfiConverterLong : FfiConverter<Long, Long> {
     override fun lift(value: Long): Long {
         return value
     }
@@ -1767,7 +2205,7 @@ public object FfiConverterLong: FfiConverter<Long, Long> {
     }
 }
 
-public object FfiConverterDouble: FfiConverter<Double, Double> {
+public object FfiConverterDouble : FfiConverter<Double, Double> {
     override fun lift(value: Double): Double {
         return value
     }
@@ -1787,7 +2225,7 @@ public object FfiConverterDouble: FfiConverter<Double, Double> {
     }
 }
 
-public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
+public object FfiConverterBoolean : FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
     }
@@ -1807,7 +2245,7 @@ public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     }
 }
 
-public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
+public object FfiConverterString : FfiConverter<String, RustBuffer.ByValue> {
     // Note: we don't inherit from FfiConverterRustBuffer, because we use a
     // special encoding when lowering/lifting.  We can use `RustBuffer.len` to
     // store our length and avoid writing it out to the buffer.
@@ -1861,7 +2299,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
     }
 }
 
-public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+public object FfiConverterByteArray : FfiConverterRustBuffer<ByteArray> {
     override fun read(buf: ByteBuffer): ByteArray {
         val len = buf.getInt()
         val byteArr = ByteArray(len)
@@ -1876,8 +2314,6 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
         buf.put(value)
     }
 }
-
-
 
 // The cleaner interface for Object finalization code to run.
 // This is the entry point to any implementation that we're using.
@@ -2034,7 +2470,7 @@ private class JavaLangRefCleanable(
 //
 // [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
 //
-abstract class FFIObject: Disposable, AutoCloseable {
+abstract class FFIObject : Disposable, AutoCloseable {
 
     constructor(pointer: Pointer) {
         this.pointer = pointer
@@ -2092,7 +2528,7 @@ abstract class FFIObject: Disposable, AutoCloseable {
             if (c == Long.MAX_VALUE) {
                 throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
             }
-        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        } while (!this.callCounter.compareAndSet(c, c + 1L))
         // Now we can safely do the method call without the pointer being freed concurrently.
         try {
             return block(this.uniffiClonePointer())
@@ -2108,7 +2544,6 @@ abstract class FFIObject: Disposable, AutoCloseable {
 /** Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly. */
 object NoPointer
 
-
 /**
  * FFI wrapper for authenticated transport operations.
  *
@@ -2118,17 +2553,17 @@ object NoPointer
  * - `from_callback()` for production with real Pubky SDK
  */
 public interface AuthenticatedTransportFfiInterface {
-    
+
     /**
      * Delete a file at the given path.
      */
     fun `delete`(`path`: String)
-    
+
     /**
      * Get a file at the given path.
      */
     fun `get`(`path`: String): String?
-    
+
     /**
      * Check if this transport uses a real callback (production) or mock storage.
      *
@@ -2136,22 +2571,22 @@ public interface AuthenticatedTransportFfiInterface {
      * Returns an error if the internal lock is poisoned.
      */
     fun `isMock`(): Boolean
-    
+
     /**
      * List files with a given prefix.
      */
     fun `list`(`prefix`: String): List<String>
-    
+
     /**
      * Get the owner's public key.
      */
     fun `ownerPubkey`(): String
-    
+
     /**
      * Put (create or update) a file at the given path.
      */
     fun `put`(`path`: String, `content`: String)
-    
+
     companion object
 }
 
@@ -2165,7 +2600,7 @@ public interface AuthenticatedTransportFfiInterface {
  */
 open class AuthenticatedTransportFfi : FFIObject, AuthenticatedTransportFfiInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -2175,7 +2610,7 @@ open class AuthenticatedTransportFfi : FFIObject, AuthenticatedTransportFfiInter
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -2192,180 +2627,204 @@ open class AuthenticatedTransportFfi : FFIObject, AuthenticatedTransportFfiInter
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_authenticatedtransportffi(pointer!!, status)
         }
     }
 
-    
     /**
      * Delete a file at the given path.
      */
-    @Throws(PaykitMobileException::class)override fun `delete`(`path`: String) =
+    @Throws(PaykitMobileException::class)
+    override fun `delete`(`path`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_delete(it,
-        FfiConverterString.lower(`path`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_delete(
+                    it,
+                    FfiConverterString.lower(`path`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Get a file at the given path.
      */
-    @Throws(PaykitMobileException::class)override fun `get`(`path`: String): String? =
+    @Throws(PaykitMobileException::class)
+    override fun `get`(`path`: String): String? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_get(it,
-        FfiConverterString.lower(`path`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_get(
+                    it,
+                    FfiConverterString.lower(`path`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Check if this transport uses a real callback (production) or mock storage.
      *
      * Returns `true` for mock transport, `false` for callback-based transport.
      * Returns an error if the internal lock is poisoned.
      */
-    @Throws(PaykitMobileException::class)override fun `isMock`(): Boolean =
+    @Throws(PaykitMobileException::class)
+    override fun `isMock`(): Boolean =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_is_mock(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_is_mock(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * List files with a given prefix.
      */
-    @Throws(PaykitMobileException::class)override fun `list`(`prefix`: String): List<String> =
+    @Throws(PaykitMobileException::class)
+    override fun `list`(`prefix`: String): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_list(it,
-        FfiConverterString.lower(`prefix`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_list(
+                    it,
+                    FfiConverterString.lower(`prefix`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Get the owner's public key.
-     */override fun `ownerPubkey`(): String =
+     */
+    override fun `ownerPubkey`(): String =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_owner_pubkey(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_owner_pubkey(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Put (create or update) a file at the given path.
      */
-    @Throws(PaykitMobileException::class)override fun `put`(`path`: String, `content`: String) =
+    @Throws(PaykitMobileException::class)
+    override fun `put`(`path`: String, `content`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_put(it,
-        FfiConverterString.lower(`path`),FfiConverterString.lower(`content`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_authenticatedtransportffi_put(
+                    it,
+                    FfiConverterString.lower(`path`),
+                    FfiConverterString.lower(`content`),
+                    _status
+                )
+            }
         }
-    
-    
-    
 
     companion object {
-        
-    /**
-     * Create authenticated transport from a storage callback.
-     *
-     * # Arguments
-     *
-     * * `callback` - Storage callback implementing PubkyAuthenticatedStorageCallback
-     * * `owner_pubkey` - The owner's public key (z-base32 encoded)
-     *
-     * # Example (Swift)
-     *
-     * ```swift
-     * class MyPubkyStorage: PubkyAuthenticatedStorageCallback {
-     * let session: PubkySession
-     *
-     * func put(path: String, content: String) -> StorageOperationResult {
-     * do {
-     * try session.storage.put(path, content)
-     * return StorageOperationResult.ok()
-     * } catch {
-     * return StorageOperationResult.err(error.localizedDescription)
-     * }
-     * }
-     * // ... implement other methods
-     * }
-     *
-     * let transport = AuthenticatedTransportFFI.fromCallback(
-     * MyPubkyStorage(session: session),
-     * ownerPubkey: myPublicKey
-     * )
-     * ```
-     */
-        fun `fromCallback`(`callback`: PubkyAuthenticatedStorageCallback, `ownerPubkey`: String): AuthenticatedTransportFfi =
+
+        /**
+         * Create authenticated transport from a storage callback.
+         *
+         * # Arguments
+         *
+         * * `callback` - Storage callback implementing PubkyAuthenticatedStorageCallback
+         * * `owner_pubkey` - The owner's public key (z-base32 encoded)
+         *
+         * # Example (Swift)
+         *
+         * ```swift
+         * class MyPubkyStorage: PubkyAuthenticatedStorageCallback {
+         * let session: PubkySession
+         *
+         * func put(path: String, content: String) -> StorageOperationResult {
+         * do {
+         * try session.storage.put(path, content)
+         * return StorageOperationResult.ok()
+         * } catch {
+         * return StorageOperationResult.err(error.localizedDescription)
+         * }
+         * }
+         * // ... implement other methods
+         * }
+         *
+         * let transport = AuthenticatedTransportFFI.fromCallback(
+         * MyPubkyStorage(session: session),
+         * ownerPubkey: myPublicKey
+         * )
+         * ```
+         */
+        fun `fromCallback`(
+            `callback`: PubkyAuthenticatedStorageCallback,
+            `ownerPubkey`: String
+        ): AuthenticatedTransportFfi =
             AuthenticatedTransportFfi(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_callback(FfiConverterTypePubkyAuthenticatedStorageCallback.lower(`callback`),FfiConverterString.lower(`ownerPubkey`),_status)
-})
-        
-    /**
-     * Create authenticated transport from a Pubky session JSON.
-     *
-     * # Deprecated
-     *
-     * This method creates a mock transport. Use `from_callback()` for production.
-     *
-     * # Arguments
-     *
-     * * `session_json` - JSON configuration (validated but not used)
-     * * `owner_pubkey` - The owner's public key (z-base32 encoded)
-     */
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_callback(
+                        FfiConverterTypePubkyAuthenticatedStorageCallback.lower(`callback`),
+                        FfiConverterString.lower(`ownerPubkey`),
+                        _status
+                    )
+                }
+            )
+
+        /**
+         * Create authenticated transport from a Pubky session JSON.
+         *
+         * # Deprecated
+         *
+         * This method creates a mock transport. Use `from_callback()` for production.
+         *
+         * # Arguments
+         *
+         * * `session_json` - JSON configuration (validated but not used)
+         * * `owner_pubkey` - The owner's public key (z-base32 encoded)
+         */
         fun `fromSessionJson`(`sessionJson`: String, `ownerPubkey`: String): AuthenticatedTransportFfi =
             AuthenticatedTransportFfi(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_session_json(FfiConverterString.lower(`sessionJson`),FfiConverterString.lower(`ownerPubkey`),_status)
-})
-        
-    /**
-     * Create a new authenticated transport for testing/development.
-     *
-     * Uses in-memory storage - data is not persisted.
-     *
-     * # Arguments
-     *
-     * * `owner_pubkey` - The owner's public key (z-base32 encoded)
-     */
+                uniffiRustCallWithError(PaykitMobileException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_from_session_json(
+                        FfiConverterString.lower(`sessionJson`),
+                        FfiConverterString.lower(`ownerPubkey`),
+                        _status
+                    )
+                }
+            )
+
+        /**
+         * Create a new authenticated transport for testing/development.
+         *
+         * Uses in-memory storage - data is not persisted.
+         *
+         * # Arguments
+         *
+         * * `owner_pubkey` - The owner's public key (z-base32 encoded)
+         */
         fun `newMock`(`ownerPubkey`: String): AuthenticatedTransportFfi =
             AuthenticatedTransportFfi(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_new_mock(FfiConverterString.lower(`ownerPubkey`),_status)
-})
-        
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_authenticatedtransportffi_new_mock(
+                        FfiConverterString.lower(`ownerPubkey`),
+                        _status
+                    )
+                }
+            )
     }
-    
 }
 
-public object FfiConverterTypeAuthenticatedTransportFFI: FfiConverter<AuthenticatedTransportFfi, Pointer> {
+public object FfiConverterTypeAuthenticatedTransportFFI : FfiConverter<AuthenticatedTransportFfi, Pointer> {
 
     override fun lower(value: AuthenticatedTransportFfi): Pointer {
         return value.uniffiClonePointer()
@@ -2390,60 +2849,56 @@ public object FfiConverterTypeAuthenticatedTransportFFI: FfiConverter<Authentica
     }
 }
 
-
-
-
-
 /**
  * FFI-safe wrapper for local contact cache.
  */
 public interface ContactCacheFfiInterface {
-    
+
     /**
      * Add a contact by public key.
      */
     fun `add`(`pubkey`: String)
-    
+
     /**
      * Add a contact with a display name.
      */
     fun `addWithName`(`pubkey`: String, `name`: String)
-    
+
     /**
      * Clear all cached contacts.
      */
     fun `clear`()
-    
+
     /**
      * Check if a contact exists.
      */
     fun `contains`(`pubkey`: String): Boolean
-    
+
     /**
      * Get the number of cached contacts.
      */
     fun `count`(): UInt
-    
+
     /**
      * Get a specific contact by public key.
      */
     fun `get`(`pubkey`: String): CachedContactFfi?
-    
+
     /**
      * Get all cached contacts.
      */
     fun `getAll`(): List<CachedContactFfi>
-    
+
     /**
      * Remove a contact by public key.
      */
     fun `remove`(`pubkey`: String)
-    
+
     /**
      * Sync with remote contacts.
      */
     fun `sync`(`remotePubkeys`: List<String>): SyncResultFfi
-    
+
     companion object
 }
 
@@ -2452,7 +2907,7 @@ public interface ContactCacheFfiInterface {
  */
 open class ContactCacheFfi : FFIObject, ContactCacheFfiInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -2462,15 +2917,17 @@ open class ContactCacheFfi : FFIObject, ContactCacheFfiInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new contact cache (uses in-memory storage).
      */
     constructor() :
         this(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_contactcacheffi_new(_status)
-})
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_contactcacheffi_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -2487,150 +2944,161 @@ open class ContactCacheFfi : FFIObject, ContactCacheFfiInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_contactcacheffi(pointer!!, status)
         }
     }
 
-    
     /**
      * Add a contact by public key.
      */
-    @Throws(StorageCacheException::class)override fun `add`(`pubkey`: String) =
+    @Throws(StorageCacheException::class)
+    override fun `add`(`pubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_add(it,
-        FfiConverterString.lower(`pubkey`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_add(
+                    it,
+                    FfiConverterString.lower(`pubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Add a contact with a display name.
      */
-    @Throws(StorageCacheException::class)override fun `addWithName`(`pubkey`: String, `name`: String) =
+    @Throws(StorageCacheException::class)
+    override fun `addWithName`(`pubkey`: String, `name`: String) =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_add_with_name(it,
-        FfiConverterString.lower(`pubkey`),FfiConverterString.lower(`name`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_add_with_name(
+                    it,
+                    FfiConverterString.lower(`pubkey`),
+                    FfiConverterString.lower(`name`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Clear all cached contacts.
      */
-    @Throws(StorageCacheException::class)override fun `clear`() =
+    @Throws(StorageCacheException::class)
+    override fun `clear`() =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_clear(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_clear(
+                    it,
+
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Check if a contact exists.
      */
-    @Throws(StorageCacheException::class)override fun `contains`(`pubkey`: String): Boolean =
+    @Throws(StorageCacheException::class)
+    override fun `contains`(`pubkey`: String): Boolean =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_contains(it,
-        FfiConverterString.lower(`pubkey`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_contains(
+                    it,
+                    FfiConverterString.lower(`pubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * Get the number of cached contacts.
      */
-    @Throws(StorageCacheException::class)override fun `count`(): UInt =
+    @Throws(StorageCacheException::class)
+    override fun `count`(): UInt =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_count(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_count(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterUInt.lift(it)
         }
-    
-    
+
     /**
      * Get a specific contact by public key.
      */
-    @Throws(StorageCacheException::class)override fun `get`(`pubkey`: String): CachedContactFfi? =
+    @Throws(StorageCacheException::class)
+    override fun `get`(`pubkey`: String): CachedContactFfi? =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_get(it,
-        FfiConverterString.lower(`pubkey`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_get(
+                    it,
+                    FfiConverterString.lower(`pubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeCachedContactFFI.lift(it)
         }
-    
-    
+
     /**
      * Get all cached contacts.
      */
-    @Throws(StorageCacheException::class)override fun `getAll`(): List<CachedContactFfi> =
+    @Throws(StorageCacheException::class)
+    override fun `getAll`(): List<CachedContactFfi> =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_get_all(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_get_all(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypeCachedContactFFI.lift(it)
         }
-    
-    
+
     /**
      * Remove a contact by public key.
      */
-    @Throws(StorageCacheException::class)override fun `remove`(`pubkey`: String) =
+    @Throws(StorageCacheException::class)
+    override fun `remove`(`pubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_remove(it,
-        FfiConverterString.lower(`pubkey`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_remove(
+                    it,
+                    FfiConverterString.lower(`pubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Sync with remote contacts.
      */
-    @Throws(StorageCacheException::class)override fun `sync`(`remotePubkeys`: List<String>): SyncResultFfi =
+    @Throws(StorageCacheException::class)
+    override fun `sync`(`remotePubkeys`: List<String>): SyncResultFfi =
         callWithPointer {
-    uniffiRustCallWithError(StorageCacheException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_sync(it,
-        FfiConverterSequenceString.lower(`remotePubkeys`),
-        _status)
-}
+            uniffiRustCallWithError(StorageCacheException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_contactcacheffi_sync(
+                    it,
+                    FfiConverterSequenceString.lower(`remotePubkeys`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeSyncResultFFI.lift(it)
         }
-    
-    
 
-    
     companion object
-    
 }
 
-public object FfiConverterTypeContactCacheFFI: FfiConverter<ContactCacheFfi, Pointer> {
+public object FfiConverterTypeContactCacheFFI : FfiConverter<ContactCacheFfi, Pointer> {
 
     override fun lower(value: ContactCacheFfi): Pointer {
         return value.uniffiClonePointer()
@@ -2655,42 +3123,42 @@ public object FfiConverterTypeContactCacheFFI: FfiConverter<ContactCacheFfi, Poi
     }
 }
 
-
-
-
-
 /**
  * Async directory operations manager.
  *
  * Provides non-blocking directory operations with callback support.
  */
 public interface DirectoryOperationsAsyncInterface {
-    
+
     /**
      * Add a contact asynchronously.
      */
     fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String)
-    
+
     /**
      * Fetch known contacts asynchronously.
      */
     fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String>
-    
+
     /**
      * Fetch a specific payment endpoint asynchronously.
      */
-    fun `fetchPaymentEndpoint`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String, `methodId`: String): String?
-    
+    fun `fetchPaymentEndpoint`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String,
+        `methodId`: String
+    ): String?
+
     /**
      * Fetch all supported payment methods asynchronously.
      */
     fun `fetchSupportedPayments`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<PaymentMethod>
-    
+
     /**
      * List all contacts asynchronously.
      */
     fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String>
-    
+
     /**
      * Publish a payment endpoint asynchronously.
      *
@@ -2698,17 +3166,17 @@ public interface DirectoryOperationsAsyncInterface {
      * For true non-blocking behavior, use the callback-based methods from mobile SDKs.
      */
     fun `publishPaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String, `endpointData`: String)
-    
+
     /**
      * Remove a contact asynchronously.
      */
     fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String)
-    
+
     /**
      * Remove a payment endpoint asynchronously.
      */
     fun `removePaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String)
-    
+
     companion object
 }
 
@@ -2719,7 +3187,7 @@ public interface DirectoryOperationsAsyncInterface {
  */
 open class DirectoryOperationsAsync : FFIObject, DirectoryOperationsAsyncInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -2729,15 +3197,17 @@ open class DirectoryOperationsAsync : FFIObject, DirectoryOperationsAsyncInterfa
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new async directory operations manager.
      */
     constructor() :
         this(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_directoryoperationsasync_new(_status)
-})
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_directoryoperationsasync_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -2754,138 +3224,182 @@ open class DirectoryOperationsAsync : FFIObject, DirectoryOperationsAsyncInterfa
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_directoryoperationsasync(pointer!!, status)
         }
     }
 
-    
     /**
      * Add a contact asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_add_contact(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`contactPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_add_contact(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`contactPubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Fetch known contacts asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_known_contacts(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_known_contacts(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Fetch a specific payment endpoint asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `fetchPaymentEndpoint`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String, `methodId`: String): String? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchPaymentEndpoint`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String,
+        `methodId`: String
+    ): String? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_payment_endpoint(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_payment_endpoint(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Fetch all supported payment methods asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `fetchSupportedPayments`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<PaymentMethod> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchSupportedPayments`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String
+    ): List<PaymentMethod> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_supported_payments(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_fetch_supported_payments(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypePaymentMethod.lift(it)
         }
-    
-    
+
     /**
      * List all contacts asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_list_contacts(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_list_contacts(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Publish a payment endpoint asynchronously.
      *
      * This is a blocking call that wraps the async operation.
      * For true non-blocking behavior, use the callback-based methods from mobile SDKs.
      */
-    @Throws(PaykitMobileException::class)override fun `publishPaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String, `endpointData`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `publishPaymentEndpoint`(
+        `transport`: AuthenticatedTransportFfi,
+        `methodId`: String,
+        `endpointData`: String
+    ) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_publish_payment_endpoint(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpointData`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_publish_payment_endpoint(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpointData`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Remove a contact asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_contact(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`contactPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_contact(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`contactPubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Remove a payment endpoint asynchronously.
      */
-    @Throws(PaykitMobileException::class)override fun `removePaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `removePaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_payment_endpoint(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_directoryoperationsasync_remove_payment_endpoint(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }
-    
-    
-    
 
-    
     companion object
-    
 }
 
-public object FfiConverterTypeDirectoryOperationsAsync: FfiConverter<DirectoryOperationsAsync, Pointer> {
+public object FfiConverterTypeDirectoryOperationsAsync : FfiConverter<DirectoryOperationsAsync, Pointer> {
 
     override fun lower(value: DirectoryOperationsAsync): Pointer {
         return value.uniffiClonePointer()
@@ -2909,10 +3423,6 @@ public object FfiConverterTypeDirectoryOperationsAsync: FfiConverter<DirectoryOp
         buf.putLong(Pointer.nativeValue(lower(value)))
     }
 }
-
-
-
-
 
 /**
  * Async bridge for executor operations.
@@ -2955,12 +3465,12 @@ public object FfiConverterTypeDirectoryOperationsAsync: FfiConverter<DirectoryOp
  * to cancel long-running operations.
  */
 public interface ExecutorAsyncBridgeInterface {
-    
+
     /**
      * Get the default timeout in milliseconds.
      */
     fun `defaultTimeoutMs`(): ULong
-    
+
     companion object
 }
 
@@ -3006,7 +3516,7 @@ public interface ExecutorAsyncBridgeInterface {
  */
 open class ExecutorAsyncBridge : FFIObject, ExecutorAsyncBridgeInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -3016,15 +3526,17 @@ open class ExecutorAsyncBridge : FFIObject, ExecutorAsyncBridgeInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new executor async bridge.
      */
     constructor() :
         this(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_executorasyncbridge_new(_status)
-})
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_executorasyncbridge_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -3041,43 +3553,45 @@ open class ExecutorAsyncBridge : FFIObject, ExecutorAsyncBridgeInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_executorasyncbridge(pointer!!, status)
         }
     }
 
-    
     /**
      * Get the default timeout in milliseconds.
-     */override fun `defaultTimeoutMs`(): ULong =
+     */
+    override fun `defaultTimeoutMs`(): ULong =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_executorasyncbridge_default_timeout_ms(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_executorasyncbridge_default_timeout_ms(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterULong.lift(it)
         }
-    
-    
 
     companion object {
-        
-    /**
-     * Create with custom timeout.
-     */
+
+        /**
+         * Create with custom timeout.
+         */
         fun `withTimeout`(`timeoutMs`: ULong): ExecutorAsyncBridge =
             ExecutorAsyncBridge(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_executorasyncbridge_with_timeout(FfiConverterULong.lower(`timeoutMs`),_status)
-})
-        
+                uniffiRustCallWithError(PaykitMobileException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_executorasyncbridge_with_timeout(
+                        FfiConverterULong.lower(`timeoutMs`),
+                        _status
+                    )
+                }
+            )
     }
-    
 }
 
-public object FfiConverterTypeExecutorAsyncBridge: FfiConverter<ExecutorAsyncBridge, Pointer> {
+public object FfiConverterTypeExecutorAsyncBridge : FfiConverter<ExecutorAsyncBridge, Pointer> {
 
     override fun lower(value: ExecutorAsyncBridge): Pointer {
         return value.uniffiClonePointer()
@@ -3102,15 +3616,11 @@ public object FfiConverterTypeExecutorAsyncBridge: FfiConverter<ExecutorAsyncBri
     }
 }
 
-
-
-
-
 /**
  * Main Paykit client for mobile applications.
  */
 public interface PaykitClientInterface {
-    
+
     /**
      * Add a contact to the follows list.
      *
@@ -3120,22 +3630,28 @@ public interface PaykitClientInterface {
      * * `contact_pubkey` - The contact's public key to add
      */
     fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String)
-    
+
     /**
      * Get the configured Bitcoin network.
      */
     fun `bitcoinNetwork`(): BitcoinNetworkFfi
-    
+
     /**
      * Calculate proration for a subscription modification.
      */
-    fun `calculateProration`(`currentAmountSats`: Long, `newAmountSats`: Long, `periodStart`: Long, `periodEnd`: Long, `changeDate`: Long): ProrationResult
-    
+    fun `calculateProration`(
+        `currentAmountSats`: Long,
+        `newAmountSats`: Long,
+        `periodStart`: Long,
+        `periodEnd`: Long,
+        `changeDate`: Long
+    ): ProrationResult
+
     /**
      * Check health of all payment methods.
      */
     fun `checkHealth`(): List<HealthCheckResult>
-    
+
     /**
      * Create an error message for Noise channel.
      *
@@ -3145,17 +3661,31 @@ public interface PaykitClientInterface {
      * * `message` - Error description
      */
     fun `createNoiseErrorMessage`(`code`: String, `message`: String): NoisePaymentMessage
-    
+
     /**
      * Create a payment request.
      */
-    fun `createPaymentRequest`(`fromPubkey`: String, `toPubkey`: String, `amountSats`: Long, `currency`: String, `methodId`: String, `description`: String, `expiresInSecs`: ULong?): PaymentRequest
-    
+    fun `createPaymentRequest`(
+        `fromPubkey`: String,
+        `toPubkey`: String,
+        `amountSats`: Long,
+        `currency`: String,
+        `methodId`: String,
+        `description`: String,
+        `expiresInSecs`: ULong?
+    ): PaymentRequest
+
     /**
      * Create a new receipt.
      */
-    fun `createReceipt`(`payer`: String, `payee`: String, `methodId`: String, `amount`: String?, `currency`: String?): Receipt
-    
+    fun `createReceipt`(
+        `payer`: String,
+        `payee`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?
+    ): Receipt
+
     /**
      * Create a receipt confirmation message for Noise channel.
      *
@@ -3169,8 +3699,16 @@ public interface PaykitClientInterface {
      * * `currency` - Currency code
      * * `signature` - Optional signature from payee
      */
-    fun `createReceiptConfirmationMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?, `signature`: String?): NoisePaymentMessage
-    
+    fun `createReceiptConfirmationMessage`(
+        `receiptId`: String,
+        `payerPubkey`: String,
+        `payeePubkey`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?,
+        `signature`: String?
+    ): NoisePaymentMessage
+
     /**
      * Create a receipt request message for Noise channel.
      *
@@ -3183,18 +3721,25 @@ public interface PaykitClientInterface {
      * * `amount` - Optional payment amount
      * * `currency` - Optional currency code
      */
-    fun `createReceiptRequestMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?): NoisePaymentMessage
-    
+    fun `createReceiptRequestMessage`(
+        `receiptId`: String,
+        `payerPubkey`: String,
+        `payeePubkey`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?
+    ): NoisePaymentMessage
+
     /**
      * Create a new subscription.
      */
     fun `createSubscription`(`subscriber`: String, `provider`: String, `terms`: SubscriptionTerms): Subscription
-    
+
     /**
      * Get days remaining in current billing period.
      */
     fun `daysRemainingInPeriod`(`periodEnd`: Long): UInt
-    
+
     /**
      * Discover a Noise endpoint for a recipient.
      *
@@ -3219,7 +3764,7 @@ public interface PaykitClientInterface {
      * ```
      */
     fun `discoverNoiseEndpoint`(`transport`: UnauthenticatedTransportFfi, `recipientPubkey`: String): NoiseEndpointInfo?
-    
+
     /**
      * Execute a payment using the registered executor.
      *
@@ -3253,18 +3798,23 @@ public interface PaykitClientInterface {
      * }
      * ```
      */
-    fun `executePayment`(`methodId`: String, `endpoint`: String, `amountSats`: ULong, `metadataJson`: String?): PaymentExecutionResult
-    
+    fun `executePayment`(
+        `methodId`: String,
+        `endpoint`: String,
+        `amountSats`: ULong,
+        `metadataJson`: String?
+    ): PaymentExecutionResult
+
     /**
      * Extract public key from scanned QR code.
      */
     fun `extractKeyFromQr`(`scannedData`: String): String?
-    
+
     /**
      * Extract payment method from scanned QR code.
      */
     fun `extractMethodFromQr`(`scannedData`: String): String?
-    
+
     /**
      * Fetch known contacts for a public key.
      *
@@ -3278,7 +3828,7 @@ public interface PaykitClientInterface {
      * List of contact public keys.
      */
     fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String>
-    
+
     /**
      * Fetch a specific payment endpoint for a public key.
      *
@@ -3292,8 +3842,12 @@ public interface PaykitClientInterface {
      *
      * The endpoint data if found, None otherwise.
      */
-    fun `fetchPaymentEndpoint`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String, `methodId`: String): String?
-    
+    fun `fetchPaymentEndpoint`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String,
+        `methodId`: String
+    ): String?
+
     /**
      * Fetch all supported payment methods for a public key.
      *
@@ -3317,7 +3871,7 @@ public interface PaykitClientInterface {
      * ```
      */
     fun `fetchSupportedPayments`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<PaymentMethod>
-    
+
     /**
      * Generate a payment proof from an execution result.
      *
@@ -3334,22 +3888,22 @@ public interface PaykitClientInterface {
      * `PaymentProofResult` containing the proof type and data.
      */
     fun `generatePaymentProof`(`methodId`: String, `executionDataJson`: String): PaymentProofResult
-    
+
     /**
      * Get health status of a specific method.
      */
     fun `getHealthStatus`(`methodId`: String): HealthStatus?
-    
+
     /**
      * Get all in-progress payments.
      */
     fun `getInProgressPayments`(): List<PaymentStatusInfo>
-    
+
     /**
      * Get payment status for a receipt.
      */
     fun `getPaymentStatus`(`receiptId`: String): PaymentStatusInfo?
-    
+
     /**
      * Check if a Bitcoin executor has been registered.
      *
@@ -3357,7 +3911,7 @@ public interface PaykitClientInterface {
      * `register_bitcoin_executor`, this will return true.
      */
     fun `hasBitcoinExecutor`(): Boolean
-    
+
     /**
      * Check if a Lightning executor has been registered.
      *
@@ -3365,22 +3919,22 @@ public interface PaykitClientInterface {
      * `register_lightning_executor`, this will return true.
      */
     fun `hasLightningExecutor`(): Boolean
-    
+
     /**
      * Check if a method is usable (healthy or degraded).
      */
     fun `isMethodUsable`(`methodId`: String): Boolean
-    
+
     /**
      * Check if scanned data looks like a Paykit URI.
      */
     fun `isPaykitQr`(`scannedData`: String): Boolean
-    
+
     /**
      * Get the configured Lightning network.
      */
     fun `lightningNetwork`(): LightningNetworkFfi
-    
+
     /**
      * List all contacts.
      *
@@ -3393,12 +3947,12 @@ public interface PaykitClientInterface {
      * List of contact public keys.
      */
     fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String>
-    
+
     /**
      * Get the list of registered payment methods.
      */
     fun `listMethods`(): List<String>
-    
+
     /**
      * Parse a payment message from JSON.
      *
@@ -3407,17 +3961,17 @@ public interface PaykitClientInterface {
      * * `json` - The JSON string to parse
      */
     fun `parseNoisePaymentMessage`(`json`: String): NoisePaymentMessage
-    
+
     /**
      * Parse receipt metadata as JSON.
      */
     fun `parseReceiptMetadata`(`metadataJson`: String): String
-    
+
     /**
      * Parse scanned QR code data as a Paykit URI.
      */
     fun `parseScannedQr`(`scannedData`: String): ScannedUri
-    
+
     /**
      * Publish a Noise endpoint to the directory.
      *
@@ -3431,8 +3985,14 @@ public interface PaykitClientInterface {
      * * `noise_pubkey` - This server's Noise public key (X25519, hex encoded)
      * * `metadata` - Optional metadata about the endpoint
      */
-    fun `publishNoiseEndpoint`(`transport`: AuthenticatedTransportFfi, `host`: String, `port`: UShort, `noisePubkey`: String, `metadata`: String?)
-    
+    fun `publishNoiseEndpoint`(
+        `transport`: AuthenticatedTransportFfi,
+        `host`: String,
+        `port`: UShort,
+        `noisePubkey`: String,
+        `metadata`: String?
+    )
+
     /**
      * Publish a payment endpoint to the directory.
      *
@@ -3450,7 +4010,7 @@ public interface PaykitClientInterface {
      * ```
      */
     fun `publishPaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String, `endpointData`: String)
-    
+
     /**
      * Register a Bitcoin executor for on-chain payments.
      *
@@ -3482,7 +4042,7 @@ public interface PaykitClientInterface {
      * ```
      */
     fun `registerBitcoinExecutor`(`executor`: BitcoinExecutorFfi)
-    
+
     /**
      * Register a Lightning executor for Lightning Network payments.
      *
@@ -3511,7 +4071,7 @@ public interface PaykitClientInterface {
      * ```
      */
     fun `registerLightningExecutor`(`executor`: LightningExecutorFfi)
-    
+
     /**
      * Remove a contact from the follows list.
      *
@@ -3521,7 +4081,7 @@ public interface PaykitClientInterface {
      * * `contact_pubkey` - The contact's public key to remove
      */
     fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String)
-    
+
     /**
      * Remove the Noise endpoint from the directory.
      *
@@ -3532,7 +4092,7 @@ public interface PaykitClientInterface {
      * * `transport` - Authenticated transport for writing
      */
     fun `removeNoiseEndpoint`(`transport`: AuthenticatedTransportFfi)
-    
+
     /**
      * Remove a payment endpoint from the directory.
      *
@@ -3542,17 +4102,21 @@ public interface PaykitClientInterface {
      * * `method_id` - Payment method identifier to remove
      */
     fun `removePaymentEndpointFromDirectory`(`transport`: AuthenticatedTransportFfi, `methodId`: String)
-    
+
     /**
      * Select the best payment method from supported options.
      */
-    fun `selectMethod`(`supportedMethods`: List<PaymentMethod>, `amountSats`: ULong, `preferences`: SelectionPreferences?): SelectionResult
-    
+    fun `selectMethod`(
+        `supportedMethods`: List<PaymentMethod>,
+        `amountSats`: ULong,
+        `preferences`: SelectionPreferences?
+    ): SelectionResult
+
     /**
      * Validate an endpoint for a specific method.
      */
     fun `validateEndpoint`(`methodId`: String, `endpoint`: String): Boolean
-    
+
     companion object
 }
 
@@ -3561,7 +4125,7 @@ public interface PaykitClientInterface {
  */
 open class PaykitClient : FFIObject, PaykitClientInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -3571,15 +4135,17 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new Paykit client with default (mainnet) network configuration.
      */
     constructor() :
         this(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitclient_new(_status)
-})
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitclient_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -3596,12 +4162,11 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_paykitclient(pointer!!, status)
         }
     }
 
-    
     /**
      * Add a contact to the follows list.
      *
@@ -3610,60 +4175,82 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `transport` - Authenticated transport for the owner
      * * `contact_pubkey` - The contact's public key to add
      */
-    @Throws(PaykitMobileException::class)override fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `addContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_add_contact(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`contactPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_add_contact(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`contactPubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Get the configured Bitcoin network.
-     */override fun `bitcoinNetwork`(): BitcoinNetworkFfi =
+     */
+    override fun `bitcoinNetwork`(): BitcoinNetworkFfi =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_bitcoin_network(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_bitcoin_network(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeBitcoinNetworkFFI.lift(it)
         }
-    
-    
+
     /**
      * Calculate proration for a subscription modification.
      */
-    @Throws(PaykitMobileException::class)override fun `calculateProration`(`currentAmountSats`: Long, `newAmountSats`: Long, `periodStart`: Long, `periodEnd`: Long, `changeDate`: Long): ProrationResult =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `calculateProration`(
+        `currentAmountSats`: Long,
+        `newAmountSats`: Long,
+        `periodStart`: Long,
+        `periodEnd`: Long,
+        `changeDate`: Long
+    ): ProrationResult =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_calculate_proration(it,
-        FfiConverterLong.lower(`currentAmountSats`),FfiConverterLong.lower(`newAmountSats`),FfiConverterLong.lower(`periodStart`),FfiConverterLong.lower(`periodEnd`),FfiConverterLong.lower(`changeDate`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_calculate_proration(
+                    it,
+                    FfiConverterLong.lower(`currentAmountSats`),
+                    FfiConverterLong.lower(`newAmountSats`),
+                    FfiConverterLong.lower(`periodStart`),
+                    FfiConverterLong.lower(`periodEnd`),
+                    FfiConverterLong.lower(`changeDate`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeProrationResult.lift(it)
         }
-    
-    
+
     /**
      * Check health of all payment methods.
-     */override fun `checkHealth`(): List<HealthCheckResult> =
+     */
+    override fun `checkHealth`(): List<HealthCheckResult> =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_check_health(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_check_health(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypeHealthCheckResult.lift(it)
         }
-    
-    
+
     /**
      * Create an error message for Noise channel.
      *
@@ -3672,48 +4259,94 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `code` - Error code
      * * `message` - Error description
      */
-    @Throws(PaykitMobileException::class)override fun `createNoiseErrorMessage`(`code`: String, `message`: String): NoisePaymentMessage =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createNoiseErrorMessage`(`code`: String, `message`: String): NoisePaymentMessage =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_noise_error_message(it,
-        FfiConverterString.lower(`code`),FfiConverterString.lower(`message`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_noise_error_message(
+                    it,
+                    FfiConverterString.lower(`code`),
+                    FfiConverterString.lower(`message`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeNoisePaymentMessage.lift(it)
         }
-    
-    
+
     /**
      * Create a payment request.
      */
-    @Throws(PaykitMobileException::class)override fun `createPaymentRequest`(`fromPubkey`: String, `toPubkey`: String, `amountSats`: Long, `currency`: String, `methodId`: String, `description`: String, `expiresInSecs`: ULong?): PaymentRequest =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createPaymentRequest`(
+        `fromPubkey`: String,
+        `toPubkey`: String,
+        `amountSats`: Long,
+        `currency`: String,
+        `methodId`: String,
+        `description`: String,
+        `expiresInSecs`: ULong?
+    ): PaymentRequest =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_payment_request(it,
-        FfiConverterString.lower(`fromPubkey`),FfiConverterString.lower(`toPubkey`),FfiConverterLong.lower(`amountSats`),FfiConverterString.lower(`currency`),FfiConverterString.lower(`methodId`),FfiConverterString.lower(`description`),FfiConverterOptionalULong.lower(`expiresInSecs`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_payment_request(
+                    it,
+                    FfiConverterString.lower(
+                        `fromPubkey`
+                    ),
+                    FfiConverterString.lower(
+                        `toPubkey`
+                    ),
+                    FfiConverterLong.lower(
+                        `amountSats`
+                    ),
+                    FfiConverterString.lower(
+                        `currency`
+                    ),
+                    FfiConverterString.lower(
+                        `methodId`
+                    ),
+                    FfiConverterString.lower(`description`), FfiConverterOptionalULong.lower(`expiresInSecs`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypePaymentRequest.lift(it)
         }
-    
-    
+
     /**
      * Create a new receipt.
      */
-    @Throws(PaykitMobileException::class)override fun `createReceipt`(`payer`: String, `payee`: String, `methodId`: String, `amount`: String?, `currency`: String?): Receipt =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createReceipt`(
+        `payer`: String,
+        `payee`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?
+    ): Receipt =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt(it,
-        FfiConverterString.lower(`payer`),FfiConverterString.lower(`payee`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt(
+                    it,
+                    FfiConverterString.lower(`payer`),
+                    FfiConverterString.lower(`payee`),
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterOptionalString.lower(`amount`),
+                    FfiConverterOptionalString.lower(`currency`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeReceipt.lift(it)
         }
-    
-    
+
     /**
      * Create a receipt confirmation message for Noise channel.
      *
@@ -3727,18 +4360,45 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `currency` - Currency code
      * * `signature` - Optional signature from payee
      */
-    @Throws(PaykitMobileException::class)override fun `createReceiptConfirmationMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?, `signature`: String?): NoisePaymentMessage =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createReceiptConfirmationMessage`(
+        `receiptId`: String,
+        `payerPubkey`: String,
+        `payeePubkey`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?,
+        `signature`: String?
+    ): NoisePaymentMessage =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_confirmation_message(it,
-        FfiConverterString.lower(`receiptId`),FfiConverterString.lower(`payerPubkey`),FfiConverterString.lower(`payeePubkey`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),FfiConverterOptionalString.lower(`signature`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_confirmation_message(
+                    it,
+                    FfiConverterString.lower(
+                        `receiptId`
+                    ),
+                    FfiConverterString.lower(
+                        `payerPubkey`
+                    ),
+                    FfiConverterString.lower(
+                        `payeePubkey`
+                    ),
+                    FfiConverterString.lower(
+                        `methodId`
+                    ),
+                    FfiConverterOptionalString.lower(
+                        `amount`
+                    ),
+                    FfiConverterOptionalString.lower(`currency`), FfiConverterOptionalString.lower(`signature`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeNoisePaymentMessage.lift(it)
         }
-    
-    
+
     /**
      * Create a receipt request message for Noise channel.
      *
@@ -3751,47 +4411,75 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `amount` - Optional payment amount
      * * `currency` - Optional currency code
      */
-    @Throws(PaykitMobileException::class)override fun `createReceiptRequestMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?): NoisePaymentMessage =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createReceiptRequestMessage`(
+        `receiptId`: String,
+        `payerPubkey`: String,
+        `payeePubkey`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?
+    ): NoisePaymentMessage =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_request_message(it,
-        FfiConverterString.lower(`receiptId`),FfiConverterString.lower(`payerPubkey`),FfiConverterString.lower(`payeePubkey`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_receipt_request_message(
+                    it,
+                    FfiConverterString.lower(`receiptId`),
+                    FfiConverterString.lower(`payerPubkey`),
+                    FfiConverterString.lower(`payeePubkey`),
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterOptionalString.lower(`amount`),
+                    FfiConverterOptionalString.lower(`currency`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeNoisePaymentMessage.lift(it)
         }
-    
-    
+
     /**
      * Create a new subscription.
      */
-    @Throws(PaykitMobileException::class)override fun `createSubscription`(`subscriber`: String, `provider`: String, `terms`: SubscriptionTerms): Subscription =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createSubscription`(
+        `subscriber`: String,
+        `provider`: String,
+        `terms`: SubscriptionTerms
+    ): Subscription =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_subscription(it,
-        FfiConverterString.lower(`subscriber`),FfiConverterString.lower(`provider`),FfiConverterTypeSubscriptionTerms.lower(`terms`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_create_subscription(
+                    it,
+                    FfiConverterString.lower(`subscriber`),
+                    FfiConverterString.lower(`provider`),
+                    FfiConverterTypeSubscriptionTerms.lower(`terms`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeSubscription.lift(it)
         }
-    
-    
+
     /**
      * Get days remaining in current billing period.
-     */override fun `daysRemainingInPeriod`(`periodEnd`: Long): UInt =
+     */
+    override fun `daysRemainingInPeriod`(`periodEnd`: Long): UInt =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_days_remaining_in_period(it,
-        FfiConverterLong.lower(`periodEnd`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_days_remaining_in_period(
+                    it,
+                    FfiConverterLong.lower(`periodEnd`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterUInt.lift(it)
         }
-    
-    
+
     /**
      * Discover a Noise endpoint for a recipient.
      *
@@ -3815,18 +4503,26 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * }
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `discoverNoiseEndpoint`(`transport`: UnauthenticatedTransportFfi, `recipientPubkey`: String): NoiseEndpointInfo? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `discoverNoiseEndpoint`(
+        `transport`: UnauthenticatedTransportFfi,
+        `recipientPubkey`: String
+    ): NoiseEndpointInfo? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_discover_noise_endpoint(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`recipientPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_discover_noise_endpoint(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`recipientPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeNoiseEndpointInfo.lift(it)
         }
-    
-    
+
     /**
      * Execute a payment using the registered executor.
      *
@@ -3860,46 +4556,62 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * }
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `executePayment`(`methodId`: String, `endpoint`: String, `amountSats`: ULong, `metadataJson`: String?): PaymentExecutionResult =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `executePayment`(
+        `methodId`: String,
+        `endpoint`: String,
+        `amountSats`: ULong,
+        `metadataJson`: String?
+    ): PaymentExecutionResult =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_execute_payment(it,
-        FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpoint`),FfiConverterULong.lower(`amountSats`),FfiConverterOptionalString.lower(`metadataJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_execute_payment(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpoint`),
+                    FfiConverterULong.lower(`amountSats`),
+                    FfiConverterOptionalString.lower(`metadataJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypePaymentExecutionResult.lift(it)
         }
-    
-    
+
     /**
      * Extract public key from scanned QR code.
-     */override fun `extractKeyFromQr`(`scannedData`: String): String? =
+     */
+    override fun `extractKeyFromQr`(`scannedData`: String): String? =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_extract_key_from_qr(it,
-        FfiConverterString.lower(`scannedData`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_extract_key_from_qr(
+                    it,
+                    FfiConverterString.lower(`scannedData`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Extract payment method from scanned QR code.
-     */override fun `extractMethodFromQr`(`scannedData`: String): String? =
+     */
+    override fun `extractMethodFromQr`(`scannedData`: String): String? =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_extract_method_from_qr(it,
-        FfiConverterString.lower(`scannedData`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_extract_method_from_qr(
+                    it,
+                    FfiConverterString.lower(`scannedData`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Fetch known contacts for a public key.
      *
@@ -3912,18 +4624,23 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * List of contact public keys.
      */
-    @Throws(PaykitMobileException::class)override fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchKnownContacts`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_known_contacts(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_known_contacts(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Fetch a specific payment endpoint for a public key.
      *
@@ -3937,18 +4654,28 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * The endpoint data if found, None otherwise.
      */
-    @Throws(PaykitMobileException::class)override fun `fetchPaymentEndpoint`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String, `methodId`: String): String? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchPaymentEndpoint`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String,
+        `methodId`: String
+    ): String? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_payment_endpoint(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_payment_endpoint(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Fetch all supported payment methods for a public key.
      *
@@ -3971,18 +4698,26 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * }
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `fetchSupportedPayments`(`transport`: UnauthenticatedTransportFfi, `ownerPubkey`: String): List<PaymentMethod> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `fetchSupportedPayments`(
+        `transport`: UnauthenticatedTransportFfi,
+        `ownerPubkey`: String
+    ): List<PaymentMethod> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_supported_payments(it,
-        FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`ownerPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_fetch_supported_payments(
+                    it,
+                    FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`ownerPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypePaymentMethod.lift(it)
         }
-    
-    
+
     /**
      * Generate a payment proof from an execution result.
      *
@@ -3998,136 +4733,157 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * `PaymentProofResult` containing the proof type and data.
      */
-    @Throws(PaykitMobileException::class)override fun `generatePaymentProof`(`methodId`: String, `executionDataJson`: String): PaymentProofResult =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `generatePaymentProof`(`methodId`: String, `executionDataJson`: String): PaymentProofResult =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_generate_payment_proof(it,
-        FfiConverterString.lower(`methodId`),FfiConverterString.lower(`executionDataJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_generate_payment_proof(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`executionDataJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypePaymentProofResult.lift(it)
         }
-    
-    
+
     /**
      * Get health status of a specific method.
-     */override fun `getHealthStatus`(`methodId`: String): HealthStatus? =
+     */
+    override fun `getHealthStatus`(`methodId`: String): HealthStatus? =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_health_status(it,
-        FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_health_status(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeHealthStatus.lift(it)
         }
-    
-    
+
     /**
      * Get all in-progress payments.
-     */override fun `getInProgressPayments`(): List<PaymentStatusInfo> =
+     */
+    override fun `getInProgressPayments`(): List<PaymentStatusInfo> =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_in_progress_payments(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_in_progress_payments(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypePaymentStatusInfo.lift(it)
         }
-    
-    
+
     /**
      * Get payment status for a receipt.
-     */override fun `getPaymentStatus`(`receiptId`: String): PaymentStatusInfo? =
+     */
+    override fun `getPaymentStatus`(`receiptId`: String): PaymentStatusInfo? =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_payment_status(it,
-        FfiConverterString.lower(`receiptId`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_get_payment_status(
+                    it,
+                    FfiConverterString.lower(`receiptId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypePaymentStatusInfo.lift(it)
         }
-    
-    
+
     /**
      * Check if a Bitcoin executor has been registered.
      *
      * Note: This checks if the onchain method is registered. After calling
      * `register_bitcoin_executor`, this will return true.
-     */override fun `hasBitcoinExecutor`(): Boolean =
+     */
+    override fun `hasBitcoinExecutor`(): Boolean =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_has_bitcoin_executor(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_has_bitcoin_executor(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * Check if a Lightning executor has been registered.
      *
      * Note: This checks if the lightning method is registered. After calling
      * `register_lightning_executor`, this will return true.
-     */override fun `hasLightningExecutor`(): Boolean =
+     */
+    override fun `hasLightningExecutor`(): Boolean =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_has_lightning_executor(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_has_lightning_executor(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * Check if a method is usable (healthy or degraded).
-     */override fun `isMethodUsable`(`methodId`: String): Boolean =
+     */
+    override fun `isMethodUsable`(`methodId`: String): Boolean =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_is_method_usable(it,
-        FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_is_method_usable(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * Check if scanned data looks like a Paykit URI.
-     */override fun `isPaykitQr`(`scannedData`: String): Boolean =
+     */
+    override fun `isPaykitQr`(`scannedData`: String): Boolean =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_is_paykit_qr(it,
-        FfiConverterString.lower(`scannedData`),
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_is_paykit_qr(
+                    it,
+                    FfiConverterString.lower(`scannedData`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * Get the configured Lightning network.
-     */override fun `lightningNetwork`(): LightningNetworkFfi =
+     */
+    override fun `lightningNetwork`(): LightningNetworkFfi =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_lightning_network(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_lightning_network(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeLightningNetworkFFI.lift(it)
         }
-    
-    
+
     /**
      * List all contacts.
      *
@@ -4139,32 +4895,38 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * List of contact public keys.
      */
-    @Throws(PaykitMobileException::class)override fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `listContacts`(`transport`: AuthenticatedTransportFfi): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_list_contacts(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_list_contacts(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Get the list of registered payment methods.
-     */override fun `listMethods`(): List<String> =
+     */
+    override fun `listMethods`(): List<String> =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_list_methods(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_list_methods(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
+
     /**
      * Parse a payment message from JSON.
      *
@@ -4172,48 +4934,54 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * * `json` - The JSON string to parse
      */
-    @Throws(PaykitMobileException::class)override fun `parseNoisePaymentMessage`(`json`: String): NoisePaymentMessage =
+    @Throws(PaykitMobileException::class)
+    override fun `parseNoisePaymentMessage`(`json`: String): NoisePaymentMessage =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_noise_payment_message(it,
-        FfiConverterString.lower(`json`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_noise_payment_message(
+                    it,
+                    FfiConverterString.lower(`json`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeNoisePaymentMessage.lift(it)
         }
-    
-    
+
     /**
      * Parse receipt metadata as JSON.
      */
-    @Throws(PaykitMobileException::class)override fun `parseReceiptMetadata`(`metadataJson`: String): String =
+    @Throws(PaykitMobileException::class)
+    override fun `parseReceiptMetadata`(`metadataJson`: String): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_receipt_metadata(it,
-        FfiConverterString.lower(`metadataJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_receipt_metadata(
+                    it,
+                    FfiConverterString.lower(`metadataJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Parse scanned QR code data as a Paykit URI.
      */
-    @Throws(PaykitMobileException::class)override fun `parseScannedQr`(`scannedData`: String): ScannedUri =
+    @Throws(PaykitMobileException::class)
+    override fun `parseScannedQr`(`scannedData`: String): ScannedUri =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_scanned_qr(it,
-        FfiConverterString.lower(`scannedData`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_parse_scanned_qr(
+                    it,
+                    FfiConverterString.lower(`scannedData`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeScannedUri.lift(it)
         }
-    
-    
+
     /**
      * Publish a Noise endpoint to the directory.
      *
@@ -4227,17 +4995,30 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `noise_pubkey` - This server's Noise public key (X25519, hex encoded)
      * * `metadata` - Optional metadata about the endpoint
      */
-    @Throws(PaykitMobileException::class)override fun `publishNoiseEndpoint`(`transport`: AuthenticatedTransportFfi, `host`: String, `port`: UShort, `noisePubkey`: String, `metadata`: String?) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `publishNoiseEndpoint`(
+        `transport`: AuthenticatedTransportFfi,
+        `host`: String,
+        `port`: UShort,
+        `noisePubkey`: String,
+        `metadata`: String?
+    ) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_publish_noise_endpoint(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`host`),FfiConverterUShort.lower(`port`),FfiConverterString.lower(`noisePubkey`),FfiConverterOptionalString.lower(`metadata`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_publish_noise_endpoint(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`host`),
+                    FfiConverterUShort.lower(`port`),
+                    FfiConverterString.lower(`noisePubkey`),
+                    FfiConverterOptionalString.lower(`metadata`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Publish a payment endpoint to the directory.
      *
@@ -4254,17 +5035,26 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * client.publish_payment_endpoint(transport, "lightning", "lnbc1...")?;
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `publishPaymentEndpoint`(`transport`: AuthenticatedTransportFfi, `methodId`: String, `endpointData`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `publishPaymentEndpoint`(
+        `transport`: AuthenticatedTransportFfi,
+        `methodId`: String,
+        `endpointData`: String
+    ) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_publish_payment_endpoint(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpointData`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_publish_payment_endpoint(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpointData`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Register a Bitcoin executor for on-chain payments.
      *
@@ -4295,17 +5085,18 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * try client.registerBitcoinExecutor(executor: BitkitBitcoinExecutor())
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `registerBitcoinExecutor`(`executor`: BitcoinExecutorFfi) =
+    @Throws(PaykitMobileException::class)
+    override fun `registerBitcoinExecutor`(`executor`: BitcoinExecutorFfi) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_register_bitcoin_executor(it,
-        FfiConverterTypeBitcoinExecutorFFI.lower(`executor`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_register_bitcoin_executor(
+                    it,
+                    FfiConverterTypeBitcoinExecutorFFI.lower(`executor`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Register a Lightning executor for Lightning Network payments.
      *
@@ -4333,17 +5124,18 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * try client.registerLightningExecutor(executor: BitkitLightningExecutor())
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `registerLightningExecutor`(`executor`: LightningExecutorFfi) =
+    @Throws(PaykitMobileException::class)
+    override fun `registerLightningExecutor`(`executor`: LightningExecutorFfi) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_register_lightning_executor(it,
-        FfiConverterTypeLightningExecutorFFI.lower(`executor`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_register_lightning_executor(
+                    it,
+                    FfiConverterTypeLightningExecutorFFI.lower(`executor`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Remove a contact from the follows list.
      *
@@ -4352,17 +5144,21 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `transport` - Authenticated transport for the owner
      * * `contact_pubkey` - The contact's public key to remove
      */
-    @Throws(PaykitMobileException::class)override fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `removeContact`(`transport`: AuthenticatedTransportFfi, `contactPubkey`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_contact(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`contactPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_contact(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`contactPubkey`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Remove the Noise endpoint from the directory.
      *
@@ -4372,17 +5168,18 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      *
      * * `transport` - Authenticated transport for writing
      */
-    @Throws(PaykitMobileException::class)override fun `removeNoiseEndpoint`(`transport`: AuthenticatedTransportFfi) =
+    @Throws(PaykitMobileException::class)
+    override fun `removeNoiseEndpoint`(`transport`: AuthenticatedTransportFfi) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_noise_endpoint(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_noise_endpoint(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Remove a payment endpoint from the directory.
      *
@@ -4391,79 +5188,103 @@ open class PaykitClient : FFIObject, PaykitClientInterface {
      * * `transport` - Authenticated transport for the owner
      * * `method_id` - Payment method identifier to remove
      */
-    @Throws(PaykitMobileException::class)override fun `removePaymentEndpointFromDirectory`(`transport`: AuthenticatedTransportFfi, `methodId`: String) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `removePaymentEndpointFromDirectory`(`transport`: AuthenticatedTransportFfi, `methodId`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_payment_endpoint_from_directory(it,
-        FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_remove_payment_endpoint_from_directory(
+                    it,
+                    FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Select the best payment method from supported options.
      */
-    @Throws(PaykitMobileException::class)override fun `selectMethod`(`supportedMethods`: List<PaymentMethod>, `amountSats`: ULong, `preferences`: SelectionPreferences?): SelectionResult =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `selectMethod`(
+        `supportedMethods`: List<PaymentMethod>,
+        `amountSats`: ULong,
+        `preferences`: SelectionPreferences?
+    ): SelectionResult =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_select_method(it,
-        FfiConverterSequenceTypePaymentMethod.lower(`supportedMethods`),FfiConverterULong.lower(`amountSats`),FfiConverterOptionalTypeSelectionPreferences.lower(`preferences`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_select_method(
+                    it,
+                    FfiConverterSequenceTypePaymentMethod.lower(`supportedMethods`),
+                    FfiConverterULong.lower(`amountSats`),
+                    FfiConverterOptionalTypeSelectionPreferences.lower(`preferences`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeSelectionResult.lift(it)
         }
-    
-    
+
     /**
      * Validate an endpoint for a specific method.
      */
-    @Throws(PaykitMobileException::class)override fun `validateEndpoint`(`methodId`: String, `endpoint`: String): Boolean =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `validateEndpoint`(`methodId`: String, `endpoint`: String): Boolean =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_validate_endpoint(it,
-        FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpoint`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitclient_validate_endpoint(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpoint`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
 
     companion object {
-        
-    /**
-     * Create a new Paykit client with specific network configuration.
-     *
-     * # Arguments
-     *
-     * * `bitcoin_network` - Bitcoin network to use (Mainnet, Testnet, or Regtest)
-     * * `lightning_network` - Lightning network to use (Mainnet, Testnet, or Regtest)
-     *
-     * # Example
-     *
-     * ```ignore
-     * // For testnet development
-     * let client = PaykitClient::new_with_network(
-     * BitcoinNetworkFFI::Testnet,
-     * LightningNetworkFFI::Testnet,
-     * )?;
-     * ```
-     */
-        fun `newWithNetwork`(`bitcoinNetwork`: BitcoinNetworkFfi, `lightningNetwork`: LightningNetworkFfi): PaykitClient =
+
+        /**
+         * Create a new Paykit client with specific network configuration.
+         *
+         * # Arguments
+         *
+         * * `bitcoin_network` - Bitcoin network to use (Mainnet, Testnet, or Regtest)
+         * * `lightning_network` - Lightning network to use (Mainnet, Testnet, or Regtest)
+         *
+         * # Example
+         *
+         * ```ignore
+         * // For testnet development
+         * let client = PaykitClient::new_with_network(
+         * BitcoinNetworkFFI::Testnet,
+         * LightningNetworkFFI::Testnet,
+         * )?;
+         * ```
+         */
+        fun `newWithNetwork`(
+            `bitcoinNetwork`: BitcoinNetworkFfi,
+            `lightningNetwork`: LightningNetworkFfi
+        ): PaykitClient =
             PaykitClient(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitclient_new_with_network(FfiConverterTypeBitcoinNetworkFFI.lower(`bitcoinNetwork`),FfiConverterTypeLightningNetworkFFI.lower(`lightningNetwork`),_status)
-})
-        
+                uniffiRustCallWithError(PaykitMobileException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitclient_new_with_network(
+                        FfiConverterTypeBitcoinNetworkFFI.lower(`bitcoinNetwork`),
+                        FfiConverterTypeLightningNetworkFFI.lower(`lightningNetwork`),
+                        _status
+                    )
+                }
+            )
     }
-    
 }
 
-public object FfiConverterTypePaykitClient: FfiConverter<PaykitClient, Pointer> {
+public object FfiConverterTypePaykitClient : FfiConverter<PaykitClient, Pointer> {
 
     override fun lower(value: PaykitClient): Pointer {
         return value.uniffiClonePointer()
@@ -4488,10 +5309,6 @@ public object FfiConverterTypePaykitClient: FfiConverter<PaykitClient, Pointer> 
     }
 }
 
-
-
-
-
 /**
  * FFI wrapper for PaykitInteractiveManager.
  *
@@ -4507,7 +5324,7 @@ public object FfiConverterTypePaykitClient: FfiConverter<PaykitClient, Pointer> 
  * This type is thread-safe and can be used from multiple threads.
  */
 public interface PaykitInteractiveManagerFfiInterface {
-    
+
     /**
      * Create a private endpoint offer message.
      *
@@ -4523,7 +5340,7 @@ public interface PaykitInteractiveManagerFfiInterface {
      * JSON message to send over Noise channel.
      */
     fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String
-    
+
     /**
      * Create a payment request message to initiate a payment flow.
      *
@@ -4542,23 +5359,30 @@ public interface PaykitInteractiveManagerFfiInterface {
      *
      * JSON message to send over Noise channel.
      */
-    fun `createPaymentRequest`(`payer`: String, `payee`: String, `methodId`: String, `amount`: String?, `currency`: String?, `metadataJson`: String?): String
-    
+    fun `createPaymentRequest`(
+        `payer`: String,
+        `payee`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?,
+        `metadataJson`: String?
+    ): String
+
     /**
      * Get a private endpoint for a peer.
      */
     fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer?
-    
+
     /**
      * Get a receipt by ID.
      */
     fun `getReceipt`(`receiptId`: String): ReceiptRequest?
-    
+
     /**
      * Get the receipt store.
      */
     fun `getStore`(): ReceiptStore
-    
+
     /**
      * Handle an incoming message from a peer.
      *
@@ -4587,7 +5411,7 @@ public interface PaykitInteractiveManagerFfiInterface {
      * ```
      */
     fun `handleMessage`(`messageJson`: String, `peerPubkey`: String, `myPubkey`: String): String?
-    
+
     /**
      * Handle a payment confirmation response.
      *
@@ -4604,17 +5428,17 @@ public interface PaykitInteractiveManagerFfiInterface {
      * The confirmed receipt if successful, or an error.
      */
     fun `handlePaymentResponse`(`responseJson`: String, `originalReceiptId`: String): ReceiptRequest
-    
+
     /**
      * List all private endpoints for a peer.
      */
     fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer>
-    
+
     /**
      * List all receipts.
      */
     fun `listReceipts`(): List<ReceiptRequest>
-    
+
     /**
      * Set the receipt generator callback.
      *
@@ -4629,7 +5453,7 @@ public interface PaykitInteractiveManagerFfiInterface {
      * Returns an error if the internal lock is poisoned.
      */
     fun `setGenerator`(`generator`: ReceiptGeneratorCallback)
-    
+
     companion object
 }
 
@@ -4649,7 +5473,7 @@ public interface PaykitInteractiveManagerFfiInterface {
  */
 open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -4659,7 +5483,8 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new interactive manager without a generator.
      *
@@ -4671,9 +5496,13 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      */
     constructor(`store`: ReceiptStore) :
         this(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitinteractivemanagerffi_new(FfiConverterTypeReceiptStore.lower(`store`),_status)
-})
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitinteractivemanagerffi_new(
+                    FfiConverterTypeReceiptStore.lower(`store`),
+                    _status
+                )
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -4690,12 +5519,11 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_paykitinteractivemanagerffi(pointer!!, status)
         }
     }
 
-    
     /**
      * Create a private endpoint offer message.
      *
@@ -4710,18 +5538,23 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      *
      * JSON message to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_endpoint_offer(it,
-        FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpoint`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_endpoint_offer(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpoint`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Create a payment request message to initiate a payment flow.
      *
@@ -4740,62 +5573,87 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      *
      * JSON message to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createPaymentRequest`(`payer`: String, `payee`: String, `methodId`: String, `amount`: String?, `currency`: String?, `metadataJson`: String?): String =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createPaymentRequest`(
+        `payer`: String,
+        `payee`: String,
+        `methodId`: String,
+        `amount`: String?,
+        `currency`: String?,
+        `metadataJson`: String?
+    ): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_payment_request(it,
-        FfiConverterString.lower(`payer`),FfiConverterString.lower(`payee`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),FfiConverterOptionalString.lower(`metadataJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_create_payment_request(
+                    it,
+                    FfiConverterString.lower(`payer`),
+                    FfiConverterString.lower(`payee`),
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterOptionalString.lower(`amount`),
+                    FfiConverterOptionalString.lower(`currency`),
+                    FfiConverterOptionalString.lower(`metadataJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Get a private endpoint for a peer.
      */
-    @Throws(PaykitMobileException::class)override fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_private_endpoint(it,
-        FfiConverterString.lower(`peer`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_private_endpoint(
+                    it,
+                    FfiConverterString.lower(`peer`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypePrivateEndpointOffer.lift(it)
         }
-    
-    
+
     /**
      * Get a receipt by ID.
      */
-    @Throws(PaykitMobileException::class)override fun `getReceipt`(`receiptId`: String): ReceiptRequest? =
+    @Throws(PaykitMobileException::class)
+    override fun `getReceipt`(`receiptId`: String): ReceiptRequest? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_receipt(it,
-        FfiConverterString.lower(`receiptId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_receipt(
+                    it,
+                    FfiConverterString.lower(`receiptId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeReceiptRequest.lift(it)
         }
-    
-    
+
     /**
      * Get the receipt store.
-     */override fun `getStore`(): ReceiptStore =
+     */
+    override fun `getStore`(): ReceiptStore =
         callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_store(it,
-        
-        _status)
-}
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_get_store(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeReceiptStore.lift(it)
         }
-    
-    
+
     /**
      * Handle an incoming message from a peer.
      *
@@ -4823,18 +5681,24 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      * }
      * ```
      */
-    @Throws(PaykitMobileException::class)override fun `handleMessage`(`messageJson`: String, `peerPubkey`: String, `myPubkey`: String): String? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `handleMessage`(`messageJson`: String, `peerPubkey`: String, `myPubkey`: String): String? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_message(it,
-        FfiConverterString.lower(`messageJson`),FfiConverterString.lower(`peerPubkey`),FfiConverterString.lower(`myPubkey`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_message(
+                    it,
+                    FfiConverterString.lower(`messageJson`),
+                    FfiConverterString.lower(`peerPubkey`),
+                    FfiConverterString.lower(`myPubkey`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Handle a payment confirmation response.
      *
@@ -4850,48 +5714,59 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      *
      * The confirmed receipt if successful, or an error.
      */
-    @Throws(PaykitMobileException::class)override fun `handlePaymentResponse`(`responseJson`: String, `originalReceiptId`: String): ReceiptRequest =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `handlePaymentResponse`(`responseJson`: String, `originalReceiptId`: String): ReceiptRequest =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_payment_response(it,
-        FfiConverterString.lower(`responseJson`),FfiConverterString.lower(`originalReceiptId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_handle_payment_response(
+                    it,
+                    FfiConverterString.lower(`responseJson`),
+                    FfiConverterString.lower(`originalReceiptId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeReceiptRequest.lift(it)
         }
-    
-    
+
     /**
      * List all private endpoints for a peer.
      */
-    @Throws(PaykitMobileException::class)override fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_private_endpoints(it,
-        FfiConverterString.lower(`peer`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_private_endpoints(
+                    it,
+                    FfiConverterString.lower(`peer`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypePrivateEndpointOffer.lift(it)
         }
-    
-    
+
     /**
      * List all receipts.
      */
-    @Throws(PaykitMobileException::class)override fun `listReceipts`(): List<ReceiptRequest> =
+    @Throws(PaykitMobileException::class)
+    override fun `listReceipts`(): List<ReceiptRequest> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_receipts(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_list_receipts(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypeReceiptRequest.lift(it)
         }
-    
-    
+
     /**
      * Set the receipt generator callback.
      *
@@ -4905,24 +5780,22 @@ open class PaykitInteractiveManagerFfi : FFIObject, PaykitInteractiveManagerFfiI
      *
      * Returns an error if the internal lock is poisoned.
      */
-    @Throws(PaykitMobileException::class)override fun `setGenerator`(`generator`: ReceiptGeneratorCallback) =
+    @Throws(PaykitMobileException::class)
+    override fun `setGenerator`(`generator`: ReceiptGeneratorCallback) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_set_generator(it,
-        FfiConverterTypeReceiptGeneratorCallback.lower(`generator`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitinteractivemanagerffi_set_generator(
+                    it,
+                    FfiConverterTypeReceiptGeneratorCallback.lower(`generator`),
+                    _status
+                )
+            }
         }
-    
-    
-    
 
-    
     companion object
-    
 }
 
-public object FfiConverterTypePaykitInteractiveManagerFFI: FfiConverter<PaykitInteractiveManagerFfi, Pointer> {
+public object FfiConverterTypePaykitInteractiveManagerFFI : FfiConverter<PaykitInteractiveManagerFfi, Pointer> {
 
     override fun lower(value: PaykitInteractiveManagerFfi): Pointer {
         return value.uniffiClonePointer()
@@ -4947,17 +5820,13 @@ public object FfiConverterTypePaykitInteractiveManagerFFI: FfiConverter<PaykitIn
     }
 }
 
-
-
-
-
 /**
  * Builder for creating Paykit protocol messages.
  *
  * Use this to create JSON messages for sending over Noise channels.
  */
 public interface PaykitMessageBuilderInterface {
-    
+
     /**
      * Create an acknowledgment message.
      *
@@ -4966,7 +5835,7 @@ public interface PaykitMessageBuilderInterface {
      * JSON-encoded message ready to send over Noise channel.
      */
     fun `createAck`(): String
-    
+
     /**
      * Create an endpoint offer message.
      *
@@ -4980,7 +5849,7 @@ public interface PaykitMessageBuilderInterface {
      * JSON-encoded message ready to send over Noise channel.
      */
     fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String
-    
+
     /**
      * Create an error message.
      *
@@ -4994,7 +5863,7 @@ public interface PaykitMessageBuilderInterface {
      * JSON-encoded message ready to send over Noise channel.
      */
     fun `createError`(`code`: String, `message`: String): String
-    
+
     /**
      * Create a receipt confirmation message.
      *
@@ -5007,7 +5876,7 @@ public interface PaykitMessageBuilderInterface {
      * JSON-encoded message ready to send over Noise channel.
      */
     fun `createReceiptConfirm`(`receipt`: ReceiptRequest): String
-    
+
     /**
      * Create a receipt request message.
      *
@@ -5020,7 +5889,7 @@ public interface PaykitMessageBuilderInterface {
      * JSON-encoded message ready to send over Noise channel.
      */
     fun `createReceiptRequest`(`request`: ReceiptRequest): String
-    
+
     /**
      * Get the message type from a JSON message.
      *
@@ -5033,7 +5902,7 @@ public interface PaykitMessageBuilderInterface {
      * The message type.
      */
     fun `getMessageType`(`messageJson`: String): PaykitMessageType
-    
+
     /**
      * Parse a received message.
      *
@@ -5046,7 +5915,7 @@ public interface PaykitMessageBuilderInterface {
      * Parsed message for processing.
      */
     fun `parseMessage`(`messageJson`: String): ParsedMessage
-    
+
     companion object
 }
 
@@ -5057,7 +5926,7 @@ public interface PaykitMessageBuilderInterface {
  */
 open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -5067,15 +5936,17 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new message builder.
      */
     constructor() :
         this(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitmessagebuilder_new(_status)
-})
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_paykitmessagebuilder_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -5092,12 +5963,11 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_paykitmessagebuilder(pointer!!, status)
         }
     }
 
-    
     /**
      * Create an acknowledgment message.
      *
@@ -5105,18 +5975,20 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * JSON-encoded message ready to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createAck`(): String =
+    @Throws(PaykitMobileException::class)
+    override fun `createAck`(): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_ack(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_ack(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Create an endpoint offer message.
      *
@@ -5129,18 +6001,23 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * JSON-encoded message ready to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `createEndpointOffer`(`methodId`: String, `endpoint`: String): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_endpoint_offer(it,
-        FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpoint`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_endpoint_offer(
+                    it,
+                    FfiConverterString.lower(`methodId`),
+                    FfiConverterString.lower(`endpoint`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Create an error message.
      *
@@ -5153,18 +6030,21 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * JSON-encoded message ready to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createError`(`code`: String, `message`: String): String =
+    @Throws(PaykitMobileException::class)
+    override fun `createError`(`code`: String, `message`: String): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_error(it,
-        FfiConverterString.lower(`code`),FfiConverterString.lower(`message`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_error(
+                    it,
+                    FfiConverterString.lower(`code`),
+                    FfiConverterString.lower(`message`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Create a receipt confirmation message.
      *
@@ -5176,18 +6056,20 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * JSON-encoded message ready to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createReceiptConfirm`(`receipt`: ReceiptRequest): String =
+    @Throws(PaykitMobileException::class)
+    override fun `createReceiptConfirm`(`receipt`: ReceiptRequest): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_confirm(it,
-        FfiConverterTypeReceiptRequest.lower(`receipt`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_confirm(
+                    it,
+                    FfiConverterTypeReceiptRequest.lower(`receipt`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Create a receipt request message.
      *
@@ -5199,18 +6081,20 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * JSON-encoded message ready to send over Noise channel.
      */
-    @Throws(PaykitMobileException::class)override fun `createReceiptRequest`(`request`: ReceiptRequest): String =
+    @Throws(PaykitMobileException::class)
+    override fun `createReceiptRequest`(`request`: ReceiptRequest): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_request(it,
-        FfiConverterTypeReceiptRequest.lower(`request`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_create_receipt_request(
+                    it,
+                    FfiConverterTypeReceiptRequest.lower(`request`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Get the message type from a JSON message.
      *
@@ -5222,18 +6106,20 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * The message type.
      */
-    @Throws(PaykitMobileException::class)override fun `getMessageType`(`messageJson`: String): PaykitMessageType =
+    @Throws(PaykitMobileException::class)
+    override fun `getMessageType`(`messageJson`: String): PaykitMessageType =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_get_message_type(it,
-        FfiConverterString.lower(`messageJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_get_message_type(
+                    it,
+                    FfiConverterString.lower(`messageJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypePaykitMessageType.lift(it)
         }
-    
-    
+
     /**
      * Parse a received message.
      *
@@ -5245,25 +6131,24 @@ open class PaykitMessageBuilder : FFIObject, PaykitMessageBuilderInterface {
      *
      * Parsed message for processing.
      */
-    @Throws(PaykitMobileException::class)override fun `parseMessage`(`messageJson`: String): ParsedMessage =
+    @Throws(PaykitMobileException::class)
+    override fun `parseMessage`(`messageJson`: String): ParsedMessage =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_parse_message(it,
-        FfiConverterString.lower(`messageJson`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_paykitmessagebuilder_parse_message(
+                    it,
+                    FfiConverterString.lower(`messageJson`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterTypeParsedMessage.lift(it)
         }
-    
-    
 
-    
     companion object
-    
 }
 
-public object FfiConverterTypePaykitMessageBuilder: FfiConverter<PaykitMessageBuilder, Pointer> {
+public object FfiConverterTypePaykitMessageBuilder : FfiConverter<PaykitMessageBuilder, Pointer> {
 
     override fun lower(value: PaykitMessageBuilder): Pointer {
         return value.uniffiClonePointer()
@@ -5288,10 +6173,6 @@ public object FfiConverterTypePaykitMessageBuilder: FfiConverter<PaykitMessageBu
     }
 }
 
-
-
-
-
 /**
  * In-memory receipt storage for mobile.
  *
@@ -5299,57 +6180,57 @@ public object FfiConverterTypePaykitMessageBuilder: FfiConverter<PaykitMessageBu
  * save receipts to their own storage (Keychain/SharedPreferences).
  */
 public interface ReceiptStoreInterface {
-    
+
     /**
      * Clear all stored data.
      */
     fun `clear`()
-    
+
     /**
      * Delete a receipt.
      */
     fun `deleteReceipt`(`receiptId`: String)
-    
+
     /**
      * Export all receipts as JSON.
      */
     fun `exportReceiptsJson`(): String
-    
+
     /**
      * Get a private endpoint.
      */
     fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer?
-    
+
     /**
      * Get a receipt by ID.
      */
     fun `getReceipt`(`receiptId`: String): ReceiptRequest?
-    
+
     /**
      * Import receipts from JSON.
      */
     fun `importReceiptsJson`(`json`: String): UInt
-    
+
     /**
      * List all private endpoints for a peer.
      */
     fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer>
-    
+
     /**
      * List all receipts.
      */
     fun `listReceipts`(): List<ReceiptRequest>
-    
+
     /**
      * Save a private endpoint.
      */
     fun `savePrivateEndpoint`(`peer`: String, `offer`: PrivateEndpointOffer)
-    
+
     /**
      * Save a receipt.
      */
     fun `saveReceipt`(`receipt`: ReceiptRequest)
-    
+
     companion object
 }
 
@@ -5361,7 +6242,7 @@ public interface ReceiptStoreInterface {
  */
 open class ReceiptStore : FFIObject, ReceiptStoreInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -5371,15 +6252,17 @@ open class ReceiptStore : FFIObject, ReceiptStoreInterface {
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
+
     /**
      * Create a new receipt store.
      */
     constructor() :
         this(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_receiptstore_new(_status)
-})
+            uniffiRustCall { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_receiptstore_new(_status)
+            }
+        )
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -5396,165 +6279,185 @@ open class ReceiptStore : FFIObject, ReceiptStoreInterface {
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_receiptstore(pointer!!, status)
         }
     }
 
-    
     /**
      * Clear all stored data.
      */
-    @Throws(PaykitMobileException::class)override fun `clear`() =
+    @Throws(PaykitMobileException::class)
+    override fun `clear`() =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_clear(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_clear(
+                    it,
+
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Delete a receipt.
      */
-    @Throws(PaykitMobileException::class)override fun `deleteReceipt`(`receiptId`: String) =
+    @Throws(PaykitMobileException::class)
+    override fun `deleteReceipt`(`receiptId`: String) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_delete_receipt(it,
-        FfiConverterString.lower(`receiptId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_delete_receipt(
+                    it,
+                    FfiConverterString.lower(`receiptId`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Export all receipts as JSON.
      */
-    @Throws(PaykitMobileException::class)override fun `exportReceiptsJson`(): String =
+    @Throws(PaykitMobileException::class)
+    override fun `exportReceiptsJson`(): String =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_export_receipts_json(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_export_receipts_json(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterString.lift(it)
         }
-    
-    
+
     /**
      * Get a private endpoint.
      */
-    @Throws(PaykitMobileException::class)override fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer? =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `getPrivateEndpoint`(`peer`: String, `methodId`: String): PrivateEndpointOffer? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_get_private_endpoint(it,
-        FfiConverterString.lower(`peer`),FfiConverterString.lower(`methodId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_get_private_endpoint(
+                    it,
+                    FfiConverterString.lower(`peer`),
+                    FfiConverterString.lower(`methodId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypePrivateEndpointOffer.lift(it)
         }
-    
-    
+
     /**
      * Get a receipt by ID.
      */
-    @Throws(PaykitMobileException::class)override fun `getReceipt`(`receiptId`: String): ReceiptRequest? =
+    @Throws(PaykitMobileException::class)
+    override fun `getReceipt`(`receiptId`: String): ReceiptRequest? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_get_receipt(it,
-        FfiConverterString.lower(`receiptId`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_get_receipt(
+                    it,
+                    FfiConverterString.lower(`receiptId`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalTypeReceiptRequest.lift(it)
         }
-    
-    
+
     /**
      * Import receipts from JSON.
      */
-    @Throws(PaykitMobileException::class)override fun `importReceiptsJson`(`json`: String): UInt =
+    @Throws(PaykitMobileException::class)
+    override fun `importReceiptsJson`(`json`: String): UInt =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_import_receipts_json(it,
-        FfiConverterString.lower(`json`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_import_receipts_json(
+                    it,
+                    FfiConverterString.lower(`json`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterUInt.lift(it)
         }
-    
-    
+
     /**
      * List all private endpoints for a peer.
      */
-    @Throws(PaykitMobileException::class)override fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer> =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `listPrivateEndpoints`(`peer`: String): List<PrivateEndpointOffer> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_list_private_endpoints(it,
-        FfiConverterString.lower(`peer`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_list_private_endpoints(
+                    it,
+                    FfiConverterString.lower(`peer`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypePrivateEndpointOffer.lift(it)
         }
-    
-    
+
     /**
      * List all receipts.
      */
-    @Throws(PaykitMobileException::class)override fun `listReceipts`(): List<ReceiptRequest> =
+    @Throws(PaykitMobileException::class)
+    override fun `listReceipts`(): List<ReceiptRequest> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_list_receipts(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_list_receipts(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceTypeReceiptRequest.lift(it)
         }
-    
-    
+
     /**
      * Save a private endpoint.
      */
-    @Throws(PaykitMobileException::class)override fun `savePrivateEndpoint`(`peer`: String, `offer`: PrivateEndpointOffer) =
+    @Throws(
+        PaykitMobileException::class
+        )
+    override fun `savePrivateEndpoint`(`peer`: String, `offer`: PrivateEndpointOffer) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_save_private_endpoint(it,
-        FfiConverterString.lower(`peer`),FfiConverterTypePrivateEndpointOffer.lower(`offer`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_save_private_endpoint(
+                    it,
+                    FfiConverterString.lower(`peer`),
+                    FfiConverterTypePrivateEndpointOffer.lower(`offer`),
+                    _status
+                )
+            }
         }
-    
-    
-    
+
     /**
      * Save a receipt.
      */
-    @Throws(PaykitMobileException::class)override fun `saveReceipt`(`receipt`: ReceiptRequest) =
+    @Throws(PaykitMobileException::class)
+    override fun `saveReceipt`(`receipt`: ReceiptRequest) =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_save_receipt(it,
-        FfiConverterTypeReceiptRequest.lower(`receipt`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_receiptstore_save_receipt(
+                    it,
+                    FfiConverterTypeReceiptRequest.lower(`receipt`),
+                    _status
+                )
+            }
         }
-    
-    
-    
 
-    
     companion object
-    
 }
 
-public object FfiConverterTypeReceiptStore: FfiConverter<ReceiptStore, Pointer> {
+public object FfiConverterTypeReceiptStore : FfiConverter<ReceiptStore, Pointer> {
 
     override fun lower(value: ReceiptStore): Pointer {
         return value.uniffiClonePointer()
@@ -5578,10 +6481,6 @@ public object FfiConverterTypeReceiptStore: FfiConverter<ReceiptStore, Pointer> 
         buf.putLong(Pointer.nativeValue(lower(value)))
     }
 }
-
-
-
-
 
 /**
  * FFI wrapper for unauthenticated (read-only) transport operations.
@@ -5613,12 +6512,12 @@ public object FfiConverterTypeReceiptStore: FfiConverter<ReceiptStore, Pointer> 
  * ```
  */
 public interface UnauthenticatedTransportFfiInterface {
-    
+
     /**
      * Get a file at the given path from a public key's storage.
      */
     fun `get`(`ownerPubkey`: String, `path`: String): String?
-    
+
     /**
      * Check if this transport uses a real callback (production) or mock storage.
      *
@@ -5626,12 +6525,12 @@ public interface UnauthenticatedTransportFfiInterface {
      * Returns an error if the internal lock is poisoned.
      */
     fun `isMock`(): Boolean
-    
+
     /**
      * List files with a given prefix from a public key's storage.
      */
     fun `list`(`ownerPubkey`: String, `prefix`: String): List<String>
-    
+
     companion object
 }
 
@@ -5666,7 +6565,7 @@ public interface UnauthenticatedTransportFfiInterface {
  */
 open class UnauthenticatedTransportFfi : FFIObject, UnauthenticatedTransportFfiInterface {
 
-    constructor(pointer: Pointer): super(pointer)
+    constructor(pointer: Pointer) : super(pointer)
 
     /**
      * This constructor can be used to instantiate a fake object.
@@ -5676,7 +6575,7 @@ open class UnauthenticatedTransportFfi : FFIObject, UnauthenticatedTransportFfiI
      * @param noPointer Placeholder value so we can have a constructor separate from the default empty one that may be
      *   implemented for classes extending [FFIObject].
      */
-    constructor(noPointer: NoPointer): super(noPointer)
+    constructor(noPointer: NoPointer) : super(noPointer)
 
     override val cleanable: UniffiCleaner.Cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
 
@@ -5693,139 +6592,156 @@ open class UnauthenticatedTransportFfi : FFIObject, UnauthenticatedTransportFfiI
     }
 
     override fun uniffiClonePointer(): Pointer {
-        return uniffiRustCall() { status ->
+        return uniffiRustCall { status ->
             UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_clone_unauthenticatedtransportffi(pointer!!, status)
         }
     }
 
-    
     /**
      * Get a file at the given path from a public key's storage.
      */
-    @Throws(PaykitMobileException::class)override fun `get`(`ownerPubkey`: String, `path`: String): String? =
+    @Throws(PaykitMobileException::class)
+    override fun `get`(`ownerPubkey`: String, `path`: String): String? =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_get(it,
-        FfiConverterString.lower(`ownerPubkey`),FfiConverterString.lower(`path`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_get(
+                    it,
+                    FfiConverterString.lower(`ownerPubkey`),
+                    FfiConverterString.lower(`path`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
-    
-    
+
     /**
      * Check if this transport uses a real callback (production) or mock storage.
      *
      * Returns `true` for mock transport, `false` for callback-based transport.
      * Returns an error if the internal lock is poisoned.
      */
-    @Throws(PaykitMobileException::class)override fun `isMock`(): Boolean =
+    @Throws(PaykitMobileException::class)
+    override fun `isMock`(): Boolean =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_is_mock(it,
-        
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_is_mock(
+                    it,
+
+                    _status
+                )
+            }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-    
-    
+
     /**
      * List files with a given prefix from a public key's storage.
      */
-    @Throws(PaykitMobileException::class)override fun `list`(`ownerPubkey`: String, `prefix`: String): List<String> =
+    @Throws(PaykitMobileException::class)
+    override fun `list`(`ownerPubkey`: String, `prefix`: String): List<String> =
         callWithPointer {
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_list(it,
-        FfiConverterString.lower(`ownerPubkey`),FfiConverterString.lower(`prefix`),
-        _status)
-}
+            uniffiRustCallWithError(PaykitMobileException) { _status ->
+                UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_method_unauthenticatedtransportffi_list(
+                    it,
+                    FfiConverterString.lower(`ownerPubkey`),
+                    FfiConverterString.lower(`prefix`),
+                    _status
+                )
+            }
         }.let {
             FfiConverterSequenceString.lift(it)
         }
-    
-    
 
     companion object {
-        
-    /**
-     * Create unauthenticated transport that shares mock storage with an authenticated transport.
-     *
-     * Useful for testing when you want reads to see writes from the same session.
-     *
-     * # Note
-     *
-     * This only works with mock transports. For callback-based transports,
-     * create a new `UnauthenticatedTransportFFI::from_callback()` that shares
-     * the underlying Pubky client.
-     */
+
+        /**
+         * Create unauthenticated transport that shares mock storage with an authenticated transport.
+         *
+         * Useful for testing when you want reads to see writes from the same session.
+         *
+         * # Note
+         *
+         * This only works with mock transports. For callback-based transports,
+         * create a new `UnauthenticatedTransportFFI::from_callback()` that shares
+         * the underlying Pubky client.
+         */
         fun `fromAuthenticated`(`auth`: AuthenticatedTransportFfi): UnauthenticatedTransportFfi =
             UnauthenticatedTransportFfi(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_authenticated(FfiConverterTypeAuthenticatedTransportFFI.lower(`auth`),_status)
-})
-        
-    /**
-     * Create unauthenticated transport from a storage callback.
-     *
-     * # Arguments
-     *
-     * * `callback` - Storage callback implementing PubkyUnauthenticatedStorageCallback
-     *
-     * # Example (Swift)
-     *
-     * ```swift
-     * class MyPublicStorage: PubkyUnauthenticatedStorageCallback {
-     * func get(ownerPubkey: String, path: String) -> StorageGetResult {
-     * // Use Pubky SDK to read from public storage
-     * // ...
-     * }
-     * }
-     *
-     * let transport = UnauthenticatedTransportFFI.fromCallback(MyPublicStorage())
-     * ```
-     */
+                uniffiRustCallWithError(PaykitMobileException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_authenticated(
+                        FfiConverterTypeAuthenticatedTransportFFI.lower(`auth`),
+                        _status
+                    )
+                }
+            )
+
+        /**
+         * Create unauthenticated transport from a storage callback.
+         *
+         * # Arguments
+         *
+         * * `callback` - Storage callback implementing PubkyUnauthenticatedStorageCallback
+         *
+         * # Example (Swift)
+         *
+         * ```swift
+         * class MyPublicStorage: PubkyUnauthenticatedStorageCallback {
+         * func get(ownerPubkey: String, path: String) -> StorageGetResult {
+         * // Use Pubky SDK to read from public storage
+         * // ...
+         * }
+         * }
+         *
+         * let transport = UnauthenticatedTransportFFI.fromCallback(MyPublicStorage())
+         * ```
+         */
         fun `fromCallback`(`callback`: PubkyUnauthenticatedStorageCallback): UnauthenticatedTransportFfi =
             UnauthenticatedTransportFfi(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_callback(FfiConverterTypePubkyUnauthenticatedStorageCallback.lower(`callback`),_status)
-})
-        
-    /**
-     * Create unauthenticated transport from Pubky SDK configuration.
-     *
-     * # Deprecated
-     *
-     * This method creates a mock transport. Use `from_callback()` for production.
-     *
-     * # Arguments
-     *
-     * * `config_json` - JSON configuration (validated but not used)
-     */
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_callback(
+                        FfiConverterTypePubkyUnauthenticatedStorageCallback.lower(`callback`),
+                        _status
+                    )
+                }
+            )
+
+        /**
+         * Create unauthenticated transport from Pubky SDK configuration.
+         *
+         * # Deprecated
+         *
+         * This method creates a mock transport. Use `from_callback()` for production.
+         *
+         * # Arguments
+         *
+         * * `config_json` - JSON configuration (validated but not used)
+         */
         fun `fromConfigJson`(`configJson`: String): UnauthenticatedTransportFfi =
             UnauthenticatedTransportFfi(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_config_json(FfiConverterString.lower(`configJson`),_status)
-})
-        
-    /**
-     * Create a new unauthenticated transport for testing/development.
-     *
-     * Uses in-memory storage - no network calls are made.
-     */
+                uniffiRustCallWithError(PaykitMobileException) { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_from_config_json(
+                        FfiConverterString.lower(`configJson`),
+                        _status
+                    )
+                }
+            )
+
+        /**
+         * Create a new unauthenticated transport for testing/development.
+         *
+         * Uses in-memory storage - no network calls are made.
+         */
         fun `newMock`(): UnauthenticatedTransportFfi =
             UnauthenticatedTransportFfi(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_new_mock(_status)
-})
-        
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_constructor_unauthenticatedtransportffi_new_mock(_status)
+                }
+            )
     }
-    
 }
 
-public object FfiConverterTypeUnauthenticatedTransportFFI: FfiConverter<UnauthenticatedTransportFfi, Pointer> {
+public object FfiConverterTypeUnauthenticatedTransportFFI : FfiConverter<UnauthenticatedTransportFfi, Pointer> {
 
     override fun lower(value: UnauthenticatedTransportFfi): Pointer {
         return value.uniffiClonePointer()
@@ -5850,20 +6766,18 @@ public object FfiConverterTypeUnauthenticatedTransportFFI: FfiConverter<Unauthen
     }
 }
 
-
-
 /**
  * Payment amount.
  */
-data class Amount (
-    var `value`: String, 
+data class Amount(
+    var `value`: String,
     var `currency`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeAmount: FfiConverterRustBuffer<Amount> {
+public object FfiConverterTypeAmount : FfiConverterRustBuffer<Amount> {
     override fun read(buf: ByteBuffer): Amount {
         return Amount(
             FfiConverterString.read(buf),
@@ -5872,17 +6786,15 @@ public object FfiConverterTypeAmount: FfiConverterRustBuffer<Amount> {
     }
 
     override fun allocationSize(value: Amount) = (
-            FfiConverterString.allocationSize(value.`value`) +
+        FfiConverterString.allocationSize(value.`value`) +
             FfiConverterString.allocationSize(value.`currency`)
-    )
+        )
 
     override fun write(value: Amount, buf: ByteBuffer) {
-            FfiConverterString.write(value.`value`, buf)
-            FfiConverterString.write(value.`currency`, buf)
+        FfiConverterString.write(value.`value`, buf)
+        FfiConverterString.write(value.`currency`, buf)
     }
 }
-
-
 
 /**
  * Result of a Bitcoin on-chain transaction (FFI-compatible).
@@ -5890,41 +6802,41 @@ public object FfiConverterTypeAmount: FfiConverterRustBuffer<Amount> {
  * This type is returned by `BitcoinExecutorFFI::sendToAddress()` after
  * successfully broadcasting a transaction.
  */
-data class BitcoinTxResultFfi (
+data class BitcoinTxResultFfi(
     /**
      * The transaction ID (hex-encoded, 64 characters).
      */
-    var `txid`: String, 
+    var `txid`: String,
     /**
      * The raw transaction hex (optional, for debugging/verification).
      */
-    var `rawTx`: String?, 
+    var `rawTx`: String?,
     /**
      * The output index used for payment.
      */
-    var `vout`: UInt, 
+    var `vout`: UInt,
     /**
      * The fee paid in satoshis.
      */
-    var `feeSats`: ULong, 
+    var `feeSats`: ULong,
     /**
      * The fee rate in sat/vB.
      */
-    var `feeRate`: Double, 
+    var `feeRate`: Double,
     /**
      * Block height if confirmed (None if unconfirmed).
      */
-    var `blockHeight`: ULong?, 
+    var `blockHeight`: ULong?,
     /**
      * Number of confirmations.
      */
     var `confirmations`: ULong
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeBitcoinTxResultFFI: FfiConverterRustBuffer<BitcoinTxResultFfi> {
+public object FfiConverterTypeBitcoinTxResultFFI : FfiConverterRustBuffer<BitcoinTxResultFfi> {
     override fun read(buf: ByteBuffer): BitcoinTxResultFfi {
         return BitcoinTxResultFfi(
             FfiConverterString.read(buf),
@@ -5938,42 +6850,40 @@ public object FfiConverterTypeBitcoinTxResultFFI: FfiConverterRustBuffer<Bitcoin
     }
 
     override fun allocationSize(value: BitcoinTxResultFfi) = (
-            FfiConverterString.allocationSize(value.`txid`) +
+        FfiConverterString.allocationSize(value.`txid`) +
             FfiConverterOptionalString.allocationSize(value.`rawTx`) +
             FfiConverterUInt.allocationSize(value.`vout`) +
             FfiConverterULong.allocationSize(value.`feeSats`) +
             FfiConverterDouble.allocationSize(value.`feeRate`) +
             FfiConverterOptionalULong.allocationSize(value.`blockHeight`) +
             FfiConverterULong.allocationSize(value.`confirmations`)
-    )
+        )
 
     override fun write(value: BitcoinTxResultFfi, buf: ByteBuffer) {
-            FfiConverterString.write(value.`txid`, buf)
-            FfiConverterOptionalString.write(value.`rawTx`, buf)
-            FfiConverterUInt.write(value.`vout`, buf)
-            FfiConverterULong.write(value.`feeSats`, buf)
-            FfiConverterDouble.write(value.`feeRate`, buf)
-            FfiConverterOptionalULong.write(value.`blockHeight`, buf)
-            FfiConverterULong.write(value.`confirmations`, buf)
+        FfiConverterString.write(value.`txid`, buf)
+        FfiConverterOptionalString.write(value.`rawTx`, buf)
+        FfiConverterUInt.write(value.`vout`, buf)
+        FfiConverterULong.write(value.`feeSats`, buf)
+        FfiConverterDouble.write(value.`feeRate`, buf)
+        FfiConverterOptionalULong.write(value.`blockHeight`, buf)
+        FfiConverterULong.write(value.`confirmations`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe cached contact.
  */
-data class CachedContactFfi (
-    var `pubkey`: String, 
-    var `name`: String?, 
-    var `addedAt`: Long, 
+data class CachedContactFfi(
+    var `pubkey`: String,
+    var `name`: String?,
+    var `addedAt`: Long,
     var `lastSyncedAt`: Long?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeCachedContactFFI: FfiConverterRustBuffer<CachedContactFfi> {
+public object FfiConverterTypeCachedContactFFI : FfiConverterRustBuffer<CachedContactFfi> {
     override fun read(buf: ByteBuffer): CachedContactFfi {
         return CachedContactFfi(
             FfiConverterString.read(buf),
@@ -5984,66 +6894,64 @@ public object FfiConverterTypeCachedContactFFI: FfiConverterRustBuffer<CachedCon
     }
 
     override fun allocationSize(value: CachedContactFfi) = (
-            FfiConverterString.allocationSize(value.`pubkey`) +
+        FfiConverterString.allocationSize(value.`pubkey`) +
             FfiConverterOptionalString.allocationSize(value.`name`) +
             FfiConverterLong.allocationSize(value.`addedAt`) +
             FfiConverterOptionalLong.allocationSize(value.`lastSyncedAt`)
-    )
+        )
 
     override fun write(value: CachedContactFfi, buf: ByteBuffer) {
-            FfiConverterString.write(value.`pubkey`, buf)
-            FfiConverterOptionalString.write(value.`name`, buf)
-            FfiConverterLong.write(value.`addedAt`, buf)
-            FfiConverterOptionalLong.write(value.`lastSyncedAt`, buf)
+        FfiConverterString.write(value.`pubkey`, buf)
+        FfiConverterOptionalString.write(value.`name`, buf)
+        FfiConverterLong.write(value.`addedAt`, buf)
+        FfiConverterOptionalLong.write(value.`lastSyncedAt`, buf)
     }
 }
-
-
 
 /**
  * Decoded BOLT11 invoice details (FFI-compatible).
  *
  * This type is returned by `LightningExecutorFFI::decodeInvoice()`.
  */
-data class DecodedInvoiceFfi (
+data class DecodedInvoiceFfi(
     /**
      * The payment hash (hex-encoded).
      */
-    var `paymentHash`: String, 
+    var `paymentHash`: String,
     /**
      * Amount in millisatoshis (None for zero-amount invoices).
      */
-    var `amountMsat`: ULong?, 
+    var `amountMsat`: ULong?,
     /**
      * Invoice description.
      */
-    var `description`: String?, 
+    var `description`: String?,
     /**
      * Description hash (for invoices with hashed descriptions).
      */
-    var `descriptionHash`: String?, 
+    var `descriptionHash`: String?,
     /**
      * Payee public key (hex-encoded).
      */
-    var `payee`: String, 
+    var `payee`: String,
     /**
      * Expiry time in seconds.
      */
-    var `expiry`: ULong, 
+    var `expiry`: ULong,
     /**
      * Creation timestamp (Unix epoch seconds).
      */
-    var `timestamp`: ULong, 
+    var `timestamp`: ULong,
     /**
      * Whether the invoice has expired.
      */
     var `expired`: Boolean
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeDecodedInvoiceFFI: FfiConverterRustBuffer<DecodedInvoiceFfi> {
+public object FfiConverterTypeDecodedInvoiceFFI : FfiConverterRustBuffer<DecodedInvoiceFfi> {
     override fun read(buf: ByteBuffer): DecodedInvoiceFfi {
         return DecodedInvoiceFfi(
             FfiConverterString.read(buf),
@@ -6058,7 +6966,7 @@ public object FfiConverterTypeDecodedInvoiceFFI: FfiConverterRustBuffer<DecodedI
     }
 
     override fun allocationSize(value: DecodedInvoiceFfi) = (
-            FfiConverterString.allocationSize(value.`paymentHash`) +
+        FfiConverterString.allocationSize(value.`paymentHash`) +
             FfiConverterOptionalULong.allocationSize(value.`amountMsat`) +
             FfiConverterOptionalString.allocationSize(value.`description`) +
             FfiConverterOptionalString.allocationSize(value.`descriptionHash`) +
@@ -6066,45 +6974,43 @@ public object FfiConverterTypeDecodedInvoiceFFI: FfiConverterRustBuffer<DecodedI
             FfiConverterULong.allocationSize(value.`expiry`) +
             FfiConverterULong.allocationSize(value.`timestamp`) +
             FfiConverterBoolean.allocationSize(value.`expired`)
-    )
+        )
 
     override fun write(value: DecodedInvoiceFfi, buf: ByteBuffer) {
-            FfiConverterString.write(value.`paymentHash`, buf)
-            FfiConverterOptionalULong.write(value.`amountMsat`, buf)
-            FfiConverterOptionalString.write(value.`description`, buf)
-            FfiConverterOptionalString.write(value.`descriptionHash`, buf)
-            FfiConverterString.write(value.`payee`, buf)
-            FfiConverterULong.write(value.`expiry`, buf)
-            FfiConverterULong.write(value.`timestamp`, buf)
-            FfiConverterBoolean.write(value.`expired`, buf)
+        FfiConverterString.write(value.`paymentHash`, buf)
+        FfiConverterOptionalULong.write(value.`amountMsat`, buf)
+        FfiConverterOptionalString.write(value.`description`, buf)
+        FfiConverterOptionalString.write(value.`descriptionHash`, buf)
+        FfiConverterString.write(value.`payee`, buf)
+        FfiConverterULong.write(value.`expiry`, buf)
+        FfiConverterULong.write(value.`timestamp`, buf)
+        FfiConverterBoolean.write(value.`expired`, buf)
     }
 }
-
-
 
 /**
  * Generated Ed25519 keypair for identity.
  */
-data class Ed25519Keypair (
+data class Ed25519Keypair(
     /**
      * Secret key (seed) - 32 bytes, hex encoded.
      * SENSITIVE: Store securely, this is the root identity secret.
      */
-    var `secretKeyHex`: String, 
+    var `secretKeyHex`: String,
     /**
      * Public key - 32 bytes, hex encoded.
      */
-    var `publicKeyHex`: String, 
+    var `publicKeyHex`: String,
     /**
      * Public key in z-base32 format (pkarr format).
      */
     var `publicKeyZ32`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeEd25519Keypair: FfiConverterRustBuffer<Ed25519Keypair> {
+public object FfiConverterTypeEd25519Keypair : FfiConverterRustBuffer<Ed25519Keypair> {
     override fun read(buf: ByteBuffer): Ed25519Keypair {
         return Ed25519Keypair(
             FfiConverterString.read(buf),
@@ -6114,31 +7020,29 @@ public object FfiConverterTypeEd25519Keypair: FfiConverterRustBuffer<Ed25519Keyp
     }
 
     override fun allocationSize(value: Ed25519Keypair) = (
-            FfiConverterString.allocationSize(value.`secretKeyHex`) +
+        FfiConverterString.allocationSize(value.`secretKeyHex`) +
             FfiConverterString.allocationSize(value.`publicKeyHex`) +
             FfiConverterString.allocationSize(value.`publicKeyZ32`)
-    )
+        )
 
     override fun write(value: Ed25519Keypair, buf: ByteBuffer) {
-            FfiConverterString.write(value.`secretKeyHex`, buf)
-            FfiConverterString.write(value.`publicKeyHex`, buf)
-            FfiConverterString.write(value.`publicKeyZ32`, buf)
+        FfiConverterString.write(value.`secretKeyHex`, buf)
+        FfiConverterString.write(value.`publicKeyHex`, buf)
+        FfiConverterString.write(value.`publicKeyZ32`, buf)
     }
 }
-
-
 
 /**
  * Endpoint data for a payment method.
  */
-data class EndpointData (
+data class EndpointData(
     var `value`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeEndpointData: FfiConverterRustBuffer<EndpointData> {
+public object FfiConverterTypeEndpointData : FfiConverterRustBuffer<EndpointData> {
     override fun read(buf: ByteBuffer): EndpointData {
         return EndpointData(
             FfiConverterString.read(buf),
@@ -6146,28 +7050,26 @@ public object FfiConverterTypeEndpointData: FfiConverterRustBuffer<EndpointData>
     }
 
     override fun allocationSize(value: EndpointData) = (
-            FfiConverterString.allocationSize(value.`value`)
-    )
+        FfiConverterString.allocationSize(value.`value`)
+        )
 
     override fun write(value: EndpointData, buf: ByteBuffer) {
-            FfiConverterString.write(value.`value`, buf)
+        FfiConverterString.write(value.`value`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe error message.
  */
-data class ErrorMessage (
-    var `code`: String, 
+data class ErrorMessage(
+    var `code`: String,
     var `message`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeErrorMessage: FfiConverterRustBuffer<ErrorMessage> {
+public object FfiConverterTypeErrorMessage : FfiConverterRustBuffer<ErrorMessage> {
     override fun read(buf: ByteBuffer): ErrorMessage {
         return ErrorMessage(
             FfiConverterString.read(buf),
@@ -6176,33 +7078,31 @@ public object FfiConverterTypeErrorMessage: FfiConverterRustBuffer<ErrorMessage>
     }
 
     override fun allocationSize(value: ErrorMessage) = (
-            FfiConverterString.allocationSize(value.`code`) +
+        FfiConverterString.allocationSize(value.`code`) +
             FfiConverterString.allocationSize(value.`message`)
-    )
+        )
 
     override fun write(value: ErrorMessage, buf: ByteBuffer) {
-            FfiConverterString.write(value.`code`, buf)
-            FfiConverterString.write(value.`message`, buf)
+        FfiConverterString.write(value.`code`, buf)
+        FfiConverterString.write(value.`message`, buf)
     }
 }
-
-
 
 /**
  * Health check result.
  */
-data class HealthCheckResult (
-    var `methodId`: String, 
-    var `status`: HealthStatus, 
-    var `checkedAt`: Long, 
-    var `latencyMs`: ULong?, 
+data class HealthCheckResult(
+    var `methodId`: String,
+    var `status`: HealthStatus,
+    var `checkedAt`: Long,
+    var `latencyMs`: ULong?,
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeHealthCheckResult: FfiConverterRustBuffer<HealthCheckResult> {
+public object FfiConverterTypeHealthCheckResult : FfiConverterRustBuffer<HealthCheckResult> {
     override fun read(buf: ByteBuffer): HealthCheckResult {
         return HealthCheckResult(
             FfiConverterString.read(buf),
@@ -6214,54 +7114,52 @@ public object FfiConverterTypeHealthCheckResult: FfiConverterRustBuffer<HealthCh
     }
 
     override fun allocationSize(value: HealthCheckResult) = (
-            FfiConverterString.allocationSize(value.`methodId`) +
+        FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterTypeHealthStatus.allocationSize(value.`status`) +
             FfiConverterLong.allocationSize(value.`checkedAt`) +
             FfiConverterOptionalULong.allocationSize(value.`latencyMs`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: HealthCheckResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterTypeHealthStatus.write(value.`status`, buf)
-            FfiConverterLong.write(value.`checkedAt`, buf)
-            FfiConverterOptionalULong.write(value.`latencyMs`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterTypeHealthStatus.write(value.`status`, buf)
+        FfiConverterLong.write(value.`checkedAt`, buf)
+        FfiConverterOptionalULong.write(value.`latencyMs`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * Encrypted key backup for export/import.
  */
-data class KeyBackup (
+data class KeyBackup(
     /**
      * Version of the backup format.
      */
-    var `version`: UInt, 
+    var `version`: UInt,
     /**
      * Encrypted secret key (AES-GCM).
      */
-    var `encryptedDataHex`: String, 
+    var `encryptedDataHex`: String,
     /**
      * Salt for key derivation from password.
      */
-    var `saltHex`: String, 
+    var `saltHex`: String,
     /**
      * Nonce for AES-GCM.
      */
-    var `nonceHex`: String, 
+    var `nonceHex`: String,
     /**
      * Public key (not encrypted, for identification).
      */
     var `publicKeyZ32`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeKeyBackup: FfiConverterRustBuffer<KeyBackup> {
+public object FfiConverterTypeKeyBackup : FfiConverterRustBuffer<KeyBackup> {
     override fun read(buf: ByteBuffer): KeyBackup {
         return KeyBackup(
             FfiConverterUInt.read(buf),
@@ -6273,23 +7171,21 @@ public object FfiConverterTypeKeyBackup: FfiConverterRustBuffer<KeyBackup> {
     }
 
     override fun allocationSize(value: KeyBackup) = (
-            FfiConverterUInt.allocationSize(value.`version`) +
+        FfiConverterUInt.allocationSize(value.`version`) +
             FfiConverterString.allocationSize(value.`encryptedDataHex`) +
             FfiConverterString.allocationSize(value.`saltHex`) +
             FfiConverterString.allocationSize(value.`nonceHex`) +
             FfiConverterString.allocationSize(value.`publicKeyZ32`)
-    )
+        )
 
     override fun write(value: KeyBackup, buf: ByteBuffer) {
-            FfiConverterUInt.write(value.`version`, buf)
-            FfiConverterString.write(value.`encryptedDataHex`, buf)
-            FfiConverterString.write(value.`saltHex`, buf)
-            FfiConverterString.write(value.`nonceHex`, buf)
-            FfiConverterString.write(value.`publicKeyZ32`, buf)
+        FfiConverterUInt.write(value.`version`, buf)
+        FfiConverterString.write(value.`encryptedDataHex`, buf)
+        FfiConverterString.write(value.`saltHex`, buf)
+        FfiConverterString.write(value.`nonceHex`, buf)
+        FfiConverterString.write(value.`publicKeyZ32`, buf)
     }
 }
-
-
 
 /**
  * Result of a Lightning payment (FFI-compatible).
@@ -6297,38 +7193,38 @@ public object FfiConverterTypeKeyBackup: FfiConverterRustBuffer<KeyBackup> {
  * This type is returned by `LightningExecutorFFI::payInvoice()` after
  * a successful Lightning payment.
  */
-data class LightningPaymentResultFfi (
+data class LightningPaymentResultFfi(
     /**
      * The payment preimage (hex-encoded, 64 characters).
      * This is the cryptographic proof of payment.
      */
-    var `preimage`: String, 
+    var `preimage`: String,
     /**
      * The payment hash (hex-encoded, 64 characters).
      */
-    var `paymentHash`: String, 
+    var `paymentHash`: String,
     /**
      * The amount paid in millisatoshis.
      */
-    var `amountMsat`: ULong, 
+    var `amountMsat`: ULong,
     /**
      * The fee paid in millisatoshis.
      */
-    var `feeMsat`: ULong, 
+    var `feeMsat`: ULong,
     /**
      * Number of hops in the payment route.
      */
-    var `hops`: UInt, 
+    var `hops`: UInt,
     /**
      * Payment status.
      */
     var `status`: LightningPaymentStatusFfi
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeLightningPaymentResultFFI: FfiConverterRustBuffer<LightningPaymentResultFfi> {
+public object FfiConverterTypeLightningPaymentResultFFI : FfiConverterRustBuffer<LightningPaymentResultFfi> {
     override fun read(buf: ByteBuffer): LightningPaymentResultFfi {
         return LightningPaymentResultFfi(
             FfiConverterString.read(buf),
@@ -6341,37 +7237,35 @@ public object FfiConverterTypeLightningPaymentResultFFI: FfiConverterRustBuffer<
     }
 
     override fun allocationSize(value: LightningPaymentResultFfi) = (
-            FfiConverterString.allocationSize(value.`preimage`) +
+        FfiConverterString.allocationSize(value.`preimage`) +
             FfiConverterString.allocationSize(value.`paymentHash`) +
             FfiConverterULong.allocationSize(value.`amountMsat`) +
             FfiConverterULong.allocationSize(value.`feeMsat`) +
             FfiConverterUInt.allocationSize(value.`hops`) +
             FfiConverterTypeLightningPaymentStatusFFI.allocationSize(value.`status`)
-    )
+        )
 
     override fun write(value: LightningPaymentResultFfi, buf: ByteBuffer) {
-            FfiConverterString.write(value.`preimage`, buf)
-            FfiConverterString.write(value.`paymentHash`, buf)
-            FfiConverterULong.write(value.`amountMsat`, buf)
-            FfiConverterULong.write(value.`feeMsat`, buf)
-            FfiConverterUInt.write(value.`hops`, buf)
-            FfiConverterTypeLightningPaymentStatusFFI.write(value.`status`, buf)
+        FfiConverterString.write(value.`preimage`, buf)
+        FfiConverterString.write(value.`paymentHash`, buf)
+        FfiConverterULong.write(value.`amountMsat`, buf)
+        FfiConverterULong.write(value.`feeMsat`, buf)
+        FfiConverterUInt.write(value.`hops`, buf)
+        FfiConverterTypeLightningPaymentStatusFFI.write(value.`status`, buf)
     }
 }
-
-
 
 /**
  * A payment method identifier.
  */
-data class MethodId (
+data class MethodId(
     var `value`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeMethodId: FfiConverterRustBuffer<MethodId> {
+public object FfiConverterTypeMethodId : FfiConverterRustBuffer<MethodId> {
     override fun read(buf: ByteBuffer): MethodId {
         return MethodId(
             FfiConverterString.read(buf),
@@ -6379,15 +7273,13 @@ public object FfiConverterTypeMethodId: FfiConverterRustBuffer<MethodId> {
     }
 
     override fun allocationSize(value: MethodId) = (
-            FfiConverterString.allocationSize(value.`value`)
-    )
+        FfiConverterString.allocationSize(value.`value`)
+        )
 
     override fun write(value: MethodId, buf: ByteBuffer) {
-            FfiConverterString.write(value.`value`, buf)
+        FfiConverterString.write(value.`value`, buf)
     }
 }
-
-
 
 /**
  * Information about a Noise protocol endpoint for receiving payments.
@@ -6395,34 +7287,34 @@ public object FfiConverterTypeMethodId: FfiConverterRustBuffer<MethodId> {
  * This is discovered from a recipient's public directory and contains
  * the connection information needed to establish a Noise session.
  */
-data class NoiseEndpointInfo (
+data class NoiseEndpointInfo(
     /**
      * The recipient's public key (z-base32 encoded).
      */
-    var `recipientPubkey`: String, 
+    var `recipientPubkey`: String,
     /**
      * Host address of the Noise server (IP or hostname).
      */
-    var `host`: String, 
+    var `host`: String,
     /**
      * Port number of the Noise server.
      */
-    var `port`: UShort, 
+    var `port`: UShort,
     /**
      * The server's Noise public key (X25519, hex encoded).
      * This is needed to verify the server during handshake.
      */
-    var `serverNoisePubkey`: String, 
+    var `serverNoisePubkey`: String,
     /**
      * Optional metadata about the endpoint.
      */
     var `metadata`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoiseEndpointInfo: FfiConverterRustBuffer<NoiseEndpointInfo> {
+public object FfiConverterTypeNoiseEndpointInfo : FfiConverterRustBuffer<NoiseEndpointInfo> {
     override fun read(buf: ByteBuffer): NoiseEndpointInfo {
         return NoiseEndpointInfo(
             FfiConverterString.read(buf),
@@ -6434,50 +7326,48 @@ public object FfiConverterTypeNoiseEndpointInfo: FfiConverterRustBuffer<NoiseEnd
     }
 
     override fun allocationSize(value: NoiseEndpointInfo) = (
-            FfiConverterString.allocationSize(value.`recipientPubkey`) +
+        FfiConverterString.allocationSize(value.`recipientPubkey`) +
             FfiConverterString.allocationSize(value.`host`) +
             FfiConverterUShort.allocationSize(value.`port`) +
             FfiConverterString.allocationSize(value.`serverNoisePubkey`) +
             FfiConverterOptionalString.allocationSize(value.`metadata`)
-    )
+        )
 
     override fun write(value: NoiseEndpointInfo, buf: ByteBuffer) {
-            FfiConverterString.write(value.`recipientPubkey`, buf)
-            FfiConverterString.write(value.`host`, buf)
-            FfiConverterUShort.write(value.`port`, buf)
-            FfiConverterString.write(value.`serverNoisePubkey`, buf)
-            FfiConverterOptionalString.write(value.`metadata`, buf)
+        FfiConverterString.write(value.`recipientPubkey`, buf)
+        FfiConverterString.write(value.`host`, buf)
+        FfiConverterUShort.write(value.`port`, buf)
+        FfiConverterString.write(value.`serverNoisePubkey`, buf)
+        FfiConverterOptionalString.write(value.`metadata`, buf)
     }
 }
-
-
 
 /**
  * Result of a Noise handshake operation.
  */
-data class NoiseHandshakeResult (
+data class NoiseHandshakeResult(
     /**
      * Whether the handshake succeeded.
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * Session ID for this connection (if successful).
      */
-    var `sessionId`: String?, 
+    var `sessionId`: String?,
     /**
      * Remote peer's public key (z-base32 encoded, if successful).
      */
-    var `remotePubkey`: String?, 
+    var `remotePubkey`: String?,
     /**
      * Error message (if failed).
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoiseHandshakeResult: FfiConverterRustBuffer<NoiseHandshakeResult> {
+public object FfiConverterTypeNoiseHandshakeResult : FfiConverterRustBuffer<NoiseHandshakeResult> {
     override fun read(buf: ByteBuffer): NoiseHandshakeResult {
         return NoiseHandshakeResult(
             FfiConverterBoolean.read(buf),
@@ -6488,40 +7378,38 @@ public object FfiConverterTypeNoiseHandshakeResult: FfiConverterRustBuffer<Noise
     }
 
     override fun allocationSize(value: NoiseHandshakeResult) = (
-            FfiConverterBoolean.allocationSize(value.`success`) +
+        FfiConverterBoolean.allocationSize(value.`success`) +
             FfiConverterOptionalString.allocationSize(value.`sessionId`) +
             FfiConverterOptionalString.allocationSize(value.`remotePubkey`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: NoiseHandshakeResult, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterOptionalString.write(value.`sessionId`, buf)
-            FfiConverterOptionalString.write(value.`remotePubkey`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterOptionalString.write(value.`sessionId`, buf)
+        FfiConverterOptionalString.write(value.`remotePubkey`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * A payment message to send over Noise channel.
  */
-data class NoisePaymentMessage (
+data class NoisePaymentMessage(
     /**
      * Type of the message.
      */
-    var `messageType`: NoisePaymentMessageType, 
+    var `messageType`: NoisePaymentMessageType,
     /**
      * JSON payload of the message.
      */
     var `payloadJson`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoisePaymentMessage: FfiConverterRustBuffer<NoisePaymentMessage> {
+public object FfiConverterTypeNoisePaymentMessage : FfiConverterRustBuffer<NoisePaymentMessage> {
     override fun read(buf: ByteBuffer): NoisePaymentMessage {
         return NoisePaymentMessage(
             FfiConverterTypeNoisePaymentMessageType.read(buf),
@@ -6530,44 +7418,42 @@ public object FfiConverterTypeNoisePaymentMessage: FfiConverterRustBuffer<NoiseP
     }
 
     override fun allocationSize(value: NoisePaymentMessage) = (
-            FfiConverterTypeNoisePaymentMessageType.allocationSize(value.`messageType`) +
+        FfiConverterTypeNoisePaymentMessageType.allocationSize(value.`messageType`) +
             FfiConverterString.allocationSize(value.`payloadJson`)
-    )
+        )
 
     override fun write(value: NoisePaymentMessage, buf: ByteBuffer) {
-            FfiConverterTypeNoisePaymentMessageType.write(value.`messageType`, buf)
-            FfiConverterString.write(value.`payloadJson`, buf)
+        FfiConverterTypeNoisePaymentMessageType.write(value.`messageType`, buf)
+        FfiConverterString.write(value.`payloadJson`, buf)
     }
 }
-
-
 
 /**
  * Configuration for a Noise server (receiving payments).
  */
-data class NoiseServerConfig (
+data class NoiseServerConfig(
     /**
      * The port to listen on (0 for auto-assign).
      */
-    var `port`: UShort, 
+    var `port`: UShort,
     /**
      * Maximum number of concurrent connections.
      */
-    var `maxConnections`: UInt, 
+    var `maxConnections`: UInt,
     /**
      * Connection timeout in seconds.
      */
-    var `connectionTimeoutSecs`: UInt, 
+    var `connectionTimeoutSecs`: UInt,
     /**
      * Whether to automatically publish endpoint to directory.
      */
     var `autoPublish`: Boolean
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoiseServerConfig: FfiConverterRustBuffer<NoiseServerConfig> {
+public object FfiConverterTypeNoiseServerConfig : FfiConverterRustBuffer<NoiseServerConfig> {
     override fun read(buf: ByteBuffer): NoiseServerConfig {
         return NoiseServerConfig(
             FfiConverterUShort.read(buf),
@@ -6578,52 +7464,50 @@ public object FfiConverterTypeNoiseServerConfig: FfiConverterRustBuffer<NoiseSer
     }
 
     override fun allocationSize(value: NoiseServerConfig) = (
-            FfiConverterUShort.allocationSize(value.`port`) +
+        FfiConverterUShort.allocationSize(value.`port`) +
             FfiConverterUInt.allocationSize(value.`maxConnections`) +
             FfiConverterUInt.allocationSize(value.`connectionTimeoutSecs`) +
             FfiConverterBoolean.allocationSize(value.`autoPublish`)
-    )
+        )
 
     override fun write(value: NoiseServerConfig, buf: ByteBuffer) {
-            FfiConverterUShort.write(value.`port`, buf)
-            FfiConverterUInt.write(value.`maxConnections`, buf)
-            FfiConverterUInt.write(value.`connectionTimeoutSecs`, buf)
-            FfiConverterBoolean.write(value.`autoPublish`, buf)
+        FfiConverterUShort.write(value.`port`, buf)
+        FfiConverterUInt.write(value.`maxConnections`, buf)
+        FfiConverterUInt.write(value.`connectionTimeoutSecs`, buf)
+        FfiConverterBoolean.write(value.`autoPublish`, buf)
     }
 }
-
-
 
 /**
  * Status of the Noise server.
  */
-data class NoiseServerStatus (
+data class NoiseServerStatus(
     /**
      * Whether the server is currently running.
      */
-    var `isRunning`: Boolean, 
+    var `isRunning`: Boolean,
     /**
      * The port the server is listening on (if running).
      */
-    var `port`: UShort?, 
+    var `port`: UShort?,
     /**
      * The server's Noise public key (X25519, hex encoded).
      */
-    var `noisePubkey`: String, 
+    var `noisePubkey`: String,
     /**
      * Number of active sessions.
      */
-    var `activeSessions`: UInt, 
+    var `activeSessions`: UInt,
     /**
      * Total connections handled since start.
      */
     var `totalConnections`: ULong
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoiseServerStatus: FfiConverterRustBuffer<NoiseServerStatus> {
+public object FfiConverterTypeNoiseServerStatus : FfiConverterRustBuffer<NoiseServerStatus> {
     override fun read(buf: ByteBuffer): NoiseServerStatus {
         return NoiseServerStatus(
             FfiConverterBoolean.read(buf),
@@ -6635,58 +7519,56 @@ public object FfiConverterTypeNoiseServerStatus: FfiConverterRustBuffer<NoiseSer
     }
 
     override fun allocationSize(value: NoiseServerStatus) = (
-            FfiConverterBoolean.allocationSize(value.`isRunning`) +
+        FfiConverterBoolean.allocationSize(value.`isRunning`) +
             FfiConverterOptionalUShort.allocationSize(value.`port`) +
             FfiConverterString.allocationSize(value.`noisePubkey`) +
             FfiConverterUInt.allocationSize(value.`activeSessions`) +
             FfiConverterULong.allocationSize(value.`totalConnections`)
-    )
+        )
 
     override fun write(value: NoiseServerStatus, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`isRunning`, buf)
-            FfiConverterOptionalUShort.write(value.`port`, buf)
-            FfiConverterString.write(value.`noisePubkey`, buf)
-            FfiConverterUInt.write(value.`activeSessions`, buf)
-            FfiConverterULong.write(value.`totalConnections`, buf)
+        FfiConverterBoolean.write(value.`isRunning`, buf)
+        FfiConverterOptionalUShort.write(value.`port`, buf)
+        FfiConverterString.write(value.`noisePubkey`, buf)
+        FfiConverterUInt.write(value.`activeSessions`, buf)
+        FfiConverterULong.write(value.`totalConnections`, buf)
     }
 }
-
-
 
 /**
  * Information about an active Noise session.
  */
-data class NoiseSessionInfo (
+data class NoiseSessionInfo(
     /**
      * Unique session identifier.
      */
-    var `sessionId`: String, 
+    var `sessionId`: String,
     /**
      * Remote peer's public key (z-base32 encoded).
      */
-    var `remotePubkey`: String, 
+    var `remotePubkey`: String,
     /**
      * When the session was established (unix timestamp).
      */
-    var `establishedAt`: Long, 
+    var `establishedAt`: Long,
     /**
      * Whether this is an incoming (server) or outgoing (client) session.
      */
-    var `isIncoming`: Boolean, 
+    var `isIncoming`: Boolean,
     /**
      * Number of messages sent in this session.
      */
-    var `messagesSent`: ULong, 
+    var `messagesSent`: ULong,
     /**
      * Number of messages received in this session.
      */
     var `messagesReceived`: ULong
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeNoiseSessionInfo: FfiConverterRustBuffer<NoiseSessionInfo> {
+public object FfiConverterTypeNoiseSessionInfo : FfiConverterRustBuffer<NoiseSessionInfo> {
     override fun read(buf: ByteBuffer): NoiseSessionInfo {
         return NoiseSessionInfo(
             FfiConverterString.read(buf),
@@ -6699,25 +7581,23 @@ public object FfiConverterTypeNoiseSessionInfo: FfiConverterRustBuffer<NoiseSess
     }
 
     override fun allocationSize(value: NoiseSessionInfo) = (
-            FfiConverterString.allocationSize(value.`sessionId`) +
+        FfiConverterString.allocationSize(value.`sessionId`) +
             FfiConverterString.allocationSize(value.`remotePubkey`) +
             FfiConverterLong.allocationSize(value.`establishedAt`) +
             FfiConverterBoolean.allocationSize(value.`isIncoming`) +
             FfiConverterULong.allocationSize(value.`messagesSent`) +
             FfiConverterULong.allocationSize(value.`messagesReceived`)
-    )
+        )
 
     override fun write(value: NoiseSessionInfo, buf: ByteBuffer) {
-            FfiConverterString.write(value.`sessionId`, buf)
-            FfiConverterString.write(value.`remotePubkey`, buf)
-            FfiConverterLong.write(value.`establishedAt`, buf)
-            FfiConverterBoolean.write(value.`isIncoming`, buf)
-            FfiConverterULong.write(value.`messagesSent`, buf)
-            FfiConverterULong.write(value.`messagesReceived`, buf)
+        FfiConverterString.write(value.`sessionId`, buf)
+        FfiConverterString.write(value.`remotePubkey`, buf)
+        FfiConverterLong.write(value.`establishedAt`, buf)
+        FfiConverterBoolean.write(value.`isIncoming`, buf)
+        FfiConverterULong.write(value.`messagesSent`, buf)
+        FfiConverterULong.write(value.`messagesReceived`, buf)
     }
 }
-
-
 
 /**
  * Result of a payment execution.
@@ -6725,45 +7605,45 @@ public object FfiConverterTypeNoiseSessionInfo: FfiConverterRustBuffer<NoiseSess
  * Returned by `PaykitClient::execute_payment()` after attempting to
  * send a payment via the registered wallet executor.
  */
-data class PaymentExecutionResult (
+data class PaymentExecutionResult(
     /**
      * Unique execution ID.
      */
-    var `executionId`: String, 
+    var `executionId`: String,
     /**
      * Payment method used.
      */
-    var `methodId`: String, 
+    var `methodId`: String,
     /**
      * Payment destination.
      */
-    var `endpoint`: String, 
+    var `endpoint`: String,
     /**
      * Amount sent in satoshis.
      */
-    var `amountSats`: ULong, 
+    var `amountSats`: ULong,
     /**
      * Whether the payment succeeded.
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * Unix timestamp of execution.
      */
-    var `executedAt`: Long, 
+    var `executedAt`: Long,
     /**
      * Execution details as JSON (contains txid, preimage, fees, etc.).
      */
-    var `executionDataJson`: String, 
+    var `executionDataJson`: String,
     /**
      * Error message if failed.
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePaymentExecutionResult: FfiConverterRustBuffer<PaymentExecutionResult> {
+public object FfiConverterTypePaymentExecutionResult : FfiConverterRustBuffer<PaymentExecutionResult> {
     override fun read(buf: ByteBuffer): PaymentExecutionResult {
         return PaymentExecutionResult(
             FfiConverterString.read(buf),
@@ -6778,7 +7658,7 @@ public object FfiConverterTypePaymentExecutionResult: FfiConverterRustBuffer<Pay
     }
 
     override fun allocationSize(value: PaymentExecutionResult) = (
-            FfiConverterString.allocationSize(value.`executionId`) +
+        FfiConverterString.allocationSize(value.`executionId`) +
             FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterString.allocationSize(value.`endpoint`) +
             FfiConverterULong.allocationSize(value.`amountSats`) +
@@ -6786,34 +7666,32 @@ public object FfiConverterTypePaymentExecutionResult: FfiConverterRustBuffer<Pay
             FfiConverterLong.allocationSize(value.`executedAt`) +
             FfiConverterString.allocationSize(value.`executionDataJson`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: PaymentExecutionResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`executionId`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`endpoint`, buf)
-            FfiConverterULong.write(value.`amountSats`, buf)
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterLong.write(value.`executedAt`, buf)
-            FfiConverterString.write(value.`executionDataJson`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterString.write(value.`executionId`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`endpoint`, buf)
+        FfiConverterULong.write(value.`amountSats`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterLong.write(value.`executedAt`, buf)
+        FfiConverterString.write(value.`executionDataJson`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * A supported payment method with its endpoint.
  */
-data class PaymentMethod (
-    var `methodId`: String, 
+data class PaymentMethod(
+    var `methodId`: String,
     var `endpoint`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePaymentMethod: FfiConverterRustBuffer<PaymentMethod> {
+public object FfiConverterTypePaymentMethod : FfiConverterRustBuffer<PaymentMethod> {
     override fun read(buf: ByteBuffer): PaymentMethod {
         return PaymentMethod(
             FfiConverterString.read(buf),
@@ -6822,17 +7700,15 @@ public object FfiConverterTypePaymentMethod: FfiConverterRustBuffer<PaymentMetho
     }
 
     override fun allocationSize(value: PaymentMethod) = (
-            FfiConverterString.allocationSize(value.`methodId`) +
+        FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterString.allocationSize(value.`endpoint`)
-    )
+        )
 
     override fun write(value: PaymentMethod, buf: ByteBuffer) {
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`endpoint`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`endpoint`, buf)
     }
 }
-
-
 
 /**
  * Result of generating a payment proof.
@@ -6840,21 +7716,21 @@ public object FfiConverterTypePaymentMethod: FfiConverterRustBuffer<PaymentMetho
  * Returned by `PaykitClient::generate_payment_proof()` after
  * extracting proof data from a successful payment execution.
  */
-data class PaymentProofResult (
+data class PaymentProofResult(
     /**
      * Type of proof ("bitcoin_txid", "lightning_preimage", "custom").
      */
-    var `proofType`: String, 
+    var `proofType`: String,
     /**
      * Proof data as JSON.
      */
     var `proofDataJson`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePaymentProofResult: FfiConverterRustBuffer<PaymentProofResult> {
+public object FfiConverterTypePaymentProofResult : FfiConverterRustBuffer<PaymentProofResult> {
     override fun read(buf: ByteBuffer): PaymentProofResult {
         return PaymentProofResult(
             FfiConverterString.read(buf),
@@ -6863,37 +7739,35 @@ public object FfiConverterTypePaymentProofResult: FfiConverterRustBuffer<Payment
     }
 
     override fun allocationSize(value: PaymentProofResult) = (
-            FfiConverterString.allocationSize(value.`proofType`) +
+        FfiConverterString.allocationSize(value.`proofType`) +
             FfiConverterString.allocationSize(value.`proofDataJson`)
-    )
+        )
 
     override fun write(value: PaymentProofResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`proofType`, buf)
-            FfiConverterString.write(value.`proofDataJson`, buf)
+        FfiConverterString.write(value.`proofType`, buf)
+        FfiConverterString.write(value.`proofDataJson`, buf)
     }
 }
-
-
 
 /**
  * Payment request.
  */
-data class PaymentRequest (
-    var `requestId`: String, 
-    var `fromPubkey`: String, 
-    var `toPubkey`: String, 
-    var `amountSats`: Long, 
-    var `currency`: String, 
-    var `methodId`: String, 
-    var `description`: String, 
-    var `createdAt`: Long, 
+data class PaymentRequest(
+    var `requestId`: String,
+    var `fromPubkey`: String,
+    var `toPubkey`: String,
+    var `amountSats`: Long,
+    var `currency`: String,
+    var `methodId`: String,
+    var `description`: String,
+    var `createdAt`: Long,
     var `expiresAt`: Long?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePaymentRequest: FfiConverterRustBuffer<PaymentRequest> {
+public object FfiConverterTypePaymentRequest : FfiConverterRustBuffer<PaymentRequest> {
     override fun read(buf: ByteBuffer): PaymentRequest {
         return PaymentRequest(
             FfiConverterString.read(buf),
@@ -6909,7 +7783,7 @@ public object FfiConverterTypePaymentRequest: FfiConverterRustBuffer<PaymentRequ
     }
 
     override fun allocationSize(value: PaymentRequest) = (
-            FfiConverterString.allocationSize(value.`requestId`) +
+        FfiConverterString.allocationSize(value.`requestId`) +
             FfiConverterString.allocationSize(value.`fromPubkey`) +
             FfiConverterString.allocationSize(value.`toPubkey`) +
             FfiConverterLong.allocationSize(value.`amountSats`) +
@@ -6918,40 +7792,38 @@ public object FfiConverterTypePaymentRequest: FfiConverterRustBuffer<PaymentRequ
             FfiConverterString.allocationSize(value.`description`) +
             FfiConverterLong.allocationSize(value.`createdAt`) +
             FfiConverterOptionalLong.allocationSize(value.`expiresAt`)
-    )
+        )
 
     override fun write(value: PaymentRequest, buf: ByteBuffer) {
-            FfiConverterString.write(value.`requestId`, buf)
-            FfiConverterString.write(value.`fromPubkey`, buf)
-            FfiConverterString.write(value.`toPubkey`, buf)
-            FfiConverterLong.write(value.`amountSats`, buf)
-            FfiConverterString.write(value.`currency`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`description`, buf)
-            FfiConverterLong.write(value.`createdAt`, buf)
-            FfiConverterOptionalLong.write(value.`expiresAt`, buf)
+        FfiConverterString.write(value.`requestId`, buf)
+        FfiConverterString.write(value.`fromPubkey`, buf)
+        FfiConverterString.write(value.`toPubkey`, buf)
+        FfiConverterLong.write(value.`amountSats`, buf)
+        FfiConverterString.write(value.`currency`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`description`, buf)
+        FfiConverterLong.write(value.`createdAt`, buf)
+        FfiConverterOptionalLong.write(value.`expiresAt`, buf)
     }
 }
-
-
 
 /**
  * Payment status information.
  */
-data class PaymentStatusInfo (
-    var `status`: PaymentStatus, 
-    var `receiptId`: String, 
-    var `methodId`: String, 
-    var `updatedAt`: Long, 
-    var `confirmations`: ULong?, 
-    var `requiredConfirmations`: ULong?, 
+data class PaymentStatusInfo(
+    var `status`: PaymentStatus,
+    var `receiptId`: String,
+    var `methodId`: String,
+    var `updatedAt`: Long,
+    var `confirmations`: ULong?,
+    var `requiredConfirmations`: ULong?,
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePaymentStatusInfo: FfiConverterRustBuffer<PaymentStatusInfo> {
+public object FfiConverterTypePaymentStatusInfo : FfiConverterRustBuffer<PaymentStatusInfo> {
     override fun read(buf: ByteBuffer): PaymentStatusInfo {
         return PaymentStatusInfo(
             FfiConverterTypePaymentStatus.read(buf),
@@ -6965,43 +7837,41 @@ public object FfiConverterTypePaymentStatusInfo: FfiConverterRustBuffer<PaymentS
     }
 
     override fun allocationSize(value: PaymentStatusInfo) = (
-            FfiConverterTypePaymentStatus.allocationSize(value.`status`) +
+        FfiConverterTypePaymentStatus.allocationSize(value.`status`) +
             FfiConverterString.allocationSize(value.`receiptId`) +
             FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterLong.allocationSize(value.`updatedAt`) +
             FfiConverterOptionalULong.allocationSize(value.`confirmations`) +
             FfiConverterOptionalULong.allocationSize(value.`requiredConfirmations`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: PaymentStatusInfo, buf: ByteBuffer) {
-            FfiConverterTypePaymentStatus.write(value.`status`, buf)
-            FfiConverterString.write(value.`receiptId`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterLong.write(value.`updatedAt`, buf)
-            FfiConverterOptionalULong.write(value.`confirmations`, buf)
-            FfiConverterOptionalULong.write(value.`requiredConfirmations`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterTypePaymentStatus.write(value.`status`, buf)
+        FfiConverterString.write(value.`receiptId`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterLong.write(value.`updatedAt`, buf)
+        FfiConverterOptionalULong.write(value.`confirmations`, buf)
+        FfiConverterOptionalULong.write(value.`requiredConfirmations`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * Private endpoint information.
  */
-data class PrivateEndpoint (
-    var `peer`: String, 
-    var `methodId`: String, 
-    var `endpoint`: String, 
-    var `createdAt`: Long, 
+data class PrivateEndpoint(
+    var `peer`: String,
+    var `methodId`: String,
+    var `endpoint`: String,
+    var `createdAt`: Long,
     var `expiresAt`: Long?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePrivateEndpoint: FfiConverterRustBuffer<PrivateEndpoint> {
+public object FfiConverterTypePrivateEndpoint : FfiConverterRustBuffer<PrivateEndpoint> {
     override fun read(buf: ByteBuffer): PrivateEndpoint {
         return PrivateEndpoint(
             FfiConverterString.read(buf),
@@ -7013,36 +7883,34 @@ public object FfiConverterTypePrivateEndpoint: FfiConverterRustBuffer<PrivateEnd
     }
 
     override fun allocationSize(value: PrivateEndpoint) = (
-            FfiConverterString.allocationSize(value.`peer`) +
+        FfiConverterString.allocationSize(value.`peer`) +
             FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterString.allocationSize(value.`endpoint`) +
             FfiConverterLong.allocationSize(value.`createdAt`) +
             FfiConverterOptionalLong.allocationSize(value.`expiresAt`)
-    )
+        )
 
     override fun write(value: PrivateEndpoint, buf: ByteBuffer) {
-            FfiConverterString.write(value.`peer`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`endpoint`, buf)
-            FfiConverterLong.write(value.`createdAt`, buf)
-            FfiConverterOptionalLong.write(value.`expiresAt`, buf)
+        FfiConverterString.write(value.`peer`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`endpoint`, buf)
+        FfiConverterLong.write(value.`createdAt`, buf)
+        FfiConverterOptionalLong.write(value.`expiresAt`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe private endpoint offer.
  */
-data class PrivateEndpointOffer (
-    var `methodId`: String, 
+data class PrivateEndpointOffer(
+    var `methodId`: String,
     var `endpoint`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypePrivateEndpointOffer: FfiConverterRustBuffer<PrivateEndpointOffer> {
+public object FfiConverterTypePrivateEndpointOffer : FfiConverterRustBuffer<PrivateEndpointOffer> {
     override fun read(buf: ByteBuffer): PrivateEndpointOffer {
         return PrivateEndpointOffer(
             FfiConverterString.read(buf),
@@ -7051,32 +7919,30 @@ public object FfiConverterTypePrivateEndpointOffer: FfiConverterRustBuffer<Priva
     }
 
     override fun allocationSize(value: PrivateEndpointOffer) = (
-            FfiConverterString.allocationSize(value.`methodId`) +
+        FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterString.allocationSize(value.`endpoint`)
-    )
+        )
 
     override fun write(value: PrivateEndpointOffer, buf: ByteBuffer) {
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`endpoint`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`endpoint`, buf)
     }
 }
-
-
 
 /**
  * Proration result.
  */
-data class ProrationResult (
-    var `creditSats`: Long, 
-    var `chargeSats`: Long, 
-    var `netSats`: Long, 
+data class ProrationResult(
+    var `creditSats`: Long,
+    var `chargeSats`: Long,
+    var `netSats`: Long,
     var `isRefund`: Boolean
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeProrationResult: FfiConverterRustBuffer<ProrationResult> {
+public object FfiConverterTypeProrationResult : FfiConverterRustBuffer<ProrationResult> {
     override fun read(buf: ByteBuffer): ProrationResult {
         return ProrationResult(
             FfiConverterLong.read(buf),
@@ -7087,40 +7953,38 @@ public object FfiConverterTypeProrationResult: FfiConverterRustBuffer<ProrationR
     }
 
     override fun allocationSize(value: ProrationResult) = (
-            FfiConverterLong.allocationSize(value.`creditSats`) +
+        FfiConverterLong.allocationSize(value.`creditSats`) +
             FfiConverterLong.allocationSize(value.`chargeSats`) +
             FfiConverterLong.allocationSize(value.`netSats`) +
             FfiConverterBoolean.allocationSize(value.`isRefund`)
-    )
+        )
 
     override fun write(value: ProrationResult, buf: ByteBuffer) {
-            FfiConverterLong.write(value.`creditSats`, buf)
-            FfiConverterLong.write(value.`chargeSats`, buf)
-            FfiConverterLong.write(value.`netSats`, buf)
-            FfiConverterBoolean.write(value.`isRefund`, buf)
+        FfiConverterLong.write(value.`creditSats`, buf)
+        FfiConverterLong.write(value.`chargeSats`, buf)
+        FfiConverterLong.write(value.`netSats`, buf)
+        FfiConverterBoolean.write(value.`isRefund`, buf)
     }
 }
-
-
 
 /**
  * Payment receipt.
  */
-data class Receipt (
-    var `receiptId`: String, 
-    var `payer`: String, 
-    var `payee`: String, 
-    var `methodId`: String, 
-    var `amount`: String?, 
-    var `currency`: String?, 
-    var `createdAt`: Long, 
+data class Receipt(
+    var `receiptId`: String,
+    var `payer`: String,
+    var `payee`: String,
+    var `methodId`: String,
+    var `amount`: String?,
+    var `currency`: String?,
+    var `createdAt`: Long,
     var `metadataJson`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeReceipt: FfiConverterRustBuffer<Receipt> {
+public object FfiConverterTypeReceipt : FfiConverterRustBuffer<Receipt> {
     override fun read(buf: ByteBuffer): Receipt {
         return Receipt(
             FfiConverterString.read(buf),
@@ -7135,7 +7999,7 @@ public object FfiConverterTypeReceipt: FfiConverterRustBuffer<Receipt> {
     }
 
     override fun allocationSize(value: Receipt) = (
-            FfiConverterString.allocationSize(value.`receiptId`) +
+        FfiConverterString.allocationSize(value.`receiptId`) +
             FfiConverterString.allocationSize(value.`payer`) +
             FfiConverterString.allocationSize(value.`payee`) +
             FfiConverterString.allocationSize(value.`methodId`) +
@@ -7143,46 +8007,44 @@ public object FfiConverterTypeReceipt: FfiConverterRustBuffer<Receipt> {
             FfiConverterOptionalString.allocationSize(value.`currency`) +
             FfiConverterLong.allocationSize(value.`createdAt`) +
             FfiConverterString.allocationSize(value.`metadataJson`)
-    )
+        )
 
     override fun write(value: Receipt, buf: ByteBuffer) {
-            FfiConverterString.write(value.`receiptId`, buf)
-            FfiConverterString.write(value.`payer`, buf)
-            FfiConverterString.write(value.`payee`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterOptionalString.write(value.`amount`, buf)
-            FfiConverterOptionalString.write(value.`currency`, buf)
-            FfiConverterLong.write(value.`createdAt`, buf)
-            FfiConverterString.write(value.`metadataJson`, buf)
+        FfiConverterString.write(value.`receiptId`, buf)
+        FfiConverterString.write(value.`payer`, buf)
+        FfiConverterString.write(value.`payee`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterOptionalString.write(value.`amount`, buf)
+        FfiConverterOptionalString.write(value.`currency`, buf)
+        FfiConverterLong.write(value.`createdAt`, buf)
+        FfiConverterString.write(value.`metadataJson`, buf)
     }
 }
-
-
 
 /**
  * Result type for receipt generation.
  *
  * Used to communicate success/failure from mobile callbacks.
  */
-data class ReceiptGenerationResult (
+data class ReceiptGenerationResult(
     /**
      * Whether generation succeeded
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * The generated receipt (if successful)
      */
-    var `receipt`: ReceiptRequest?, 
+    var `receipt`: ReceiptRequest?,
     /**
      * Error message (if failed)
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeReceiptGenerationResult: FfiConverterRustBuffer<ReceiptGenerationResult> {
+public object FfiConverterTypeReceiptGenerationResult : FfiConverterRustBuffer<ReceiptGenerationResult> {
     override fun read(buf: ByteBuffer): ReceiptGenerationResult {
         return ReceiptGenerationResult(
             FfiConverterBoolean.read(buf),
@@ -7192,37 +8054,35 @@ public object FfiConverterTypeReceiptGenerationResult: FfiConverterRustBuffer<Re
     }
 
     override fun allocationSize(value: ReceiptGenerationResult) = (
-            FfiConverterBoolean.allocationSize(value.`success`) +
+        FfiConverterBoolean.allocationSize(value.`success`) +
             FfiConverterOptionalTypeReceiptRequest.allocationSize(value.`receipt`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: ReceiptGenerationResult, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterOptionalTypeReceiptRequest.write(value.`receipt`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterOptionalTypeReceiptRequest.write(value.`receipt`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe receipt request.
  */
-data class ReceiptRequest (
-    var `receiptId`: String, 
-    var `payer`: String, 
-    var `payee`: String, 
-    var `methodId`: String, 
-    var `amount`: String?, 
-    var `currency`: String?, 
+data class ReceiptRequest(
+    var `receiptId`: String,
+    var `payer`: String,
+    var `payee`: String,
+    var `methodId`: String,
+    var `amount`: String?,
+    var `currency`: String?,
     var `metadataJson`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeReceiptRequest: FfiConverterRustBuffer<ReceiptRequest> {
+public object FfiConverterTypeReceiptRequest : FfiConverterRustBuffer<ReceiptRequest> {
     override fun read(buf: ByteBuffer): ReceiptRequest {
         return ReceiptRequest(
             FfiConverterString.read(buf),
@@ -7236,62 +8096,60 @@ public object FfiConverterTypeReceiptRequest: FfiConverterRustBuffer<ReceiptRequ
     }
 
     override fun allocationSize(value: ReceiptRequest) = (
-            FfiConverterString.allocationSize(value.`receiptId`) +
+        FfiConverterString.allocationSize(value.`receiptId`) +
             FfiConverterString.allocationSize(value.`payer`) +
             FfiConverterString.allocationSize(value.`payee`) +
             FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterOptionalString.allocationSize(value.`amount`) +
             FfiConverterOptionalString.allocationSize(value.`currency`) +
             FfiConverterString.allocationSize(value.`metadataJson`)
-    )
+        )
 
     override fun write(value: ReceiptRequest, buf: ByteBuffer) {
-            FfiConverterString.write(value.`receiptId`, buf)
-            FfiConverterString.write(value.`payer`, buf)
-            FfiConverterString.write(value.`payee`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterOptionalString.write(value.`amount`, buf)
-            FfiConverterOptionalString.write(value.`currency`, buf)
-            FfiConverterString.write(value.`metadataJson`, buf)
+        FfiConverterString.write(value.`receiptId`, buf)
+        FfiConverterString.write(value.`payer`, buf)
+        FfiConverterString.write(value.`payee`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterOptionalString.write(value.`amount`, buf)
+        FfiConverterOptionalString.write(value.`currency`, buf)
+        FfiConverterString.write(value.`metadataJson`, buf)
     }
 }
-
-
 
 /**
  * Result of scanning a QR code.
  */
-data class ScannedUri (
+data class ScannedUri(
     /**
      * The type of URI that was scanned.
      */
-    var `uriType`: UriType, 
+    var `uriType`: UriType,
     /**
      * The public key if this is a Pubky URI.
      */
-    var `publicKey`: String?, 
+    var `publicKey`: String?,
     /**
      * The payment method if this is an Invoice URI.
      */
-    var `methodId`: String?, 
+    var `methodId`: String?,
     /**
      * The invoice/endpoint data.
      */
-    var `data`: String?, 
+    var `data`: String?,
     /**
      * The payment request ID if this is a PaymentRequest URI.
      */
-    var `requestId`: String?, 
+    var `requestId`: String?,
     /**
      * The requester's public key if this is a PaymentRequest URI.
      */
     var `requester`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeScannedUri: FfiConverterRustBuffer<ScannedUri> {
+public object FfiConverterTypeScannedUri : FfiConverterRustBuffer<ScannedUri> {
     override fun read(buf: ByteBuffer): ScannedUri {
         return ScannedUri(
             FfiConverterTypeUriType.read(buf),
@@ -7304,40 +8162,38 @@ public object FfiConverterTypeScannedUri: FfiConverterRustBuffer<ScannedUri> {
     }
 
     override fun allocationSize(value: ScannedUri) = (
-            FfiConverterTypeUriType.allocationSize(value.`uriType`) +
+        FfiConverterTypeUriType.allocationSize(value.`uriType`) +
             FfiConverterOptionalString.allocationSize(value.`publicKey`) +
             FfiConverterOptionalString.allocationSize(value.`methodId`) +
             FfiConverterOptionalString.allocationSize(value.`data`) +
             FfiConverterOptionalString.allocationSize(value.`requestId`) +
             FfiConverterOptionalString.allocationSize(value.`requester`)
-    )
+        )
 
     override fun write(value: ScannedUri, buf: ByteBuffer) {
-            FfiConverterTypeUriType.write(value.`uriType`, buf)
-            FfiConverterOptionalString.write(value.`publicKey`, buf)
-            FfiConverterOptionalString.write(value.`methodId`, buf)
-            FfiConverterOptionalString.write(value.`data`, buf)
-            FfiConverterOptionalString.write(value.`requestId`, buf)
-            FfiConverterOptionalString.write(value.`requester`, buf)
+        FfiConverterTypeUriType.write(value.`uriType`, buf)
+        FfiConverterOptionalString.write(value.`publicKey`, buf)
+        FfiConverterOptionalString.write(value.`methodId`, buf)
+        FfiConverterOptionalString.write(value.`data`, buf)
+        FfiConverterOptionalString.write(value.`requestId`, buf)
+        FfiConverterOptionalString.write(value.`requester`, buf)
     }
 }
-
-
 
 /**
  * Selection preferences.
  */
-data class SelectionPreferences (
-    var `strategy`: SelectionStrategy, 
-    var `excludedMethods`: List<String>, 
-    var `maxFeeSats`: ULong?, 
+data class SelectionPreferences(
+    var `strategy`: SelectionStrategy,
+    var `excludedMethods`: List<String>,
+    var `maxFeeSats`: ULong?,
     var `maxConfirmationTimeSecs`: ULong?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeSelectionPreferences: FfiConverterRustBuffer<SelectionPreferences> {
+public object FfiConverterTypeSelectionPreferences : FfiConverterRustBuffer<SelectionPreferences> {
     override fun read(buf: ByteBuffer): SelectionPreferences {
         return SelectionPreferences(
             FfiConverterTypeSelectionStrategy.read(buf),
@@ -7348,35 +8204,33 @@ public object FfiConverterTypeSelectionPreferences: FfiConverterRustBuffer<Selec
     }
 
     override fun allocationSize(value: SelectionPreferences) = (
-            FfiConverterTypeSelectionStrategy.allocationSize(value.`strategy`) +
+        FfiConverterTypeSelectionStrategy.allocationSize(value.`strategy`) +
             FfiConverterSequenceString.allocationSize(value.`excludedMethods`) +
             FfiConverterOptionalULong.allocationSize(value.`maxFeeSats`) +
             FfiConverterOptionalULong.allocationSize(value.`maxConfirmationTimeSecs`)
-    )
+        )
 
     override fun write(value: SelectionPreferences, buf: ByteBuffer) {
-            FfiConverterTypeSelectionStrategy.write(value.`strategy`, buf)
-            FfiConverterSequenceString.write(value.`excludedMethods`, buf)
-            FfiConverterOptionalULong.write(value.`maxFeeSats`, buf)
-            FfiConverterOptionalULong.write(value.`maxConfirmationTimeSecs`, buf)
+        FfiConverterTypeSelectionStrategy.write(value.`strategy`, buf)
+        FfiConverterSequenceString.write(value.`excludedMethods`, buf)
+        FfiConverterOptionalULong.write(value.`maxFeeSats`, buf)
+        FfiConverterOptionalULong.write(value.`maxConfirmationTimeSecs`, buf)
     }
 }
-
-
 
 /**
  * Result of payment method selection.
  */
-data class SelectionResult (
-    var `primaryMethod`: String, 
-    var `fallbackMethods`: List<String>, 
+data class SelectionResult(
+    var `primaryMethod`: String,
+    var `fallbackMethods`: List<String>,
     var `reason`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeSelectionResult: FfiConverterRustBuffer<SelectionResult> {
+public object FfiConverterTypeSelectionResult : FfiConverterRustBuffer<SelectionResult> {
     override fun read(buf: ByteBuffer): SelectionResult {
         return SelectionResult(
             FfiConverterString.read(buf),
@@ -7386,42 +8240,40 @@ public object FfiConverterTypeSelectionResult: FfiConverterRustBuffer<SelectionR
     }
 
     override fun allocationSize(value: SelectionResult) = (
-            FfiConverterString.allocationSize(value.`primaryMethod`) +
+        FfiConverterString.allocationSize(value.`primaryMethod`) +
             FfiConverterSequenceString.allocationSize(value.`fallbackMethods`) +
             FfiConverterString.allocationSize(value.`reason`)
-    )
+        )
 
     override fun write(value: SelectionResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`primaryMethod`, buf)
-            FfiConverterSequenceString.write(value.`fallbackMethods`, buf)
-            FfiConverterString.write(value.`reason`, buf)
+        FfiConverterString.write(value.`primaryMethod`, buf)
+        FfiConverterSequenceString.write(value.`fallbackMethods`, buf)
+        FfiConverterString.write(value.`reason`, buf)
     }
 }
-
-
 
 /**
  * Result type for storage get operations.
  */
-data class StorageGetResult (
+data class StorageGetResult(
     /**
      * Whether the operation succeeded
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * The content if found (None if not found but successful)
      */
-    var `content`: String?, 
+    var `content`: String?,
     /**
      * Error message if failed
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeStorageGetResult: FfiConverterRustBuffer<StorageGetResult> {
+public object FfiConverterTypeStorageGetResult : FfiConverterRustBuffer<StorageGetResult> {
     override fun read(buf: ByteBuffer): StorageGetResult {
         return StorageGetResult(
             FfiConverterBoolean.read(buf),
@@ -7431,42 +8283,40 @@ public object FfiConverterTypeStorageGetResult: FfiConverterRustBuffer<StorageGe
     }
 
     override fun allocationSize(value: StorageGetResult) = (
-            FfiConverterBoolean.allocationSize(value.`success`) +
+        FfiConverterBoolean.allocationSize(value.`success`) +
             FfiConverterOptionalString.allocationSize(value.`content`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: StorageGetResult, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterOptionalString.write(value.`content`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterOptionalString.write(value.`content`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * Result type for storage list operations.
  */
-data class StorageListResult (
+data class StorageListResult(
     /**
      * Whether the operation succeeded
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * List of file names/paths
      */
-    var `entries`: List<String>, 
+    var `entries`: List<String>,
     /**
      * Error message if failed
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeStorageListResult: FfiConverterRustBuffer<StorageListResult> {
+public object FfiConverterTypeStorageListResult : FfiConverterRustBuffer<StorageListResult> {
     override fun read(buf: ByteBuffer): StorageListResult {
         return StorageListResult(
             FfiConverterBoolean.read(buf),
@@ -7476,38 +8326,36 @@ public object FfiConverterTypeStorageListResult: FfiConverterRustBuffer<StorageL
     }
 
     override fun allocationSize(value: StorageListResult) = (
-            FfiConverterBoolean.allocationSize(value.`success`) +
+        FfiConverterBoolean.allocationSize(value.`success`) +
             FfiConverterSequenceString.allocationSize(value.`entries`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: StorageListResult, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterSequenceString.write(value.`entries`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterSequenceString.write(value.`entries`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * Result type for storage operations.
  */
-data class StorageOperationResult (
+data class StorageOperationResult(
     /**
      * Whether the operation succeeded
      */
-    var `success`: Boolean, 
+    var `success`: Boolean,
     /**
      * Error message if failed
      */
     var `error`: String?
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeStorageOperationResult: FfiConverterRustBuffer<StorageOperationResult> {
+public object FfiConverterTypeStorageOperationResult : FfiConverterRustBuffer<StorageOperationResult> {
     override fun read(buf: ByteBuffer): StorageOperationResult {
         return StorageOperationResult(
             FfiConverterBoolean.read(buf),
@@ -7516,36 +8364,34 @@ public object FfiConverterTypeStorageOperationResult: FfiConverterRustBuffer<Sto
     }
 
     override fun allocationSize(value: StorageOperationResult) = (
-            FfiConverterBoolean.allocationSize(value.`success`) +
+        FfiConverterBoolean.allocationSize(value.`success`) +
             FfiConverterOptionalString.allocationSize(value.`error`)
-    )
+        )
 
     override fun write(value: StorageOperationResult, buf: ByteBuffer) {
-            FfiConverterBoolean.write(value.`success`, buf)
-            FfiConverterOptionalString.write(value.`error`, buf)
+        FfiConverterBoolean.write(value.`success`, buf)
+        FfiConverterOptionalString.write(value.`error`, buf)
     }
 }
-
-
 
 /**
  * Subscription information.
  */
-data class Subscription (
-    var `subscriptionId`: String, 
-    var `subscriber`: String, 
-    var `provider`: String, 
-    var `terms`: SubscriptionTerms, 
-    var `createdAt`: Long, 
-    var `startsAt`: Long, 
-    var `endsAt`: Long?, 
+data class Subscription(
+    var `subscriptionId`: String,
+    var `subscriber`: String,
+    var `provider`: String,
+    var `terms`: SubscriptionTerms,
+    var `createdAt`: Long,
+    var `startsAt`: Long,
+    var `endsAt`: Long?,
     var `isActive`: Boolean
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeSubscription: FfiConverterRustBuffer<Subscription> {
+public object FfiConverterTypeSubscription : FfiConverterRustBuffer<Subscription> {
     override fun read(buf: ByteBuffer): Subscription {
         return Subscription(
             FfiConverterString.read(buf),
@@ -7560,7 +8406,7 @@ public object FfiConverterTypeSubscription: FfiConverterRustBuffer<Subscription>
     }
 
     override fun allocationSize(value: Subscription) = (
-            FfiConverterString.allocationSize(value.`subscriptionId`) +
+        FfiConverterString.allocationSize(value.`subscriptionId`) +
             FfiConverterString.allocationSize(value.`subscriber`) +
             FfiConverterString.allocationSize(value.`provider`) +
             FfiConverterTypeSubscriptionTerms.allocationSize(value.`terms`) +
@@ -7568,37 +8414,35 @@ public object FfiConverterTypeSubscription: FfiConverterRustBuffer<Subscription>
             FfiConverterLong.allocationSize(value.`startsAt`) +
             FfiConverterOptionalLong.allocationSize(value.`endsAt`) +
             FfiConverterBoolean.allocationSize(value.`isActive`)
-    )
+        )
 
     override fun write(value: Subscription, buf: ByteBuffer) {
-            FfiConverterString.write(value.`subscriptionId`, buf)
-            FfiConverterString.write(value.`subscriber`, buf)
-            FfiConverterString.write(value.`provider`, buf)
-            FfiConverterTypeSubscriptionTerms.write(value.`terms`, buf)
-            FfiConverterLong.write(value.`createdAt`, buf)
-            FfiConverterLong.write(value.`startsAt`, buf)
-            FfiConverterOptionalLong.write(value.`endsAt`, buf)
-            FfiConverterBoolean.write(value.`isActive`, buf)
+        FfiConverterString.write(value.`subscriptionId`, buf)
+        FfiConverterString.write(value.`subscriber`, buf)
+        FfiConverterString.write(value.`provider`, buf)
+        FfiConverterTypeSubscriptionTerms.write(value.`terms`, buf)
+        FfiConverterLong.write(value.`createdAt`, buf)
+        FfiConverterLong.write(value.`startsAt`, buf)
+        FfiConverterOptionalLong.write(value.`endsAt`, buf)
+        FfiConverterBoolean.write(value.`isActive`, buf)
     }
 }
-
-
 
 /**
  * Subscription terms.
  */
-data class SubscriptionTerms (
-    var `amountSats`: Long, 
-    var `currency`: String, 
-    var `frequency`: PaymentFrequency, 
-    var `methodId`: String, 
+data class SubscriptionTerms(
+    var `amountSats`: Long,
+    var `currency`: String,
+    var `frequency`: PaymentFrequency,
+    var `methodId`: String,
     var `description`: String
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeSubscriptionTerms: FfiConverterRustBuffer<SubscriptionTerms> {
+public object FfiConverterTypeSubscriptionTerms : FfiConverterRustBuffer<SubscriptionTerms> {
     override fun read(buf: ByteBuffer): SubscriptionTerms {
         return SubscriptionTerms(
             FfiConverterLong.read(buf),
@@ -7610,38 +8454,36 @@ public object FfiConverterTypeSubscriptionTerms: FfiConverterRustBuffer<Subscrip
     }
 
     override fun allocationSize(value: SubscriptionTerms) = (
-            FfiConverterLong.allocationSize(value.`amountSats`) +
+        FfiConverterLong.allocationSize(value.`amountSats`) +
             FfiConverterString.allocationSize(value.`currency`) +
             FfiConverterTypePaymentFrequency.allocationSize(value.`frequency`) +
             FfiConverterString.allocationSize(value.`methodId`) +
             FfiConverterString.allocationSize(value.`description`)
-    )
+        )
 
     override fun write(value: SubscriptionTerms, buf: ByteBuffer) {
-            FfiConverterLong.write(value.`amountSats`, buf)
-            FfiConverterString.write(value.`currency`, buf)
-            FfiConverterTypePaymentFrequency.write(value.`frequency`, buf)
-            FfiConverterString.write(value.`methodId`, buf)
-            FfiConverterString.write(value.`description`, buf)
+        FfiConverterLong.write(value.`amountSats`, buf)
+        FfiConverterString.write(value.`currency`, buf)
+        FfiConverterTypePaymentFrequency.write(value.`frequency`, buf)
+        FfiConverterString.write(value.`methodId`, buf)
+        FfiConverterString.write(value.`description`, buf)
     }
 }
-
-
 
 /**
  * FFI-safe sync result.
  */
-data class SyncResultFfi (
-    var `total`: UInt, 
-    var `added`: UInt, 
-    var `removed`: UInt, 
+data class SyncResultFfi(
+    var `total`: UInt,
+    var `added`: UInt,
+    var `removed`: UInt,
     var `syncedAt`: Long
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeSyncResultFFI: FfiConverterRustBuffer<SyncResultFfi> {
+public object FfiConverterTypeSyncResultFFI : FfiConverterRustBuffer<SyncResultFfi> {
     override fun read(buf: ByteBuffer): SyncResultFfi {
         return SyncResultFfi(
             FfiConverterUInt.read(buf),
@@ -7652,48 +8494,46 @@ public object FfiConverterTypeSyncResultFFI: FfiConverterRustBuffer<SyncResultFf
     }
 
     override fun allocationSize(value: SyncResultFfi) = (
-            FfiConverterUInt.allocationSize(value.`total`) +
+        FfiConverterUInt.allocationSize(value.`total`) +
             FfiConverterUInt.allocationSize(value.`added`) +
             FfiConverterUInt.allocationSize(value.`removed`) +
             FfiConverterLong.allocationSize(value.`syncedAt`)
-    )
+        )
 
     override fun write(value: SyncResultFfi, buf: ByteBuffer) {
-            FfiConverterUInt.write(value.`total`, buf)
-            FfiConverterUInt.write(value.`added`, buf)
-            FfiConverterUInt.write(value.`removed`, buf)
-            FfiConverterLong.write(value.`syncedAt`, buf)
+        FfiConverterUInt.write(value.`total`, buf)
+        FfiConverterUInt.write(value.`added`, buf)
+        FfiConverterUInt.write(value.`removed`, buf)
+        FfiConverterLong.write(value.`syncedAt`, buf)
     }
 }
-
-
 
 /**
  * Derived X25519 keypair for Noise protocol.
  */
-data class X25519Keypair (
+data class X25519Keypair(
     /**
      * Secret key - 32 bytes, hex encoded.
      */
-    var `secretKeyHex`: String, 
+    var `secretKeyHex`: String,
     /**
      * Public key - 32 bytes, hex encoded.
      */
-    var `publicKeyHex`: String, 
+    var `publicKeyHex`: String,
     /**
      * Device ID used for derivation.
      */
-    var `deviceId`: String, 
+    var `deviceId`: String,
     /**
      * Epoch used for derivation.
      */
     var `epoch`: UInt
 ) {
-    
+
     companion object
 }
 
-public object FfiConverterTypeX25519Keypair: FfiConverterRustBuffer<X25519Keypair> {
+public object FfiConverterTypeX25519Keypair : FfiConverterRustBuffer<X25519Keypair> {
     override fun read(buf: ByteBuffer): X25519Keypair {
         return X25519Keypair(
             FfiConverterString.read(buf),
@@ -7704,21 +8544,19 @@ public object FfiConverterTypeX25519Keypair: FfiConverterRustBuffer<X25519Keypai
     }
 
     override fun allocationSize(value: X25519Keypair) = (
-            FfiConverterString.allocationSize(value.`secretKeyHex`) +
+        FfiConverterString.allocationSize(value.`secretKeyHex`) +
             FfiConverterString.allocationSize(value.`publicKeyHex`) +
             FfiConverterString.allocationSize(value.`deviceId`) +
             FfiConverterUInt.allocationSize(value.`epoch`)
-    )
+        )
 
     override fun write(value: X25519Keypair, buf: ByteBuffer) {
-            FfiConverterString.write(value.`secretKeyHex`, buf)
-            FfiConverterString.write(value.`publicKeyHex`, buf)
-            FfiConverterString.write(value.`deviceId`, buf)
-            FfiConverterUInt.write(value.`epoch`, buf)
+        FfiConverterString.write(value.`secretKeyHex`, buf)
+        FfiConverterString.write(value.`publicKeyHex`, buf)
+        FfiConverterString.write(value.`deviceId`, buf)
+        FfiConverterUInt.write(value.`epoch`, buf)
     }
 }
-
-
 
 /**
  * Bitcoin network types (FFI-compatible).
@@ -7726,15 +8564,17 @@ public object FfiConverterTypeX25519Keypair: FfiConverterRustBuffer<X25519Keypai
  * Used to configure which Bitcoin network the wallet operates on.
  */
 enum class BitcoinNetworkFfi {
-    
+
     /**
      * Bitcoin mainnet (real money).
      */
     MAINNET,
+
     /**
      * Bitcoin testnet (test coins).
      */
     TESTNET,
+
     /**
      * Bitcoin regtest (local development).
      */
@@ -7742,7 +8582,7 @@ enum class BitcoinNetworkFfi {
     companion object
 }
 
-public object FfiConverterTypeBitcoinNetworkFFI: FfiConverterRustBuffer<BitcoinNetworkFfi> {
+public object FfiConverterTypeBitcoinNetworkFFI : FfiConverterRustBuffer<BitcoinNetworkFfi> {
     override fun read(buf: ByteBuffer) = try {
         BitcoinNetworkFfi.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -7756,15 +8596,11 @@ public object FfiConverterTypeBitcoinNetworkFFI: FfiConverterRustBuffer<BitcoinN
     }
 }
 
-
-
-
-
 /**
  * Health status of a payment method.
  */
 enum class HealthStatus {
-    
+
     HEALTHY,
     DEGRADED,
     UNAVAILABLE,
@@ -7772,7 +8608,7 @@ enum class HealthStatus {
     companion object
 }
 
-public object FfiConverterTypeHealthStatus: FfiConverterRustBuffer<HealthStatus> {
+public object FfiConverterTypeHealthStatus : FfiConverterRustBuffer<HealthStatus> {
     override fun read(buf: ByteBuffer) = try {
         HealthStatus.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -7786,25 +8622,23 @@ public object FfiConverterTypeHealthStatus: FfiConverterRustBuffer<HealthStatus>
     }
 }
 
-
-
-
-
 /**
  * Lightning network types (FFI-compatible).
  *
  * Used to configure which Lightning network the wallet operates on.
  */
 enum class LightningNetworkFfi {
-    
+
     /**
      * Lightning mainnet (real money).
      */
     MAINNET,
+
     /**
      * Lightning testnet (test coins).
      */
     TESTNET,
+
     /**
      * Lightning regtest (local development).
      */
@@ -7812,7 +8646,7 @@ enum class LightningNetworkFfi {
     companion object
 }
 
-public object FfiConverterTypeLightningNetworkFFI: FfiConverterRustBuffer<LightningNetworkFfi> {
+public object FfiConverterTypeLightningNetworkFFI : FfiConverterRustBuffer<LightningNetworkFfi> {
     override fun read(buf: ByteBuffer) = try {
         LightningNetworkFfi.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -7826,23 +8660,21 @@ public object FfiConverterTypeLightningNetworkFFI: FfiConverterRustBuffer<Lightn
     }
 }
 
-
-
-
-
 /**
  * Status of a Lightning payment (FFI-compatible).
  */
 enum class LightningPaymentStatusFfi {
-    
+
     /**
      * Payment succeeded.
      */
     SUCCEEDED,
+
     /**
      * Payment is pending/in-flight.
      */
     PENDING,
+
     /**
      * Payment failed.
      */
@@ -7850,7 +8682,7 @@ enum class LightningPaymentStatusFfi {
     companion object
 }
 
-public object FfiConverterTypeLightningPaymentStatusFFI: FfiConverterRustBuffer<LightningPaymentStatusFfi> {
+public object FfiConverterTypeLightningPaymentStatusFFI : FfiConverterRustBuffer<LightningPaymentStatusFfi> {
     override fun read(buf: ByteBuffer) = try {
         LightningPaymentStatusFfi.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -7864,156 +8696,149 @@ public object FfiConverterTypeLightningPaymentStatusFFI: FfiConverterRustBuffer<
     }
 }
 
-
-
-
-
 /**
  * Modification type for subscriptions.
  */
 sealed class ModificationType {
-    
-    data class Upgrade(
-        
-        val `newAmountSats`: Long, 
-        
-        val `effectiveDate`: Long
-        ) : ModificationType() {
-        companion object
-    }
-    
-    data class Downgrade(
-        
-        val `newAmountSats`: Long, 
-        
-        val `effectiveDate`: Long
-        ) : ModificationType() {
-        companion object
-    }
-    
-    data class ChangeMethod(
-        
-        val `newMethodId`: String
-        ) : ModificationType() {
-        companion object
-    }
-    
-    data class ChangeBillingDate(
-        
-        val `newDay`: UByte
-        ) : ModificationType() {
-        companion object
-    }
-    
-    data class Cancel(
-        
-        val `effectiveDate`: Long, 
-        
-        val `reason`: String?
-        ) : ModificationType() {
-        companion object
-    }
-    
-    data class Pause(
-        
-        val `resumeDate`: Long
-        ) : ModificationType() {
-        companion object
-    }
-    
-    object Resume : ModificationType()
-    
-    
 
-    
+    data class Upgrade(
+
+        val `newAmountSats`: Long,
+
+        val `effectiveDate`: Long
+    ) : ModificationType() {
+        companion object
+    }
+
+    data class Downgrade(
+
+        val `newAmountSats`: Long,
+
+        val `effectiveDate`: Long
+    ) : ModificationType() {
+        companion object
+    }
+
+    data class ChangeMethod(
+
+        val `newMethodId`: String
+    ) : ModificationType() {
+        companion object
+    }
+
+    data class ChangeBillingDate(
+
+        val `newDay`: UByte
+    ) : ModificationType() {
+        companion object
+    }
+
+    data class Cancel(
+
+        val `effectiveDate`: Long,
+
+        val `reason`: String?
+    ) : ModificationType() {
+        companion object
+    }
+
+    data class Pause(
+
+        val `resumeDate`: Long
+    ) : ModificationType() {
+        companion object
+    }
+
+    object Resume : ModificationType()
+
     companion object
 }
 
-public object FfiConverterTypeModificationType : FfiConverterRustBuffer<ModificationType>{
+public object FfiConverterTypeModificationType : FfiConverterRustBuffer<ModificationType> {
     override fun read(buf: ByteBuffer): ModificationType {
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> ModificationType.Upgrade(
                 FfiConverterLong.read(buf),
                 FfiConverterLong.read(buf),
-                )
+            )
             2 -> ModificationType.Downgrade(
                 FfiConverterLong.read(buf),
                 FfiConverterLong.read(buf),
-                )
+            )
             3 -> ModificationType.ChangeMethod(
                 FfiConverterString.read(buf),
-                )
+            )
             4 -> ModificationType.ChangeBillingDate(
                 FfiConverterUByte.read(buf),
-                )
+            )
             5 -> ModificationType.Cancel(
                 FfiConverterLong.read(buf),
                 FfiConverterOptionalString.read(buf),
-                )
+            )
             6 -> ModificationType.Pause(
                 FfiConverterLong.read(buf),
-                )
+            )
             7 -> ModificationType.Resume
             else -> throw RuntimeException("invalid enum value, something is very wrong!!")
         }
     }
 
-    override fun allocationSize(value: ModificationType) = when(value) {
+    override fun allocationSize(value: ModificationType) = when (value) {
         is ModificationType.Upgrade -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterLong.allocationSize(value.`newAmountSats`)
-                + FfiConverterLong.allocationSize(value.`effectiveDate`)
-            )
+                4 +
+                    FfiConverterLong.allocationSize(value.`newAmountSats`) +
+                    FfiConverterLong.allocationSize(value.`effectiveDate`)
+                )
         }
         is ModificationType.Downgrade -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterLong.allocationSize(value.`newAmountSats`)
-                + FfiConverterLong.allocationSize(value.`effectiveDate`)
-            )
+                4 +
+                    FfiConverterLong.allocationSize(value.`newAmountSats`) +
+                    FfiConverterLong.allocationSize(value.`effectiveDate`)
+                )
         }
         is ModificationType.ChangeMethod -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterString.allocationSize(value.`newMethodId`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`newMethodId`)
+                )
         }
         is ModificationType.ChangeBillingDate -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterUByte.allocationSize(value.`newDay`)
-            )
+                4 +
+                    FfiConverterUByte.allocationSize(value.`newDay`)
+                )
         }
         is ModificationType.Cancel -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterLong.allocationSize(value.`effectiveDate`)
-                + FfiConverterOptionalString.allocationSize(value.`reason`)
-            )
+                4 +
+                    FfiConverterLong.allocationSize(value.`effectiveDate`) +
+                    FfiConverterOptionalString.allocationSize(value.`reason`)
+                )
         }
         is ModificationType.Pause -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterLong.allocationSize(value.`resumeDate`)
-            )
+                4 +
+                    FfiConverterLong.allocationSize(value.`resumeDate`)
+                )
         }
         is ModificationType.Resume -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
                 4
-            )
+                )
         }
     }
 
     override fun write(value: ModificationType, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is ModificationType.Upgrade -> {
                 buf.putInt(1)
                 FfiConverterLong.write(value.`newAmountSats`, buf)
@@ -8055,31 +8880,31 @@ public object FfiConverterTypeModificationType : FfiConverterRustBuffer<Modifica
     }
 }
 
-
-
-
-
 /**
  * Status of a Noise connection.
  */
 enum class NoiseConnectionStatus {
-    
+
     /**
      * Not connected.
      */
     DISCONNECTED,
+
     /**
      * Connecting to server.
      */
     CONNECTING,
+
     /**
      * Handshake in progress.
      */
     HANDSHAKING,
+
     /**
      * Connected and ready for communication.
      */
     CONNECTED,
+
     /**
      * Connection failed.
      */
@@ -8087,7 +8912,7 @@ enum class NoiseConnectionStatus {
     companion object
 }
 
-public object FfiConverterTypeNoiseConnectionStatus: FfiConverterRustBuffer<NoiseConnectionStatus> {
+public object FfiConverterTypeNoiseConnectionStatus : FfiConverterRustBuffer<NoiseConnectionStatus> {
     override fun read(buf: ByteBuffer) = try {
         NoiseConnectionStatus.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8101,35 +8926,36 @@ public object FfiConverterTypeNoiseConnectionStatus: FfiConverterRustBuffer<Nois
     }
 }
 
-
-
-
-
 /**
  * Type of payment message exchanged over Noise channel.
  */
 enum class NoisePaymentMessageType {
-    
+
     /**
      * Request a receipt for a payment.
      */
     RECEIPT_REQUEST,
+
     /**
      * Confirm receipt of payment.
      */
     RECEIPT_CONFIRMATION,
+
     /**
      * Offer a private endpoint.
      */
     PRIVATE_ENDPOINT_OFFER,
+
     /**
      * Error response.
      */
     ERROR,
+
     /**
      * Ping for connection keep-alive.
      */
     PING,
+
     /**
      * Pong response to ping.
      */
@@ -8137,7 +8963,7 @@ enum class NoisePaymentMessageType {
     companion object
 }
 
-public object FfiConverterTypeNoisePaymentMessageType: FfiConverterRustBuffer<NoisePaymentMessageType> {
+public object FfiConverterTypeNoisePaymentMessageType : FfiConverterRustBuffer<NoisePaymentMessageType> {
     override fun read(buf: ByteBuffer) = try {
         NoisePaymentMessageType.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8151,110 +8977,103 @@ public object FfiConverterTypeNoisePaymentMessageType: FfiConverterRustBuffer<No
     }
 }
 
-
-
-
-
 /**
  * Parsed Paykit message.
  */
 sealed class ParsedMessage {
-    
-    data class OfferPrivateEndpoint(
-        
-        val `offer`: PrivateEndpointOffer
-        ) : ParsedMessage() {
-        companion object
-    }
-    
-    data class RequestReceipt(
-        
-        val `request`: ReceiptRequest
-        ) : ParsedMessage() {
-        companion object
-    }
-    
-    data class ConfirmReceipt(
-        
-        val `receipt`: ReceiptRequest
-        ) : ParsedMessage() {
-        companion object
-    }
-    
-    object Ack : ParsedMessage()
-    
-    
-    data class Error(
-        
-        val `error`: ErrorMessage
-        ) : ParsedMessage() {
-        companion object
-    }
-    
 
-    
+    data class OfferPrivateEndpoint(
+
+        val `offer`: PrivateEndpointOffer
+    ) : ParsedMessage() {
+        companion object
+    }
+
+    data class RequestReceipt(
+
+        val `request`: ReceiptRequest
+    ) : ParsedMessage() {
+        companion object
+    }
+
+    data class ConfirmReceipt(
+
+        val `receipt`: ReceiptRequest
+    ) : ParsedMessage() {
+        companion object
+    }
+
+    object Ack : ParsedMessage()
+
+    data class Error(
+
+        val `error`: ErrorMessage
+    ) : ParsedMessage() {
+        companion object
+    }
+
     companion object
 }
 
-public object FfiConverterTypeParsedMessage : FfiConverterRustBuffer<ParsedMessage>{
+public object FfiConverterTypeParsedMessage : FfiConverterRustBuffer<ParsedMessage> {
     override fun read(buf: ByteBuffer): ParsedMessage {
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> ParsedMessage.OfferPrivateEndpoint(
                 FfiConverterTypePrivateEndpointOffer.read(buf),
-                )
+            )
             2 -> ParsedMessage.RequestReceipt(
                 FfiConverterTypeReceiptRequest.read(buf),
-                )
+            )
             3 -> ParsedMessage.ConfirmReceipt(
                 FfiConverterTypeReceiptRequest.read(buf),
-                )
+            )
             4 -> ParsedMessage.Ack
             5 -> ParsedMessage.Error(
                 FfiConverterTypeErrorMessage.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid enum value, something is very wrong!!")
         }
     }
 
-    override fun allocationSize(value: ParsedMessage) = when(value) {
+    override fun allocationSize(value: ParsedMessage) = when (value) {
         is ParsedMessage.OfferPrivateEndpoint -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterTypePrivateEndpointOffer.allocationSize(value.`offer`)
-            )
+                4 +
+                    FfiConverterTypePrivateEndpointOffer.allocationSize(value.`offer`)
+                )
         }
         is ParsedMessage.RequestReceipt -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterTypeReceiptRequest.allocationSize(value.`request`)
-            )
+                4 +
+                    FfiConverterTypeReceiptRequest.allocationSize(value.`request`)
+                )
         }
         is ParsedMessage.ConfirmReceipt -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterTypeReceiptRequest.allocationSize(value.`receipt`)
-            )
+                4 +
+                    FfiConverterTypeReceiptRequest.allocationSize(value.`receipt`)
+                )
         }
         is ParsedMessage.Ack -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
                 4
-            )
+                )
         }
         is ParsedMessage.Error -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterTypeErrorMessage.allocationSize(value.`error`)
-            )
+                4 +
+                    FfiConverterTypeErrorMessage.allocationSize(value.`error`)
+                )
         }
     }
 
     override fun write(value: ParsedMessage, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is ParsedMessage.OfferPrivateEndpoint -> {
                 buf.putInt(1)
                 FfiConverterTypePrivateEndpointOffer.write(value.`offer`, buf)
@@ -8283,31 +9102,31 @@ public object FfiConverterTypeParsedMessage : FfiConverterRustBuffer<ParsedMessa
     }
 }
 
-
-
-
-
 /**
  * FFI-safe Paykit message type.
  */
 enum class PaykitMessageType {
-    
+
     /**
      * Offer a private endpoint.
      */
     OFFER_PRIVATE_ENDPOINT,
+
     /**
      * Request a receipt.
      */
     REQUEST_RECEIPT,
+
     /**
      * Confirm a receipt.
      */
     CONFIRM_RECEIPT,
+
     /**
      * Acknowledgment.
      */
     ACK,
+
     /**
      * Error message.
      */
@@ -8315,7 +9134,7 @@ enum class PaykitMessageType {
     companion object
 }
 
-public object FfiConverterTypePaykitMessageType: FfiConverterRustBuffer<PaykitMessageType> {
+public object FfiConverterTypePaykitMessageType : FfiConverterRustBuffer<PaykitMessageType> {
     override fun read(buf: ByteBuffer) = try {
         PaykitMessageType.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8329,250 +9148,243 @@ public object FfiConverterTypePaykitMessageType: FfiConverterRustBuffer<PaykitMe
     }
 }
 
-
-
-
-
-
-
 /**
  * Mobile-friendly error type.
  */
-sealed class PaykitMobileException: Exception() {
-    
+sealed class PaykitMobileException : Exception() {
+
     /**
      * Transport layer error (network, I/O).
      */
     class Transport(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Validation error (invalid input, format).
      */
     class Validation(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Resource not found.
      */
     class NotFound(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Serialization/deserialization error.
      */
     class Serialization(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Internal error (unexpected state).
      */
     class Internal(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Network timeout error.
      */
     class NetworkTimeout(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Connection refused or failed.
      */
     class ConnectionException(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Authentication failed.
      */
     class AuthenticationException(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Session expired or invalid.
      */
     class SessionException(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Rate limit exceeded.
      */
     class RateLimitException(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     /**
      * Permission denied.
      */
     class PermissionDenied(
-        
+
         val `msg`: String
-        ) : PaykitMobileException() {
+    ) : PaykitMobileException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<PaykitMobileException> {
-        override fun lift(error_buf: RustBuffer.ByValue): PaykitMobileException = FfiConverterTypePaykitMobileError.lift(error_buf)
+        override fun lift(
+            error_buf: RustBuffer.ByValue
+        ): PaykitMobileException = FfiConverterTypePaykitMobileError.lift(
+            error_buf
+        )
     }
-
-    
 }
 
 public object FfiConverterTypePaykitMobileError : FfiConverterRustBuffer<PaykitMobileException> {
     override fun read(buf: ByteBuffer): PaykitMobileException {
-        
-
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> PaykitMobileException.Transport(
                 FfiConverterString.read(buf),
-                )
+            )
             2 -> PaykitMobileException.Validation(
                 FfiConverterString.read(buf),
-                )
+            )
             3 -> PaykitMobileException.NotFound(
                 FfiConverterString.read(buf),
-                )
+            )
             4 -> PaykitMobileException.Serialization(
                 FfiConverterString.read(buf),
-                )
+            )
             5 -> PaykitMobileException.Internal(
                 FfiConverterString.read(buf),
-                )
+            )
             6 -> PaykitMobileException.NetworkTimeout(
                 FfiConverterString.read(buf),
-                )
+            )
             7 -> PaykitMobileException.ConnectionException(
                 FfiConverterString.read(buf),
-                )
+            )
             8 -> PaykitMobileException.AuthenticationException(
                 FfiConverterString.read(buf),
-                )
+            )
             9 -> PaykitMobileException.SessionException(
                 FfiConverterString.read(buf),
-                )
+            )
             10 -> PaykitMobileException.RateLimitException(
                 FfiConverterString.read(buf),
-                )
+            )
             11 -> PaykitMobileException.PermissionDenied(
                 FfiConverterString.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
 
     override fun allocationSize(value: PaykitMobileException): Int {
-        return when(value) {
+        return when (value) {
             is PaykitMobileException.Transport -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.Validation -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.NotFound -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.Serialization -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.Internal -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.NetworkTimeout -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.ConnectionException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.AuthenticationException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.SessionException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.RateLimitException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is PaykitMobileException.PermissionDenied -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
         }
     }
 
     override fun write(value: PaykitMobileException, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is PaykitMobileException.Transport -> {
                 buf.putInt(1)
                 FfiConverterString.write(value.`msg`, buf)
@@ -8630,108 +9442,101 @@ public object FfiConverterTypePaykitMobileError : FfiConverterRustBuffer<PaykitM
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
-
 }
-
-
 
 /**
  * Payment frequency for subscriptions.
  */
 sealed class PaymentFrequency {
-    
-    object Daily : PaymentFrequency()
-    
-    
-    object Weekly : PaymentFrequency()
-    
-    
-    data class Monthly(
-        
-        val `dayOfMonth`: UByte
-        ) : PaymentFrequency() {
-        companion object
-    }
-    
-    data class Yearly(
-        
-        val `month`: UByte, 
-        
-        val `day`: UByte
-        ) : PaymentFrequency() {
-        companion object
-    }
-    
-    data class Custom(
-        
-        val `intervalSeconds`: ULong
-        ) : PaymentFrequency() {
-        companion object
-    }
-    
 
-    
+    object Daily : PaymentFrequency()
+
+    object Weekly : PaymentFrequency()
+
+    data class Monthly(
+
+        val `dayOfMonth`: UByte
+    ) : PaymentFrequency() {
+        companion object
+    }
+
+    data class Yearly(
+
+        val `month`: UByte,
+
+        val `day`: UByte
+    ) : PaymentFrequency() {
+        companion object
+    }
+
+    data class Custom(
+
+        val `intervalSeconds`: ULong
+    ) : PaymentFrequency() {
+        companion object
+    }
+
     companion object
 }
 
-public object FfiConverterTypePaymentFrequency : FfiConverterRustBuffer<PaymentFrequency>{
+public object FfiConverterTypePaymentFrequency : FfiConverterRustBuffer<PaymentFrequency> {
     override fun read(buf: ByteBuffer): PaymentFrequency {
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> PaymentFrequency.Daily
             2 -> PaymentFrequency.Weekly
             3 -> PaymentFrequency.Monthly(
                 FfiConverterUByte.read(buf),
-                )
+            )
             4 -> PaymentFrequency.Yearly(
                 FfiConverterUByte.read(buf),
                 FfiConverterUByte.read(buf),
-                )
+            )
             5 -> PaymentFrequency.Custom(
                 FfiConverterULong.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid enum value, something is very wrong!!")
         }
     }
 
-    override fun allocationSize(value: PaymentFrequency) = when(value) {
+    override fun allocationSize(value: PaymentFrequency) = when (value) {
         is PaymentFrequency.Daily -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
                 4
-            )
+                )
         }
         is PaymentFrequency.Weekly -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
                 4
-            )
+                )
         }
         is PaymentFrequency.Monthly -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterUByte.allocationSize(value.`dayOfMonth`)
-            )
+                4 +
+                    FfiConverterUByte.allocationSize(value.`dayOfMonth`)
+                )
         }
         is PaymentFrequency.Yearly -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterUByte.allocationSize(value.`month`)
-                + FfiConverterUByte.allocationSize(value.`day`)
-            )
+                4 +
+                    FfiConverterUByte.allocationSize(value.`month`) +
+                    FfiConverterUByte.allocationSize(value.`day`)
+                )
         }
         is PaymentFrequency.Custom -> {
             // Add the size for the Int that specifies the variant plus the size needed for all fields
             (
-                4
-                + FfiConverterULong.allocationSize(value.`intervalSeconds`)
-            )
+                4 +
+                    FfiConverterULong.allocationSize(value.`intervalSeconds`)
+                )
         }
     }
 
     override fun write(value: PaymentFrequency, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is PaymentFrequency.Daily -> {
                 buf.putInt(1)
                 Unit
@@ -8760,15 +9565,11 @@ public object FfiConverterTypePaymentFrequency : FfiConverterRustBuffer<PaymentF
     }
 }
 
-
-
-
-
 /**
  * Payment status.
  */
 enum class PaymentStatus {
-    
+
     PENDING,
     PROCESSING,
     CONFIRMED,
@@ -8779,7 +9580,7 @@ enum class PaymentStatus {
     companion object
 }
 
-public object FfiConverterTypePaymentStatus: FfiConverterRustBuffer<PaymentStatus> {
+public object FfiConverterTypePaymentStatus : FfiConverterRustBuffer<PaymentStatus> {
     override fun read(buf: ByteBuffer) = try {
         PaymentStatus.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8793,15 +9594,11 @@ public object FfiConverterTypePaymentStatus: FfiConverterRustBuffer<PaymentStatu
     }
 }
 
-
-
-
-
 /**
  * Payment request status.
  */
 enum class RequestStatus {
-    
+
     PENDING,
     ACCEPTED,
     DECLINED,
@@ -8810,7 +9607,7 @@ enum class RequestStatus {
     companion object
 }
 
-public object FfiConverterTypeRequestStatus: FfiConverterRustBuffer<RequestStatus> {
+public object FfiConverterTypeRequestStatus : FfiConverterRustBuffer<RequestStatus> {
     override fun read(buf: ByteBuffer) = try {
         RequestStatus.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8824,15 +9621,11 @@ public object FfiConverterTypeRequestStatus: FfiConverterRustBuffer<RequestStatu
     }
 }
 
-
-
-
-
 /**
  * Selection strategy.
  */
 enum class SelectionStrategy {
-    
+
     BALANCED,
     COST_OPTIMIZED,
     SPEED_OPTIMIZED,
@@ -8840,7 +9633,7 @@ enum class SelectionStrategy {
     companion object
 }
 
-public object FfiConverterTypeSelectionStrategy: FfiConverterRustBuffer<SelectionStrategy> {
+public object FfiConverterTypeSelectionStrategy : FfiConverterRustBuffer<SelectionStrategy> {
     override fun read(buf: ByteBuffer) = try {
         SelectionStrategy.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8854,73 +9647,66 @@ public object FfiConverterTypeSelectionStrategy: FfiConverterRustBuffer<Selectio
     }
 }
 
-
-
-
-
-
-
 /**
  * FFI-safe storage error type.
  */
-sealed class StorageCacheException: Exception() {
-    
+sealed class StorageCacheException : Exception() {
+
     class Storage(
-        
+
         val `msg`: String
-        ) : StorageCacheException() {
+    ) : StorageCacheException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
+
     class Lock(
-        
+
         val `msg`: String
-        ) : StorageCacheException() {
+    ) : StorageCacheException() {
         override val message
             get() = "msg=${ `msg` }"
     }
-    
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<StorageCacheException> {
-        override fun lift(error_buf: RustBuffer.ByValue): StorageCacheException = FfiConverterTypeStorageCacheError.lift(error_buf)
+        override fun lift(
+            error_buf: RustBuffer.ByValue
+        ): StorageCacheException = FfiConverterTypeStorageCacheError.lift(
+            error_buf
+        )
     }
-
-    
 }
 
 public object FfiConverterTypeStorageCacheError : FfiConverterRustBuffer<StorageCacheException> {
     override fun read(buf: ByteBuffer): StorageCacheException {
-        
-
-        return when(buf.getInt()) {
+        return when (buf.getInt()) {
             1 -> StorageCacheException.Storage(
                 FfiConverterString.read(buf),
-                )
+            )
             2 -> StorageCacheException.Lock(
                 FfiConverterString.read(buf),
-                )
+            )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
 
     override fun allocationSize(value: StorageCacheException): Int {
-        return when(value) {
+        return when (value) {
             is StorageCacheException.Storage -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
             is StorageCacheException.Lock -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
-                4
-                + FfiConverterString.allocationSize(value.`msg`)
-            )
+                4 +
+                    FfiConverterString.allocationSize(value.`msg`)
+                )
         }
     }
 
     override fun write(value: StorageCacheException, buf: ByteBuffer) {
-        when(value) {
+        when (value) {
             is StorageCacheException.Storage -> {
                 buf.putInt(1)
                 FfiConverterString.write(value.`msg`, buf)
@@ -8933,28 +9719,28 @@ public object FfiConverterTypeStorageCacheError : FfiConverterRustBuffer<Storage
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
     }
-
 }
-
-
 
 /**
  * Type of scanned URI.
  */
 enum class UriType {
-    
+
     /**
      * A Pubky public key URI.
      */
     PUBKY,
+
     /**
      * An invoice URI (Lightning, Bitcoin, etc.).
      */
     INVOICE,
+
     /**
      * A payment request URI.
      */
     PAYMENT_REQUEST,
+
     /**
      * Unknown or invalid format.
      */
@@ -8962,7 +9748,7 @@ enum class UriType {
     companion object
 }
 
-public object FfiConverterTypeUriType: FfiConverterRustBuffer<UriType> {
+public object FfiConverterTypeUriType : FfiConverterRustBuffer<UriType> {
     override fun read(buf: ByteBuffer) = try {
         UriType.values()[buf.getInt() - 1]
     } catch (e: IndexOutOfBoundsException) {
@@ -8975,12 +9761,6 @@ public object FfiConverterTypeUriType: FfiConverterRustBuffer<UriType> {
         buf.putInt(value.ordinal + 1)
     }
 }
-
-
-
-
-
-
 
 /**
  * Bitcoin executor callback interface for mobile wallets.
@@ -8999,7 +9779,7 @@ public object FfiConverterTypeUriType: FfiConverterRustBuffer<UriType> {
  * to the caller.
  */
 public interface BitcoinExecutorFfi {
-    
+
     /**
      * Send Bitcoin to an address.
      *
@@ -9022,7 +9802,7 @@ public interface BitcoinExecutorFfi {
      * - Wallet is locked
      */
     fun `sendToAddress`(`address`: String, `amountSats`: ULong, `feeRate`: Double?): BitcoinTxResultFfi
-    
+
     /**
      * Estimate the fee for a transaction.
      *
@@ -9037,7 +9817,7 @@ public interface BitcoinExecutorFfi {
      * Estimated fee in satoshis.
      */
     fun `estimateFee`(`address`: String, `amountSats`: ULong, `targetBlocks`: UInt): ULong
-    
+
     /**
      * Get transaction details by txid.
      *
@@ -9050,7 +9830,7 @@ public interface BitcoinExecutorFfi {
      * Transaction details if found, None otherwise.
      */
     fun `getTransaction`(`txid`: String): BitcoinTxResultFfi?
-    
+
     /**
      * Verify a transaction was sent to the expected address and amount.
      *
@@ -9065,11 +9845,9 @@ public interface BitcoinExecutorFfi {
      * True if the transaction matches, false otherwise.
      */
     fun `verifyTransaction`(`txid`: String, `address`: String, `amountSats`: ULong): Boolean
-    
+
     companion object
 }
-
-
 
 internal typealias UniffiHandle = Long
 internal class ConcurrentHandleMap<T>(
@@ -9085,7 +9863,7 @@ internal class ConcurrentHandleMap<T>(
                 .also { handle ->
                     leftMap[handle] = obj
                 }
-            }
+        }
 
     fun get(handle: UniffiHandle) = lock.withLock {
         leftMap[handle] ?: throw InternalException("No callback in handlemap; this is a Uniffi bug")
@@ -9102,18 +9880,25 @@ internal class ConcurrentHandleMap<T>(
 }
 
 interface ForeignCallback : com.sun.jna.Callback {
-    public fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int
+    public fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int
 }
 
 // Magic number for the Rust proxy to call using the same mechanism as every other method,
 // to free the callback once it's dropped by Rust.
 internal const val IDX_CALLBACK_FREE = 0
+
 // Callback return codes
 internal const val UNIFFI_CALLBACK_SUCCESS = 0
 internal const val UNIFFI_CALLBACK_ERROR = 1
 internal const val UNIFFI_CALLBACK_UNEXPECTED_ERROR = 2
 
-public abstract class FfiConverterCallbackInterface<CallbackInterface>: FfiConverter<CallbackInterface, UniffiHandle> {
+public abstract class FfiConverterCallbackInterface<CallbackInterface> : FfiConverter<CallbackInterface, UniffiHandle> {
     internal val handleMap = ConcurrentHandleMap<CallbackInterface>()
 
     internal fun drop(handle: UniffiHandle) {
@@ -9138,7 +9923,13 @@ public abstract class FfiConverterCallbackInterface<CallbackInterface>: FfiConve
 // Implement the foreign callback handler for BitcoinExecutorFfi
 internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
     @Suppress("TooGenericExceptionCaught")
-    override fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    override fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val cb = FfiConverterTypeBitcoinExecutorFFI.handleMap.get(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -9212,7 +10003,7 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
                     UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
-            
+
             else -> {
                 // An unexpected error happened.
                 // See docs of ForeignCallback in `uniffi_core/src/ffi/foreigncallbacks.rs`
@@ -9227,25 +10018,27 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
         }
     }
 
-    
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeSendToAddress`(kotlinCallbackInterface: BitcoinExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeSendToAddress`(
+        kotlinCallbackInterface: BitcoinExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`sendToAddress`(
-                FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterULong.read(argsBuf)
-                , 
+                FfiConverterString.read(argsBuf),
+                FfiConverterULong.read(argsBuf),
                 FfiConverterOptionalDouble.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeBitcoinTxResultFFI.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9255,25 +10048,28 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeEstimateFee`(kotlinCallbackInterface: BitcoinExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeEstimateFee`(
+        kotlinCallbackInterface: BitcoinExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`estimateFee`(
-                FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterULong.read(argsBuf)
-                , 
+                FfiConverterString.read(argsBuf),
+                FfiConverterULong.read(argsBuf),
                 FfiConverterUInt.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterULong.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9283,21 +10079,26 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeGetTransaction`(kotlinCallbackInterface: BitcoinExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeGetTransaction`(
+        kotlinCallbackInterface: BitcoinExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`getTransaction`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterOptionalTypeBitcoinTxResultFFI.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9307,25 +10108,28 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeVerifyTransaction`(kotlinCallbackInterface: BitcoinExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeVerifyTransaction`(
+        kotlinCallbackInterface: BitcoinExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`verifyTransaction`(
-                FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterString.read(argsBuf)
-                , 
+                FfiConverterString.read(argsBuf),
+                FfiConverterString.read(argsBuf),
                 FfiConverterULong.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterBoolean.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9335,7 +10139,6 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
 
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
@@ -9347,11 +10150,7 @@ internal class UniffiCallbackInterfaceBitcoinExecutorFFI : ForeignCallback {
 internal val uniffiCallbackInterfaceBitcoinExecutorFFI = UniffiCallbackInterfaceBitcoinExecutorFFI()
 
 // The ffiConverter which transforms the Callbacks in to UniffiHandles to pass to Rust.
-public object FfiConverterTypeBitcoinExecutorFFI: FfiConverterCallbackInterface<BitcoinExecutorFfi>()
-
-
-
-
+public object FfiConverterTypeBitcoinExecutorFFI : FfiConverterCallbackInterface<BitcoinExecutorFfi>()
 
 /**
  * Lightning executor callback interface for mobile wallets.
@@ -9370,7 +10169,7 @@ public object FfiConverterTypeBitcoinExecutorFFI: FfiConverterCallbackInterface<
  * to the caller.
  */
 public interface LightningExecutorFfi {
-    
+
     /**
      * Pay a BOLT11 invoice.
      *
@@ -9393,7 +10192,7 @@ public interface LightningExecutorFfi {
      * - Payment failed
      */
     fun `payInvoice`(`invoice`: String, `amountMsat`: ULong?, `maxFeeMsat`: ULong?): LightningPaymentResultFfi
-    
+
     /**
      * Decode a BOLT11 invoice without paying.
      *
@@ -9406,7 +10205,7 @@ public interface LightningExecutorFfi {
      * Decoded invoice details.
      */
     fun `decodeInvoice`(`invoice`: String): DecodedInvoiceFfi
-    
+
     /**
      * Estimate the fee for paying an invoice.
      *
@@ -9419,7 +10218,7 @@ public interface LightningExecutorFfi {
      * Estimated fee in millisatoshis.
      */
     fun `estimateFee`(`invoice`: String): ULong
-    
+
     /**
      * Check the status of a payment by payment hash.
      *
@@ -9432,7 +10231,7 @@ public interface LightningExecutorFfi {
      * Payment result if found, None otherwise.
      */
     fun `getPayment`(`paymentHash`: String): LightningPaymentResultFfi?
-    
+
     /**
      * Verify a payment was made (check preimage matches hash).
      *
@@ -9446,16 +10245,20 @@ public interface LightningExecutorFfi {
      * True if preimage matches hash.
      */
     fun `verifyPreimage`(`preimage`: String, `paymentHash`: String): Boolean
-    
+
     companion object
 }
-
-
 
 // Implement the foreign callback handler for LightningExecutorFfi
 internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
     @Suppress("TooGenericExceptionCaught")
-    override fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    override fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val cb = FfiConverterTypeLightningExecutorFFI.handleMap.get(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -9545,7 +10348,7 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
                     UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
-            
+
             else -> {
                 // An unexpected error happened.
                 // See docs of ForeignCallback in `uniffi_core/src/ffi/foreigncallbacks.rs`
@@ -9560,25 +10363,27 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
         }
     }
 
-    
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokePayInvoice`(kotlinCallbackInterface: LightningExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokePayInvoice`(
+        kotlinCallbackInterface: LightningExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`payInvoice`(
-                FfiConverterString.read(argsBuf)
-                , 
+                FfiConverterString.read(argsBuf),
+                FfiConverterOptionalULong.read(argsBuf),
                 FfiConverterOptionalULong.read(argsBuf)
-                , 
-                FfiConverterOptionalULong.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeLightningPaymentResultFFI.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9588,21 +10393,26 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeDecodeInvoice`(kotlinCallbackInterface: LightningExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeDecodeInvoice`(
+        kotlinCallbackInterface: LightningExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`decodeInvoice`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeDecodedInvoiceFFI.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9612,21 +10422,26 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeEstimateFee`(kotlinCallbackInterface: LightningExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeEstimateFee`(
+        kotlinCallbackInterface: LightningExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`estimateFee`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterULong.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9636,21 +10451,26 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeGetPayment`(kotlinCallbackInterface: LightningExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeGetPayment`(
+        kotlinCallbackInterface: LightningExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`getPayment`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterOptionalTypeLightningPaymentResultFFI.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError()  : Int = try {
+        fun makeCallAndHandleError(): Int = try {
             makeCall()
         } catch (e: PaykitMobileException) {
             // Expected error, serialize it into outBuf
@@ -9660,27 +10480,30 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeVerifyPreimage`(kotlinCallbackInterface: LightningExecutorFfi, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeVerifyPreimage`(
+        kotlinCallbackInterface: LightningExecutorFfi,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`verifyPreimage`(
+                FfiConverterString.read(argsBuf),
                 FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterBoolean.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
 
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
@@ -9692,11 +10515,7 @@ internal class UniffiCallbackInterfaceLightningExecutorFFI : ForeignCallback {
 internal val uniffiCallbackInterfaceLightningExecutorFFI = UniffiCallbackInterfaceLightningExecutorFFI()
 
 // The ffiConverter which transforms the Callbacks in to UniffiHandles to pass to Rust.
-public object FfiConverterTypeLightningExecutorFFI: FfiConverterCallbackInterface<LightningExecutorFfi>()
-
-
-
-
+public object FfiConverterTypeLightningExecutorFFI : FfiConverterCallbackInterface<LightningExecutorFfi>()
 
 /**
  * Callback interface for authenticated Pubky storage operations.
@@ -9709,7 +10528,7 @@ public object FfiConverterTypeLightningExecutorFFI: FfiConverterCallbackInterfac
  * Implementations must be thread-safe (Send + Sync).
  */
 public interface PubkyAuthenticatedStorageCallback {
-    
+
     /**
      * Put (create or update) content at the given path.
      *
@@ -9719,7 +10538,7 @@ public interface PubkyAuthenticatedStorageCallback {
      * * `content` - Content to store
      */
     fun `put`(`path`: String, `content`: String): StorageOperationResult
-    
+
     /**
      * Get content at the given path.
      *
@@ -9732,7 +10551,7 @@ public interface PubkyAuthenticatedStorageCallback {
      * Content if found, None if path doesn't exist.
      */
     fun `get`(`path`: String): StorageGetResult
-    
+
     /**
      * Delete content at the given path.
      *
@@ -9741,7 +10560,7 @@ public interface PubkyAuthenticatedStorageCallback {
      * * `path` - Storage path to delete
      */
     fun `delete`(`path`: String): StorageOperationResult
-    
+
     /**
      * List files with the given prefix.
      *
@@ -9750,16 +10569,20 @@ public interface PubkyAuthenticatedStorageCallback {
      * * `prefix` - Path prefix to list (e.g., "/pub/paykit.app/v0/")
      */
     fun `list`(`prefix`: String): StorageListResult
-    
+
     companion object
 }
-
-
 
 // Implement the foreign callback handler for PubkyAuthenticatedStorageCallback
 internal class UniffiCallbackInterfacePubkyAuthenticatedStorageCallback : ForeignCallback {
     @Suppress("TooGenericExceptionCaught")
-    override fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    override fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val cb = FfiConverterTypePubkyAuthenticatedStorageCallback.handleMap.get(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -9833,7 +10656,7 @@ internal class UniffiCallbackInterfacePubkyAuthenticatedStorageCallback : Foreig
                     UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
-            
+
             else -> {
                 // An unexpected error happened.
                 // See docs of ForeignCallback in `uniffi_core/src/ffi/foreigncallbacks.rs`
@@ -9848,81 +10671,98 @@ internal class UniffiCallbackInterfacePubkyAuthenticatedStorageCallback : Foreig
         }
     }
 
-    
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokePut`(kotlinCallbackInterface: PubkyAuthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokePut`(
+        kotlinCallbackInterface: PubkyAuthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`put`(
+                FfiConverterString.read(argsBuf),
                 FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageOperationResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeGet`(kotlinCallbackInterface: PubkyAuthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeGet`(
+        kotlinCallbackInterface: PubkyAuthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`get`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageGetResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeDelete`(kotlinCallbackInterface: PubkyAuthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeDelete`(
+        kotlinCallbackInterface: PubkyAuthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`delete`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageOperationResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeList`(kotlinCallbackInterface: PubkyAuthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeList`(
+        kotlinCallbackInterface: PubkyAuthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`list`(
                 FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageListResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
 
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
@@ -9931,14 +10771,11 @@ internal class UniffiCallbackInterfacePubkyAuthenticatedStorageCallback : Foreig
     }
 }
 
-internal val uniffiCallbackInterfacePubkyAuthenticatedStorageCallback = UniffiCallbackInterfacePubkyAuthenticatedStorageCallback()
+internal val uniffiCallbackInterfacePubkyAuthenticatedStorageCallback =
+    UniffiCallbackInterfacePubkyAuthenticatedStorageCallback()
 
 // The ffiConverter which transforms the Callbacks in to UniffiHandles to pass to Rust.
-public object FfiConverterTypePubkyAuthenticatedStorageCallback: FfiConverterCallbackInterface<PubkyAuthenticatedStorageCallback>()
-
-
-
-
+public object FfiConverterTypePubkyAuthenticatedStorageCallback : FfiConverterCallbackInterface<PubkyAuthenticatedStorageCallback>()
 
 /**
  * Callback interface for unauthenticated (read-only) Pubky storage operations.
@@ -9950,7 +10787,7 @@ public object FfiConverterTypePubkyAuthenticatedStorageCallback: FfiConverterCal
  * Implementations must be thread-safe (Send + Sync).
  */
 public interface PubkyUnauthenticatedStorageCallback {
-    
+
     /**
      * Get content at the given path from another user's public storage.
      *
@@ -9960,7 +10797,7 @@ public interface PubkyUnauthenticatedStorageCallback {
      * * `path` - Storage path to read
      */
     fun `get`(`ownerPubkey`: String, `path`: String): StorageGetResult
-    
+
     /**
      * List files with the given prefix from another user's public storage.
      *
@@ -9970,16 +10807,20 @@ public interface PubkyUnauthenticatedStorageCallback {
      * * `prefix` - Path prefix to list
      */
     fun `list`(`ownerPubkey`: String, `prefix`: String): StorageListResult
-    
+
     companion object
 }
-
-
 
 // Implement the foreign callback handler for PubkyUnauthenticatedStorageCallback
 internal class UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback : ForeignCallback {
     @Suppress("TooGenericExceptionCaught")
-    override fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    override fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val cb = FfiConverterTypePubkyUnauthenticatedStorageCallback.handleMap.get(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -10021,7 +10862,7 @@ internal class UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback : Fore
                     UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
-            
+
             else -> {
                 // An unexpected error happened.
                 // See docs of ForeignCallback in `uniffi_core/src/ffi/foreigncallbacks.rs`
@@ -10036,47 +10877,53 @@ internal class UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback : Fore
         }
     }
 
-    
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeGet`(kotlinCallbackInterface: PubkyUnauthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeGet`(
+        kotlinCallbackInterface: PubkyUnauthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`get`(
+                FfiConverterString.read(argsBuf),
                 FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageGetResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
+
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeList`(kotlinCallbackInterface: PubkyUnauthenticatedStorageCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeList`(
+        kotlinCallbackInterface: PubkyUnauthenticatedStorageCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`list`(
+                FfiConverterString.read(argsBuf),
                 FfiConverterString.read(argsBuf)
-                , 
-                FfiConverterString.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeStorageListResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
 
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
@@ -10085,14 +10932,11 @@ internal class UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback : Fore
     }
 }
 
-internal val uniffiCallbackInterfacePubkyUnauthenticatedStorageCallback = UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback()
+internal val uniffiCallbackInterfacePubkyUnauthenticatedStorageCallback =
+    UniffiCallbackInterfacePubkyUnauthenticatedStorageCallback()
 
 // The ffiConverter which transforms the Callbacks in to UniffiHandles to pass to Rust.
-public object FfiConverterTypePubkyUnauthenticatedStorageCallback: FfiConverterCallbackInterface<PubkyUnauthenticatedStorageCallback>()
-
-
-
-
+public object FfiConverterTypePubkyUnauthenticatedStorageCallback : FfiConverterCallbackInterface<PubkyUnauthenticatedStorageCallback>()
 
 /**
  * Callback interface for mobile receipt generation.
@@ -10119,7 +10963,7 @@ public object FfiConverterTypePubkyUnauthenticatedStorageCallback: FfiConverterC
  * ```
  */
 public interface ReceiptGeneratorCallback {
-    
+
     /**
      * Generate a receipt for a payment request.
      *
@@ -10132,16 +10976,20 @@ public interface ReceiptGeneratorCallback {
      * A `ReceiptGenerationResult` with either the finalized receipt or an error.
      */
     fun `generateReceipt`(`request`: ReceiptRequest): ReceiptGenerationResult
-    
+
     companion object
 }
-
-
 
 // Implement the foreign callback handler for ReceiptGeneratorCallback
 internal class UniffiCallbackInterfaceReceiptGeneratorCallback : ForeignCallback {
     @Suppress("TooGenericExceptionCaught")
-    override fun invoke(handle: UniffiHandle, method: Int, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    override fun invoke(
+        handle: UniffiHandle,
+        method: Int,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val cb = FfiConverterTypeReceiptGeneratorCallback.handleMap.get(handle)
         return when (method) {
             IDX_CALLBACK_FREE -> {
@@ -10167,7 +11015,7 @@ internal class UniffiCallbackInterfaceReceiptGeneratorCallback : ForeignCallback
                     UNIFFI_CALLBACK_UNEXPECTED_ERROR
                 }
             }
-            
+
             else -> {
                 // An unexpected error happened.
                 // See docs of ForeignCallback in `uniffi_core/src/ffi/foreigncallbacks.rs`
@@ -10182,25 +11030,28 @@ internal class UniffiCallbackInterfaceReceiptGeneratorCallback : ForeignCallback
         }
     }
 
-    
     @Suppress("UNUSED_PARAMETER")
-    private fun `invokeGenerateReceipt`(kotlinCallbackInterface: ReceiptGeneratorCallback, argsData: Pointer, argsLen: Int, outBuf: RustBufferByReference): Int {
+    private fun `invokeGenerateReceipt`(
+        kotlinCallbackInterface: ReceiptGeneratorCallback,
+        argsData: Pointer,
+        argsLen: Int,
+        outBuf: RustBufferByReference
+    ): Int {
         val argsBuf = argsData.getByteBuffer(0, argsLen.toLong()).also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
-        fun makeCall() : Int {
+        fun makeCall(): Int {
             val returnValue = kotlinCallbackInterface.`generateReceipt`(
                 FfiConverterTypeReceiptRequest.read(argsBuf)
-                
+
             )
             outBuf.setValue(FfiConverterTypeReceiptGenerationResult.lowerIntoRustBuffer(returnValue))
             return UNIFFI_CALLBACK_SUCCESS
         }
-        fun makeCallAndHandleError() : Int = makeCall()
+        fun makeCallAndHandleError(): Int = makeCall()
 
         return makeCallAndHandleError()
     }
-    
 
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
@@ -10212,12 +11063,9 @@ internal class UniffiCallbackInterfaceReceiptGeneratorCallback : ForeignCallback
 internal val uniffiCallbackInterfaceReceiptGeneratorCallback = UniffiCallbackInterfaceReceiptGeneratorCallback()
 
 // The ffiConverter which transforms the Callbacks in to UniffiHandles to pass to Rust.
-public object FfiConverterTypeReceiptGeneratorCallback: FfiConverterCallbackInterface<ReceiptGeneratorCallback>()
+public object FfiConverterTypeReceiptGeneratorCallback : FfiConverterCallbackInterface<ReceiptGeneratorCallback>()
 
-
-
-
-public object FfiConverterOptionalUShort: FfiConverterRustBuffer<UShort?> {
+public object FfiConverterOptionalUShort : FfiConverterRustBuffer<UShort?> {
     override fun read(buf: ByteBuffer): UShort? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10243,10 +11091,7 @@ public object FfiConverterOptionalUShort: FfiConverterRustBuffer<UShort?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalULong: FfiConverterRustBuffer<ULong?> {
+public object FfiConverterOptionalULong : FfiConverterRustBuffer<ULong?> {
     override fun read(buf: ByteBuffer): ULong? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10272,10 +11117,7 @@ public object FfiConverterOptionalULong: FfiConverterRustBuffer<ULong?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalLong: FfiConverterRustBuffer<Long?> {
+public object FfiConverterOptionalLong : FfiConverterRustBuffer<Long?> {
     override fun read(buf: ByteBuffer): Long? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10301,10 +11143,7 @@ public object FfiConverterOptionalLong: FfiConverterRustBuffer<Long?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalDouble: FfiConverterRustBuffer<Double?> {
+public object FfiConverterOptionalDouble : FfiConverterRustBuffer<Double?> {
     override fun read(buf: ByteBuffer): Double? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10330,10 +11169,7 @@ public object FfiConverterOptionalDouble: FfiConverterRustBuffer<Double?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
+public object FfiConverterOptionalString : FfiConverterRustBuffer<String?> {
     override fun read(buf: ByteBuffer): String? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10359,10 +11195,7 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeBitcoinTxResultFFI: FfiConverterRustBuffer<BitcoinTxResultFfi?> {
+public object FfiConverterOptionalTypeBitcoinTxResultFFI : FfiConverterRustBuffer<BitcoinTxResultFfi?> {
     override fun read(buf: ByteBuffer): BitcoinTxResultFfi? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10388,10 +11221,7 @@ public object FfiConverterOptionalTypeBitcoinTxResultFFI: FfiConverterRustBuffer
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeCachedContactFFI: FfiConverterRustBuffer<CachedContactFfi?> {
+public object FfiConverterOptionalTypeCachedContactFFI : FfiConverterRustBuffer<CachedContactFfi?> {
     override fun read(buf: ByteBuffer): CachedContactFfi? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10417,10 +11247,7 @@ public object FfiConverterOptionalTypeCachedContactFFI: FfiConverterRustBuffer<C
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeLightningPaymentResultFFI: FfiConverterRustBuffer<LightningPaymentResultFfi?> {
+public object FfiConverterOptionalTypeLightningPaymentResultFFI : FfiConverterRustBuffer<LightningPaymentResultFfi?> {
     override fun read(buf: ByteBuffer): LightningPaymentResultFfi? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10446,10 +11273,7 @@ public object FfiConverterOptionalTypeLightningPaymentResultFFI: FfiConverterRus
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeNoiseEndpointInfo: FfiConverterRustBuffer<NoiseEndpointInfo?> {
+public object FfiConverterOptionalTypeNoiseEndpointInfo : FfiConverterRustBuffer<NoiseEndpointInfo?> {
     override fun read(buf: ByteBuffer): NoiseEndpointInfo? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10475,10 +11299,7 @@ public object FfiConverterOptionalTypeNoiseEndpointInfo: FfiConverterRustBuffer<
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypePaymentStatusInfo: FfiConverterRustBuffer<PaymentStatusInfo?> {
+public object FfiConverterOptionalTypePaymentStatusInfo : FfiConverterRustBuffer<PaymentStatusInfo?> {
     override fun read(buf: ByteBuffer): PaymentStatusInfo? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10504,10 +11325,7 @@ public object FfiConverterOptionalTypePaymentStatusInfo: FfiConverterRustBuffer<
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypePrivateEndpointOffer: FfiConverterRustBuffer<PrivateEndpointOffer?> {
+public object FfiConverterOptionalTypePrivateEndpointOffer : FfiConverterRustBuffer<PrivateEndpointOffer?> {
     override fun read(buf: ByteBuffer): PrivateEndpointOffer? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10533,10 +11351,7 @@ public object FfiConverterOptionalTypePrivateEndpointOffer: FfiConverterRustBuff
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeReceiptRequest: FfiConverterRustBuffer<ReceiptRequest?> {
+public object FfiConverterOptionalTypeReceiptRequest : FfiConverterRustBuffer<ReceiptRequest?> {
     override fun read(buf: ByteBuffer): ReceiptRequest? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10562,10 +11377,7 @@ public object FfiConverterOptionalTypeReceiptRequest: FfiConverterRustBuffer<Rec
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeSelectionPreferences: FfiConverterRustBuffer<SelectionPreferences?> {
+public object FfiConverterOptionalTypeSelectionPreferences : FfiConverterRustBuffer<SelectionPreferences?> {
     override fun read(buf: ByteBuffer): SelectionPreferences? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10591,10 +11403,7 @@ public object FfiConverterOptionalTypeSelectionPreferences: FfiConverterRustBuff
     }
 }
 
-
-
-
-public object FfiConverterOptionalTypeHealthStatus: FfiConverterRustBuffer<HealthStatus?> {
+public object FfiConverterOptionalTypeHealthStatus : FfiConverterRustBuffer<HealthStatus?> {
     override fun read(buf: ByteBuffer): HealthStatus? {
         if (buf.get().toInt() == 0) {
             return null
@@ -10620,10 +11429,7 @@ public object FfiConverterOptionalTypeHealthStatus: FfiConverterRustBuffer<Healt
     }
 }
 
-
-
-
-public object FfiConverterSequenceString: FfiConverterRustBuffer<List<String>> {
+public object FfiConverterSequenceString : FfiConverterRustBuffer<List<String>> {
     override fun read(buf: ByteBuffer): List<String> {
         val len = buf.getInt()
         return List<String>(len) {
@@ -10645,10 +11451,7 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<String>> {
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypeCachedContactFFI: FfiConverterRustBuffer<List<CachedContactFfi>> {
+public object FfiConverterSequenceTypeCachedContactFFI : FfiConverterRustBuffer<List<CachedContactFfi>> {
     override fun read(buf: ByteBuffer): List<CachedContactFfi> {
         val len = buf.getInt()
         return List<CachedContactFfi>(len) {
@@ -10670,10 +11473,7 @@ public object FfiConverterSequenceTypeCachedContactFFI: FfiConverterRustBuffer<L
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypeHealthCheckResult: FfiConverterRustBuffer<List<HealthCheckResult>> {
+public object FfiConverterSequenceTypeHealthCheckResult : FfiConverterRustBuffer<List<HealthCheckResult>> {
     override fun read(buf: ByteBuffer): List<HealthCheckResult> {
         val len = buf.getInt()
         return List<HealthCheckResult>(len) {
@@ -10695,10 +11495,7 @@ public object FfiConverterSequenceTypeHealthCheckResult: FfiConverterRustBuffer<
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypePaymentMethod: FfiConverterRustBuffer<List<PaymentMethod>> {
+public object FfiConverterSequenceTypePaymentMethod : FfiConverterRustBuffer<List<PaymentMethod>> {
     override fun read(buf: ByteBuffer): List<PaymentMethod> {
         val len = buf.getInt()
         return List<PaymentMethod>(len) {
@@ -10720,10 +11517,7 @@ public object FfiConverterSequenceTypePaymentMethod: FfiConverterRustBuffer<List
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypePaymentStatusInfo: FfiConverterRustBuffer<List<PaymentStatusInfo>> {
+public object FfiConverterSequenceTypePaymentStatusInfo : FfiConverterRustBuffer<List<PaymentStatusInfo>> {
     override fun read(buf: ByteBuffer): List<PaymentStatusInfo> {
         val len = buf.getInt()
         return List<PaymentStatusInfo>(len) {
@@ -10745,10 +11539,7 @@ public object FfiConverterSequenceTypePaymentStatusInfo: FfiConverterRustBuffer<
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypePrivateEndpointOffer: FfiConverterRustBuffer<List<PrivateEndpointOffer>> {
+public object FfiConverterSequenceTypePrivateEndpointOffer : FfiConverterRustBuffer<List<PrivateEndpointOffer>> {
     override fun read(buf: ByteBuffer): List<PrivateEndpointOffer> {
         val len = buf.getInt()
         return List<PrivateEndpointOffer>(len) {
@@ -10770,10 +11561,7 @@ public object FfiConverterSequenceTypePrivateEndpointOffer: FfiConverterRustBuff
     }
 }
 
-
-
-
-public object FfiConverterSequenceTypeReceiptRequest: FfiConverterRustBuffer<List<ReceiptRequest>> {
+public object FfiConverterSequenceTypeReceiptRequest : FfiConverterRustBuffer<List<ReceiptRequest>> {
     override fun read(buf: ByteBuffer): List<ReceiptRequest> {
         val len = buf.getInt()
         return List<ReceiptRequest>(len) {
@@ -10794,483 +11582,591 @@ public object FfiConverterSequenceTypeReceiptRequest: FfiConverterRustBuffer<Lis
         }
     }
 }
-        /**
-         * Create a new contact cache.
-         */
+
+/**
+ * Create a new contact cache.
+ */
 
 fun `createContactCache`(): ContactCacheFfi {
     return FfiConverterTypeContactCacheFFI.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_contact_cache(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_contact_cache(_status)
+        }
+    )
 }
 
-        /**
-         * Create a new async directory operations manager.
-         */
+/**
+ * Create a new async directory operations manager.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `createDirectoryOperationsAsync`(): DirectoryOperationsAsync {
     return FfiConverterTypeDirectoryOperationsAsync.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_directory_operations_async(_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_directory_operations_async(_status)
+        }
+    )
 }
 
-        /**
-         * Create an error message.
-         *
-         * # Arguments
-         *
-         * * `code` - Error code
-         * * `message` - Error description
-         */
+/**
+ * Create an error message.
+ *
+ * # Arguments
+ *
+ * * `code` - Error code
+ * * `message` - Error description
+ */
 @Throws(PaykitMobileException::class)
-
 fun `createErrorMessage`(`code`: String, `message`: String): NoisePaymentMessage {
     return FfiConverterTypeNoisePaymentMessage.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_error_message(FfiConverterString.lower(`code`),FfiConverterString.lower(`message`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_error_message(
+                FfiConverterString.lower(`code`),
+                FfiConverterString.lower(`message`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a new executor async bridge.
-         */
+/**
+ * Create a new executor async bridge.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `createExecutorAsyncBridge`(): ExecutorAsyncBridge {
     return FfiConverterTypeExecutorAsyncBridge.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_executor_async_bridge(_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_executor_async_bridge(_status)
+        }
+    )
 }
 
-        /**
-         * Create an executor async bridge with custom timeout.
-         */
+/**
+ * Create an executor async bridge with custom timeout.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `createExecutorAsyncBridgeWithTimeout`(`timeoutMs`: ULong): ExecutorAsyncBridge {
     return FfiConverterTypeExecutorAsyncBridge.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_executor_async_bridge_with_timeout(FfiConverterULong.lower(`timeoutMs`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_executor_async_bridge_with_timeout(
+                FfiConverterULong.lower(`timeoutMs`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a new interactive manager.
-         */
+/**
+ * Create a new interactive manager.
+ */
 
 fun `createInteractiveManager`(`store`: ReceiptStore): PaykitInteractiveManagerFfi {
     return FfiConverterTypePaykitInteractiveManagerFFI.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_interactive_manager(FfiConverterTypeReceiptStore.lower(`store`),_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_interactive_manager(
+                FfiConverterTypeReceiptStore.lower(`store`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a new message builder.
-         */
+/**
+ * Create a new message builder.
+ */
 
 fun `createMessageBuilder`(): PaykitMessageBuilder {
     return FfiConverterTypePaykitMessageBuilder.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_message_builder(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_message_builder(_status)
+        }
+    )
 }
 
-        /**
-         * Create a default noise server configuration.
-         */
+/**
+ * Create a default noise server configuration.
+ */
 
 fun `createNoiseServerConfig`(): NoiseServerConfig {
     return FfiConverterTypeNoiseServerConfig.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_noise_server_config(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_noise_server_config(_status)
+        }
+    )
 }
 
-        /**
-         * Create a noise server configuration with a specific port.
-         */
+/**
+ * Create a noise server configuration with a specific port.
+ */
 
 fun `createNoiseServerConfigWithPort`(`port`: UShort): NoiseServerConfig {
     return FfiConverterTypeNoiseServerConfig.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_noise_server_config_with_port(FfiConverterUShort.lower(`port`),_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_noise_server_config_with_port(
+                FfiConverterUShort.lower(`port`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a new Paykit client.
-         */
+/**
+ * Create a new Paykit client.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `createPaykitClient`(): PaykitClient {
     return FfiConverterTypePaykitClient.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_paykit_client(_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_paykit_client(_status)
+        }
+    )
 }
 
-        /**
-         * Create a private endpoint offer message.
-         *
-         * # Arguments
-         *
-         * * `method_id` - Payment method identifier
-         * * `endpoint` - The private endpoint data
-         * * `expires_in_secs` - Optional expiration time in seconds
-         */
+/**
+ * Create a private endpoint offer message.
+ *
+ * # Arguments
+ *
+ * * `method_id` - Payment method identifier
+ * * `endpoint` - The private endpoint data
+ * * `expires_in_secs` - Optional expiration time in seconds
+ */
 @Throws(PaykitMobileException::class)
-
-fun `createPrivateEndpointOfferMessage`(`methodId`: String, `endpoint`: String, `expiresInSecs`: ULong?): NoisePaymentMessage {
+fun `createPrivateEndpointOfferMessage`(
+    `methodId`: String,
+    `endpoint`: String,
+    `expiresInSecs`: ULong?
+): NoisePaymentMessage {
     return FfiConverterTypeNoisePaymentMessage.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_private_endpoint_offer_message(FfiConverterString.lower(`methodId`),FfiConverterString.lower(`endpoint`),FfiConverterOptionalULong.lower(`expiresInSecs`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_private_endpoint_offer_message(
+                FfiConverterString.lower(`methodId`),
+                FfiConverterString.lower(`endpoint`),
+                FfiConverterOptionalULong.lower(`expiresInSecs`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a receipt confirmation message.
-         *
-         * # Arguments
-         *
-         * * `receipt_id` - The receipt ID being confirmed
-         * * `payer_pubkey` - Payer's public key
-         * * `payee_pubkey` - Payee's public key
-         * * `method_id` - Payment method used
-         * * `amount` - Payment amount
-         * * `currency` - Currency code
-         * * `signature` - Optional signature from payee
-         */
+/**
+ * Create a receipt confirmation message.
+ *
+ * # Arguments
+ *
+ * * `receipt_id` - The receipt ID being confirmed
+ * * `payer_pubkey` - Payer's public key
+ * * `payee_pubkey` - Payee's public key
+ * * `method_id` - Payment method used
+ * * `amount` - Payment amount
+ * * `currency` - Currency code
+ * * `signature` - Optional signature from payee
+ */
 @Throws(PaykitMobileException::class)
-
-fun `createReceiptConfirmationMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?, `signature`: String?): NoisePaymentMessage {
+fun `createReceiptConfirmationMessage`(
+    `receiptId`: String,
+    `payerPubkey`: String,
+    `payeePubkey`: String,
+    `methodId`: String,
+    `amount`: String?,
+    `currency`: String?,
+    `signature`: String?
+): NoisePaymentMessage {
     return FfiConverterTypeNoisePaymentMessage.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_confirmation_message(FfiConverterString.lower(`receiptId`),FfiConverterString.lower(`payerPubkey`),FfiConverterString.lower(`payeePubkey`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),FfiConverterOptionalString.lower(`signature`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_confirmation_message(
+                FfiConverterString.lower(`receiptId`),
+                FfiConverterString.lower(`payerPubkey`),
+                FfiConverterString.lower(`payeePubkey`),
+                FfiConverterString.lower(`methodId`),
+                FfiConverterOptionalString.lower(`amount`),
+                FfiConverterOptionalString.lower(`currency`),
+                FfiConverterOptionalString.lower(`signature`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a receipt request message.
-         *
-         * # Arguments
-         *
-         * * `receipt_id` - Unique identifier for this receipt
-         * * `payer_pubkey` - Payer's public key (z-base32)
-         * * `payee_pubkey` - Payee's public key (z-base32)
-         * * `method_id` - Payment method identifier
-         * * `amount` - Optional payment amount
-         * * `currency` - Optional currency code
-         */
+/**
+ * Create a receipt request message.
+ *
+ * # Arguments
+ *
+ * * `receipt_id` - Unique identifier for this receipt
+ * * `payer_pubkey` - Payer's public key (z-base32)
+ * * `payee_pubkey` - Payee's public key (z-base32)
+ * * `method_id` - Payment method identifier
+ * * `amount` - Optional payment amount
+ * * `currency` - Optional currency code
+ */
 @Throws(PaykitMobileException::class)
-
-fun `createReceiptRequestMessage`(`receiptId`: String, `payerPubkey`: String, `payeePubkey`: String, `methodId`: String, `amount`: String?, `currency`: String?): NoisePaymentMessage {
+fun `createReceiptRequestMessage`(
+    `receiptId`: String,
+    `payerPubkey`: String,
+    `payeePubkey`: String,
+    `methodId`: String,
+    `amount`: String?,
+    `currency`: String?
+): NoisePaymentMessage {
     return FfiConverterTypeNoisePaymentMessage.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_request_message(FfiConverterString.lower(`receiptId`),FfiConverterString.lower(`payerPubkey`),FfiConverterString.lower(`payeePubkey`),FfiConverterString.lower(`methodId`),FfiConverterOptionalString.lower(`amount`),FfiConverterOptionalString.lower(`currency`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_request_message(
+                FfiConverterString.lower(`receiptId`),
+                FfiConverterString.lower(`payerPubkey`),
+                FfiConverterString.lower(`payeePubkey`),
+                FfiConverterString.lower(`methodId`),
+                FfiConverterOptionalString.lower(`amount`),
+                FfiConverterOptionalString.lower(`currency`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Create a new receipt store.
-         */
+/**
+ * Create a new receipt store.
+ */
 
 fun `createReceiptStore`(): ReceiptStore {
     return FfiConverterTypeReceiptStore.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_store(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_create_receipt_store(_status)
+        }
+    )
 }
 
-        /**
-         * Derive X25519 keypair for Noise protocol from Ed25519 seed.
-         *
-         * This uses the pubky-noise KDF to derive device-specific encryption keys
-         * from the Ed25519 identity seed.
-         *
-         * # Arguments
-         *
-         * * `ed25519_secret_hex` - The Ed25519 secret key (seed) in hex format.
-         * * `device_id` - A unique identifier for this device.
-         * * `epoch` - Key rotation epoch (increment to rotate keys).
-         *
-         * # Returns
-         *
-         * The derived X25519 keypair for use with Noise protocol.
-         */
+/**
+ * Derive X25519 keypair for Noise protocol from Ed25519 seed.
+ *
+ * This uses the pubky-noise KDF to derive device-specific encryption keys
+ * from the Ed25519 identity seed.
+ *
+ * # Arguments
+ *
+ * * `ed25519_secret_hex` - The Ed25519 secret key (seed) in hex format.
+ * * `device_id` - A unique identifier for this device.
+ * * `epoch` - Key rotation epoch (increment to rotate keys).
+ *
+ * # Returns
+ *
+ * The derived X25519 keypair for use with Noise protocol.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `deriveX25519Keypair`(`ed25519SecretHex`: String, `deviceId`: String, `epoch`: UInt): X25519Keypair {
     return FfiConverterTypeX25519Keypair.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_derive_x25519_keypair(FfiConverterString.lower(`ed25519SecretHex`),FfiConverterString.lower(`deviceId`),FfiConverterUInt.lower(`epoch`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_derive_x25519_keypair(
+                FfiConverterString.lower(`ed25519SecretHex`),
+                FfiConverterString.lower(`deviceId`),
+                FfiConverterUInt.lower(`epoch`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Discover a Noise endpoint for a recipient.
-         *
-         * Queries the recipient's public directory for their Noise server information.
-         *
-         * # Arguments
-         *
-         * * `transport` - Unauthenticated transport for reading
-         * * `recipient_pubkey` - The recipient's public key (z-base32 encoded)
-         *
-         * # Returns
-         *
-         * The noise endpoint info if found, None otherwise.
-         *
-         * # Example
-         *
-         * ```ignore
-         * let transport = UnauthenticatedTransportFFI::new_mock();
-         * if let Some(endpoint) = discover_noise_endpoint(&transport, "8pinxxgqs41...")? {
-         * println!("Connecting to {}:{}", endpoint.host, endpoint.port);
-         * println!("Server pubkey: {}", endpoint.server_noise_pubkey);
-         * }
-         * ```
-         */
+/**
+ * Discover a Noise endpoint for a recipient.
+ *
+ * Queries the recipient's public directory for their Noise server information.
+ *
+ * # Arguments
+ *
+ * * `transport` - Unauthenticated transport for reading
+ * * `recipient_pubkey` - The recipient's public key (z-base32 encoded)
+ *
+ * # Returns
+ *
+ * The noise endpoint info if found, None otherwise.
+ *
+ * # Example
+ *
+ * ```ignore
+ * let transport = UnauthenticatedTransportFFI::new_mock();
+ * if let Some(endpoint) = discover_noise_endpoint(&transport, "8pinxxgqs41...")? {
+ * println!("Connecting to {}:{}", endpoint.host, endpoint.port);
+ * println!("Server pubkey: {}", endpoint.server_noise_pubkey);
+ * }
+ * ```
+ */
 @Throws(PaykitMobileException::class)
-
 fun `discoverNoiseEndpoint`(`transport`: UnauthenticatedTransportFfi, `recipientPubkey`: String): NoiseEndpointInfo? {
     return FfiConverterOptionalTypeNoiseEndpointInfo.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_discover_noise_endpoint(FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`recipientPubkey`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_discover_noise_endpoint(
+                FfiConverterTypeUnauthenticatedTransportFFI.lower(`transport`),
+                FfiConverterString.lower(`recipientPubkey`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Derive Ed25519 public key from secret key.
-         *
-         * # Arguments
-         *
-         * * `secret_key_hex` - The 32-byte secret key in hex format.
-         *
-         * # Returns
-         *
-         * The complete keypair derived from the secret.
-         */
+/**
+ * Derive Ed25519 public key from secret key.
+ *
+ * # Arguments
+ *
+ * * `secret_key_hex` - The 32-byte secret key in hex format.
+ *
+ * # Returns
+ *
+ * The complete keypair derived from the secret.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `ed25519KeypairFromSecret`(`secretKeyHex`: String): Ed25519Keypair {
     return FfiConverterTypeEd25519Keypair.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_ed25519_keypair_from_secret(FfiConverterString.lower(`secretKeyHex`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_ed25519_keypair_from_secret(
+                FfiConverterString.lower(`secretKeyHex`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Export keypair to encrypted backup.
-         *
-         * # Arguments
-         *
-         * * `secret_key_hex` - The secret key to backup.
-         * * `password` - Password to encrypt the backup.
-         *
-         * # Returns
-         *
-         * Encrypted backup that can be stored or transferred.
-         */
+/**
+ * Export keypair to encrypted backup.
+ *
+ * # Arguments
+ *
+ * * `secret_key_hex` - The secret key to backup.
+ * * `password` - Password to encrypt the backup.
+ *
+ * # Returns
+ *
+ * Encrypted backup that can be stored or transferred.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `exportKeypairToBackup`(`secretKeyHex`: String, `password`: String): KeyBackup {
     return FfiConverterTypeKeyBackup.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_export_keypair_to_backup(FfiConverterString.lower(`secretKeyHex`),FfiConverterString.lower(`password`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_export_keypair_to_backup(
+                FfiConverterString.lower(`secretKeyHex`),
+                FfiConverterString.lower(`password`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Format public key as z-base32 (pkarr format).
-         */
+/**
+ * Format public key as z-base32 (pkarr format).
+ */
 @Throws(PaykitMobileException::class)
-
 fun `formatPublicKeyZ32`(`publicKeyHex`: String): String {
     return FfiConverterString.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_format_public_key_z32(FfiConverterString.lower(`publicKeyHex`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_format_public_key_z32(
+                FfiConverterString.lower(`publicKeyHex`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Get the unique device ID for this device.
-         *
-         * This should be stored persistently and reused for consistent key derivation.
-         * If not available, generates a new random device ID.
-         */
+/**
+ * Get the unique device ID for this device.
+ *
+ * This should be stored persistently and reused for consistent key derivation.
+ * If not available, generates a new random device ID.
+ */
 
 fun `generateDeviceId`(): String {
     return FfiConverterString.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_generate_device_id(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_generate_device_id(_status)
+        }
+    )
 }
 
-        /**
-         * Generate a new Ed25519 keypair for identity.
-         *
-         * This creates a new random identity. The secret key should be stored
-         * securely and backed up.
-         *
-         * # Returns
-         *
-         * A new Ed25519 keypair with the secret in hex format.
-         */
+/**
+ * Generate a new Ed25519 keypair for identity.
+ *
+ * This creates a new random identity. The secret key should be stored
+ * securely and backed up.
+ *
+ * # Returns
+ *
+ * A new Ed25519 keypair with the secret in hex format.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `generateEd25519Keypair`(): Ed25519Keypair {
     return FfiConverterTypeEd25519Keypair.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_generate_ed25519_keypair(_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_generate_ed25519_keypair(_status)
+        }
+    )
 }
 
-        /**
-         * Get the library version.
-         */
+/**
+ * Get the library version.
+ */
 
 fun `getVersion`(): String {
     return FfiConverterString.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_get_version(_status)
-})
+        uniffiRustCall { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_get_version(_status)
+        }
+    )
 }
 
-        /**
-         * Import keypair from encrypted backup.
-         *
-         * # Arguments
-         *
-         * * `backup` - The encrypted backup.
-         * * `password` - Password to decrypt the backup.
-         *
-         * # Returns
-         *
-         * The decrypted keypair.
-         */
+/**
+ * Import keypair from encrypted backup.
+ *
+ * # Arguments
+ *
+ * * `backup` - The encrypted backup.
+ * * `password` - Password to decrypt the backup.
+ *
+ * # Returns
+ *
+ * The decrypted keypair.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `importKeypairFromBackup`(`backup`: KeyBackup, `password`: String): Ed25519Keypair {
     return FfiConverterTypeEd25519Keypair.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_import_keypair_from_backup(FfiConverterTypeKeyBackup.lower(`backup`),FfiConverterString.lower(`password`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_import_keypair_from_backup(
+                FfiConverterTypeKeyBackup.lower(`backup`),
+                FfiConverterString.lower(`password`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Parse a payment message from JSON.
-         *
-         * # Arguments
-         *
-         * * `json` - The JSON string to parse
-         */
+/**
+ * Parse a payment message from JSON.
+ *
+ * # Arguments
+ *
+ * * `json` - The JSON string to parse
+ */
 @Throws(PaykitMobileException::class)
-
 fun `parsePaymentMessage`(`json`: String): NoisePaymentMessage {
     return FfiConverterTypeNoisePaymentMessage.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_parse_payment_message(FfiConverterString.lower(`json`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_parse_payment_message(FfiConverterString.lower(`json`), _status)
+        }
+    )
 }
 
-        /**
-         * Parse z-base32 public key to hex.
-         */
+/**
+ * Parse z-base32 public key to hex.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `parsePublicKeyZ32`(`publicKeyZ32`: String): String {
     return FfiConverterString.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_parse_public_key_z32(FfiConverterString.lower(`publicKeyZ32`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_parse_public_key_z32(
+                FfiConverterString.lower(`publicKeyZ32`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Publish a Noise endpoint to the directory.
-         *
-         * Makes this device discoverable for receiving payments via Noise protocol.
-         *
-         * # Arguments
-         *
-         * * `transport` - Authenticated transport for writing
-         * * `host` - Host address where the Noise server is listening
-         * * `port` - Port number where the Noise server is listening
-         * * `noise_pubkey` - This server's Noise public key (X25519, hex encoded)
-         * * `metadata` - Optional metadata about the endpoint
-         */
+/**
+ * Publish a Noise endpoint to the directory.
+ *
+ * Makes this device discoverable for receiving payments via Noise protocol.
+ *
+ * # Arguments
+ *
+ * * `transport` - Authenticated transport for writing
+ * * `host` - Host address where the Noise server is listening
+ * * `port` - Port number where the Noise server is listening
+ * * `noise_pubkey` - This server's Noise public key (X25519, hex encoded)
+ * * `metadata` - Optional metadata about the endpoint
+ */
 @Throws(PaykitMobileException::class)
+fun `publishNoiseEndpoint`(
+    `transport`: AuthenticatedTransportFfi,
+    `host`: String,
+    `port`: UShort,
+    `noisePubkey`: String,
+    `metadata`: String?
+) =
 
-fun `publishNoiseEndpoint`(`transport`: AuthenticatedTransportFfi, `host`: String, `port`: UShort, `noisePubkey`: String, `metadata`: String?) =
-    
     uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_publish_noise_endpoint(FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),FfiConverterString.lower(`host`),FfiConverterUShort.lower(`port`),FfiConverterString.lower(`noisePubkey`),FfiConverterOptionalString.lower(`metadata`),_status)
-}
+        UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_publish_noise_endpoint(
+            FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+            FfiConverterString.lower(`host`),
+            FfiConverterUShort.lower(`port`),
+            FfiConverterString.lower(`noisePubkey`),
+            FfiConverterOptionalString.lower(`metadata`),
+            _status
+        )
+    }
 
-
-        /**
-         * Remove the Noise endpoint from the directory.
-         *
-         * Makes this device no longer discoverable for Noise payments.
-         *
-         * # Arguments
-         *
-         * * `transport` - Authenticated transport for writing
-         */
+/**
+ * Remove the Noise endpoint from the directory.
+ *
+ * Makes this device no longer discoverable for Noise payments.
+ *
+ * # Arguments
+ *
+ * * `transport` - Authenticated transport for writing
+ */
 @Throws(PaykitMobileException::class)
-
 fun `removeNoiseEndpoint`(`transport`: AuthenticatedTransportFfi) =
-    
+
     uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_remove_noise_endpoint(FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),_status)
-}
+        UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_remove_noise_endpoint(
+            FfiConverterTypeAuthenticatedTransportFFI.lower(`transport`),
+            _status
+        )
+    }
 
-
-        /**
-         * Sign a message with Ed25519 secret key.
-         *
-         * # Arguments
-         *
-         * * `secret_key_hex` - The Ed25519 secret key in hex format.
-         * * `message` - The message bytes to sign.
-         *
-         * # Returns
-         *
-         * The 64-byte signature in hex format.
-         */
+/**
+ * Sign a message with Ed25519 secret key.
+ *
+ * # Arguments
+ *
+ * * `secret_key_hex` - The Ed25519 secret key in hex format.
+ * * `message` - The message bytes to sign.
+ *
+ * # Returns
+ *
+ * The 64-byte signature in hex format.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `signMessage`(`secretKeyHex`: String, `message`: ByteArray): String {
     return FfiConverterString.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_sign_message(FfiConverterString.lower(`secretKeyHex`),FfiConverterByteArray.lower(`message`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_sign_message(
+                FfiConverterString.lower(`secretKeyHex`),
+                FfiConverterByteArray.lower(`message`),
+                _status
+            )
+        }
+    )
 }
 
-        /**
-         * Verify an Ed25519 signature.
-         *
-         * # Arguments
-         *
-         * * `public_key_hex` - The Ed25519 public key in hex format.
-         * * `message` - The original message bytes.
-         * * `signature_hex` - The 64-byte signature in hex format.
-         *
-         * # Returns
-         *
-         * True if the signature is valid, false otherwise.
-         */
+/**
+ * Verify an Ed25519 signature.
+ *
+ * # Arguments
+ *
+ * * `public_key_hex` - The Ed25519 public key in hex format.
+ * * `message` - The original message bytes.
+ * * `signature_hex` - The 64-byte signature in hex format.
+ *
+ * # Returns
+ *
+ * True if the signature is valid, false otherwise.
+ */
 @Throws(PaykitMobileException::class)
-
 fun `verifySignature`(`publicKeyHex`: String, `message`: ByteArray, `signatureHex`: String): Boolean {
     return FfiConverterBoolean.lift(
-    uniffiRustCallWithError(PaykitMobileException) { _status ->
-    UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_verify_signature(FfiConverterString.lower(`publicKeyHex`),FfiConverterByteArray.lower(`message`),FfiConverterString.lower(`signatureHex`),_status)
-})
+        uniffiRustCallWithError(PaykitMobileException) { _status ->
+            UniffiLib.INSTANCE.uniffi_paykit_mobile_fn_func_verify_signature(
+                FfiConverterString.lower(`publicKeyHex`),
+                FfiConverterByteArray.lower(`message`),
+                FfiConverterString.lower(`signatureHex`),
+                _status
+            )
+        }
+    )
 }
-
-

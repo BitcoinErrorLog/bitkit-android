@@ -26,6 +26,10 @@ import to.bitkit.models.BlocktankNotificationType.cjitPaymentArrived
 import to.bitkit.models.BlocktankNotificationType.incomingHtlc
 import to.bitkit.models.BlocktankNotificationType.mutualClose
 import to.bitkit.models.BlocktankNotificationType.orderPaymentConfirmed
+import to.bitkit.models.BlocktankNotificationType.paykitAutoPayExecuted
+import to.bitkit.models.BlocktankNotificationType.paykitPaymentRequest
+import to.bitkit.models.BlocktankNotificationType.paykitSubscriptionDue
+import to.bitkit.models.BlocktankNotificationType.paykitSubscriptionFailed
 import to.bitkit.models.BlocktankNotificationType.wakeToTimeout
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.models.NewTransactionSheetDirection
@@ -102,6 +106,9 @@ class WakeNodeWorker @AssistedInject constructor(
                         }
                     }
                 }
+
+                // Handle Paykit notification types
+                handlePaykitNotification()
             }
             withTimeout(timeout) { deliverSignal.await() } // Stops node on timeout & avoids notification replay by OS
             return Result.success()
@@ -240,6 +247,82 @@ class WakeNodeWorker @AssistedInject constructor(
             )
         }
         self.deliver()
+    }
+
+    private suspend fun handlePaykitNotification() {
+        when (self.notificationType) {
+            paykitPaymentRequest -> {
+                val requestId = (notificationPayload?.get("requestId") as? JsonPrimitive)?.contentOrNull
+                if (requestId == null) {
+                    Logger.error("Missing requestId for payment request")
+                    return
+                }
+
+                Logger.info("Processing Paykit payment request $requestId")
+
+                // Node is already started, Paykit can process the payment request
+                // The actual processing will happen in foreground when app opens
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_payment_request_title),
+                    body = appContext.getString(R.string.notification_payment_request_body),
+                )
+                self.deliver()
+            }
+
+            paykitSubscriptionDue -> {
+                val subscriptionId = (notificationPayload?.get("subscriptionId") as? JsonPrimitive)?.contentOrNull
+                if (subscriptionId == null) {
+                    Logger.error("Missing subscriptionId for subscription")
+                    return
+                }
+
+                Logger.info("Processing subscription payment $subscriptionId")
+
+                // Node is started, subscription payment can be processed
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_subscription_due_title),
+                    body = appContext.getString(R.string.notification_subscription_due_body),
+                )
+                self.deliver()
+            }
+
+            paykitAutoPayExecuted -> {
+                val amount = (notificationPayload?.get("amount") as? JsonPrimitive)?.contentOrNull?.toULongOrNull()
+                if (amount == null) {
+                    Logger.error("Missing amount for auto-pay")
+                    return
+                }
+
+                Logger.info("Auto-pay executed for amount $amount")
+
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_autopay_executed_title),
+                    body = "$BITCOIN_SYMBOL $amount ${appContext.getString(R.string.notification_sent)}",
+                )
+                self.deliver()
+            }
+
+            paykitSubscriptionFailed -> {
+                val subscriptionId = (notificationPayload?.get("subscriptionId") as? JsonPrimitive)?.contentOrNull
+                val reason = (notificationPayload?.get("reason") as? JsonPrimitive)?.contentOrNull
+                if (subscriptionId == null || reason == null) {
+                    Logger.error("Missing details for subscription failure")
+                    return
+                }
+
+                Logger.info("Subscription payment failed $subscriptionId: $reason")
+
+                self.bestAttemptContent = NotificationDetails(
+                    title = appContext.getString(R.string.notification_subscription_failed_title),
+                    body = reason,
+                )
+                self.deliver()
+            }
+
+            else -> {
+                // Not a Paykit notification, do nothing
+            }
+        }
     }
 
     private suspend fun deliver() {

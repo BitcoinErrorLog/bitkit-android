@@ -1,7 +1,7 @@
 package to.bitkit.paykit.storage
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
@@ -21,13 +21,13 @@ class PaymentRequestStorage @Inject constructor(
         private const val TAG = "PaymentRequestStorage"
         private const val MAX_REQUESTS_TO_KEEP = 200
     }
-    
+
     private var requestsCache: List<PaymentRequest>? = null
     private val identityName: String = "default"
-    
+
     private val requestsKey: String
         get() = "payment_requests.$identityName"
-    
+
     /**
      * Get all requests (newest first)
      */
@@ -35,7 +35,7 @@ class PaymentRequestStorage @Inject constructor(
         if (requestsCache != null) {
             return requestsCache!!
         }
-        
+
         return try {
             val data = keychain.retrieve(requestsKey) ?: return emptyList()
             val json = String(data)
@@ -48,76 +48,76 @@ class PaymentRequestStorage @Inject constructor(
             emptyList()
         }
     }
-    
+
     /**
      * Get pending requests only
      */
     fun pendingRequests(): List<PaymentRequest> {
         return listRequests().filter { it.status == PaymentRequestStatus.PENDING }
     }
-    
+
     /**
      * Get requests filtered by status
      */
     fun listRequests(status: PaymentRequestStatus): List<PaymentRequest> {
         return listRequests().filter { it.status == status }
     }
-    
+
     /**
      * Get requests filtered by direction
      */
     fun listRequests(direction: RequestDirection): List<PaymentRequest> {
         return listRequests().filter { it.direction == direction }
     }
-    
+
     /**
      * Get recent requests (limited count)
      */
     fun recentRequests(limit: Int = 10): List<PaymentRequest> {
         return listRequests().take(limit)
     }
-    
+
     /**
      * Get a specific request
      */
     fun getRequest(id: String): PaymentRequest? {
         return listRequests().firstOrNull { it.id == id }
     }
-    
+
     /**
      * Add a new request
      */
     suspend fun addRequest(request: PaymentRequest) {
         val requests = listRequests().toMutableList()
-        
+
         // Add new request at the beginning (newest first)
         requests.add(0, request)
-        
+
         // Trim to max size
         val trimmed = if (requests.size > MAX_REQUESTS_TO_KEEP) {
             requests.take(MAX_REQUESTS_TO_KEEP)
         } else {
             requests
         }
-        
+
         persistRequests(trimmed)
     }
-    
+
     /**
      * Update an existing request
      */
     suspend fun updateRequest(request: PaymentRequest) {
         val requests = listRequests().toMutableList()
         val index = requests.indexOfFirst { it.id == request.id }
-        
+
         if (index < 0) {
             throw PaykitStorageException.LoadFailed(request.id)
         }
-        
+
         requests[index] = request
         persistRequests(requests)
     }
-    
+
     /**
      * Update request status
      */
@@ -126,7 +126,7 @@ class PaymentRequestStorage @Inject constructor(
         val updatedRequest = request.copy(status = status)
         updateRequest(updatedRequest)
     }
-    
+
     /**
      * Delete a request
      */
@@ -135,7 +135,7 @@ class PaymentRequestStorage @Inject constructor(
         requests.removeAll { it.id == id }
         persistRequests(requests)
     }
-    
+
     /**
      * Check and mark expired requests
      */
@@ -143,7 +143,7 @@ class PaymentRequestStorage @Inject constructor(
         val now = System.currentTimeMillis()
         val requests = listRequests().toMutableList()
         var hasChanges = false
-        
+
         for (i in requests.indices) {
             if (requests[i].status == PaymentRequestStatus.PENDING) {
                 requests[i].expiresAt?.let { expiresAt ->
@@ -154,28 +154,28 @@ class PaymentRequestStorage @Inject constructor(
                 }
             }
         }
-        
+
         if (hasChanges) {
             persistRequests(requests)
         }
     }
-    
+
     /**
      * Clear all requests
      */
     suspend fun clearAll() {
         persistRequests(emptyList())
     }
-    
+
     // MARK: - Statistics
-    
+
     /**
      * Count of pending requests
      */
     fun pendingCount(): Int {
         return listRequests(PaymentRequestStatus.PENDING).size
     }
-    
+
     /**
      * Count of incoming pending requests
      */
@@ -184,7 +184,7 @@ class PaymentRequestStorage @Inject constructor(
             .filter { it.status == PaymentRequestStatus.PENDING }
             .size
     }
-    
+
     /**
      * Count of outgoing pending requests
      */
@@ -193,9 +193,9 @@ class PaymentRequestStorage @Inject constructor(
             .filter { it.status == PaymentRequestStatus.PENDING }
             .size
     }
-    
+
     // MARK: - Private
-    
+
     private suspend fun persistRequests(requests: List<PaymentRequest>) {
         try {
             val json = Json.encodeToString(requests)
@@ -207,4 +207,3 @@ class PaymentRequestStorage @Inject constructor(
         }
     }
 }
-

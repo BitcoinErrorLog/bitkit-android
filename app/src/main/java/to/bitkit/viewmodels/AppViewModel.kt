@@ -84,6 +84,17 @@ import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.toActivityFilter
 import to.bitkit.models.toTxType
+import to.bitkit.paykit.KeyManager
+import to.bitkit.paykit.PaykitManager
+import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.PaymentRequestProcessingResult
+import to.bitkit.paykit.services.PaymentRequestService
+import to.bitkit.paykit.services.PubkyStorageAdapter
+import to.bitkit.paykit.storage.AutoPayStorage
+import to.bitkit.paykit.storage.PaykitKeychainStorage
+import to.bitkit.paykit.storage.PaymentRequestStorage
+import to.bitkit.paykit.viewmodels.AutoPayViewModel
+import to.bitkit.paykit.viewmodels.asAutopayEvaluator
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
@@ -105,18 +116,6 @@ import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.utils.Logger
 import to.bitkit.utils.jsonLogOf
-import to.bitkit.paykit.PaykitManager
-import to.bitkit.paykit.services.PaymentRequestService
-import to.bitkit.paykit.services.PaymentRequestProcessingResult
-import to.bitkit.paykit.services.AutopayEvaluator
-import to.bitkit.paykit.viewmodels.AutoPayViewModel
-import to.bitkit.paykit.viewmodels.asAutopayEvaluator
-import to.bitkit.paykit.storage.AutoPayStorage
-import to.bitkit.paykit.storage.PaymentRequestStorage
-import to.bitkit.paykit.storage.PaykitKeychainStorage
-import to.bitkit.paykit.services.DirectoryService
-import to.bitkit.paykit.services.PubkyStorageAdapter
-import to.bitkit.paykit.KeyManager
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -1742,7 +1741,7 @@ class AppViewModel @Inject constructor(
         delay(SCREEN_TRANSITION_DELAY_MS)
         handleScan(data.removeLightningSchemes())
     }
-    
+
     /**
      * Handle payment request deep links
      * Format: paykit://payment-request?requestId=xxx&from=yyy
@@ -1751,7 +1750,7 @@ class AppViewModel @Inject constructor(
     private fun handlePaymentRequestDeepLink(uri: Uri) = viewModelScope.launch {
         val requestId = uri.getQueryParameter("requestId")
         val fromPubkey = uri.getQueryParameter("from")
-        
+
         if (requestId == null || fromPubkey == null) {
             Logger.error("Invalid payment request URL: missing requestId or from", context = TAG)
             toast(
@@ -1761,7 +1760,7 @@ class AppViewModel @Inject constructor(
             )
             return@launch
         }
-        
+
         // Get PaykitManager client
         val paykitManager = PaykitManager.getInstance()
         val paykitClient = try {
@@ -1775,33 +1774,33 @@ class AppViewModel @Inject constructor(
             )
             return@launch
         }
-        
+
         // Get AutoPayViewModel for autopay evaluation
         // Note: In production, this would be injected via Hilt
         val keychainStorage = PaykitKeychainStorage(keychain)
         val autoPayStorage = AutoPayStorage(keychainStorage)
         val autoPayViewModel = AutoPayViewModel(autoPayStorage)
-        
+
         // Create PaymentRequestService
         val keyManager = KeyManager(context, keychain)
         val pubkyStorage = PubkyStorageAdapter(context)
         val directoryService = DirectoryService(context, keyManager, pubkyStorage).apply {
             initialize(paykitClient)
         }
-        
+
         val paymentRequestService = PaymentRequestService(
             paykitClient = paykitClient,
             autopayEvaluator = autoPayViewModel.asAutopayEvaluator(),
             paymentRequestStorage = PaymentRequestStorage(keychainStorage),
             directoryService = directoryService
         )
-        
+
         // Handle the payment request
         val result = paymentRequestService.handleIncomingRequest(
             requestId = requestId,
             fromPubkey = fromPubkey
         )
-        
+
         result.fold(
             onSuccess = { processingResult ->
                 when (processingResult) {

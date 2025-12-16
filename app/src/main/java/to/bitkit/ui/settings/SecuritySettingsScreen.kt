@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
+import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyS
@@ -85,6 +86,9 @@ fun SecuritySettingsScreen(
                 onSuccessActionId = AuthCheckAction.TOGGLE_PIN_FOR_PAYMENTS,
             )
         },
+        onAutoPaySettingsClick = {
+            navController.navigate(Routes.PaykitAutoPay)
+        },
         onUseBiometricsClick = {
             navController.navigateToAuthCheck(
                 requireBiometrics = true,
@@ -124,6 +128,7 @@ private fun Content(
     onPinOnLaunchClick: () -> Unit = {},
     onPinOnIdleClick: () -> Unit = {},
     onPinForPaymentsClick: () -> Unit = {},
+    onAutoPaySettingsClick: () -> Unit = {},
     onUseBiometricsClick: () -> Unit = {},
     onSwipeToHideBalanceClick: () -> Unit = {},
     onHideBalanceOnOpenClick: () -> Unit = {},
@@ -208,6 +213,12 @@ private fun Content(
                     modifier = Modifier.testTag("EnablePinForPayments"),
                 )
             }
+            // Auto-Pay settings link
+            SettingsButtonRow(
+                title = "Auto-Pay Settings",
+                onClick = onAutoPaySettingsClick,
+                modifier = Modifier.testTag("AutoPaySettings"),
+            )
             if (isPinEnabled && isBiometrySupported) {
                 SettingsSwitchRow(
                     title = run {

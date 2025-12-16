@@ -2,10 +2,41 @@ package to.bitkit.paykit.services
 
 import android.content.Context
 import com.paykit.mobile.*
+import dagger.hilt.android.qualifiers.ApplicationContext
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// MARK: - Pubky Homeserver Configuration
+
+/**
+ * Configuration for Pubky homeserver connections
+ */
+object PubkyConfig {
+    /** Production homeserver pubkey (Synonym mainnet) */
+    const val PRODUCTION_HOMESERVER = "8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty"
+
+    /** Staging homeserver pubkey (Synonym staging) */
+    const val STAGING_HOMESERVER = "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"
+
+    /** Default homeserver to use */
+    const val DEFAULT_HOMESERVER = PRODUCTION_HOMESERVER
+
+    /** Pubky app URL for production */
+    const val PRODUCTION_APP_URL = "https://pubky.app"
+
+    /** Pubky app URL for staging */
+    const val STAGING_APP_URL = "https://staging.pubky.app"
+
+    /**
+     * Get the homeserver base URL for directory operations
+     */
+    fun homeserverUrl(homeserver: String = DEFAULT_HOMESERVER): String {
+        // The homeserver pubkey is used as the base for directory operations
+        return homeserver
+    }
+}
 
 /**
  * Service for interacting with the Pubky directory
@@ -13,9 +44,9 @@ import javax.inject.Singleton
  */
 @Singleton
 class DirectoryService @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
-    private val pubkyStorage: PubkyStorageAdapter
+    private val pubkyStorage: PubkyStorageAdapter,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
@@ -36,31 +67,47 @@ class DirectoryService @Inject constructor(
 
     /**
      * Configure Pubky transport for directory operations
+     * @param homeserverBaseURL The homeserver pubkey (defaults to PubkyConfig.DEFAULT_HOMESERVER)
      */
     fun configurePubkyTransport(homeserverBaseURL: String? = null) {
-        this.homeserverBaseURL = homeserverBaseURL
-        val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+        this.homeserverBaseURL = homeserverBaseURL ?: PubkyConfig.DEFAULT_HOMESERVER
+        val adapter = PubkyUnauthenticatedStorageAdapter(this.homeserverBaseURL)
         unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(adapter)
     }
 
     /**
      * Configure authenticated transport with session
+     * @param sessionId The session ID from Pubky-ring
+     * @param ownerPubkey The owner's public key
+     * @param homeserverBaseURL The homeserver pubkey (defaults to PubkyConfig.DEFAULT_HOMESERVER)
      */
     fun configureAuthenticatedTransport(sessionId: String, ownerPubkey: String, homeserverBaseURL: String? = null) {
-        this.homeserverBaseURL = homeserverBaseURL
-        val adapter = PubkyAuthenticatedStorageAdapter(sessionId, homeserverBaseURL)
+        this.homeserverBaseURL = homeserverBaseURL ?: PubkyConfig.DEFAULT_HOMESERVER
+        val adapter = PubkyAuthenticatedStorageAdapter(sessionId, this.homeserverBaseURL)
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, ownerPubkey)
+    }
+
+    /**
+     * Configure transport using a Pubky session from Pubky-ring
+     */
+    fun configureWithPubkySession(session: PubkySession) {
+        homeserverBaseURL = PubkyConfig.DEFAULT_HOMESERVER
+
+        // Configure authenticated transport
+        val adapter = PubkyAuthenticatedStorageAdapter(session.sessionSecret, homeserverBaseURL)
+        authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, session.pubkey)
+
+        // Also configure unauthenticated transport
+        val unauthAdapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+        unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(unauthAdapter)
+
+        Logger.info("Configured DirectoryService with Pubky session for ${session.pubkey}", context = TAG)
     }
 
     /**
      * Discover noise endpoint for a recipient
      */
     suspend fun discoverNoiseEndpoint(recipientPubkey: String): NoiseEndpointInfo? {
-        val client = paykitClient ?: run {
-            Logger.error("DirectoryService: PaykitClient not initialized", null, context = TAG)
-            return null
-        }
-
         val transport = unauthenticatedTransport ?: run {
             // Create default transport if not configured
             val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
@@ -70,7 +117,7 @@ class DirectoryService @Inject constructor(
         }
 
         return try {
-            discoverNoiseEndpoint(transport, recipientPubkey)
+            com.paykit.mobile.discoverNoiseEndpoint(transport, recipientPubkey)
         } catch (e: Exception) {
             Logger.error("Failed to discover Noise endpoint for $recipientPubkey", e, context = TAG)
             null
@@ -86,11 +133,10 @@ class DirectoryService @Inject constructor(
         noisePubkey: String,
         metadata: String? = null
     ) {
-        val client = paykitClient ?: throw DirectoryError.NotConfigured
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
+            com.paykit.mobile.publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
             Logger.info("Published Noise endpoint: $host:$port", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish Noise endpoint", e, context = TAG)
@@ -102,11 +148,10 @@ class DirectoryService @Inject constructor(
      * Remove noise endpoint from directory
      */
     suspend fun removeNoiseEndpoint() {
-        val client = paykitClient ?: throw DirectoryError.NotConfigured
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            removeNoiseEndpoint(transport)
+            com.paykit.mobile.removeNoiseEndpoint(transport)
             Logger.info("Removed Noise endpoint", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove Noise endpoint", e, context = TAG)
@@ -171,6 +216,227 @@ class DirectoryService @Inject constructor(
     }
 
     /**
+     * Discover pending payment requests from the directory
+     */
+    suspend fun discoverPendingRequests(ownerPubkey: String): List<to.bitkit.paykit.workers.DiscoveredRequest> {
+        val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+
+        return try {
+            // List pending requests from the requests directory
+            val requestsPath = "${PAYKIT_PATH_PREFIX}requests/$ownerPubkey/"
+            val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, ownerPubkey)
+
+            requestFiles.mapNotNull { requestId ->
+                try {
+                    val requestPath = "$requestsPath$requestId"
+                    val requestBytes = pubkyStorage.retrieve(requestPath, adapter, ownerPubkey)
+                    val requestJson = requestBytes?.let { String(it) }
+                    parsePaymentRequest(requestId, requestJson)
+                } catch (e: Exception) {
+                    Logger.error("Failed to parse request $requestId", e, context = TAG)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error("Failed to discover pending requests for $ownerPubkey", e, context = TAG)
+            emptyList()
+        }
+    }
+
+    /**
+     * Discover subscription proposals from the directory
+     */
+    suspend fun discoverSubscriptionProposals(
+        ownerPubkey: String
+    ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
+        val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+
+        return try {
+            // List subscription proposals from the subscriptions directory
+            val proposalsPath = "${PAYKIT_PATH_PREFIX}subscriptions/proposals/$ownerPubkey/"
+            val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, ownerPubkey)
+
+            proposalFiles.mapNotNull { proposalId ->
+                try {
+                    val proposalPath = "$proposalsPath$proposalId"
+                    val proposalBytes = pubkyStorage.retrieve(proposalPath, adapter, ownerPubkey)
+                    val proposalJson = proposalBytes?.let { String(it) }
+                    parseSubscriptionProposal(proposalId, proposalJson)
+                } catch (e: Exception) {
+                    Logger.error("Failed to parse proposal $proposalId", e, context = TAG)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error("Failed to discover subscription proposals for $ownerPubkey", e, context = TAG)
+            emptyList()
+        }
+    }
+
+    private fun parsePaymentRequest(requestId: String, json: String?): to.bitkit.paykit.workers.DiscoveredRequest? {
+        if (json.isNullOrBlank()) return null
+
+        return try {
+            val jsonObject = org.json.JSONObject(json)
+            to.bitkit.paykit.workers.DiscoveredRequest(
+                requestId = requestId,
+                type = to.bitkit.paykit.workers.RequestType.PaymentRequest,
+                fromPubkey = jsonObject.optString("from_pubkey", ""),
+                amountSats = jsonObject.optLong("amount_sats", 0),
+                description = if (jsonObject.has("description")) jsonObject.getString("description") else null,
+                createdAt = jsonObject.optLong("created_at", System.currentTimeMillis()),
+            )
+        } catch (e: Exception) {
+            Logger.error("Failed to parse payment request JSON", e, context = TAG)
+            null
+        }
+    }
+
+    private fun parseSubscriptionProposal(proposalId: String, json: String?): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
+        if (json.isNullOrBlank()) return null
+
+        return try {
+            val jsonObject = org.json.JSONObject(json)
+            to.bitkit.paykit.workers.DiscoveredSubscriptionProposal(
+                subscriptionId = proposalId,
+                providerPubkey = jsonObject.optString("provider_pubkey", ""),
+                amountSats = jsonObject.optLong("amount_sats", 0),
+                description = if (jsonObject.has("description")) jsonObject.getString("description") else null,
+                frequency = jsonObject.optString("frequency", "monthly"),
+                createdAt = jsonObject.optLong("created_at", System.currentTimeMillis()),
+            )
+        } catch (e: Exception) {
+            Logger.error("Failed to parse subscription proposal JSON", e, context = TAG)
+            null
+        }
+    }
+
+    // MARK: - Profile Operations
+
+    /**
+     * Fetch profile for a pubkey from Pubky directory
+     */
+    suspend fun fetchProfile(pubkey: String): PubkyProfile? {
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverBaseURL)
+        val profilePath = "/pub/pubky.app/profile.json"
+
+        return try {
+            val data = pubkyStorage.retrieve(profilePath, adapter, pubkey)
+            if (data != null) {
+                val json = org.json.JSONObject(String(data))
+                val links = json.optJSONArray("links")?.let { linksArray ->
+                    (0 until linksArray.length()).mapNotNull { i ->
+                        val linkObj = linksArray.optJSONObject(i)
+                        if (linkObj != null) {
+                            PubkyProfileLink(
+                                title = linkObj.optString("title", ""),
+                                url = linkObj.optString("url", "")
+                            )
+                        } else {
+                            null
+                        }
+                    }
+                }
+                PubkyProfile(
+                    name = json.optString("name", null),
+                    bio = json.optString("bio", null),
+                    avatar = json.optString("avatar", null),
+                    links = links
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Logger.error("Failed to fetch profile for $pubkey", e, context = TAG)
+            null
+        }
+    }
+
+    /**
+     * Publish profile to Pubky directory
+     */
+    suspend fun publishProfile(profile: PubkyProfile) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        val profilePath = "/pub/pubky.app/profile.json"
+
+        val profileJson = org.json.JSONObject().apply {
+            profile.name?.let { put("name", it) }
+            profile.bio?.let { put("bio", it) }
+            profile.avatar?.let { put("avatar", it) }
+            profile.links?.let { links ->
+                val linksArray = org.json.JSONArray()
+                links.forEach { link ->
+                    linksArray.put(
+                        org.json.JSONObject().apply {
+                            put("title", link.title)
+                            put("url", link.url)
+                        }
+                    )
+                }
+                put("links", linksArray)
+            }
+        }
+
+        try {
+            pubkyStorage.store(profilePath, profileJson.toString().toByteArray(), transport)
+            Logger.info("Published profile to Pubky directory", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to publish profile", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    // MARK: - Follows Operations
+
+    /**
+     * Fetch list of pubkeys user follows
+     */
+    suspend fun fetchFollows(): List<String> {
+        val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return emptyList()
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverBaseURL)
+        val followsPath = "/pub/pubky.app/follows/"
+
+        return try {
+            pubkyStorage.listDirectory(followsPath, adapter, ownerPubkey)
+        } catch (e: Exception) {
+            Logger.error("Failed to fetch follows", e, context = TAG)
+            emptyList()
+        }
+    }
+
+    /**
+     * Add a follow to the Pubky directory
+     */
+    suspend fun addFollow(pubkey: String) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        val followPath = "/pub/pubky.app/follows/$pubkey"
+
+        try {
+            pubkyStorage.store(followPath, "{}".toByteArray(), transport)
+            Logger.info("Added follow: $pubkey", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to add follow $pubkey", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    /**
+     * Remove a follow from the Pubky directory
+     */
+    suspend fun removeFollow(pubkey: String) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        val followPath = "/pub/pubky.app/follows/$pubkey"
+
+        try {
+            pubkyStorage.delete(followPath, transport)
+            Logger.info("Removed follow: $pubkey", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to remove follow $pubkey", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    /**
      * Discover contacts from Pubky follows directory
      */
     suspend fun discoverContactsFromFollows(): List<DiscoveredContact> {
@@ -192,9 +458,9 @@ class DirectoryService @Inject constructor(
                 discovered.add(
                     DiscoveredContact(
                         pubkey = followPubkey,
-                        name = null, // Could fetch from Pubky profile
+                        name = null as String?, // Could fetch from Pubky profile
                         hasPaymentMethods = true,
-                        supportedMethods = paymentMethods.map { it.`methodId` }
+                        supportedMethods = paymentMethods.map { it.methodId }
                     )
                 )
             }
@@ -203,6 +469,21 @@ class DirectoryService @Inject constructor(
         return discovered
     }
 }
+
+/**
+ * Profile from Pubky directory
+ */
+data class PubkyProfile(
+    val name: String? = null,
+    val bio: String? = null,
+    val avatar: String? = null,
+    val links: List<PubkyProfileLink>? = null
+)
+
+data class PubkyProfileLink(
+    val title: String,
+    val url: String
+)
 
 /**
  * Discovered contact from directory
@@ -224,4 +505,3 @@ sealed class DirectoryError(message: String) : Exception(message) {
     class NotFound(resource: String) : DirectoryError("Not found: $resource")
     class PublishFailed(msg: String) : DirectoryError("Publish failed: $msg")
 }
-

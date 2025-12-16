@@ -17,7 +17,7 @@ sealed class AutopayEvaluationResult {
     data class Approved(val ruleId: String?, val ruleName: String?) : AutopayEvaluationResult()
     data class Denied(val reason: String) : AutopayEvaluationResult()
     object NeedsApproval : AutopayEvaluationResult()
-    
+
     val isApproved: Boolean
         get() = this is Approved
 }
@@ -35,7 +35,7 @@ sealed class PaymentRequestProcessingResult {
 /**
  * Protocol for autopay evaluation
  */
-interface AutopayEvaluator {
+interface IAutopayEvaluator {
     /**
      * Evaluate if a payment should be auto-approved
      */
@@ -49,14 +49,14 @@ interface AutopayEvaluator {
 @Singleton
 class PaymentRequestService @Inject constructor(
     private val paykitClient: PaykitClient,
-    private val autopayEvaluator: AutopayEvaluator,
+    private val autopayEvaluator: IAutopayEvaluator,
     private val paymentRequestStorage: PaymentRequestStorage,
     private val directoryService: DirectoryService
 ) {
     companion object {
         private const val TAG = "PaymentRequestService"
     }
-    
+
     /**
      * Handle an incoming payment request
      * @param requestId Payment request ID
@@ -70,24 +70,24 @@ class PaymentRequestService @Inject constructor(
         try {
             // Fetch payment request details from storage
             val request = fetchPaymentRequest(requestId, fromPubkey)
-            
+
             // Evaluate autopay
             val evaluation = autopayEvaluator.evaluate(
                 peerPubkey = fromPubkey,
                 amount = request.amountSats,
                 methodId = request.methodId
             )
-            
+
             when (evaluation) {
                 is AutopayEvaluationResult.Approved -> {
                     // Execute payment automatically
                     try {
                         val endpoint = resolveEndpoint(request)
                         val paymentResult = executePayment(request, endpoint, null)
-                        
+
                         // Update request status
                         paymentRequestStorage.updateStatus(requestId, PaymentRequestStatus.PAID)
-                        
+
                         Result.success(
                             PaymentRequestProcessingResult.AutoPaid(paymentResult)
                         )
@@ -116,7 +116,7 @@ class PaymentRequestService @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Evaluate autopay for a payment request
      */
@@ -127,7 +127,7 @@ class PaymentRequestService @Inject constructor(
     ): AutopayEvaluationResult {
         return autopayEvaluator.evaluate(peerPubkey, amount, methodId)
     }
-    
+
     /**
      * Execute a payment request
      */
@@ -144,37 +144,36 @@ class PaymentRequestService @Inject constructor(
             metadataJson = metadataJson
         )
     }
-    
+
     // MARK: - Private Helpers
-    
+
     /**
      * Fetch payment request details from storage
      */
     private suspend fun fetchPaymentRequest(requestId: String, fromPubkey: String): PaymentRequest {
         val request = paymentRequestStorage.getRequest(requestId)
             ?: throw IllegalStateException("Payment request not found: $requestId")
-        
+
         // Verify the request is from the expected pubkey
         if (request.fromPubkey != fromPubkey) {
             throw IllegalStateException("Payment request pubkey mismatch")
         }
-        
+
         return request
     }
-    
+
     /**
      * Resolve payment endpoint from request
      */
     private suspend fun resolveEndpoint(request: PaymentRequest): String {
         // Try to discover payment methods for the sender
         val paymentMethods = directoryService.discoverPaymentMethods(request.fromPubkey)
-        
+
         // Find matching method - PaymentMethod from FFI has methodId and endpoint
         val matchingMethod = paymentMethods.firstOrNull { it.`methodId` == request.methodId }
             ?: throw IllegalStateException("Payment method not found: ${request.methodId}")
-        
+
         // Return the endpoint from the discovered payment method
         return matchingMethod.`endpoint`
     }
 }
-

@@ -2,7 +2,6 @@ package to.bitkit.ui.paykit
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.viewmodels.NoisePaymentViewModel
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 
@@ -27,18 +25,18 @@ fun NoisePaymentScreen(
     var amount by remember { mutableStateOf("") }
     var methodId by remember { mutableStateOf("lightning") }
     var description by remember { mutableStateOf("") }
-    
+
     val isConnecting by viewModel.isConnecting.collectAsState()
     val isConnected by viewModel.isConnected.collectAsState()
     val paymentResponse by viewModel.paymentResponse.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Noise Payment",
             onBackClick = onNavigateBack
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -63,7 +61,7 @@ fun NoisePaymentScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            
+
             if (mode == PaymentMode.SEND) {
                 // Send Payment Form
                 Card(
@@ -80,28 +78,28 @@ fun NoisePaymentScreen(
                             label = { Text("Recipient Public Key") },
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
+
                         OutlinedTextField(
                             value = amount,
                             onValueChange = { amount = it },
                             label = { Text("Amount (sats)") },
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
+
                         OutlinedTextField(
                             value = methodId,
                             onValueChange = { methodId = it },
                             label = { Text("Payment Method") },
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
+
                         OutlinedTextField(
                             value = description,
                             onValueChange = { description = it },
                             label = { Text("Description (optional)") },
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
+
                         Button(
                             onClick = {
                                 val request = NoisePaymentRequest(
@@ -139,7 +137,7 @@ fun NoisePaymentScreen(
                             text = "Waiting for payment request...",
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        
+
                         Button(
                             onClick = { viewModel.receivePayment() },
                             enabled = !isConnecting
@@ -153,7 +151,7 @@ fun NoisePaymentScreen(
                     }
                 }
             }
-            
+
             // Status
             errorMessage?.let { error ->
                 Card(
@@ -170,7 +168,7 @@ fun NoisePaymentScreen(
                     )
                 }
             }
-            
+
             paymentResponse?.let { response ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -208,4 +206,3 @@ fun NoisePaymentScreen(
 enum class PaymentMode {
     SEND, RECEIVE
 }
-

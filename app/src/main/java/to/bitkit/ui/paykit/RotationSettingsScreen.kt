@@ -1,10 +1,7 @@
 package to.bitkit.ui.paykit
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,13 +24,13 @@ fun RotationSettingsScreen(
 ) {
     // TODO: Create ViewModel for RotationSettings
     val settings = remember { mutableStateOf<RotationSettings?>(null) }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Rotation Settings",
             onBackClick = onNavigateBack
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -50,7 +47,7 @@ fun RotationSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Title(text = "Global Settings")
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -75,7 +72,7 @@ fun RotationSettingsScreen(
                             }
                         )
                     }
-                    
+
                     OutlinedTextField(
                         value = settings.value?.defaultPolicy ?: "on-use",
                         onValueChange = { /* TODO: Update policy */ },
@@ -85,7 +82,7 @@ fun RotationSettingsScreen(
                     )
                 }
             }
-            
+
             // Method Settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -96,7 +93,7 @@ fun RotationSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Title(text = "Method Settings")
-                    
+
                     settings.value?.methodSettings?.entries?.forEach { entry ->
                         val methodId: String = entry.key
                         val methodSettings: to.bitkit.paykit.storage.MethodRotationSettings = entry.value
@@ -153,4 +150,3 @@ fun MethodRotationCard(
         }
     }
 }
-

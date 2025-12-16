@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.viewmodels.SubscriptionsViewModel
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 
@@ -30,17 +28,17 @@ fun PaykitSubscriptionsScreen(
 ) {
     val subscriptions by viewModel.subscriptions.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadSubscriptions()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Subscriptions",
             onBackClick = onNavigateBack
         )
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -122,7 +120,7 @@ fun SubscriptionRow(
                     onCheckedChange = { onToggleActive() }
                 )
             }
-            
+
             if (subscription.paymentCount > 0) {
                 Text(
                     text = "${subscription.paymentCount} payments made",
@@ -133,4 +131,3 @@ fun SubscriptionRow(
         }
     }
 }
-

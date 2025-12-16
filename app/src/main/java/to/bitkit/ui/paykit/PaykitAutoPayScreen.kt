@@ -2,9 +2,7 @@ package to.bitkit.ui.paykit
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -32,17 +30,17 @@ fun PaykitAutoPayScreen(
     val peerLimits by viewModel.peerLimits.collectAsState()
     val rules by viewModel.rules.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadSettings()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Auto-Pay Settings",
             onBackClick = onNavigateBack
         )
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -61,7 +59,7 @@ fun PaykitAutoPayScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Title(text = "Global Settings")
-                        
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
@@ -94,7 +92,7 @@ fun PaykitAutoPayScreen(
                                         }
                                     )
                                 }
-                                
+
                                 OutlinedTextField(
                                     value = settings.globalDailyLimitSats.toString(),
                                     onValueChange = {
@@ -104,7 +102,7 @@ fun PaykitAutoPayScreen(
                                     label = { Text("Daily Limit (sats)") },
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                
+
                                 Text(
                                     text = "Used: ${settings.currentDailySpentSats} / ${settings.globalDailyLimitSats} sats",
                                     style = MaterialTheme.typography.bodySmall,
@@ -114,12 +112,12 @@ fun PaykitAutoPayScreen(
                         }
                     }
                 }
-                
+
                 // Peer Limits
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Title(text = "Peer Limits")
-                        
+
                         if (peerLimits.isEmpty()) {
                             Text(
                                 text = "No peer limits configured",
@@ -133,12 +131,12 @@ fun PaykitAutoPayScreen(
                         }
                     }
                 }
-                
+
                 // Rules
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Title(text = "Auto-Pay Rules")
-                        
+
                         if (rules.isEmpty()) {
                             Text(
                                 text = "No rules configured",
@@ -213,7 +211,7 @@ fun RuleCard(rule: AutoPayRule) {
                     }
                 )
             }
-            
+
             rule.maxAmountSats?.let {
                 Text(
                     text = "Max amount: $it sats",
@@ -221,7 +219,7 @@ fun RuleCard(rule: AutoPayRule) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             if (rule.allowedMethods.isNotEmpty()) {
                 Text(
                     text = "Methods: ${rule.allowedMethods.joinToString()}",
@@ -232,4 +230,3 @@ fun RuleCard(rule: AutoPayRule) {
         }
     }
 }
-

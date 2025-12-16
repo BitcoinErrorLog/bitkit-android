@@ -26,7 +26,7 @@ class PaykitReceiptStore(context: Context? = null) {
         private const val TAG = "PaykitReceiptStore"
         private const val PREFS_NAME = "paykit_receipts"
         private const val RECEIPTS_KEY = "receipts"
-        private const val MAX_RECEIPTS = 1000  // Prevent unbounded growth
+        private const val MAX_RECEIPTS = 1000 // Prevent unbounded growth
 
         @Volatile
         private var instance: PaykitReceiptStore? = null

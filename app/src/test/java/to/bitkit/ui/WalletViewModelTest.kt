@@ -1,5 +1,6 @@
 package to.bitkit.ui
 
+import android.content.Context
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -31,6 +32,7 @@ import to.bitkit.viewmodels.WalletViewModel
 class WalletViewModelTest : BaseUnitTest() {
     private lateinit var sut: WalletViewModel
 
+    private val appContext = mock<Context>()
     private val walletRepo = mock<WalletRepo>()
     private val lightningRepo = mock<LightningRepo>()
     private val settingsStore = mock<SettingsStore>()
@@ -48,6 +50,7 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(lightningRepo.lightningState).thenReturn(lightningState)
 
         sut = WalletViewModel(
+            appContext = appContext,
             bgDispatcher = testDispatcher,
             walletRepo = walletRepo,
             lightningRepo = lightningRepo,
@@ -230,6 +233,7 @@ class WalletViewModelTest : BaseUnitTest() {
             .thenReturn(Result.success(Unit))
 
         val testSut = WalletViewModel(
+            appContext = appContext,
             bgDispatcher = testDispatcher,
             walletRepo = testWalletRepo,
             lightningRepo = testLightningRepo,
@@ -268,6 +272,7 @@ class WalletViewModelTest : BaseUnitTest() {
             .thenReturn(Result.success(Unit))
 
         val testSut = WalletViewModel(
+            appContext = appContext,
             bgDispatcher = testDispatcher,
             walletRepo = testWalletRepo,
             lightningRepo = testLightningRepo,

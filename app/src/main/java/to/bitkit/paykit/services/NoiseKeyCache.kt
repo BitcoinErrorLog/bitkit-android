@@ -17,23 +17,23 @@ class NoiseKeyCache @Inject constructor(
     companion object {
         private const val TAG = "NoiseKeyCache"
     }
-    
+
     private val memoryCache = mutableMapOf<String, ByteArray>()
     private val cacheMutex = Mutex()
-    
+
     var maxCachedEpochs: Int = 5
-    
+
     /**
      * Get a cached key if available
      */
     suspend fun getKey(deviceId: String, epoch: UInt): ByteArray? {
         val key = cacheKey(deviceId, epoch)
-        
+
         // Check memory cache first
         cacheMutex.withLock {
             memoryCache[key]?.let { return it }
         }
-        
+
         // Check persistent cache
         val keyData = keychain.retrieve(key)
         if (keyData != null) {
@@ -42,32 +42,32 @@ class NoiseKeyCache @Inject constructor(
             }
             return keyData
         }
-        
+
         return null
     }
-    
+
     /**
      * Store a key in the cache
      */
     suspend fun setKey(keyData: ByteArray, deviceId: String, epoch: UInt) {
         val key = cacheKey(deviceId, epoch)
-        
+
         // Store in memory cache
         cacheMutex.withLock {
             memoryCache[key] = keyData
         }
-        
+
         // Store in keychain
         try {
             keychain.store(key, keyData)
         } catch (e: Exception) {
             Logger.error("NoiseKeyCache: Failed to store key", e, context = TAG)
         }
-        
+
         // Cleanup old epochs if needed
         cleanupOldEpochs(deviceId, epoch)
     }
-    
+
     /**
      * Clear all cached keys
      */
@@ -76,16 +76,15 @@ class NoiseKeyCache @Inject constructor(
             memoryCache.clear()
         }
     }
-    
+
     // MARK: - Private
-    
+
     private fun cacheKey(deviceId: String, epoch: UInt): String {
         return "noise.key.cache.$deviceId.$epoch"
     }
-    
+
     private suspend fun cleanupOldEpochs(deviceId: String, currentEpoch: UInt) {
         // Implementation would clean up old epochs beyond maxCachedEpochs
         // Simplified for now
     }
 }
-
