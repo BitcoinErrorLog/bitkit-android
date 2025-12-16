@@ -244,7 +244,9 @@ data class SpendingCheckResult(
  */
 sealed class SpendingLimitException(message: String) : Exception(message) {
     object NotInitialized : SpendingLimitException("SpendingLimitManager is not initialized")
-    data class WouldExceedLimit(val remaining: Long) : SpendingLimitException("Would exceed spending limit ($remaining sats remaining)")
+    data class WouldExceedLimit(val remaining: Long) : SpendingLimitException(
+        "Would exceed spending limit ($remaining sats remaining)"
+    )
     object ReservationNotFound : SpendingLimitException("Spending reservation not found")
     object InvalidReservation : SpendingLimitException("Invalid reservation")
     data class StorageFailed(val reason: String) : SpendingLimitException("Storage operation failed: $reason")

@@ -116,4 +116,3 @@ data class SpendingLimit(
 
     fun remainingSats(): Long = maxOf(0, totalLimitSats - currentSpentSats)
 }
-

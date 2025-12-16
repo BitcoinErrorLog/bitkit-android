@@ -45,7 +45,7 @@ data class Subscription(
                 nextPaymentAt = calculateNextPayment(frequency, System.currentTimeMillis())
             )
         }
-        
+
         private fun calculateNextPayment(frequency: String, from: Long): Long {
             val calendar = Calendar.getInstance()
             calendar.timeInMillis = from
@@ -58,7 +58,7 @@ data class Subscription(
             return calendar.timeInMillis
         }
     }
-    
+
     fun recordPayment(): Subscription {
         val now = System.currentTimeMillis()
         return copy(

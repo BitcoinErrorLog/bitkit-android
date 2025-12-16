@@ -1,11 +1,13 @@
 package to.bitkit.viewmodels
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,6 +24,8 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.di.BgDispatcher
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.models.Toast
+import to.bitkit.paykit.PaykitIntegrationHelper
+import to.bitkit.paykit.workers.SubscriptionCheckWorker
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
@@ -30,10 +34,6 @@ import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.onboarding.LOADING_MS
 import to.bitkit.ui.shared.toast.ToastEventBus
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
-import to.bitkit.paykit.PaykitIntegrationHelper
-import to.bitkit.paykit.workers.SubscriptionCheckWorker
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException

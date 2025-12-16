@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -14,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import to.bitkit.paykit.models.PrivateEndpointOffer
 import to.bitkit.paykit.storage.PrivateEndpointStorage
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
@@ -27,13 +25,13 @@ fun PrivateEndpointsScreen(
 ) {
     // TODO: Create ViewModel for PrivateEndpoints
     val peers = remember { mutableStateOf<List<String>>(emptyList()) }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Private Endpoints",
             onBackClick = onNavigateBack
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -56,7 +54,7 @@ fun PrivateEndpointsScreen(
                     )
                 }
             }
-            
+
             if (peers.value.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -109,4 +107,3 @@ fun PeerEndpointsCard(peer: String) {
         }
     }
 }
-

@@ -21,7 +21,6 @@ import to.bitkit.paykit.models.PaymentStatus
 import to.bitkit.paykit.models.Receipt
 import to.bitkit.paykit.viewmodels.ReceiptsViewModel
 import to.bitkit.ui.components.SearchInput
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 
@@ -36,17 +35,17 @@ fun PaykitReceiptsScreen(
     val selectedStatus by viewModel.selectedStatus.collectAsState()
     val selectedDirection by viewModel.selectedDirection.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadReceipts()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Receipts",
             onBackClick = onNavigateBack
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -58,7 +57,7 @@ fun PaykitReceiptsScreen(
                 onValueChange = { viewModel.setSearchQuery(it) },
                 placeholder = "Search receipts..."
             )
-            
+
             // Filter chips
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -101,7 +100,7 @@ fun PaykitReceiptsScreen(
                     label = { Text("Completed") }
                 )
             }
-            
+
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -204,4 +203,3 @@ fun ReceiptRow(
         }
     }
 }
-

@@ -10,7 +10,7 @@ enum class BlocktankNotificationType {
     orderPaymentConfirmed,
     cjitPaymentArrived,
     wakeToTimeout,
-    
+
     // Paykit notification types
     paykitPaymentRequest,
     paykitSubscriptionDue,

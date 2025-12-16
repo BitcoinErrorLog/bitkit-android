@@ -16,9 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import to.bitkit.paykit.services.DiscoveredContact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
-import to.bitkit.ui.components.SearchInput
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -31,17 +29,17 @@ fun ContactDiscoveryScreen(
 ) {
     val discoveredContacts by viewModel.discoveredContacts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.discoverContacts()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Discover Contacts",
             onBackClick = onNavigateBack
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -64,7 +62,7 @@ fun ContactDiscoveryScreen(
                     )
                 }
             }
-            
+
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -141,4 +139,3 @@ fun DiscoveredContactRow(
         }
     }
 }
-

@@ -1,7 +1,6 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import android.os.Build
 import com.paykit.mobile.*
 import com.pubky.noise.*
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +14,6 @@ import to.bitkit.utils.Logger
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
-import java.net.ServerSocket
 import java.net.Socket
 import java.util.UUID
 import javax.inject.Inject
@@ -271,12 +269,12 @@ class NoisePaymentService @Inject constructor(
         // 1. startServer() - starts ServerSocket listener
         // 2. handleClientConnection() - accepts incoming connections
         // 3. handleServerMessage() - performs server-side Noise handshake and processes messages
-        // 
+        //
         // To receive payment requests, use the server mode:
         // - Call startServer() to begin listening
         // - Set onPendingPaymentRequest callback to receive requests
         // - Payment requests will be delivered via the callback
-        
+
         // This method returns null as server mode uses callbacks instead
         return null
     }

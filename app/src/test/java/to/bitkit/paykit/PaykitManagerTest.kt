@@ -3,7 +3,6 @@ package to.bitkit.paykit
 import org.junit.Test
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * Unit tests for PaykitManager.

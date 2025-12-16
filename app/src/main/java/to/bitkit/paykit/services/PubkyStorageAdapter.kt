@@ -35,7 +35,10 @@ class PubkyStorageAdapter @Inject constructor(
     /**
      * Create authenticated storage adapter for writes
      */
-    fun createAuthenticatedAdapter(sessionId: String, homeserverBaseURL: String? = null): PubkyAuthenticatedStorageAdapter {
+    fun createAuthenticatedAdapter(
+        sessionId: String,
+        homeserverBaseURL: String? = null
+    ): PubkyAuthenticatedStorageAdapter {
         return PubkyAuthenticatedStorageAdapter(sessionId, homeserverBaseURL)
     }
 
@@ -65,7 +68,11 @@ class PubkyStorageAdapter @Inject constructor(
     /**
      * List items in a directory
      */
-    suspend fun listDirectory(prefix: String, adapter: PubkyUnauthenticatedStorageAdapter, ownerPubkey: String): List<String> {
+    suspend fun listDirectory(
+        prefix: String,
+        adapter: PubkyUnauthenticatedStorageAdapter,
+        ownerPubkey: String
+    ): List<String> {
         val result = adapter.list(ownerPubkey, prefix)
         if (!result.success) {
             throw PubkyStorageException("Failed to list: ${result.error}")
@@ -80,21 +87,21 @@ class PubkyStorageAdapter @Inject constructor(
         // For now, use OkHttpClient directly since transport is an FFI wrapper
         val content = String(data)
         val urlString = "https://homeserver.pubky.app$path"
-        
+
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build()
-        
+
         val mediaType = "application/json".toMediaType()
         val requestBody = content.toRequestBody(mediaType)
-        
+
         val request = Request.Builder()
             .url(urlString)
             .put(requestBody)
             .header("Content-Type", "application/json")
             .build()
-        
+
         val response = client.newCall(request).execute()
         if (response.code !in 200..299) {
             throw PubkyStorageException("Failed to store: HTTP ${response.code}")
@@ -107,17 +114,17 @@ class PubkyStorageAdapter @Inject constructor(
      */
     suspend fun delete(path: String, transport: AuthenticatedTransportFfi) {
         val urlString = "https://homeserver.pubky.app$path"
-        
+
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build()
-        
+
         val request = Request.Builder()
             .url(urlString)
             .delete()
             .build()
-        
+
         val response = client.newCall(request).execute()
         if (response.code !in 200..299 && response.code != 404) {
             throw PubkyStorageException("Failed to delete: HTTP ${response.code}")

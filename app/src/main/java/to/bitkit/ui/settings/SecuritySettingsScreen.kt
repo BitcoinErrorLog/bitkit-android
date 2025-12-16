@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import to.bitkit.R
+import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
 import to.bitkit.ui.components.AuthCheckAction
 import to.bitkit.ui.components.BodyS
@@ -21,7 +22,6 @@ import to.bitkit.ui.components.Sheet
 import to.bitkit.ui.components.settings.SettingsButtonRow
 import to.bitkit.ui.components.settings.SettingsButtonValue
 import to.bitkit.ui.components.settings.SettingsSwitchRow
-import to.bitkit.ui.Routes
 import to.bitkit.ui.navigateToAuthCheck
 import to.bitkit.ui.navigateToChangePin
 import to.bitkit.ui.navigateToDisablePin

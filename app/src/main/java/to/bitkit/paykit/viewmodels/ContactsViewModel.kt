@@ -19,28 +19,28 @@ class ContactsViewModel @Inject constructor(
     private val contactStorage: ContactStorage,
     private val directoryService: DirectoryService
 ) : ViewModel() {
-    
+
     private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
     val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
-    
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
     private val _showingAddContact = MutableStateFlow(false)
     val showingAddContact: StateFlow<Boolean> = _showingAddContact.asStateFlow()
-    
+
     private val _showingDiscovery = MutableStateFlow(false)
     val showingDiscovery: StateFlow<Boolean> = _showingDiscovery.asStateFlow()
-    
+
     private val _discoveredContacts = MutableStateFlow<List<Contact>>(emptyList())
     val discoveredContacts: StateFlow<List<Contact>> = _discoveredContacts.asStateFlow()
-    
+
     private val _showingDiscoveryResults = MutableStateFlow(false)
     val showingDiscoveryResults: StateFlow<Boolean> = _showingDiscoveryResults.asStateFlow()
-    
+
     fun loadContacts() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -48,7 +48,7 @@ class ContactsViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
-    
+
     fun searchContacts() {
         viewModelScope.launch {
             if (_searchQuery.value.isEmpty()) {
@@ -58,7 +58,7 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun addContact(contact: Contact) {
         viewModelScope.launch {
             try {
@@ -69,7 +69,7 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateContact(contact: Contact) {
         viewModelScope.launch {
             try {
@@ -80,7 +80,7 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deleteContact(contact: Contact) {
         viewModelScope.launch {
             try {
@@ -91,7 +91,7 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun discoverContacts() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -107,7 +107,7 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun importDiscovered(contacts: List<Contact>) {
         viewModelScope.launch {
             try {
@@ -118,22 +118,21 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
         searchContacts()
     }
-    
+
     fun setShowingAddContact(showing: Boolean) {
         _showingAddContact.value = showing
     }
-    
+
     fun setShowingDiscovery(showing: Boolean) {
         _showingDiscovery.value = showing
     }
-    
+
     fun setShowingDiscoveryResults(showing: Boolean) {
         _showingDiscoveryResults.value = showing
     }
 }
-

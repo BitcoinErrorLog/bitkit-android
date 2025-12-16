@@ -49,13 +49,13 @@ class ActivityListViewModel @Inject constructor(
     val latestActivities = _latestActivities.asStateFlow()
 
     // MARK: - Paykit Integration
-    
+
     private val _paykitReceipts = MutableStateFlow<List<Receipt>>(emptyList())
     val paykitReceipts = _paykitReceipts.asStateFlow()
-    
+
     private val _unifiedActivities = MutableStateFlow<List<UnifiedActivityItem>>(emptyList())
     val unifiedActivities = _unifiedActivities.asStateFlow()
-    
+
     private val _showPaykitReceipts = MutableStateFlow(true)
     val showPaykitReceipts = _showPaykitReceipts.asStateFlow()
 
@@ -96,21 +96,21 @@ class ActivityListViewModel @Inject constructor(
             updateUnifiedActivities()
         }
     }
-    
+
     // MARK: - Paykit Receipt Methods
-    
+
     private fun syncPaykitReceipts() {
         _paykitReceipts.value = receiptStorage.listReceipts()
     }
-    
+
     private fun updateUnifiedActivities() {
         val unified = mutableListOf<UnifiedActivityItem>()
-        
+
         // Add standard activities
         _filteredActivities.value?.forEach { activity ->
             unified.add(UnifiedActivityItem.Standard(activity))
         }
-        
+
         // Add Paykit receipts if enabled
         if (_showPaykitReceipts.value) {
             val tab = _filters.value.tab
@@ -125,18 +125,18 @@ class ActivityListViewModel @Inject constructor(
                 unified.add(UnifiedActivityItem.Paykit(receipt))
             }
         }
-        
+
         // Sort by timestamp (newest first)
         unified.sortByDescending { it.timestamp }
-        
+
         _unifiedActivities.value = unified
     }
-    
+
     fun togglePaykitReceipts() {
         _showPaykitReceipts.update { !it }
         updateUnifiedActivities()
     }
-    
+
     fun getPaykitReceipt(id: String): Receipt? {
         return receiptStorage.getReceipt(id)
     }
@@ -260,48 +260,48 @@ sealed class UnifiedActivityItem {
     abstract val isSent: Boolean
     abstract val isReceived: Boolean
     abstract val isPaykit: Boolean
-    
+
     data class Standard(val activity: Activity) : UnifiedActivityItem() {
         override val id: String
             get() = when (activity) {
                 is Activity.Lightning -> activity.v1.id
                 is Activity.Onchain -> activity.v1.txId
             }
-        
+
         override val timestamp: Long
             get() = when (activity) {
                 is Activity.Lightning -> activity.v1.timestamp.toLong()
                 is Activity.Onchain -> activity.v1.timestamp.toLong()
             }
-        
+
         override val isSent: Boolean
             get() = when (activity) {
                 is Activity.Lightning -> activity.v1.txType == PaymentType.SENT
                 is Activity.Onchain -> activity.v1.txType == PaymentType.SENT
             }
-        
+
         override val isReceived: Boolean
             get() = when (activity) {
                 is Activity.Lightning -> activity.v1.txType == PaymentType.RECEIVED
                 is Activity.Onchain -> activity.v1.txType == PaymentType.RECEIVED
             }
-        
+
         override val isPaykit: Boolean = false
     }
-    
+
     data class Paykit(val receipt: Receipt) : UnifiedActivityItem() {
         override val id: String
             get() = "paykit-${receipt.id}"
-        
+
         override val timestamp: Long
             get() = receipt.createdAt
-        
+
         override val isSent: Boolean
             get() = receipt.direction == PaymentDirection.SENT
-        
+
         override val isReceived: Boolean
             get() = receipt.direction == PaymentDirection.RECEIVED
-        
+
         override val isPaykit: Boolean = true
     }
 }

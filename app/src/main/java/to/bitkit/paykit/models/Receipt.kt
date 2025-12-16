@@ -50,7 +50,7 @@ data class Receipt(
             )
         }
     }
-    
+
     fun complete(txId: String? = null): Receipt {
         return copy(
             status = PaymentStatus.COMPLETED,
@@ -58,24 +58,24 @@ data class Receipt(
             txId = txId
         )
     }
-    
+
     fun fail(): Receipt {
         return copy(status = PaymentStatus.FAILED)
     }
-    
+
     fun markProofVerified(): Receipt {
         return copy(
             proofVerified = true,
             proofVerifiedAt = System.currentTimeMillis()
         )
     }
-    
+
     val abbreviatedCounterparty: String
         get() {
             if (counterpartyKey.length <= 16) return counterpartyKey
             return "${counterpartyKey.take(8)}...${counterpartyKey.takeLast(8)}"
         }
-    
+
     val displayName: String
         get() = counterpartyName ?: abbreviatedCounterparty
 }

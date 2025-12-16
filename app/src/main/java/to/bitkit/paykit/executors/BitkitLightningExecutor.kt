@@ -4,17 +4,17 @@ import com.paykit.mobile.DecodedInvoiceFfi
 import com.paykit.mobile.LightningExecutorFfi
 import com.paykit.mobile.LightningPaymentResultFfi
 import com.paykit.mobile.LightningPaymentStatusFfi
+import com.synonym.bitkitcore.Scanner
+import com.synonym.bitkitcore.decode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import com.synonym.bitkitcore.decode
-import com.synonym.bitkitcore.Scanner
 import org.lightningdevkit.ldknode.Bolt11Invoice
-import to.bitkit.ext.toHex
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentKind
 import org.lightningdevkit.ldknode.PaymentStatus
+import to.bitkit.ext.toHex
 import to.bitkit.paykit.PaykitException
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
@@ -173,7 +173,7 @@ class BitkitLightningExecutor(
                         val expiry = 3600uL // Default 1 hour expiry
                         val timestamp = now.toULong() // Use current time as fallback
                         val expired = lightningInvoice.isExpired
-                        
+
                         DecodedInvoiceFfi(
                             `paymentHash` = paymentHash,
                             `amountMsat` = amountMsat,
@@ -307,5 +307,5 @@ class BitkitLightningExecutor(
 enum class LightningPaymentStatus {
     PENDING,
     SUCCEEDED,
-    FAILED;
+    FAILED
 }

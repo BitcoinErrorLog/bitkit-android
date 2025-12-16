@@ -6,9 +6,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import com.paykit.mobile.BitcoinTxResultFfi
-import com.paykit.mobile.LightningPaymentResultFfi
 import to.bitkit.paykit.PaykitException
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.repositories.LightningRepo
@@ -88,21 +85,21 @@ class PaykitPaymentService @Inject constructor() {
 
         return when {
             lowercased.startsWith("lnbc") ||
-            lowercased.startsWith("lntb") ||
-            lowercased.startsWith("lnbcrt") -> DetectedPaymentType.LIGHTNING
+                lowercased.startsWith("lntb") ||
+                lowercased.startsWith("lnbcrt") -> DetectedPaymentType.LIGHTNING
 
             lowercased.startsWith("bc1") ||
-            lowercased.startsWith("tb1") ||
-            lowercased.startsWith("bcrt1") -> DetectedPaymentType.ONCHAIN
+                lowercased.startsWith("tb1") ||
+                lowercased.startsWith("bcrt1") -> DetectedPaymentType.ONCHAIN
 
             lowercased.startsWith("1") ||
-            lowercased.startsWith("3") ||
-            lowercased.startsWith("m") ||
-            lowercased.startsWith("n") ||
-            lowercased.startsWith("2") -> DetectedPaymentType.ONCHAIN
+                lowercased.startsWith("3") ||
+                lowercased.startsWith("m") ||
+                lowercased.startsWith("n") ||
+                lowercased.startsWith("2") -> DetectedPaymentType.ONCHAIN
 
             lowercased.startsWith("paykit:") ||
-            lowercased.startsWith("pip:") -> DetectedPaymentType.PAYKIT
+                lowercased.startsWith("pip:") -> DetectedPaymentType.PAYKIT
 
             else -> DetectedPaymentType.UNKNOWN
         }
@@ -457,7 +454,9 @@ sealed class PaykitPaymentError(override val message: String) : Exception(messag
     data class PaymentFailed(override val message: String) : PaykitPaymentError(message)
     object Timeout : PaykitPaymentError("Payment timed out")
     object UnsupportedPaymentType : PaykitPaymentError("Unsupported payment type")
-    data class SpendingLimitExceeded(val remainingSats: Long) : PaykitPaymentError("Spending limit exceeded ($remainingSats sats remaining)")
+    data class SpendingLimitExceeded(val remainingSats: Long) : PaykitPaymentError(
+        "Spending limit exceeded ($remainingSats sats remaining)"
+    )
     data class Unknown(override val message: String) : PaykitPaymentError(message)
 
     /** User-friendly message for display. */

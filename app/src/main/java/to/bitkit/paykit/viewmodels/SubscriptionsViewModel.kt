@@ -17,16 +17,16 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionStorage: SubscriptionStorage
 ) : ViewModel() {
-    
+
     private val _subscriptions = MutableStateFlow<List<Subscription>>(emptyList())
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
     private val _showingAddSubscription = MutableStateFlow(false)
     val showingAddSubscription: StateFlow<Boolean> = _showingAddSubscription.asStateFlow()
-    
+
     fun loadSubscriptions() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -34,51 +34,67 @@ class SubscriptionsViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
-    
+
     fun addSubscription(subscription: Subscription) {
         viewModelScope.launch {
             try {
                 subscriptionStorage.saveSubscription(subscription)
                 loadSubscriptions()
             } catch (e: Exception) {
-                Logger.error("SubscriptionsViewModel: Failed to add subscription", e, context = "SubscriptionsViewModel")
+                Logger.error(
+                    "SubscriptionsViewModel: Failed to add subscription",
+                    e,
+                    context = "SubscriptionsViewModel"
+                )
             }
         }
     }
-    
+
     fun updateSubscription(subscription: Subscription) {
         viewModelScope.launch {
             try {
                 subscriptionStorage.saveSubscription(subscription)
                 loadSubscriptions()
             } catch (e: Exception) {
-                Logger.error("SubscriptionsViewModel: Failed to update subscription", e, context = "SubscriptionsViewModel")
+                Logger.error(
+                    "SubscriptionsViewModel: Failed to update subscription",
+                    e,
+                    context = "SubscriptionsViewModel"
+                )
             }
         }
     }
-    
+
     fun deleteSubscription(subscription: Subscription) {
         viewModelScope.launch {
             try {
                 subscriptionStorage.deleteSubscription(subscription.id)
                 loadSubscriptions()
             } catch (e: Exception) {
-                Logger.error("SubscriptionsViewModel: Failed to delete subscription", e, context = "SubscriptionsViewModel")
+                Logger.error(
+                    "SubscriptionsViewModel: Failed to delete subscription",
+                    e,
+                    context = "SubscriptionsViewModel"
+                )
             }
         }
     }
-    
+
     fun toggleActive(subscription: Subscription) {
         viewModelScope.launch {
             try {
                 subscriptionStorage.toggleActive(subscription.id)
                 loadSubscriptions()
             } catch (e: Exception) {
-                Logger.error("SubscriptionsViewModel: Failed to toggle subscription", e, context = "SubscriptionsViewModel")
+                Logger.error(
+                    "SubscriptionsViewModel: Failed to toggle subscription",
+                    e,
+                    context = "SubscriptionsViewModel"
+                )
             }
         }
     }
-    
+
     fun recordPayment(subscription: Subscription) {
         viewModelScope.launch {
             try {
@@ -89,12 +105,11 @@ class SubscriptionsViewModel @Inject constructor(
             }
         }
     }
-    
+
     val activeSubscriptions: List<Subscription>
         get() = subscriptionStorage.activeSubscriptions()
-    
+
     fun setShowingAddSubscription(showing: Boolean) {
         _showingAddSubscription.value = showing
     }
 }
-

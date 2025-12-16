@@ -225,7 +225,7 @@ class DirectoryService @Inject constructor(
             // List pending requests from the requests directory
             val requestsPath = "${PAYKIT_PATH_PREFIX}requests/$ownerPubkey/"
             val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, ownerPubkey)
-            
+
             requestFiles.mapNotNull { requestId ->
                 try {
                     val requestPath = "$requestsPath$requestId"
@@ -246,14 +246,16 @@ class DirectoryService @Inject constructor(
     /**
      * Discover subscription proposals from the directory
      */
-    suspend fun discoverSubscriptionProposals(ownerPubkey: String): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
+    suspend fun discoverSubscriptionProposals(
+        ownerPubkey: String
+    ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
         val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
 
         return try {
             // List subscription proposals from the subscriptions directory
             val proposalsPath = "${PAYKIT_PATH_PREFIX}subscriptions/proposals/$ownerPubkey/"
             val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, ownerPubkey)
-            
+
             proposalFiles.mapNotNull { proposalId ->
                 try {
                     val proposalPath = "$proposalsPath$proposalId"
@@ -273,7 +275,7 @@ class DirectoryService @Inject constructor(
 
     private fun parsePaymentRequest(requestId: String, json: String?): to.bitkit.paykit.workers.DiscoveredRequest? {
         if (json.isNullOrBlank()) return null
-        
+
         return try {
             val jsonObject = org.json.JSONObject(json)
             to.bitkit.paykit.workers.DiscoveredRequest(
@@ -292,7 +294,7 @@ class DirectoryService @Inject constructor(
 
     private fun parseSubscriptionProposal(proposalId: String, json: String?): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
         if (json.isNullOrBlank()) return null
-        
+
         return try {
             val jsonObject = org.json.JSONObject(json)
             to.bitkit.paykit.workers.DiscoveredSubscriptionProposal(
@@ -330,7 +332,9 @@ class DirectoryService @Inject constructor(
                                 title = linkObj.optString("title", ""),
                                 url = linkObj.optString("url", "")
                             )
-                        } else null
+                        } else {
+                            null
+                        }
                     }
                 }
                 PubkyProfile(
@@ -339,7 +343,9 @@ class DirectoryService @Inject constructor(
                     avatar = json.optString("avatar", null),
                     links = links
                 )
-            } else null
+            } else {
+                null
+            }
         } catch (e: Exception) {
             Logger.error("Failed to fetch profile for $pubkey", e, context = TAG)
             null
@@ -360,10 +366,12 @@ class DirectoryService @Inject constructor(
             profile.links?.let { links ->
                 val linksArray = org.json.JSONArray()
                 links.forEach { link ->
-                    linksArray.put(org.json.JSONObject().apply {
-                        put("title", link.title)
-                        put("url", link.url)
-                    })
+                    linksArray.put(
+                        org.json.JSONObject().apply {
+                            put("title", link.title)
+                            put("url", link.url)
+                        }
+                    )
                 }
                 put("links", linksArray)
             }
@@ -497,4 +505,3 @@ sealed class DirectoryError(message: String) : Exception(message) {
     class NotFound(resource: String) : DirectoryError("Not found: $resource")
     class PublishFailed(msg: String) : DirectoryError("Publish failed: $msg")
 }
-

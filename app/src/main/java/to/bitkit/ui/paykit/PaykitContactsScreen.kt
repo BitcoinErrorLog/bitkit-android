@@ -19,7 +19,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
 import to.bitkit.ui.components.SearchInput
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 
@@ -33,11 +32,11 @@ fun PaykitContactsScreen(
     val contacts by viewModel.contacts.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadContacts()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Contacts",
@@ -51,7 +50,7 @@ fun PaykitContactsScreen(
                 }
             }
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -63,7 +62,7 @@ fun PaykitContactsScreen(
                 onValueChange = { viewModel.setSearchQuery(it) },
                 placeholder = "Search contacts..."
             )
-            
+
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -152,4 +151,3 @@ fun ContactRow(
         }
     }
 }
-

@@ -28,7 +28,6 @@ import to.bitkit.paykit.services.AutopayEvaluationResult
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.viewmodels.AutoPayViewModel
-import to.bitkit.models.NodeLifecycleState
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import java.util.Calendar
@@ -47,19 +46,19 @@ class SubscriptionCheckWorker @AssistedInject constructor(
     private val autoPayStorage: AutoPayStorage,
     private val lightningRepo: LightningRepo,
 ) : CoroutineWorker(appContext, workerParams) {
-    
+
     companion object {
         private const val TAG = "SubscriptionCheckWorker"
         private const val WORK_NAME = "subscription_check"
         private const val CHANNEL_ID = "paykit_subscriptions"
         private const val NOTIFICATION_ID_BASE = 10000
-        
+
         // Check interval in minutes
         private const val CHECK_INTERVAL_MINUTES = 15L
-        
+
         // Node ready timeout
         private val NODE_TIMEOUT = 2.minutes
-        
+
         /**
          * Schedule periodic subscription checks.
          * Call this from Application.onCreate() or when wallet is initialized.
@@ -68,23 +67,24 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
-            
+
             val workRequest = PeriodicWorkRequestBuilder<SubscriptionCheckWorker>(
-                CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES
+                CHECK_INTERVAL_MINUTES,
+                TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .build()
-            
+
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
                 ExistingPeriodicWorkPolicy.KEEP,
                 workRequest
             )
-            
+
             Logger.info("Scheduled subscription check worker", context = TAG)
         }
-        
+
         /**
          * Cancel all scheduled subscription checks.
          */
@@ -93,23 +93,23 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             Logger.info("Cancelled subscription check worker", context = TAG)
         }
     }
-    
+
     override suspend fun doWork(): Result {
         Logger.info("Starting subscription check", context = TAG)
-        
+
         return try {
             // Ensure notification channel exists
             createNotificationChannel()
-            
+
             // Check for due subscriptions
             val dueSubscriptions = checkDueSubscriptions()
-            
+
             if (dueSubscriptions.isEmpty()) {
                 Logger.info("No due subscriptions found", context = TAG)
                 scheduleUpcomingNotifications()
                 return Result.success()
             }
-            
+
             // Wait for node to be ready (with timeout)
             val nodeReady = waitForNodeReady()
             if (!nodeReady) {
@@ -120,37 +120,37 @@ class SubscriptionCheckWorker @AssistedInject constructor(
                 }
                 return Result.retry()
             }
-            
+
             // Process each due subscription
             for (subscription in dueSubscriptions) {
                 processSubscriptionPayment(subscription)
             }
-            
+
             // Schedule notifications for upcoming payments
             scheduleUpcomingNotifications()
-            
+
             Result.success()
         } catch (e: Exception) {
             Logger.error("Subscription check failed", e, context = TAG)
             Result.retry()
         }
     }
-    
+
     /**
      * Check for subscriptions that are due for payment.
      */
     private fun checkDueSubscriptions(): List<Subscription> {
         val activeSubscriptions = subscriptionStorage.activeSubscriptions()
         val now = System.currentTimeMillis()
-        
+
         val dueSubscriptions = activeSubscriptions.filter { subscription ->
             subscription.nextPaymentAt?.let { it <= now } ?: false
         }
-        
+
         Logger.info("Found ${dueSubscriptions.size} due subscriptions", context = TAG)
         return dueSubscriptions
     }
-    
+
     /**
      * Get subscriptions due within the next N hours.
      */
@@ -161,14 +161,14 @@ class SubscriptionCheckWorker @AssistedInject constructor(
         calendar.timeInMillis = now
         calendar.add(Calendar.HOUR, withinHours)
         val futureTime = calendar.timeInMillis
-        
+
         return activeSubscriptions.filter { subscription ->
             subscription.nextPaymentAt?.let { nextPayment ->
                 nextPayment > now && nextPayment <= futureTime
             } ?: false
         }
     }
-    
+
     /**
      * Wait for the Lightning node to be ready.
      */
@@ -179,7 +179,7 @@ class SubscriptionCheckWorker @AssistedInject constructor(
                 if (lightningRepo.lightningState.value.nodeLifecycleState.isRunning()) {
                     return@withTimeout true
                 }
-                
+
                 // Try to start the node
                 lightningRepo.start(walletIndex = 0, timeout = NODE_TIMEOUT)
                     .fold(
@@ -192,41 +192,41 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             false
         }
     }
-    
+
     /**
      * Process a single subscription payment.
      */
     private suspend fun processSubscriptionPayment(subscription: Subscription) {
         Logger.info("Processing payment for subscription ${subscription.id}", context = TAG)
-        
+
         // Create AutoPayViewModel for evaluation
         val autoPayViewModel = AutoPayViewModel(autoPayStorage)
         autoPayViewModel.loadSettings()
-        
+
         val evaluation = autoPayViewModel.evaluate(
             peerPubkey = subscription.providerPubkey,
             amount = subscription.amountSats,
             methodId = subscription.methodId
         )
-        
+
         when (evaluation) {
             is AutopayEvaluationResult.Approved -> {
                 Logger.info("Auto-pay approved by rule: ${evaluation.ruleName}", context = TAG)
                 executePayment(subscription)
             }
-            
+
             is AutopayEvaluationResult.Denied -> {
                 Logger.info("Auto-pay denied: ${evaluation.reason}", context = TAG)
                 sendPaymentPendingNotification(subscription, evaluation.reason)
             }
-            
+
             AutopayEvaluationResult.NeedsApproval -> {
                 Logger.info("Payment needs manual approval", context = TAG)
                 sendPaymentPendingNotification(subscription, "Manual approval required")
             }
         }
     }
-    
+
     /**
      * Execute the actual payment for a subscription.
      */
@@ -239,7 +239,7 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             sendPaymentFailedNotification(subscription, "Paykit not ready")
             return
         }
-        
+
         // Execute payment
         // For now, we record the payment - actual Lightning payment would be implemented here
         runCatching {
@@ -251,20 +251,20 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             sendPaymentFailedNotification(subscription, e.message ?: "Unknown error")
         }
     }
-    
+
     /**
      * Schedule notifications for upcoming subscription payments.
      */
     private fun scheduleUpcomingNotifications() {
         val upcomingSubscriptions = getUpcomingSubscriptions(withinHours = 24)
-        
+
         for (subscription in upcomingSubscriptions) {
             sendUpcomingPaymentNotification(subscription)
         }
     }
-    
+
     // MARK: - Notifications
-    
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -274,12 +274,12 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             ).apply {
                 description = appContext.getString(R.string.notification_channel_subscriptions_description)
             }
-            
+
             val notificationManager = appContext.getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
     }
-    
+
     private fun sendPaymentSuccessNotification(subscription: Subscription) {
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -288,10 +288,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
-        
+
         showNotification(NOTIFICATION_ID_BASE + subscription.id.hashCode(), notification)
     }
-    
+
     private fun sendPaymentFailedNotification(subscription: Subscription, reason: String) {
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -300,10 +300,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
-        
+
         showNotification(NOTIFICATION_ID_BASE + subscription.id.hashCode() + 1, notification)
     }
-    
+
     private fun sendPaymentPendingNotification(subscription: Subscription, reason: String) {
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -312,10 +312,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
-        
+
         showNotification(NOTIFICATION_ID_BASE + subscription.id.hashCode() + 2, notification)
     }
-    
+
     private fun sendUpcomingPaymentNotification(subscription: Subscription) {
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -324,10 +324,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .build()
-        
+
         showNotification(NOTIFICATION_ID_BASE + subscription.id.hashCode() + 3, notification)
     }
-    
+
     private fun showNotification(id: Int, notification: android.app.Notification) {
         if (ActivityCompat.checkSelfPermission(
                 appContext,
@@ -338,4 +338,3 @@ class SubscriptionCheckWorker @AssistedInject constructor(
         }
     }
 }
-

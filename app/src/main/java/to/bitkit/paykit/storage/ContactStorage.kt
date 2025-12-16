@@ -1,10 +1,7 @@
 package to.bitkit.paykit.storage
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.paykit.models.Contact
 import to.bitkit.utils.Logger
@@ -21,18 +18,18 @@ class ContactStorage @Inject constructor(
     companion object {
         private const val TAG = "ContactStorage"
     }
-    
+
     private var contactsCache: List<Contact>? = null
     private val identityName: String = "default"
-    
+
     private val contactsKey: String
         get() = "contacts.$identityName"
-    
+
     fun listContacts(): List<Contact> {
         if (contactsCache != null) {
             return contactsCache!!
         }
-        
+
         return try {
             val data = keychain.retrieve(contactsKey) ?: return emptyList()
             val json = String(data)
@@ -44,11 +41,11 @@ class ContactStorage @Inject constructor(
             emptyList()
         }
     }
-    
+
     fun getContact(id: String): Contact? {
         return listContacts().firstOrNull { it.id == id }
     }
-    
+
     suspend fun saveContact(contact: Contact) {
         val contacts = listContacts().toMutableList()
         val index = contacts.indexOfFirst { it.id == contact.id }
@@ -59,21 +56,21 @@ class ContactStorage @Inject constructor(
         }
         persistContacts(contacts)
     }
-    
+
     suspend fun deleteContact(id: String) {
         val contacts = listContacts().toMutableList()
         contacts.removeAll { it.id == id }
         persistContacts(contacts)
     }
-    
+
     fun searchContacts(query: String): List<Contact> {
         val lowerQuery = query.lowercase()
         return listContacts().filter { contact ->
             contact.name.lowercase().contains(lowerQuery) ||
-            contact.publicKeyZ32.lowercase().contains(lowerQuery)
+                contact.publicKeyZ32.lowercase().contains(lowerQuery)
         }
     }
-    
+
     suspend fun recordPayment(contactId: String) {
         val contacts = listContacts().toMutableList()
         val index = contacts.indexOfFirst { it.id == contactId }
@@ -83,11 +80,11 @@ class ContactStorage @Inject constructor(
             persistContacts(contacts)
         }
     }
-    
+
     suspend fun clearAll() {
         persistContacts(emptyList())
     }
-    
+
     suspend fun importContacts(newContacts: List<Contact>) {
         val contacts = listContacts().toMutableList()
         for (newContact in newContacts) {
@@ -97,12 +94,12 @@ class ContactStorage @Inject constructor(
         }
         persistContacts(contacts)
     }
-    
+
     suspend fun exportContacts(): String {
         val contacts = listContacts()
         return Json.encodeToString(contacts)
     }
-    
+
     private suspend fun persistContacts(contacts: List<Contact>) {
         try {
             val json = Json.encodeToString(contacts)
@@ -114,4 +111,3 @@ class ContactStorage @Inject constructor(
         }
     }
 }
-

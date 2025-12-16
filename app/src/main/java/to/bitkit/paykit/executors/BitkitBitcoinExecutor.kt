@@ -59,7 +59,7 @@ class BitkitBitcoinExecutor(
                     Logger.debug("Send successful, txid: $txid", context = TAG)
                     // Estimate fee based on typical tx size
                     val estimatedFee = (TYPICAL_TX_SIZE_VBYTES.toDouble() * (feeRate ?: 1.0)).toULong()
-                    
+
                     BitcoinTxResultFfi(
                         `txid` = txid,
                         `rawTx` = null,
@@ -111,9 +111,9 @@ class BitkitBitcoinExecutor(
                     Logger.warn("Fee estimation failed, using fallback: ${error.message}", context = TAG)
                     // Fallback: estimate based on target blocks and typical tx size
                     val feeRate: ULong = when {
-                        targetBlocks <= 1u -> 10uL  // High priority: 10 sat/vB
-                        targetBlocks <= 6u -> 5uL   // Medium priority: 5 sat/vB
-                        else -> 2uL                  // Low priority: 2 sat/vB
+                        targetBlocks <= 1u -> 10uL // High priority: 10 sat/vB
+                        targetBlocks <= 6u -> 5uL // Medium priority: 5 sat/vB
+                        else -> 2uL // Low priority: 2 sat/vB
                     }
                     TYPICAL_TX_SIZE_VBYTES * feeRate
                 }
@@ -130,10 +130,10 @@ class BitkitBitcoinExecutor(
     override fun `getTransaction`(`txid`: String): BitcoinTxResultFfi? = runBlocking(Dispatchers.IO) {
         withTimeout(TIMEOUT_MS) {
             Logger.debug("getTransaction called for txid: $txid", context = TAG)
-            
+
             // Search through on-chain payments for matching transaction
             val result = lightningRepo.getPayments()
-            
+
             result.fold(
                 onSuccess = { payments ->
                     // LDK doesn't directly expose txid in PaymentDetails for on-chain

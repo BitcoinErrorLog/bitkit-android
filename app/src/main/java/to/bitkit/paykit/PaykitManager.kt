@@ -122,7 +122,7 @@ class PaykitManager @Inject constructor() {
         hasExecutors = false
         Logger.info("PaykitManager reset", context = TAG)
     }
-    
+
     /**
      * Get the PaykitClient instance
      * @throws PaykitException.NotInitialized if not initialized
@@ -201,7 +201,9 @@ sealed class PaykitException(message: String) : Exception(message) {
     data class ExecutorRegistrationFailed(val reason: String) : PaykitException("Failed to register executor: $reason")
     data class PaymentFailed(val reason: String) : PaykitException("Payment failed: $reason")
     object Timeout : PaykitException("Operation timed out")
-    object PubkyRingNotInstalled : PaykitException("Pubky-ring app is not installed. Please install Pubky-ring to use this feature.")
+    object PubkyRingNotInstalled : PaykitException(
+        "Pubky-ring app is not installed. Please install Pubky-ring to use this feature."
+    )
     object SessionRequired : PaykitException("A Pubky session is required for this operation")
     data class Unknown(val reason: String) : PaykitException("Unknown error: $reason")
 }

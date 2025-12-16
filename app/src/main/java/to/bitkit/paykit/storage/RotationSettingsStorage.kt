@@ -1,8 +1,8 @@
 package to.bitkit.paykit.storage
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.utils.Logger
 import java.util.UUID
@@ -21,7 +21,7 @@ enum class RotationPolicy(val displayName: String, val description: String) {
     ON_USE("on-use", "Rotate on every use"),
     AFTER_USES("after-uses", "Rotate after N uses"),
     MANUAL("manual", "Manual only");
-    
+
     companion object {
         fun fromString(value: String): RotationPolicy {
             return values().firstOrNull { it.name == value || it.displayName == value } ?: ON_USE
@@ -78,17 +78,17 @@ class RotationSettingsStorage @Inject constructor(
         private const val TAG = "RotationSettingsStorage"
         private const val MAX_HISTORY_EVENTS = 100
     }
-    
+
     private val identityName: String = "default"
-    
+
     private val settingsKey: String
         get() = "rotation_settings.$identityName"
-    
+
     private val historyKey: String
         get() = "rotation_history.$identityName"
-    
+
     // MARK: - Settings
-    
+
     fun loadSettings(): RotationSettings {
         return try {
             val data = keychain.retrieve(settingsKey) ?: return RotationSettings()
@@ -99,7 +99,7 @@ class RotationSettingsStorage @Inject constructor(
             RotationSettings()
         }
     }
-    
+
     suspend fun saveSettings(settings: RotationSettings) {
         try {
             val json = Json.encodeToString(settings)
@@ -109,7 +109,7 @@ class RotationSettingsStorage @Inject constructor(
             throw PaykitStorageException.SaveFailed(settingsKey)
         }
     }
-    
+
     fun getMethodSettings(methodId: String): MethodRotationSettings {
         val settings = loadSettings()
         return settings.methodSettings[methodId] ?: MethodRotationSettings(
@@ -117,7 +117,7 @@ class RotationSettingsStorage @Inject constructor(
             threshold = settings.defaultThreshold
         )
     }
-    
+
     suspend fun updateMethodSettings(methodId: String, methodSettings: MethodRotationSettings) {
         val settings = loadSettings()
         val updatedMethodSettings = settings.methodSettings.toMutableMap()
@@ -125,41 +125,41 @@ class RotationSettingsStorage @Inject constructor(
         val updated = settings.copy(methodSettings = updatedMethodSettings)
         saveSettings(updated)
     }
-    
+
     // MARK: - Use Tracking
-    
+
     /**
      * Record a payment use for a method
      * Returns true if rotation should occur
      */
     suspend fun recordUse(methodId: String): Boolean {
         val settings = loadSettings()
-        
+
         if (!settings.autoRotateEnabled) {
             return false
         }
-        
+
         val current = settings.methodSettings[methodId] ?: MethodRotationSettings(
             policy = settings.defaultPolicy,
             threshold = settings.defaultThreshold
         )
-        
+
         val updated = current.copy(useCount = current.useCount + 1)
         val updatedMethodSettings = settings.methodSettings.toMutableMap()
         updatedMethodSettings[methodId] = updated
-        
+
         val updatedSettings = settings.copy(
             methodSettings = updatedMethodSettings
         )
         saveSettings(updatedSettings)
-        
+
         return when (updated.getPolicy()) {
             RotationPolicy.ON_USE -> true
             RotationPolicy.AFTER_USES -> updated.useCount >= updated.threshold
             RotationPolicy.MANUAL -> false
         }
     }
-    
+
     /**
      * Record that a rotation occurred
      */
@@ -170,23 +170,23 @@ class RotationSettingsStorage @Inject constructor(
             policy = settings.defaultPolicy,
             threshold = settings.defaultThreshold
         )
-        
+
         val updated = current.copy(
             useCount = 0,
             lastRotated = System.currentTimeMillis(),
             rotationCount = current.rotationCount + 1
         )
         methodSettings[methodId] = updated
-        
+
         val updatedSettings = settings.copy(methodSettings = methodSettings)
         saveSettings(updatedSettings)
-        
+
         // Add to history
         addHistoryEvent(RotationEvent(methodId = methodId, reason = reason))
     }
-    
+
     // MARK: - History
-    
+
     fun loadHistory(): List<RotationEvent> {
         return try {
             val data = keychain.retrieve(historyKey) ?: return emptyList()
@@ -198,18 +198,18 @@ class RotationSettingsStorage @Inject constructor(
             emptyList()
         }
     }
-    
+
     private suspend fun addHistoryEvent(event: RotationEvent) {
         val history = loadHistory().toMutableList()
         history.add(0, event)
-        
+
         // Keep only last MAX_HISTORY_EVENTS events
         val trimmed = if (history.size > MAX_HISTORY_EVENTS) {
             history.take(MAX_HISTORY_EVENTS)
         } else {
             history
         }
-        
+
         try {
             val json = Json.encodeToString(trimmed)
             keychain.store(historyKey, json.toByteArray())
@@ -217,7 +217,7 @@ class RotationSettingsStorage @Inject constructor(
             Logger.error("RotationSettingsStorage: Failed to save history", e, context = TAG)
         }
     }
-    
+
     suspend fun clearHistory() {
         try {
             keychain.delete(historyKey)
@@ -225,14 +225,14 @@ class RotationSettingsStorage @Inject constructor(
             Logger.error("RotationSettingsStorage: Failed to clear history", e, context = TAG)
         }
     }
-    
+
     // MARK: - Statistics
-    
+
     fun totalRotations(): Int {
         val settings = loadSettings()
         return settings.methodSettings.values.sumOf { it.rotationCount }
     }
-    
+
     fun methodsWithRotations(): List<String> {
         val settings = loadSettings()
         return settings.methodSettings
@@ -240,4 +240,3 @@ class RotationSettingsStorage @Inject constructor(
             .map { it.key }
     }
 }
-

@@ -33,6 +33,7 @@ import kotlinx.serialization.Serializable
 import to.bitkit.androidServices.LightningNodeService
 import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE
 import to.bitkit.models.NewTransactionSheetDetails
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.ui.components.AuthCheckView
 import to.bitkit.ui.components.InactivityTracker
 import to.bitkit.ui.components.IsOnlineTracker
@@ -58,7 +59,6 @@ import to.bitkit.viewmodels.CurrencyViewModel
 import to.bitkit.viewmodels.MainScreenEffect
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.TransferViewModel
-import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.viewmodels.WalletViewModel
 
 @AndroidEntryPoint

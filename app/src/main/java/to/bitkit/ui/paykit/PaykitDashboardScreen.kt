@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -42,17 +40,17 @@ fun PaykitDashboardScreen(
     val autoPayEnabled by viewModel.autoPayEnabled.collectAsState()
     val activeSubscriptions by viewModel.activeSubscriptions.collectAsState()
     val pendingRequests by viewModel.pendingRequests.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadDashboard()
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Paykit Dashboard",
             onBackClick = onNavigateBack
         )
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -107,12 +105,12 @@ fun PaykitDashboardScreen(
                         }
                     }
                 }
-                
+
                 // Quick Access Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Title(text = "Quick Access")
-                        
+
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -128,7 +126,7 @@ fun PaykitDashboardScreen(
                                     )
                                 }
                             }
-                            
+
                             if (activeSubscriptions > 0) {
                                 item {
                                     QuickAccessCard(
@@ -139,7 +137,7 @@ fun PaykitDashboardScreen(
                                     )
                                 }
                             }
-                            
+
                             if (pendingRequests > 0) {
                                 item {
                                     QuickAccessCard(
@@ -153,7 +151,7 @@ fun PaykitDashboardScreen(
                         }
                     }
                 }
-                
+
                 // Recent Activity Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -167,7 +165,7 @@ fun PaykitDashboardScreen(
                                 Text("See All")
                             }
                         }
-                        
+
                         if (recentReceipts.isEmpty()) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -321,4 +319,3 @@ fun formatSats(sats: Long): String {
         else -> sats.toString()
     }
 }
-

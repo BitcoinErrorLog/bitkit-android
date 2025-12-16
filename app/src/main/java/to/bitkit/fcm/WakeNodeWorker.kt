@@ -106,7 +106,7 @@ class WakeNodeWorker @AssistedInject constructor(
                         }
                     }
                 }
-                
+
                 // Handle Paykit notification types
                 handlePaykitNotification()
             }
@@ -257,9 +257,9 @@ class WakeNodeWorker @AssistedInject constructor(
                     Logger.error("Missing requestId for payment request")
                     return
                 }
-                
+
                 Logger.info("Processing Paykit payment request $requestId")
-                
+
                 // Node is already started, Paykit can process the payment request
                 // The actual processing will happen in foreground when app opens
                 self.bestAttemptContent = NotificationDetails(
@@ -268,16 +268,16 @@ class WakeNodeWorker @AssistedInject constructor(
                 )
                 self.deliver()
             }
-            
+
             paykitSubscriptionDue -> {
                 val subscriptionId = (notificationPayload?.get("subscriptionId") as? JsonPrimitive)?.contentOrNull
                 if (subscriptionId == null) {
                     Logger.error("Missing subscriptionId for subscription")
                     return
                 }
-                
+
                 Logger.info("Processing subscription payment $subscriptionId")
-                
+
                 // Node is started, subscription payment can be processed
                 self.bestAttemptContent = NotificationDetails(
                     title = appContext.getString(R.string.notification_subscription_due_title),
@@ -285,23 +285,23 @@ class WakeNodeWorker @AssistedInject constructor(
                 )
                 self.deliver()
             }
-            
+
             paykitAutoPayExecuted -> {
                 val amount = (notificationPayload?.get("amount") as? JsonPrimitive)?.contentOrNull?.toULongOrNull()
                 if (amount == null) {
                     Logger.error("Missing amount for auto-pay")
                     return
                 }
-                
+
                 Logger.info("Auto-pay executed for amount $amount")
-                
+
                 self.bestAttemptContent = NotificationDetails(
                     title = appContext.getString(R.string.notification_autopay_executed_title),
                     body = "$BITCOIN_SYMBOL $amount ${appContext.getString(R.string.notification_sent)}",
                 )
                 self.deliver()
             }
-            
+
             paykitSubscriptionFailed -> {
                 val subscriptionId = (notificationPayload?.get("subscriptionId") as? JsonPrimitive)?.contentOrNull
                 val reason = (notificationPayload?.get("reason") as? JsonPrimitive)?.contentOrNull
@@ -309,22 +309,22 @@ class WakeNodeWorker @AssistedInject constructor(
                     Logger.error("Missing details for subscription failure")
                     return
                 }
-                
+
                 Logger.info("Subscription payment failed $subscriptionId: $reason")
-                
+
                 self.bestAttemptContent = NotificationDetails(
                     title = appContext.getString(R.string.notification_subscription_failed_title),
                     body = reason,
                 )
                 self.deliver()
             }
-            
+
             else -> {
                 // Not a Paykit notification, do nothing
             }
         }
     }
-    
+
     private suspend fun deliver() {
         lightningRepo.stop()
 

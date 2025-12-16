@@ -4,12 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,10 +19,8 @@ import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.models.RequestDirection
 import to.bitkit.paykit.storage.PaymentRequestStorage
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
-import javax.inject.Inject
 
 @Composable
 fun PaykitPaymentRequestsScreen(
@@ -34,19 +30,19 @@ fun PaykitPaymentRequestsScreen(
     // TODO: Create ViewModel for PaymentRequests
     val requests = remember { mutableStateOf(emptyList<PaymentRequest>()) }
     val isLoading = remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(Unit) {
         isLoading.value = true
         // TODO: Load requests from storage
         isLoading.value = false
     }
-    
+
     ScreenColumn {
         AppTopBar(
             titleText = "Payment Requests",
             onBackClick = onNavigateBack
         )
-        
+
         if (isLoading.value) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -131,7 +127,7 @@ fun PaymentRequestRow(request: PaymentRequest) {
                     )
                 }
             }
-            
+
             if (request.status == PaymentRequestStatus.PENDING && request.direction == RequestDirection.INCOMING) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -154,4 +150,3 @@ fun PaymentRequestRow(request: PaymentRequest) {
         }
     }
 }
-

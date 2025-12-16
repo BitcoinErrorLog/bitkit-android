@@ -414,4 +414,3 @@ data class DiscoveredSubscriptionProposal(
 )
 
 class PaykitPollingException(message: String) : Exception(message)
-

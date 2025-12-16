@@ -172,4 +172,3 @@ class KeyManager @Inject constructor(
         keychain.upsertString(KEY_EPOCH, epoch.toString())
     }
 }
-
