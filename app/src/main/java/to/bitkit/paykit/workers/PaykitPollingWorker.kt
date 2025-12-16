@@ -244,12 +244,13 @@ class PaykitPollingWorker @AssistedInject constructor(
             throw PaykitPollingException("Node not ready within timeout")
         }
 
-        // Execute payment via Paykit payment service
+        // Execute payment via Paykit payment service with spending limit enforcement
         val paymentService = PaykitPaymentService.getInstance()
         val result = paymentService.pay(
             lightningRepo = lightningRepo,
             recipient = request.fromPubkey,
             amountSats = request.amountSats.toULong(),
+            peerPubkey = request.fromPubkey, // Use peer pubkey for spending limit
         )
 
         if (!result.success) {
