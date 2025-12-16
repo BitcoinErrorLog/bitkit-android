@@ -206,14 +206,15 @@ Test files:
 
 ## Production Checklist
 
-- [ ] Build PaykitMobile for all Android targets (arm64-v8a, armeabi-v7a, x86_64)
-- [ ] Add `.so` files to `jniLibs/`
-- [ ] Add generated Kotlin bindings to source set
-- [ ] Uncomment FFI binding code (search for `// TODO: Uncomment`)
+- [x] Build PaykitMobile for all Android targets (arm64-v8a, armeabi-v7a, x86_64)
+- [x] Add `.so` files to `jniLibs/`
+- [x] Add generated Kotlin bindings to source set
+- [x] FFI binding code is active and working
 - [ ] Test on testnet before mainnet
 - [ ] Configure error monitoring (Firebase Crashlytics)
 - [ ] Enable feature flag for gradual rollout
 - [ ] Configure ProGuard rules if using R8
+- [ ] Complete production configuration (see `docs/PAYKIT_PRODUCTION_CONFIG.md`)
 
 ## Rollback Plan
 

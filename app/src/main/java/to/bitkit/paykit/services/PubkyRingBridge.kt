@@ -60,7 +60,13 @@ class PubkyRingBridge @Inject constructor() {
 
         // Cross-device authentication
         const val CROSS_DEVICE_WEB_URL = "https://pubky.app/auth"
-        const val SESSION_RELAY_URL = "https://relay.pubky.app/sessions"
+        private const val DEFAULT_RELAY_URL = "https://relay.pubky.app/sessions"
+        
+        fun getRelayUrl(): String {
+            // Can be overridden via system property for testing: -DPUBKY_RELAY_URL=...
+            // In production, this will use the default relay URL
+            return System.getProperty("PUBKY_RELAY_URL") ?: DEFAULT_RELAY_URL
+        }
 
         // Callback paths
         const val CALLBACK_PATH_SESSION = "paykit-session"
@@ -243,7 +249,7 @@ class PubkyRingBridge @Inject constructor() {
         val encodedRequestId = URLEncoder.encode(requestId, "UTF-8")
         val encodedCallback = URLEncoder.encode(BITKIT_SCHEME, "UTF-8")
         val encodedAppName = URLEncoder.encode("Bitkit", "UTF-8")
-        val encodedRelay = URLEncoder.encode(SESSION_RELAY_URL, "UTF-8")
+        val encodedRelay = URLEncoder.encode(Companion.getRelayUrl(), "UTF-8")
 
         return "$CROSS_DEVICE_WEB_URL?request_id=$encodedRequestId&callback_scheme=$encodedCallback&app_name=$encodedAppName&relay_url=$encodedRelay"
     }
@@ -344,7 +350,8 @@ class PubkyRingBridge @Inject constructor() {
     // Private cross-device helpers
 
     private fun pollRelayForSession(requestId: String): PubkySession? {
-        val url = URL("$SESSION_RELAY_URL/$requestId")
+        val relayUrl = Companion.getRelayUrl()
+        val url = URL("$relayUrl/$requestId")
         val connection = url.openConnection() as HttpURLConnection
 
         return try {

@@ -16,6 +16,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
@@ -86,6 +87,23 @@ class PaykitPollingWorker @AssistedInject constructor(
                 pollingRequest,
             )
             Logger.info("Scheduled periodic polling worker", context = TAG)
+            
+            // Verify scheduling
+            verifyWorkerScheduled(context)
+        }
+        
+        /**
+         * Verify that the worker is actually scheduled
+         */
+        private fun verifyWorkerScheduled(context: Context) {
+            WorkManager.getInstance(context).getWorkInfosForUniqueWork(WORK_NAME).get().let { workInfos ->
+                val hasScheduledWork = workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
+                if (hasScheduledWork) {
+                    Logger.debug("PaykitPollingWorker: Worker verified as scheduled", context = TAG)
+                } else {
+                    Logger.warn("PaykitPollingWorker: Worker not found in scheduled work", context = TAG)
+                }
+            }
         }
 
         fun cancel(context: Context) {
