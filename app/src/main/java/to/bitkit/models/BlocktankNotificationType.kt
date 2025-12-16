@@ -9,7 +9,16 @@ enum class BlocktankNotificationType {
     mutualClose,
     orderPaymentConfirmed,
     cjitPaymentArrived,
-    wakeToTimeout;
+    wakeToTimeout,
+    
+    // Paykit notification types
+    paykitPaymentRequest,
+    paykitSubscriptionDue,
+    paykitAutoPayExecuted,
+    paykitSubscriptionFailed;
 
-    override fun toString(): String = "blocktank.$name"
+    override fun toString(): String = when {
+        name.startsWith("paykit") -> "paykit.$name"
+        else -> "blocktank.$name"
+    }
 }

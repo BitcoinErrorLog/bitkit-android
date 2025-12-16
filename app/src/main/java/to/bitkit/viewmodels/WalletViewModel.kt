@@ -30,6 +30,7 @@ import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.onboarding.LOADING_MS
 import to.bitkit.ui.shared.toast.ToastEventBus
+import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -44,6 +45,10 @@ class WalletViewModel @Inject constructor(
     private val backupRepo: BackupRepo,
     private val blocktankRepo: BlocktankRepo,
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "WalletViewModel"
+    }
 
     val lightningState = lightningRepo.lightningState
     val walletState = walletRepo.walletState
@@ -143,6 +148,8 @@ class WalletViewModel @Inject constructor(
                     if (restoreState.isIdle()) {
                         walletRepo.refreshBip21()
                     }
+                    // Initialize Paykit after node is running
+                    initializePaykit()
                 }
                 .onFailure { error ->
                     Logger.error("Node startup error", error)
@@ -150,6 +157,16 @@ class WalletViewModel @Inject constructor(
                         ToastEventBus.send(error)
                     }
                 }
+        }
+    }
+
+    private suspend fun initializePaykit() {
+        runCatching {
+            PaykitIntegrationHelper.setup(lightningRepo)
+        }.onSuccess {
+            Logger.info("Paykit initialized successfully after node started", context = TAG)
+        }.onFailure { error ->
+            Logger.error("Failed to initialize Paykit after node started", error, context = TAG)
         }
     }
 
