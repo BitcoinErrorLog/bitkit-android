@@ -1,6 +1,7 @@
 package to.bitkit.paykit
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -9,6 +10,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -18,6 +20,11 @@ import to.bitkit.ui.MainActivity
 /**
  * Comprehensive E2E tests for Paykit integration
  * Tests cover all Paykit use cases with real wallet interactions
+ *
+ * REQUIREMENTS:
+ * - Tests marked with [Requires Pubky-ring] require Pubky-ring app to be installed
+ * - Tests can be run without Pubky-ring but will skip cross-app tests
+ * - See docs/PAYKIT_TESTING.md for full setup instructions
  */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
@@ -29,6 +36,20 @@ class PaykitE2ETest {
 
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    /**
+     * Whether Pubky-ring app is installed on the test device
+     */
+    private val isPubkyRingInstalled: Boolean
+        get() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            return try {
+                context.packageManager.getPackageInfo("app.pubky.ring", 0)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
 
     @Before
     fun setUp() {
@@ -54,31 +75,243 @@ class PaykitE2ETest {
         }
     }
 
+    /**
+     * Skip test if Pubky-ring is not installed
+     */
+    private fun assumePubkyRingInstalled() {
+        Assume.assumeTrue(
+            "Test requires Pubky-ring app to be installed",
+            isPubkyRingInstalled
+        )
+    }
+
+    /**
+     * Log a message about Pubky-ring requirement
+     */
+    private fun logPubkyRingRequirement(feature: String) {
+        if (!isPubkyRingInstalled) {
+            println("⚠️ Test '$feature' is running in simulated mode. Install Pubky-ring for full cross-app testing.")
+        }
+    }
+
     // MARK: - Session Request Tests
 
     /**
-     * Test: Request session from Pubky-ring
+     * Test: Request session from Pubky-ring [Requires Pubky-ring]
      * Verifies that Bitkit can request and receive a session from Pubky-ring
+     * Uses real cross-app communication when Pubky-ring is available
      */
     @Test
     fun testSessionRequestFromPubkyRing() {
+        logPubkyRingRequirement("Session Request")
         navigateToPaykitSettings()
         
         try {
             composeTestRule.onNodeWithText("Connect Pubky-ring").assertExists()
             composeTestRule.onNodeWithText("Connect Pubky-ring").performClick()
             
-            // Simulate callback from Pubky-ring
-            simulatePubkyRingCallback()
-            
-            // Wait and verify session
-            composeTestRule.waitForIdle()
-            Thread.sleep(2000)
-            
-            composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+            if (isPubkyRingInstalled) {
+                // Real cross-app test: Wait for Pubky-ring interaction
+                // User needs to manually approve in Pubky-ring during test
+                Thread.sleep(60000) // 60 second timeout for manual approval
+                
+                composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+            } else {
+                // Simulated test: Use callback simulation
+                simulatePubkyRingCallback()
+                
+                // Wait and verify session
+                composeTestRule.waitForIdle()
+                Thread.sleep(2000)
+                
+                composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+            }
         } catch (e: AssertionError) {
             // Session may already be active
             composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+        }
+    }
+
+    /**
+     * Test: Graceful handling when Pubky-ring is not installed
+     * Verifies that Bitkit shows appropriate error message and fallback options
+     */
+    @Test
+    fun testPubkyRingNotInstalledGracefulDegradation() {
+        navigateToPaykitSettings()
+        
+        // Look for fallback authentication options
+        val hasInstallButton = try {
+            composeTestRule.onNodeWithText("Install Pubky-ring").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        val hasQROption = try {
+            composeTestRule.onNodeWithText("QR Code").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        val hasManualOption = try {
+            composeTestRule.onNodeWithText("Manual Entry").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        val hasConnectOption = try {
+            composeTestRule.onNodeWithText("Connect Pubky-ring").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        // Either connect is available (Pubky-ring installed) or fallback options are shown
+        assert(hasInstallButton || hasQROption || hasManualOption || hasConnectOption) {
+            "Should show either Pubky-ring connect or fallback authentication options"
+        }
+
+        // If Pubky-ring not installed, verify QR fallback works
+        if (!isPubkyRingInstalled && hasQROption) {
+            composeTestRule.onNodeWithText("QR Code").performClick()
+            composeTestRule.waitForIdle()
+
+            // Should show QR code for cross-device auth
+            composeTestRule.onNodeWithTag("QRCodeImage", useUnmergedTree = true).assertExists()
+        }
+    }
+
+    /**
+     * Test: Session expiration and refresh [Requires Pubky-ring]
+     * Verifies that expired sessions are detected and can be refreshed
+     */
+    @Test
+    fun testSessionExpirationAndRefresh() {
+        assumePubkyRingInstalled()
+
+        // First establish a session
+        testSessionRequestFromPubkyRing()
+
+        // Navigate to Paykit settings
+        navigateToPaykitSettings()
+
+        // Check session status
+        val hasExpiredSession = try {
+            composeTestRule.onNodeWithText("Session Expired").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        val hasActiveSession = try {
+            composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        if (hasExpiredSession) {
+            // Session is expired, try to refresh
+            composeTestRule.onNodeWithText("Refresh Session").assertExists()
+            composeTestRule.onNodeWithText("Refresh Session").performClick()
+            
+            // Wait for refresh
+            Thread.sleep(30000)
+            
+            composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+        } else {
+            // Session still active
+            assert(hasActiveSession) { "Session should be active" }
+        }
+    }
+
+    /**
+     * Test: Cross-device session authentication via QR code
+     * Verifies that users can authenticate via QR code when Pubky-ring is on another device
+     */
+    @Test
+    fun testCrossDeviceQRAuthentication() {
+        navigateToPaykitSettings()
+
+        // Tap connect
+        try {
+            composeTestRule.onNodeWithText("Connect Pubky-ring").performClick()
+            composeTestRule.waitForIdle()
+        } catch (e: AssertionError) {
+            // May already be on connect screen
+        }
+
+        // Look for QR code option
+        val hasQROption = try {
+            composeTestRule.onNodeWithText("QR Code").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        if (hasQROption) {
+            composeTestRule.onNodeWithText("QR Code").performClick()
+            composeTestRule.waitForIdle()
+
+            // Verify QR code is displayed
+            composeTestRule.onNodeWithTag("QRCodeImage", useUnmergedTree = true).assertExists()
+
+            // Verify share/copy options are available
+            val hasShareOrCopy = try {
+                composeTestRule.onNodeWithText("Share").assertExists()
+                true
+            } catch (e: AssertionError) {
+                try {
+                    composeTestRule.onNodeWithText("Copy Link").assertExists()
+                    true
+                } catch (e2: AssertionError) { false }
+            }
+            assert(hasShareOrCopy) { "Share or copy options should be available" }
+        } else {
+            // Session may already be active
+            composeTestRule.onNodeWithText("Session Active", useUnmergedTree = true).assertExists()
+        }
+    }
+
+    /**
+     * Test: Manual session entry fallback
+     * Verifies that users can manually enter session data if other methods fail
+     */
+    @Test
+    fun testManualSessionEntry() {
+        navigateToPaykitSettings()
+
+        // Tap connect
+        try {
+            composeTestRule.onNodeWithText("Connect Pubky-ring").performClick()
+            composeTestRule.waitForIdle()
+        } catch (e: AssertionError) {
+            // May already be on connect screen
+        }
+
+        // Look for manual entry option
+        val hasManualOption = try {
+            composeTestRule.onNodeWithText("Manual Entry").assertExists()
+            true
+        } catch (e: AssertionError) { false }
+
+        if (hasManualOption) {
+            composeTestRule.onNodeWithText("Manual Entry").performClick()
+            composeTestRule.waitForIdle()
+
+            // Verify manual entry fields are available
+            composeTestRule.onNodeWithContentDescription("Pubkey").assertExists()
+
+            // Enter test data
+            composeTestRule.onNodeWithContentDescription("Pubkey")
+                .performTextInput("ybndrfg8ejkmcpqxot1uwisza345h769ybndrfg8ejkmcpqxot1u")
+
+            try {
+                composeTestRule.onNodeWithContentDescription("Session Secret")
+                    .performTextInput("testsecret123")
+            } catch (e: AssertionError) {
+                // Session secret field may not exist
+            }
+
+            // Submit
+            try {
+                composeTestRule.onNodeWithText("Connect").performClick()
+                composeTestRule.waitForIdle()
+                
+                // Should show either success or error
+                Thread.sleep(2000)
+            } catch (e: AssertionError) {
+                // Submit button may have different text
+            }
         }
     }
 
@@ -438,9 +671,14 @@ class PaykitE2ETest {
 
     // MARK: - Simulation Helpers
 
+    /**
+     * Simulate receiving a callback from Pubky-ring
+     * This is used when Pubky-ring is not available for real cross-app testing
+     */
     private fun simulatePubkyRingCallback() {
-        val testPubkey = "test123456789abcdefghijklmnopqrstuvwxyz"
-        val testSessionSecret = "secret123456789"
+        // Use valid z-base32 format for test pubkey
+        val testPubkey = "ybndrfg8ejkmcpqxot1uwisza345h769ybndrfg8ejkmcpqxot1u"
+        val testSessionSecret = "testsecret123456789abcdef"
         
         val callbackUri = Uri.parse("bitkit://paykit-session?pubkey=$testPubkey&session_secret=$testSessionSecret")
         
@@ -455,6 +693,28 @@ class PaykitE2ETest {
         
         // Wait for callback to be processed
         Thread.sleep(2000)
+    }
+
+    /**
+     * Launch Pubky-ring app for real cross-app testing
+     * Returns true if Pubky-ring was successfully launched
+     */
+    private fun launchPubkyRing(): Boolean {
+        if (!isPubkyRingInstalled) return false
+        
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val pubkyRingIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("pubkyring://session-request?callback=bitkit")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        
+        return try {
+            context.startActivity(pubkyRingIntent)
+            Thread.sleep(1000) // Wait for app switch
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }
 

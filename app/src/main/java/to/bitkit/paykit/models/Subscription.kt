@@ -21,7 +21,11 @@ data class Subscription(
     val createdAt: Long = System.currentTimeMillis(),
     var lastPaymentAt: Long? = null,
     var nextPaymentAt: Long? = null,
-    var paymentCount: Int = 0
+    var paymentCount: Int = 0,
+    var lastInvoice: String? = null,
+    var lastPaymentHash: String? = null,
+    var lastPreimage: String? = null,
+    var lastFeeSats: ULong? = null,
 ) {
     companion object {
         fun create(
@@ -65,6 +69,22 @@ data class Subscription(
             lastPaymentAt = now,
             paymentCount = paymentCount + 1,
             nextPaymentAt = Companion.calculateNextPayment(frequency, now)
+        )
+    }
+
+    fun recordPayment(
+        paymentHash: String?,
+        preimage: String?,
+        feeSats: ULong?,
+    ): Subscription {
+        val now = System.currentTimeMillis()
+        return copy(
+            lastPaymentAt = now,
+            paymentCount = paymentCount + 1,
+            nextPaymentAt = Companion.calculateNextPayment(frequency, now),
+            lastPaymentHash = paymentHash,
+            lastPreimage = preimage,
+            lastFeeSats = feeSats,
         )
     }
 }

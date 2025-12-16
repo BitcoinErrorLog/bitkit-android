@@ -73,10 +73,23 @@ class SubscriptionStorage @Inject constructor(
     }
 
     suspend fun recordPayment(subscriptionId: String) {
+        recordPayment(subscriptionId, paymentHash = null, preimage = null, feeSats = null)
+    }
+
+    suspend fun recordPayment(
+        subscriptionId: String,
+        paymentHash: String?,
+        preimage: String?,
+        feeSats: ULong?,
+    ) {
         val subscriptions = listSubscriptions().toMutableList()
         val index = subscriptions.indexOfFirst { it.id == subscriptionId }
         if (index >= 0) {
-            subscriptions[index] = subscriptions[index].recordPayment()
+            subscriptions[index] = subscriptions[index].recordPayment(
+                paymentHash = paymentHash,
+                preimage = preimage,
+                feeSats = feeSats,
+            )
             persistSubscriptions(subscriptions)
         }
     }

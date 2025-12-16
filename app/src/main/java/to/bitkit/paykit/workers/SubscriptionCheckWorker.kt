@@ -25,6 +25,7 @@ import to.bitkit.R
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.services.AutopayEvaluationResult
+import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.viewmodels.AutoPayViewModel
@@ -240,15 +241,42 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             return
         }
 
-        // Execute payment
-        // For now, we record the payment - actual Lightning payment would be implemented here
-        runCatching {
-            subscriptionStorage.recordPayment(subscription.id)
+        // Determine the payment recipient from subscription
+        val recipient: String = if (!subscription.lastInvoice.isNullOrEmpty()) {
+            // Use the last invoice if available
+            subscription.lastInvoice!!
+        } else {
+            // Fall back to Paykit URI using provider pubkey
+            "paykit:${subscription.providerPubkey}"
+        }
+
+        // Execute payment via PaykitPaymentService with spending limit enforcement
+        val paymentService = PaykitPaymentService.getInstance()
+
+        val result = paymentService.pay(
+            lightningRepo = lightningRepo,
+            recipient = recipient,
+            amountSats = subscription.amountSats.toULong(),
+            peerPubkey = subscription.providerPubkey,
+        )
+
+        if (result.success) {
+            // Record the payment with receipt information
+            subscriptionStorage.recordPayment(
+                subscriptionId = subscription.id,
+                paymentHash = result.receipt.paymentHash,
+                preimage = result.receipt.preimage,
+                feeSats = result.receipt.feeSats,
+            )
             sendPaymentSuccessNotification(subscription)
-            Logger.info("Payment executed successfully for subscription ${subscription.id}", context = TAG)
-        }.onFailure { e ->
-            Logger.error("Payment execution failed", e, context = TAG)
-            sendPaymentFailedNotification(subscription, e.message ?: "Unknown error")
+            Logger.info(
+                "Payment executed successfully for subscription ${subscription.id}, receipt: ${result.receipt.id}",
+                context = TAG
+            )
+        } else {
+            val errorMessage = result.error?.userMessage ?: "Unknown error"
+            Logger.error("Payment failed: $errorMessage", context = TAG)
+            sendPaymentFailedNotification(subscription, errorMessage)
         }
     }
 
