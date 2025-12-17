@@ -1,231 +1,224 @@
 package to.bitkit.helpers
 
-import android.content.Context
-import kotlinx.coroutines.delay
-import to.bitkit.paykit.models.PaymentDirection
-import to.bitkit.paykit.models.PaymentStatus
-import to.bitkit.paykit.models.Receipt
-import to.bitkit.paykit.services.DiscoveredContact
-import to.bitkit.paykit.services.PubkyProfile
-import to.bitkit.paykit.services.PubkyProfileLink
-import java.util.UUID
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 
 /**
- * Helper class for wallet-related test operations
+ * Test helper for wallet operations in E2E tests
  */
 object WalletTestHelper {
-    
-    // Test wallet mnemonic (for regtest only!)
-    // DO NOT use this in production
-    const val TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-    
-    // Timeout for node operations
-    private const val NODE_READY_TIMEOUT_MS = 60_000L
-    
-    // MARK: - Wallet Creation
-    
+
+    // MARK: - Navigation
+
     /**
-     * Create a test wallet with a known seed
-     * This should only be used in test environments
+     * Navigate to the Paykit section
      */
-    suspend fun createTestWallet(context: Context) {
-        println("WalletTestHelper: Creating test wallet...")
-        // In actual implementation, this would interact with WalletViewModel
-    }
-    
-    /**
-     * Restore a wallet from the test mnemonic
-     */
-    suspend fun restoreTestWallet(context: Context) {
-        println("WalletTestHelper: Restoring test wallet from mnemonic...")
-        // In actual implementation, this would restore via WalletViewModel
-    }
-    
-    // MARK: - Node Lifecycle
-    
-    /**
-     * Wait for the LDK node to be ready
-     * @param timeout Maximum time to wait in milliseconds (default 60 seconds)
-     * @return True if node became ready, false if timeout
-     */
-    suspend fun waitForNodeReady(timeout: Long = NODE_READY_TIMEOUT_MS): Boolean {
-        val startTime = System.currentTimeMillis()
+    fun navigateToPaykit(rule: ComposeTestRule) {
+        // Tap on Settings tab
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.waitForIdle()
         
-        while (System.currentTimeMillis() - startTime < timeout) {
-            if (isNodeRunning()) {
-                return true
-            }
-            delay(500)
+        // Tap on Paykit menu item
+        rule.onNodeWithText("Paykit").performClick()
+        rule.waitForIdle()
+    }
+
+    /**
+     * Navigate to Contacts
+     */
+    fun navigateToContacts(rule: ComposeTestRule) {
+        navigateToPaykit(rule)
+        
+        rule.onNodeWithText("Contacts").performClick()
+        rule.waitForIdle()
+    }
+
+    /**
+     * Navigate to Session Management
+     */
+    fun navigateToSessionManagement(rule: ComposeTestRule) {
+        navigateToPaykit(rule)
+        
+        rule.onNodeWithText("Sessions").performClick()
+        rule.waitForIdle()
+    }
+
+    // MARK: - Wallet State
+
+    /**
+     * Check if wallet is initialized
+     */
+    fun isWalletInitialized(rule: ComposeTestRule): Boolean {
+        return try {
+            rule.onNodeWithText("Balance").assertIsDisplayed()
+            true
+        } catch (e: AssertionError) {
+            false
         }
-        
+    }
+
+    /**
+     * Wait for wallet to be ready
+     */
+    fun waitForWalletReady(
+        rule: ComposeTestRule,
+        timeoutMs: Long = 30000
+    ): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            try {
+                rule.onNodeWithText("Send").assertIsDisplayed()
+                return true
+            } catch (e: AssertionError) {
+                Thread.sleep(500)
+            }
+        }
         return false
     }
-    
+
+    // MARK: - Session Verification
+
     /**
-     * Check if the LDK node is currently running
+     * Check if a session is active
      */
-    fun isNodeRunning(): Boolean {
-        // In actual implementation, this would check LightningService state
-        // For testing, we return a placeholder
-        return true
-    }
-    
-    /**
-     * Start the LDK node if not already running
-     */
-    suspend fun ensureNodeRunning() {
-        if (!isNodeRunning()) {
-            println("WalletTestHelper: Starting LDK node...")
-            // In actual implementation: LightningService.getInstance().startNode()
+    fun hasActiveSession(rule: ComposeTestRule): Boolean {
+        navigateToSessionManagement(rule)
+        
+        return try {
+            rule.onNodeWithText("No active sessions").assertDoesNotExist()
+            true
+        } catch (e: AssertionError) {
+            false
         }
     }
-    
-    // MARK: - Balance Helpers
-    
+
     /**
-     * Get the current wallet balance in satoshis
+     * Get the number of active sessions
      */
-    suspend fun getBalance(): WalletBalance {
-        // In actual implementation, this would fetch from LightningService
-        return WalletBalance(onchain = 0L, lightning = 0L)
-    }
-    
-    /**
-     * Check if wallet has sufficient balance for testing
-     */
-    suspend fun hasSufficientBalance(minSats: Long = 10000): Boolean {
-        val balance = getBalance()
-        return balance.onchain >= minSats || balance.lightning >= minSats
-    }
-    
-    // MARK: - Regtest Helpers
-    
-    /**
-     * Fund the test wallet via regtest faucet
-     * @param amount Amount in satoshis to fund
-     */
-    suspend fun fundWallet(amount: Long = 100_000) {
-        if (!android.os.Build.TYPE.contains("debug", ignoreCase = true)) {
-            throw WalletTestException.NotAvailableInProduction
+    fun getActiveSessionCount(rule: ComposeTestRule): Int {
+        navigateToSessionManagement(rule)
+        
+        // Count session items
+        var count = 0
+        try {
+            rule.onAllNodes(hasText("Session")).fetchSemanticsNodes().forEach { _ ->
+                count++
+            }
+        } catch (e: Exception) {
+            // No sessions found
         }
-        
-        println("WalletTestHelper: Funding wallet with $amount sats...")
-        
-        // Get receive address
-        // In actual implementation: val address = LightningService.getInstance().getReceiveAddress()
-        
-        // Call regtest faucet
-        // This requires a running regtest environment
-        
-        println("WalletTestHelper: Funded wallet successfully")
+        return count
     }
-    
+
+    // MARK: - Contact Verification
+
     /**
-     * Generate regtest blocks to confirm transactions
-     * @param count Number of blocks to generate
+     * Get the number of contacts
      */
-    suspend fun generateBlocks(count: Int = 6) {
-        if (!android.os.Build.TYPE.contains("debug", ignoreCase = true)) {
-            throw WalletTestException.NotAvailableInProduction
+    fun getContactCount(rule: ComposeTestRule): Int {
+        navigateToContacts(rule)
+        
+        // Count contact items
+        var count = 0
+        try {
+            rule.onAllNodes(hasText("Contact")).fetchSemanticsNodes().forEach { _ ->
+                count++
+            }
+        } catch (e: Exception) {
+            // No contacts found
         }
-        
-        println("WalletTestHelper: Generating $count regtest blocks...")
-        
-        // Call regtest RPC to generate blocks
-        // This requires a running regtest environment
-        
-        println("WalletTestHelper: Generated $count blocks")
+        return count
     }
-    
-    // MARK: - Cleanup
-    
+
     /**
-     * Clean up after tests
+     * Check if a specific contact exists
      */
-    suspend fun cleanup() {
-        println("WalletTestHelper: Cleaning up...")
-        // Clear any test state
-    }
-    
-    /**
-     * Reset wallet state (for fresh test runs)
-     */
-    suspend fun resetWallet() {
-        if (!android.os.Build.TYPE.contains("debug", ignoreCase = true)) {
-            throw WalletTestException.NotAvailableInProduction
+    fun hasContact(rule: ComposeTestRule, name: String): Boolean {
+        navigateToContacts(rule)
+        
+        return try {
+            rule.onNodeWithText(name).assertIsDisplayed()
+            true
+        } catch (e: AssertionError) {
+            false
         }
+    }
+
+    // MARK: - Payment Flow
+
+    /**
+     * Initiate a payment
+     */
+    fun initiatePayment(
+        rule: ComposeTestRule,
+        amount: String,
+        recipient: String
+    ) {
+        // Tap Send button
+        rule.onNodeWithText("Send").performClick()
+        rule.waitForIdle()
         
-        println("WalletTestHelper: Resetting wallet...")
-        // In actual implementation, this would wipe wallet data
+        // Enter amount
+        rule.onNodeWithTag("AmountInput").performTextInput(amount)
+        rule.waitForIdle()
+        
+        // Enter recipient
+        rule.onNodeWithTag("RecipientInput").performTextInput(recipient)
+        rule.waitForIdle()
     }
-    
-    // MARK: - Test Fixtures
-    
+
+    // MARK: - UI Assertions
+
     /**
-     * Create a test payment receipt for testing
+     * Assert that text is displayed
      */
-    fun createTestReceipt(
-        direction: PaymentDirection = PaymentDirection.SENT,
-        amountSats: Long = 1000,
-        counterpartyKey: String = PubkyRingSimulator.TEST_PUBKEY
-    ): Receipt {
-        return Receipt(
-            id = UUID.randomUUID().toString(),
-            direction = direction,
-            counterpartyKey = counterpartyKey,
-            counterpartyName = "Test Contact",
-            amountSats = amountSats,
-            status = PaymentStatus.COMPLETED,
-            paymentMethod = "lightning"
-        )
+    fun assertTextDisplayed(
+        rule: ComposeTestRule,
+        text: String,
+        timeoutMs: Long = 5000
+    ): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            try {
+                rule.onNodeWithText(text).assertIsDisplayed()
+                return true
+            } catch (e: AssertionError) {
+                Thread.sleep(500)
+            }
+        }
+        return false
     }
-    
+
     /**
-     * Create a test contact for testing
+     * Assert that dialog is shown
      */
-    fun createTestContact(): DiscoveredContact {
-        return DiscoveredContact(
-            pubkey = PubkyRingSimulator.TEST_PUBKEY,
-            name = "Test Contact",
-            hasPaymentMethods = true,
-            supportedMethods = listOf("lightning", "bitcoin")
-        )
+    fun assertDialogShown(
+        rule: ComposeTestRule,
+        title: String,
+        timeoutMs: Long = 5000
+    ): Boolean {
+        return assertTextDisplayed(rule, title, timeoutMs)
     }
-    
+
     /**
-     * Create a test profile for testing
+     * Dismiss dialogs by clicking OK or Cancel
      */
-    fun createTestProfile(): PubkyProfile {
-        return PubkyProfile(
-            name = "Test User",
-            bio = "This is a test profile for E2E testing",
-            avatar = null,
-            links = listOf(
-                PubkyProfileLink(title = "Website", url = "https://example.com"),
-                PubkyProfileLink(title = "Twitter", url = "https://twitter.com/test")
-            )
-        )
+    fun dismissDialogs(rule: ComposeTestRule) {
+        try {
+            rule.onNodeWithText("OK").performClick()
+        } catch (e: Exception) {
+            try {
+                rule.onNodeWithText("Cancel").performClick()
+            } catch (e: Exception) {
+                // No dialog to dismiss
+            }
+        }
+        rule.waitForIdle()
     }
 }
-
-/**
- * Wallet balance data class
- */
-data class WalletBalance(
-    val onchain: Long,
-    val lightning: Long,
-) {
-    val total: Long get() = onchain + lightning
-}
-
-/**
- * Wallet test errors
- */
-sealed class WalletTestException(message: String) : Exception(message) {
-    object WalletCreationFailed : WalletTestException("Failed to create test wallet")
-    object NodeNotReady : WalletTestException("LDK node did not become ready in time")
-    object InsufficientBalance : WalletTestException("Wallet does not have sufficient balance for test")
-    object RegtestNotAvailable : WalletTestException("Regtest environment is not available")
-    object NotAvailableInProduction : WalletTestException("This operation is only available in debug builds")
-}
-
