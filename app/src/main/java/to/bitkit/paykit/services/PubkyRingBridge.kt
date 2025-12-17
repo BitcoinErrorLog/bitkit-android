@@ -8,7 +8,9 @@ import android.net.Uri
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import to.bitkit.utils.Logger
@@ -46,7 +48,9 @@ import kotlin.coroutines.resumeWithException
  * 4. Bitkit polls relay for session response using request_id
  */
 @Singleton
-class PubkyRingBridge @Inject constructor() {
+class PubkyRingBridge @Inject constructor(
+    private val keychainStorage: to.bitkit.paykit.storage.PaykitKeychainStorage,
+) {
 
     companion object {
         private const val TAG = "PubkyRingBridge"
@@ -78,11 +82,18 @@ class PubkyRingBridge @Inject constructor() {
         @Volatile
         private var instance: PubkyRingBridge? = null
 
+        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PubkyRingBridge"))
         fun getInstance(): PubkyRingBridge {
-            return instance ?: synchronized(this) {
-                instance ?: PubkyRingBridge().also { instance = it }
-            }
+            return instance ?: throw IllegalStateException("PubkyRingBridge not initialized. Use dependency injection.")
         }
+        
+        internal fun setInstance(bridge: PubkyRingBridge) {
+            instance = bridge
+        }
+    }
+    
+    init {
+        setInstance(this)
     }
 
     // Pending continuations for async requests
@@ -94,6 +105,51 @@ class PubkyRingBridge @Inject constructor() {
 
     // Cached sessions by pubkey
     private val sessionCache = mutableMapOf<String, PubkySession>()
+    
+    // Device ID for noise key derivation
+    private var _deviceId: String? = null
+    
+    /**
+     * Get consistent device ID for noise key derivations
+     */
+    val deviceId: String
+        get() {
+            return _deviceId ?: loadOrGenerateDeviceId().also { _deviceId = it }
+        }
+    
+    private fun loadOrGenerateDeviceId(): String {
+        val key = "paykit.device_id"
+        
+        // Try to load existing
+        keychainStorage.getString(key)?.takeIf { it.isNotEmpty() }?.let { id ->
+            Logger.debug("Loaded device ID: ${id.take(8)}...", context = TAG)
+            return id
+        }
+        
+        // Generate new UUID
+        val newId = UUID.randomUUID().toString().lowercase()
+        
+        // Persist
+        try {
+            kotlinx.coroutines.runBlocking {
+                keychainStorage.setString(key, newId)
+            }
+        } catch (e: Exception) {
+            Logger.error("Failed to persist device ID", e, context = TAG)
+        }
+        
+        Logger.info("Generated new device ID: ${newId.take(8)}...", context = TAG)
+        return newId
+    }
+    
+    /**
+     * Reset device ID (for debugging/testing only)
+     */
+    suspend fun resetDeviceId() {
+        keychainStorage.delete("paykit.device_id")
+        _deviceId = loadOrGenerateDeviceId()
+        Logger.info("Device ID reset", context = TAG)
+    }
 
     // Cached keypairs by derivation path
     private val keypairCache = mutableMapOf<String, NoiseKeypair>()
@@ -160,41 +216,69 @@ class PubkyRingBridge @Inject constructor() {
      * @return X25519 keypair for Noise protocol
      * @throws PubkyRingException if request fails
      */
+    /**
+     * Request a noise keypair derivation from Pubky-ring.
+     * 
+     * First checks NoiseKeyCache, then requests from Pubky-ring if not found.
+     * 
+     * @param context Android context for launching intents
+     * @param deviceIdOverride Override device ID (uses stored ID if null)
+     * @param epoch Epoch for key rotation
+     * @return X25519 keypair for Noise protocol
+     * @throws PubkyRingException if request fails
+     */
     suspend fun requestNoiseKeypair(
         context: Context,
-        deviceId: String,
-        epoch: ULong
-    ): NoiseKeypair = suspendCancellableCoroutine { continuation ->
-        // Check cache first
-        val cacheKey = "$deviceId:$epoch"
+        deviceIdOverride: String? = null,
+        epoch: ULong,
+    ): NoiseKeypair {
+        val actualDeviceId = deviceIdOverride ?: deviceId
+        val cacheKey = "$actualDeviceId:$epoch"
+        
+        // Check memory cache first
         keypairCache[cacheKey]?.let { cached ->
-            continuation.resume(cached)
-            return@suspendCancellableCoroutine
+            Logger.debug("Noise keypair cache hit for $cacheKey", context = TAG)
+            return cached
         }
-
-        if (!isPubkyRingInstalled(context)) {
-            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
-            return@suspendCancellableCoroutine
-        }
-
-        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_KEYPAIR"
-        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
-        val requestUrl = "$PUBKY_RING_SCHEME://derive-keypair?deviceId=$deviceId&epoch=$epoch&callback=$encodedCallback"
-
-        pendingKeypairContinuation = continuation
-
-        continuation.invokeOnCancellation {
-            pendingKeypairContinuation = null
-        }
-
+        
+        // Check persistent cache (NoiseKeyCache)
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+            val cachedKey = NoiseKeyCache.getInstance().getKey(actualDeviceId, epoch.toUInt())
+            if (cachedKey != null) {
+                Logger.debug("Noise keypair found in persistent cache for $cacheKey", context = TAG)
+                // We have the secret key, but to reconstruct the full keypair we'd need the public key
+                // For now, proceed to request from Pubky-ring for the full keypair
+            }
         } catch (e: Exception) {
-            Logger.error("Failed to open Pubky-ring for keypair", e, context = TAG)
-            pendingKeypairContinuation = null
-            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+            Logger.warn("Error checking NoiseKeyCache: ${e.message}", e, context = TAG)
+        }
+        
+        // Request from Pubky-ring
+        return suspendCancellableCoroutine { continuation ->
+            if (!isPubkyRingInstalled(context)) {
+                continuation.resumeWithException(PubkyRingException.AppNotInstalled)
+                return@suspendCancellableCoroutine
+            }
+
+            val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_KEYPAIR"
+            val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
+            val requestUrl = "$PUBKY_RING_SCHEME://derive-keypair?deviceId=$actualDeviceId&epoch=$epoch&callback=$encodedCallback"
+
+            pendingKeypairContinuation = continuation
+
+            continuation.invokeOnCancellation {
+                pendingKeypairContinuation = null
+            }
+
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Logger.error("Failed to open Pubky-ring for keypair", e, context = TAG)
+                pendingKeypairContinuation = null
+                continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+            }
         }
     }
 
@@ -217,6 +301,83 @@ class PubkyRingBridge @Inject constructor() {
      */
     internal fun setPendingCrossDeviceRequestIdForTest(requestId: String?) {
         pendingCrossDeviceRequestId = requestId
+    }
+
+    // MARK: - Profile & Follows Requests
+    
+    // Pending profile request continuation
+    private var pendingProfileContinuation: Continuation<PubkyProfile?>? = null
+    
+    // Pending follows request continuation
+    private var pendingFollowsContinuation: Continuation<List<String>>? = null
+    
+    /**
+     * Request a profile from Pubky-ring (which fetches from homeserver)
+     *
+     * @param context Android context for launching intents
+     * @param pubkey The pubkey of the profile to fetch
+     * @return PubkyProfile if found, null otherwise
+     * @throws PubkyRingException if request fails
+     */
+    suspend fun requestProfile(context: Context, pubkey: String): PubkyProfile? = suspendCancellableCoroutine { continuation ->
+        if (!isPubkyRingInstalled(context)) {
+            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
+            return@suspendCancellableCoroutine
+        }
+
+        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_PROFILE"
+        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
+        val requestUrl = "$PUBKY_RING_SCHEME://get-profile?pubkey=$pubkey&callback=$encodedCallback"
+
+        pendingProfileContinuation = continuation
+
+        continuation.invokeOnCancellation {
+            pendingProfileContinuation = null
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Logger.error("Failed to open Pubky-ring for profile", e, context = TAG)
+            pendingProfileContinuation = null
+            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+        }
+    }
+    
+    /**
+     * Request follows list from Pubky-ring (which fetches from homeserver)
+     *
+     * @param context Android context for launching intents
+     * @return List of followed pubkeys
+     * @throws PubkyRingException if request fails
+     */
+    suspend fun requestFollows(context: Context): List<String> = suspendCancellableCoroutine { continuation ->
+        if (!isPubkyRingInstalled(context)) {
+            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
+            return@suspendCancellableCoroutine
+        }
+
+        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_FOLLOWS"
+        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
+        val requestUrl = "$PUBKY_RING_SCHEME://get-follows?callback=$encodedCallback"
+
+        pendingFollowsContinuation = continuation
+
+        continuation.invokeOnCancellation {
+            pendingFollowsContinuation = null
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Logger.error("Failed to open Pubky-ring for follows", e, context = TAG)
+            pendingFollowsContinuation = null
+            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+        }
     }
 
     // MARK: - Cross-Device Authentication
@@ -425,6 +586,8 @@ class PubkyRingBridge @Inject constructor() {
         return when (uri.host) {
             CALLBACK_PATH_SESSION -> handleSessionCallback(uri)
             CALLBACK_PATH_KEYPAIR -> handleKeypairCallback(uri)
+            CALLBACK_PATH_PROFILE -> handleProfileCallback(uri)
+            CALLBACK_PATH_FOLLOWS -> handleFollowsCallback(uri)
             CALLBACK_PATH_CROSS_DEVICE_SESSION -> handleCrossDeviceSessionCallback(uri)
             else -> false
         }
@@ -454,6 +617,11 @@ class PubkyRingBridge @Inject constructor() {
 
         // Cache the session
         sessionCache[pubkey] = session
+        
+        // Persist to keychain (fire-and-forget)
+        GlobalScope.launch(Dispatchers.IO) {
+            persistSession(session)
+        }
 
         pendingSessionContinuation?.resume(session)
         pendingSessionContinuation = null
@@ -487,13 +655,72 @@ class PubkyRingBridge @Inject constructor() {
             epoch = epoch,
         )
 
-        // Cache the keypair
+        // Cache the keypair in memory
         val cacheKey = "$deviceId:$epoch"
         keypairCache[cacheKey] = keypair
+        
+        // Persist secret key to NoiseKeyCache (memory first, keychain persists async)
+        try {
+            val secretKeyData = secretKey.toByteArray(Charsets.UTF_8)
+            NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, epoch.toUInt())
+            Logger.debug("Stored noise keypair in NoiseKeyCache for $cacheKey", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to store noise keypair: ${e.message}", e, context = TAG)
+        }
 
         pendingKeypairContinuation?.resume(keypair)
         pendingKeypairContinuation = null
 
+        return true
+    }
+
+    private fun handleProfileCallback(uri: Uri): Boolean {
+        // Check for error response
+        val error = uri.getQueryParameter("error")
+        if (error != null) {
+            Logger.warn("Profile request returned error: $error", context = TAG)
+            pendingProfileContinuation?.resume(null)
+            pendingProfileContinuation = null
+            return true
+        }
+        
+        // Build profile from response
+        val profile = PubkyProfile(
+            name = uri.getQueryParameter("name"),
+            bio = uri.getQueryParameter("bio"),
+            avatar = uri.getQueryParameter("avatar"),
+            links = null, // Links would need JSON parsing, simplified for now
+        )
+        
+        Logger.debug("Received profile from Pubky-ring: ${profile.name ?: "unknown"}", context = TAG)
+        
+        pendingProfileContinuation?.resume(profile)
+        pendingProfileContinuation = null
+        
+        return true
+    }
+    
+    private fun handleFollowsCallback(uri: Uri): Boolean {
+        // Check for error response
+        val error = uri.getQueryParameter("error")
+        if (error != null) {
+            Logger.warn("Follows request returned error: $error", context = TAG)
+            pendingFollowsContinuation?.resume(emptyList())
+            pendingFollowsContinuation = null
+            return true
+        }
+        
+        // Parse follows list (comma-separated pubkeys)
+        val follows = uri.getQueryParameter("follows")
+            ?.split(",")
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
+        
+        Logger.debug("Received ${follows.size} follows from Pubky-ring", context = TAG)
+        
+        pendingFollowsContinuation?.resume(follows)
+        pendingFollowsContinuation = null
+        
         return true
     }
 
@@ -527,24 +754,216 @@ class PubkyRingBridge @Inject constructor() {
         // Cache the session
         sessionCache[pubkey] = session
         pendingCrossDeviceRequestId = null
+        
+        // Persist to keychain for cross-device sessions too (fire-and-forget)
+        GlobalScope.launch(Dispatchers.IO) {
+            persistSession(session)
+        }
 
         return true
     }
+    
+    // MARK: - Session Persistence
+    
+    /**
+     * Persist a session to keychain
+     */
+    private suspend fun persistSession(session: PubkySession) {
+        try {
+            val json = kotlinx.serialization.json.Json.encodeToString(PubkySession.serializer(), session)
+            keychainStorage.setString("pubky.session.${session.pubkey}", json)
+            Logger.debug("Persisted session for ${session.pubkey.take(12)}...", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to persist session", e, context = TAG)
+        }
+    }
+    
+    /**
+     * Restore all sessions from keychain on app launch
+     */
+    suspend fun restoreSessions() {
+        val sessionKeys = keychainStorage.listKeys("pubky.session.")
+        
+        for (key in sessionKeys) {
+            try {
+                val json = keychainStorage.getString(key) ?: continue
+                val session = kotlinx.serialization.json.Json.decodeFromString<PubkySession>(json)
+                sessionCache[session.pubkey] = session
+                Logger.info("Restored session for ${session.pubkey.take(12)}...", context = TAG)
+            } catch (e: Exception) {
+                Logger.error("Failed to restore session from $key", e, context = TAG)
+            }
+        }
+        
+        Logger.info("Restored ${sessionCache.size} sessions from keychain", context = TAG)
+    }
+    
+    /**
+     * Get all cached sessions
+     */
+    fun getCachedSessions(): List<PubkySession> = sessionCache.values.toList()
+    
+    /**
+     * Get count of cached keypairs
+     */
+    fun getCachedKeypairCount(): Int = keypairCache.size
+    
+    /**
+     * Clear a specific session from cache and keychain
+     */
+    suspend fun clearSession(pubkey: String) {
+        sessionCache.remove(pubkey)
+        keychainStorage.delete("pubky.session.$pubkey")
+        Logger.info("Cleared session for ${pubkey.take(12)}...", context = TAG)
+    }
+    
+    /**
+     * Clear all sessions from cache and keychain
+     */
+    suspend fun clearAllSessions() {
+        for (pubkey in sessionCache.keys.toList()) {
+            keychainStorage.delete("pubky.session.$pubkey")
+        }
+        sessionCache.clear()
+        Logger.info("Cleared all sessions", context = TAG)
+    }
+    
+    /**
+     * Set a session directly (for manual or imported sessions)
+     */
+    fun setCachedSession(session: PubkySession) {
+        sessionCache[session.pubkey] = session
+        // Persist to keychain (fire-and-forget)
+        GlobalScope.launch(Dispatchers.IO) {
+            persistSession(session)
+        }
+    }
+    
+    // MARK: - Backup & Restore
+    
+    /**
+     * Export all sessions and noise keys for backup
+     *
+     * @return BackupData containing device ID, sessions, and noise keys
+     */
+    fun exportBackup(): BackupData {
+        val sessions = sessionCache.values.toList()
+        val noiseKeys = keypairCache.map { (_, keypair) ->
+            BackupNoiseKey(
+                deviceId = keypair.deviceId,
+                epoch = keypair.epoch,
+                secretKey = keypair.secretKey,
+            )
+        }
+        
+        val backup = BackupData(
+            deviceId = deviceId,
+            sessions = sessions,
+            noiseKeys = noiseKeys,
+            exportedAt = Date(),
+            version = 1,
+        )
+        
+        Logger.info("Exported backup with ${sessions.size} sessions and ${noiseKeys.size} noise keys", context = TAG)
+        return backup
+    }
+    
+    /**
+     * Export backup as JSON string
+     */
+    fun exportBackupAsJSON(): String {
+        val backup = exportBackup()
+        return com.google.gson.Gson().toJson(backup)
+    }
+    
+    /**
+     * Import backup data and restore sessions/keys
+     *
+     * @param backup The backup data to restore
+     * @param overwriteDeviceId Whether to overwrite the local device ID with the backup's
+     */
+    suspend fun importBackup(backup: BackupData, overwriteDeviceId: Boolean = false) {
+        // Optionally restore device ID
+        if (overwriteDeviceId) {
+            val key = "paykit.device_id"
+            keychainStorage.store(key, backup.deviceId.toByteArray())
+            _deviceId = backup.deviceId
+            Logger.info("Restored device ID from backup", context = TAG)
+        }
+        
+        // Restore sessions
+        for (session in backup.sessions) {
+            sessionCache[session.pubkey] = session
+            persistSession(session)
+        }
+        
+        // Restore noise keys
+        val noiseKeyCache = NoiseKeyCache.getInstance()
+        for (noiseKey in backup.noiseKeys) {
+            val cacheKey = "${noiseKey.deviceId}:${noiseKey.epoch}"
+            
+            // Restore to keypair cache (we only have the secret key, not public)
+            val secretKeyData = noiseKey.secretKey.toByteArray()
+            noiseKeyCache.setKey(secretKeyData, noiseKey.deviceId, noiseKey.epoch.toUInt())
+        }
+        
+        Logger.info("Imported backup with ${backup.sessions.size} sessions and ${backup.noiseKeys.size} noise keys", context = TAG)
+    }
+    
+    /**
+     * Import backup from JSON string
+     */
+    suspend fun importBackup(jsonString: String, overwriteDeviceId: Boolean = false) {
+        val backup = com.google.gson.Gson().fromJson(jsonString, BackupData::class.java)
+        importBackup(backup, overwriteDeviceId)
+    }
 }
+
+// MARK: - Backup Data Models
+
+/**
+ * Backup data structure for export/import
+ */
+data class BackupData(
+    val deviceId: String,
+    val sessions: List<PubkySession>,
+    val noiseKeys: List<BackupNoiseKey>,
+    val exportedAt: Date,
+    val version: Int,
+)
+
+/**
+ * Noise key backup structure
+ */
+data class BackupNoiseKey(
+    val deviceId: String,
+    val epoch: ULong,
+    val secretKey: String,
+)
 
 /**
  * Session data returned from Pubky-ring
  */
+@kotlinx.serialization.Serializable
 data class PubkySession(
     val pubkey: String,
     val sessionSecret: String,
     val capabilities: List<String>,
+    @kotlinx.serialization.Contextual
     val createdAt: Date,
+    @kotlinx.serialization.Contextual
+    val expiresAt: Date? = null,
 ) {
     /**
      * Check if session has a specific capability
      */
     fun hasCapability(capability: String): Boolean = capabilities.contains(capability)
+    
+    /**
+     * Check if session is expired
+     */
+    val isExpired: Boolean
+        get() = expiresAt?.let { Date().after(it) } ?: false
 }
 
 /**

@@ -58,6 +58,49 @@ class PaykitKeychainStorage @Inject constructor(
             false
         }
     }
+
+    // MARK: - Convenience Methods
+
+    /**
+     * Get string value
+     */
+    fun getString(key: String): String? {
+        return try {
+            val fullKey = "$SERVICE_PREFIX$key"
+            keychain.loadString(fullKey)
+        } catch (e: Exception) {
+            Logger.debug("Paykit keychain item not found: $key", context = TAG)
+            null
+        }
+    }
+
+    /**
+     * Set string value
+     */
+    suspend fun setString(key: String, value: String) {
+        try {
+            val fullKey = "$SERVICE_PREFIX$key"
+            keychain.upsertString(fullKey, value)
+            Logger.debug("Stored Paykit keychain string: $key", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to store Paykit keychain string: $key", e, context = TAG)
+            throw PaykitStorageException.SaveFailed(key)
+        }
+    }
+
+    /**
+     * List all keys with a given prefix
+     * Note: This requires the keychain to support listing, which may need implementation
+     */
+    fun listKeys(prefix: String): List<String> {
+        return try {
+            val fullPrefix = "$SERVICE_PREFIX$prefix"
+            keychain.listKeys(fullPrefix)
+        } catch (e: Exception) {
+            Logger.error("Failed to list keychain keys with prefix: $prefix", e, context = TAG)
+            emptyList()
+        }
+    }
 }
 
 sealed class PaykitStorageException(message: String) : Exception(message) {

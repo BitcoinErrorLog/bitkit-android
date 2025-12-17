@@ -87,6 +87,25 @@ class Keychain @Inject constructor(
         return snapshot.contains(key.indexed)
     }
 
+    /**
+     * List all keys with a given prefix
+     * @param prefix The key prefix to filter by
+     * @return List of matching keys (without wallet index suffix)
+     */
+    fun listKeys(prefix: String): List<String> {
+        val walletIndex = runBlocking(coroutineContext) { db.configDao().getAll().first() }.firstOrNull()?.walletIndex ?: 0
+        val suffix = "_$walletIndex"
+        return snapshot.asMap().keys
+            .mapNotNull { prefKey ->
+                val key = prefKey.name
+                // Remove wallet index suffix and check prefix
+                if (key.endsWith(suffix)) {
+                    val cleanKey = key.removeSuffix(suffix)
+                    if (cleanKey.startsWith(prefix)) cleanKey else null
+                } else null
+            }
+    }
+
     suspend fun wipe() {
         val keys = snapshot.asMap().keys
         keychain.edit { it.clear() }

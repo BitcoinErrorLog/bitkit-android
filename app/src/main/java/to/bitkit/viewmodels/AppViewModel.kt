@@ -89,6 +89,8 @@ import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaymentRequestProcessingResult
 import to.bitkit.paykit.services.PaymentRequestService
+import to.bitkit.paykit.services.PubkyRingBridge
+import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkyStorageAdapter
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.PaykitKeychainStorage
@@ -144,6 +146,8 @@ class AppViewModel @Inject constructor(
     private val notifyPaymentReceivedHandler: NotifyPaymentReceivedHandler,
     private val cacheStore: CacheStore,
     private val transferRepo: TransferRepo,
+    private val pubkySDKService: PubkySDKService,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -1784,7 +1788,7 @@ class AppViewModel @Inject constructor(
         // Create PaymentRequestService
         val keyManager = KeyManager(context, keychain)
         val pubkyStorage = PubkyStorageAdapter(context)
-        val directoryService = DirectoryService(context, keyManager, pubkyStorage).apply {
+        val directoryService = DirectoryService(context, keyManager, pubkyStorage, pubkySDKService, pubkyRingBridge).apply {
             initialize(paykitClient)
         }
 
