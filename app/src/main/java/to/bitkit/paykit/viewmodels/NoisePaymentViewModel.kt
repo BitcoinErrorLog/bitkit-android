@@ -10,14 +10,18 @@ import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.services.NoisePaymentResponse
 import to.bitkit.paykit.services.NoisePaymentService
 import to.bitkit.paykit.services.PaykitPaymentService
+import to.bitkit.repositories.LightningRepo
+import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 /**
  * ViewModel for Noise payment flows
  */
+@HiltViewModel
 class NoisePaymentViewModel @Inject constructor(
     private val noisePaymentService: NoisePaymentService,
-    private val paymentService: PaykitPaymentService
+    private val paymentService: PaykitPaymentService,
+    private val lightningRepo: LightningRepo,
 ) : ViewModel() {
 
     private val _isConnecting = MutableStateFlow(false)
@@ -87,18 +91,19 @@ class NoisePaymentViewModel @Inject constructor(
                 // Pay the requester
                 // The payer becomes the recipient when we accept the request
                 val result = paymentService.pay(
+                    lightningRepo = lightningRepo,
                     recipient = request.payerPubkey,
                     amountSats = amountSats,
-                    peerPubkey = request.payerPubkey
+                    peerPubkey = request.payerPubkey,
                 )
 
                 // Store the payment response
                 _paymentResponse.value = NoisePaymentResponse(
-                    receiptId = request.receiptId,
                     success = true,
-                    paymentHash = result.paymentHash,
-                    preimage = result.preimage,
-                    feePaidSats = result.feeSats
+                    receiptId = request.receiptId,
+                    confirmedAt = System.currentTimeMillis(),
+                    errorCode = null,
+                    errorMessage = null,
                 )
 
                 // Clear the request
