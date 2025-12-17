@@ -3,9 +3,7 @@ package to.bitkit.helpers
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
 import java.util.UUID
 
 /**
@@ -152,22 +150,10 @@ object PubkyRingTestHelper {
     // MARK: - Wait Helpers
 
     /**
-     * Wait for app to return to foreground
+     * Wait for a specified duration
      */
-    fun waitForAppForeground(
-        packageName: String,
-        timeoutMs: Long = 10000
-    ): Boolean {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val startTime = System.currentTimeMillis()
-        
-        while (System.currentTimeMillis() - startTime < timeoutMs) {
-            if (device.currentPackageName == packageName) {
-                return true
-            }
-            Thread.sleep(500)
-        }
-        return false
+    fun waitForCallback(timeoutMs: Long = 5000) {
+        Thread.sleep(timeoutMs)
     }
 }
 

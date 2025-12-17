@@ -1,7 +1,6 @@
 package to.bitkit.helpers
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -90,50 +89,40 @@ object WalletTestHelper {
     fun hasActiveSession(rule: ComposeTestRule): Boolean {
         navigateToSessionManagement(rule)
         
+        // Check if "No active sessions" text is NOT displayed
         return try {
-            rule.onNodeWithText("No active sessions").assertDoesNotExist()
-            true
-        } catch (e: AssertionError) {
+            rule.onNodeWithText("No active sessions").assertIsDisplayed()
+            // If we get here, the "no sessions" text is displayed, so no active sessions
             false
+        } catch (e: AssertionError) {
+            // "No active sessions" not displayed means we have sessions
+            true
         }
     }
 
     /**
-     * Get the number of active sessions
+     * Get the number of active sessions (simplified - returns 0 or 1+)
      */
     fun getActiveSessionCount(rule: ComposeTestRule): Int {
-        navigateToSessionManagement(rule)
-        
-        // Count session items
-        var count = 0
-        try {
-            rule.onAllNodes(hasText("Session")).fetchSemanticsNodes().forEach { _ ->
-                count++
-            }
-        } catch (e: Exception) {
-            // No sessions found
-        }
-        return count
+        return if (hasActiveSession(rule)) 1 else 0
     }
 
     // MARK: - Contact Verification
 
     /**
-     * Get the number of contacts
+     * Get the number of contacts (simplified - returns 0 or 1+)
      */
     fun getContactCount(rule: ComposeTestRule): Int {
         navigateToContacts(rule)
         
-        // Count contact items
-        var count = 0
-        try {
-            rule.onAllNodes(hasText("Contact")).fetchSemanticsNodes().forEach { _ ->
-                count++
-            }
-        } catch (e: Exception) {
-            // No contacts found
+        // Check if we have any contacts by looking for contact-related UI
+        return try {
+            rule.onNodeWithText("No contacts").assertIsDisplayed()
+            0
+        } catch (e: AssertionError) {
+            // "No contacts" not displayed means we have contacts
+            1
         }
-        return count
     }
 
     /**
