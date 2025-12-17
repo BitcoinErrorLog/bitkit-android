@@ -22,7 +22,10 @@ class NoisePaymentViewModel @Inject constructor(
     private val noisePaymentService: NoisePaymentService,
     private val paymentService: PaykitPaymentService,
     private val lightningRepo: LightningRepo,
+    private val keyManager: to.bitkit.paykit.KeyManager,
 ) : ViewModel() {
+
+    val myPubkey: StateFlow<String> = keyManager.publicKeyZ32
 
     private val _isConnecting = MutableStateFlow(false)
     val isConnecting: StateFlow<Boolean> = _isConnecting.asStateFlow()

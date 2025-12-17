@@ -145,7 +145,12 @@ fun PaykitAutoPayScreen(
                             )
                         } else {
                             rules.forEach { rule ->
-                                RuleCard(rule = rule)
+                                RuleCard(
+                                    rule = rule,
+                                    onToggleEnabled = { enabled ->
+                                        viewModel.updateRule(rule.copy(isEnabled = enabled))
+                                    }
+                                )
                             }
                         }
                     }
@@ -185,7 +190,10 @@ fun PeerLimitCard(limit: PeerSpendingLimit) {
 }
 
 @Composable
-fun RuleCard(rule: AutoPayRule) {
+fun RuleCard(
+    rule: AutoPayRule,
+    onToggleEnabled: (Boolean) -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -206,9 +214,7 @@ fun RuleCard(rule: AutoPayRule) {
                 )
                 Switch(
                     checked = rule.isEnabled,
-                    onCheckedChange = {
-                        // TODO: Update rule enabled state
-                    }
+                    onCheckedChange = onToggleEnabled
                 )
             }
 

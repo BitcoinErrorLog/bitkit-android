@@ -26,6 +26,7 @@ fun NoisePaymentScreen(
     var methodId by remember { mutableStateOf("lightning") }
     var description by remember { mutableStateOf("") }
 
+    val myPubkey by viewModel.myPubkey.collectAsState()
     val isConnecting by viewModel.isConnecting.collectAsState()
     val isConnected by viewModel.isConnected.collectAsState()
     val paymentResponse by viewModel.paymentResponse.collectAsState()
@@ -103,7 +104,7 @@ fun NoisePaymentScreen(
                         Button(
                             onClick = {
                                 val request = NoisePaymentRequest(
-                                    payerPubkey = "", // TODO: Get from identity
+                                    payerPubkey = myPubkey,
                                     payeePubkey = recipientPubkey,
                                     methodId = methodId,
                                     amount = amount.takeIf { it.isNotEmpty() },
@@ -112,7 +113,7 @@ fun NoisePaymentScreen(
                                 viewModel.sendPayment(request)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !isConnecting && recipientPubkey.isNotEmpty() && amount.isNotEmpty()
+                            enabled = !isConnecting && myPubkey.isNotEmpty() && recipientPubkey.isNotEmpty() && amount.isNotEmpty()
                         ) {
                             if (isConnecting) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp))

@@ -102,6 +102,17 @@ class AutoPayViewModel @Inject constructor(
         }
     }
 
+    fun updateRule(rule: AutoPayRule) {
+        viewModelScope.launch {
+            try {
+                autoPayStorage.saveRule(rule)
+                loadSettings()
+            } catch (e: Exception) {
+                Logger.error("AutoPayViewModel: Failed to update rule", e, context = "AutoPayViewModel")
+            }
+        }
+    }
+
     fun updateSettings(settings: AutoPaySettings) {
         _settings.value = settings
         saveSettings()
