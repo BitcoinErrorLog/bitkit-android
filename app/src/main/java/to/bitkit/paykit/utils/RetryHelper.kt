@@ -1,7 +1,7 @@
 package to.bitkit.paykit.utils
 
 import kotlinx.coroutines.delay
-import to.bitkit.paykit.services.PubkyRingBridgeException
+import to.bitkit.paykit.services.PubkyRingException
 import to.bitkit.paykit.services.PubkySDKException
 import to.bitkit.utils.Logger
 import java.io.IOException
@@ -117,15 +117,16 @@ fun Throwable.userFriendlyMessage(): String {
         is PubkySDKException.InvalidData -> "Invalid data: ${this.message}"
         is PubkySDKException.InvalidUri -> "Invalid URL format."
 
-        // Pubky Ring Bridge errors
-        is PubkyRingBridgeException.PubkyRingNotInstalled ->
+        // Pubky Ring errors
+        is PubkyRingException.AppNotInstalled ->
             "Pubky-ring app is not installed. Please install it to use this feature."
-        is PubkyRingBridgeException.Timeout -> "Request timed out. Please try again."
-        is PubkyRingBridgeException.Cancelled -> "Request was cancelled."
-        is PubkyRingBridgeException.InvalidResponse -> "Received invalid response. Please try again."
-        is PubkyRingBridgeException.CrossDeviceTimeout ->
-            "Cross-device authentication timed out. Please try again."
-        is PubkyRingBridgeException.CrossDeviceFailed ->
+        is PubkyRingException.Timeout -> "Request timed out. Please try again."
+        is PubkyRingException.Cancelled -> "Request was cancelled."
+        is PubkyRingException.InvalidCallback, is PubkyRingException.MissingParameters ->
+            "Received invalid response. Please try again."
+        is PubkyRingException.FailedToOpenApp ->
+            "Failed to open Pubky-ring app. Please try again."
+        is PubkyRingException.CrossDeviceFailed ->
             "Cross-device authentication failed: ${this.message}"
 
         // Generic fallback
