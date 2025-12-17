@@ -179,6 +179,68 @@ class PubkySDKService @Inject constructor(
         sessionCache.values.firstOrNull()
     }
 
+    // MARK: - Session Expiration & Refresh
+
+    /**
+     * Check if a session is expired or will expire soon
+     */
+    fun isSessionExpired(session: PubkyCoreSession, bufferSeconds: Long = 300): Boolean {
+        val expiresAt = session.expiresAt ?: return false // No expiration set
+        return System.currentTimeMillis() + (bufferSeconds * 1000) >= expiresAt.time
+    }
+
+    /**
+     * Refresh a session before it expires
+     */
+    suspend fun refreshSession(pubkey: String): PubkyCoreSession {
+        val session = getSession(pubkey) ?: throw PubkySDKException.NoSession()
+
+        Logger.info("Refreshing session for ${pubkey.take(12)}...", context = TAG)
+
+        return try {
+            val refreshedSession = revalidateSession(session.sessionSecret)
+            Logger.info("Session refreshed successfully for ${pubkey.take(12)}...", context = TAG)
+            refreshedSession
+        } catch (e: Exception) {
+            Logger.error("Failed to refresh session for ${pubkey.take(12)}...", e = e, context = TAG)
+            throw e
+        }
+    }
+
+    /**
+     * Get a valid session, refreshing if needed
+     */
+    suspend fun getValidSession(pubkey: String): PubkyCoreSession {
+        val session = getSession(pubkey) ?: throw PubkySDKException.NoSession()
+
+        // Check if session needs refresh (5 minutes buffer)
+        if (isSessionExpired(session, bufferSeconds = 300)) {
+            Logger.info("Session expiring soon for ${pubkey.take(12)}..., refreshing", context = TAG)
+            return refreshSession(pubkey)
+        }
+
+        return session
+    }
+
+    /**
+     * Check all sessions and refresh those expiring soon
+     */
+    suspend fun refreshExpiringSessions() {
+        val sessions = sessionMutex.withLock {
+            sessionCache.values.toList()
+        }
+
+        for (session in sessions) {
+            if (isSessionExpired(session, bufferSeconds = 600)) { // 10 minute buffer
+                try {
+                    refreshSession(session.pubkey)
+                } catch (e: Exception) {
+                    Logger.error("Failed to refresh expiring session for ${session.pubkey.take(12)}...", e = e, context = TAG)
+                }
+            }
+        }
+    }
+
     // MARK: - Profile Operations
 
     /**
