@@ -62,7 +62,7 @@ object RetryHelper {
                     throw e
                 }
 
-                Logger.warning(
+                Logger.warn(
                     "Operation failed (attempt $attempt/${config.maxAttempts}), retrying in ${delayMs}ms: ${e.message}",
                     context = "RetryHelper"
                 )
