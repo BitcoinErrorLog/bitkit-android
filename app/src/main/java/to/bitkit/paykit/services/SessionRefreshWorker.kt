@@ -1,21 +1,25 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import to.bitkit.utils.Logger
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 /**
  * Background worker for refreshing Pubky sessions before expiration
  */
-class SessionRefreshWorker(
-    context: Context,
-    params: WorkerParameters
+@HiltWorker
+class SessionRefreshWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val pubkySDKService: PubkySDKService
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -53,14 +57,8 @@ class SessionRefreshWorker(
         Logger.info("Background session refresh started", context = TAG)
 
         return try {
-            // Get PubkySDKService instance
-            val pubkySDK = PubkySDKService(
-                applicationContext,
-                to.bitkit.paykit.storage.PaykitKeychainStorage(applicationContext)
-            )
-
-            // Refresh expiring sessions
-            pubkySDK.refreshExpiringSessions()
+            // Refresh expiring sessions using injected service
+            pubkySDKService.refreshExpiringSessions()
 
             Logger.info("Background session refresh completed", context = TAG)
             Result.success()
