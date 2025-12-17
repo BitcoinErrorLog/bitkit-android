@@ -9,13 +9,15 @@ import kotlinx.coroutines.launch
 import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.services.NoisePaymentResponse
 import to.bitkit.paykit.services.NoisePaymentService
+import to.bitkit.paykit.services.PaykitPaymentService
 import javax.inject.Inject
 
 /**
  * ViewModel for Noise payment flows
  */
 class NoisePaymentViewModel @Inject constructor(
-    private val noisePaymentService: NoisePaymentService
+    private val noisePaymentService: NoisePaymentService,
+    private val paymentService: PaykitPaymentService
 ) : ViewModel() {
 
     private val _isConnecting = MutableStateFlow(false)
@@ -66,6 +68,52 @@ class NoisePaymentViewModel @Inject constructor(
             } finally {
                 _isConnecting.value = false
             }
+        }
+    }
+
+    fun acceptIncomingRequest() {
+        val request = _paymentRequest.value ?: return
+
+        viewModelScope.launch {
+            _errorMessage.value = null
+
+            try {
+                // Parse the amount (assuming it's in sats if currency is not specified or is "sats")
+                val amountSats = request.amount?.toULongOrNull() ?: run {
+                    _errorMessage.value = "Invalid payment amount"
+                    return@launch
+                }
+
+                // Pay the requester
+                // The payer becomes the recipient when we accept the request
+                val result = paymentService.pay(
+                    recipient = request.payerPubkey,
+                    amountSats = amountSats,
+                    peerPubkey = request.payerPubkey
+                )
+
+                // Store the payment response
+                _paymentResponse.value = NoisePaymentResponse(
+                    receiptId = request.receiptId,
+                    success = true,
+                    paymentHash = result.paymentHash,
+                    preimage = result.preimage,
+                    feePaidSats = result.feeSats
+                )
+
+                // Clear the request
+                _paymentRequest.value = null
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Payment failed: ${e.message}"
+            }
+        }
+    }
+
+    fun declineIncomingRequest() {
+        viewModelScope.launch {
+            // Decline by simply clearing the request
+            _paymentRequest.value = null
         }
     }
 }
