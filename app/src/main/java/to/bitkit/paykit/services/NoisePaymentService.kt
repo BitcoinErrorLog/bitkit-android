@@ -3,6 +3,7 @@ package to.bitkit.paykit.services
 import android.content.Context
 import com.paykit.mobile.*
 import com.pubky.noise.*
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,7 +68,7 @@ sealed class NoisePaymentError(message: String) : Exception(message) {
  */
 @Singleton
 class NoisePaymentService @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
     private val directoryService: DirectoryService,
     private val pubkyRingIntegration: PubkyRingIntegration
