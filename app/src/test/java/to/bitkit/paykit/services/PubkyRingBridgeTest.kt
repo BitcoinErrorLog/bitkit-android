@@ -24,10 +24,13 @@ class PubkyRingBridgeTest {
     private lateinit var bridge: PubkyRingBridge
     private lateinit var mockContext: Context
     private lateinit var mockPackageManager: PackageManager
+    private lateinit var mockKeychainStorage: to.bitkit.paykit.storage.PaykitKeychainStorage
 
     @Before
     fun setUp() {
-        bridge = PubkyRingBridge.getInstance()
+        mockKeychainStorage = mock()
+        whenever(mockKeychainStorage.getString(org.mockito.kotlin.any())).thenReturn(null)
+        bridge = PubkyRingBridge(mockKeychainStorage)
         bridge.clearCache()
         mockContext = mock()
         mockPackageManager = mock()
