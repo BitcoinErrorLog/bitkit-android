@@ -1655,6 +1655,7 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
             onNavigateToContactDiscovery = { navController.navigate(Routes.PaykitContactDiscovery) },
             onNavigateToPrivateEndpoints = { navController.navigate(Routes.PaykitPrivateEndpoints) },
             onNavigateToRotationSettings = { navController.navigate(Routes.PaykitRotationSettings) },
+            onNavigateToPubkyRingAuth = { navController.navigate(Routes.PubkyRingAuth) },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitContacts> {
@@ -1716,6 +1717,23 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitRotationSettings> {
         to.bitkit.ui.paykit.RotationSettingsScreen(
             onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PubkyRingAuth> { backstackEntry ->
+        // Check for scanned QR code result
+        val scannedQrCode = backstackEntry.savedStateHandle.get<String>("scanned_qr_code")
+        
+        to.bitkit.paykit.ui.PubkyRingAuthScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onSessionReceived = { session ->
+                // Session is already cached in PubkyRingBridge.importSession()
+                navController.popBackStack()
+            },
+            onNavigateToScanner = {
+                backstackEntry.savedStateHandle[SCAN_REQUEST_KEY] = true
+                navController.navigate(Routes.QrScanner)
+            },
+            scannedQrCode = scannedQrCode,
         )
     }
 }
@@ -2069,4 +2087,7 @@ sealed interface Routes {
 
     @Serializable
     data object PaykitRotationSettings : Routes
+
+    @Serializable
+    data object PubkyRingAuth : Routes
 }

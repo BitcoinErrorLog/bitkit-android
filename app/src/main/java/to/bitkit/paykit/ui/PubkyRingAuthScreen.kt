@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
@@ -55,7 +54,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -70,6 +68,8 @@ import to.bitkit.ui.theme.Colors
 fun PubkyRingAuthScreen(
     onNavigateBack: () -> Unit,
     onSessionReceived: (PubkySession) -> Unit,
+    onNavigateToScanner: (() -> Unit)? = null,
+    scannedQrCode: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -85,9 +85,26 @@ fun PubkyRingAuthScreen(
     var manualPubkey by remember { mutableStateOf("") }
     var manualSessionSecret by remember { mutableStateOf("") }
     var timeRemaining by remember { mutableLongStateOf(0L) }
+    var pastedUrl by remember { mutableStateOf("") }
 
     val isPubkyRingInstalled = remember { bridge.isPubkyRingInstalled(context) }
     val recommendedMethod = remember { bridge.getRecommendedAuthMethod(context) }
+
+    // Handle scanned QR code
+    LaunchedEffect(scannedQrCode) {
+        scannedQrCode?.let { qrCode ->
+            if (qrCode.contains("pubky://") || qrCode.contains("pubkyring://")) {
+                try {
+                    val session = bridge.handleAuthUrl(qrCode)
+                    onSessionReceived(session)
+                } catch (e: Exception) {
+                    errorMessage = e.message ?: "Failed to process QR code"
+                }
+            } else {
+                pastedUrl = qrCode
+            }
+        }
+    }
 
     // Set initial tab based on availability
     LaunchedEffect(Unit) {
@@ -117,9 +134,9 @@ fun PubkyRingAuthScreen(
     }
 
     val tabs = if (isPubkyRingInstalled) {
-        listOf("Same Device", "QR Code", "Manual")
+        listOf("Same Device", "Show QR", "Scan/Paste")
     } else {
-        listOf("QR Code", "Manual")
+        listOf("Show QR", "Scan/Paste")
     }
 
     Scaffold(
@@ -194,17 +211,24 @@ fun PubkyRingAuthScreen(
                         }
                     },
                 )
-                2 -> ManualEntryTabContent(
-                    pubkey = manualPubkey,
-                    onPubkeyChange = { manualPubkey = it },
-                    sessionSecret = manualSessionSecret,
-                    onSessionSecretChange = { manualSessionSecret = it },
-                    onImport = {
-                        val session = bridge.importSession(
-                            pubkey = manualPubkey.trim(),
-                            sessionSecret = manualSessionSecret.trim(),
-                        )
-                        onSessionReceived(session)
+                2 -> ScanPasteTabContent(
+                    pastedUrl = pastedUrl,
+                    onPastedUrlChange = { pastedUrl = it },
+                    onScanClick = onNavigateToScanner,
+                    onPasteFromClipboard = {
+                        clipboardManager.getText()?.text?.let { text ->
+                            pastedUrl = text
+                        }
+                    },
+                    onConnect = {
+                        scope.launch {
+                            try {
+                                val session = bridge.handleAuthUrl(pastedUrl.trim())
+                                onSessionReceived(session)
+                            } catch (e: Exception) {
+                                errorMessage = e.message ?: "Invalid Pubky Ring URL"
+                            }
+                        }
                     },
                 )
             }
@@ -425,12 +449,12 @@ private fun CrossDeviceTabContent(
 }
 
 @Composable
-private fun ManualEntryTabContent(
-    pubkey: String,
-    onPubkeyChange: (String) -> Unit,
-    sessionSecret: String,
-    onSessionSecretChange: (String) -> Unit,
-    onImport: () -> Unit,
+private fun ScanPasteTabContent(
+    pastedUrl: String,
+    onPastedUrlChange: (String) -> Unit,
+    onScanClick: (() -> Unit)?,
+    onPasteFromClipboard: () -> Unit,
+    onConnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -441,7 +465,7 @@ private fun ManualEntryTabContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Default.Keyboard,
+            imageVector = Icons.Default.QrCode,
             contentDescription = null,
             modifier = Modifier.size(60.dp),
             tint = Colors.Brand,
@@ -450,7 +474,7 @@ private fun ManualEntryTabContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Manual Entry",
+            text = "Scan or Paste",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
@@ -458,7 +482,7 @@ private fun ManualEntryTabContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter your Pubky credentials manually if other methods aren't available.",
+            text = "Scan a Pubky Ring QR code or paste the connection URL.",
             style = MaterialTheme.typography.bodyMedium,
             color = Colors.White64,
             textAlign = TextAlign.Center,
@@ -466,38 +490,55 @@ private fun ManualEntryTabContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        if (onScanClick != null) {
+            Button(
+                onClick = onScanClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                ),
+            ) {
+                Icon(Icons.Default.QrCode, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Scan QR Code")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "or paste a URL",
+                style = MaterialTheme.typography.bodySmall,
+                color = Colors.White64,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         OutlinedTextField(
-            value = pubkey,
-            onValueChange = onPubkeyChange,
-            label = { Text("Public Key (z-base32)") },
-            placeholder = { Text("e.g., z6mk...") },
+            value = pastedUrl,
+            onValueChange = onPastedUrlChange,
+            label = { Text("Pubky Ring URL") },
+            placeholder = { Text("pubky://... or pubkyring://...") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = sessionSecret,
-            onValueChange = onSessionSecretChange,
-            label = { Text("Session Secret") },
-            placeholder = { Text("Secret from Pubky-ring") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = onPasteFromClipboard) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Paste from clipboard")
+                }
+            },
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = onImport,
+            onClick = onConnect,
             modifier = Modifier.fillMaxWidth(),
-            enabled = pubkey.isNotBlank() && sessionSecret.isNotBlank(),
+            enabled = pastedUrl.isNotBlank(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Colors.Brand,
             ),
         ) {
-            Text("Import Session")
+            Text("Connect")
         }
     }
 }

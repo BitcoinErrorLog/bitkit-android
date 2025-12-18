@@ -457,6 +457,37 @@ class PubkyRingBridge @Inject constructor(
     }
 
     /**
+     * Handle an authentication URL from a scanned QR code or pasted link
+     *
+     * Parses URLs in the format:
+     * - pubky://session?pubkey=...&session_secret=...
+     * - pubkyring://session?pubkey=...&session_secret=...
+     * - bitkit://paykit-session?pubkey=...&session_secret=...
+     *
+     * @param url The URL to parse
+     * @return PubkySession if successful
+     * @throws PubkyRingException if URL is invalid
+     */
+    fun handleAuthUrl(url: String): PubkySession {
+        val uri = Uri.parse(url)
+        
+        // Check if it's a callback URL with session data
+        val pubkey = uri.getQueryParameter("pubkey") ?: uri.getQueryParameter("pk")
+        val sessionSecret = uri.getQueryParameter("session_secret") ?: uri.getQueryParameter("ss")
+        
+        if (pubkey != null && sessionSecret != null) {
+            val capabilities = uri.getQueryParameter("capabilities")
+                ?.split(",")
+                ?.filter { it.isNotEmpty() }
+                ?: emptyList()
+            
+            return importSession(pubkey, sessionSecret, capabilities)
+        }
+        
+        throw PubkyRingException.InvalidCallback
+    }
+
+    /**
      * Import a session manually (for offline/manual cross-device flow)
      *
      * @param pubkey The z-base32 encoded public key
