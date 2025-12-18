@@ -9,12 +9,14 @@ import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.storage.ContactStorage
+import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 /**
  * ViewModel for Contacts management
  */
+@HiltViewModel
 class ContactsViewModel @Inject constructor(
     private val contactStorage: ContactStorage,
     private val directoryService: DirectoryService

@@ -9,12 +9,14 @@ import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.PaymentDirection
 import to.bitkit.paykit.models.PaymentStatus
 import to.bitkit.paykit.models.Receipt
+import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.paykit.storage.ReceiptStorage
 import javax.inject.Inject
 
 /**
  * ViewModel for Receipts view
  */
+@HiltViewModel
 class ReceiptsViewModel @Inject constructor(
     private val receiptStorage: ReceiptStorage
 ) : ViewModel() {

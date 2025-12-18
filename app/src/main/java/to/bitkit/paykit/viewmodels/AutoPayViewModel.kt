@@ -12,12 +12,14 @@ import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.services.AutopayEvaluationResult
 import to.bitkit.paykit.services.IAutopayEvaluator
 import to.bitkit.paykit.storage.AutoPayStorage
+import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 /**
  * ViewModel for Auto-Pay settings
  */
+@HiltViewModel
 class AutoPayViewModel @Inject constructor(
     private val autoPayStorage: AutoPayStorage
 ) : ViewModel() {

@@ -8,12 +8,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.storage.SubscriptionStorage
+import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 /**
  * ViewModel for Subscriptions management
  */
+@HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionStorage: SubscriptionStorage
 ) : ViewModel() {

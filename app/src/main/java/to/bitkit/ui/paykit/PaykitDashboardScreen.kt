@@ -43,9 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -54,7 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import org.json.JSONObject
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.viewmodels.DashboardViewModel
 import to.bitkit.ui.components.Title
@@ -77,38 +74,7 @@ fun PaykitDashboardScreen(
     onNavigateToPubkyRingAuth: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:79",
-            "message" to "PaykitDashboardScreen composable entry",
-            "data" to mapOf("hasViewModel" to (viewModel != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
     val context = LocalContext.current
-    
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:82",
-            "message" to "Before collectAsState calls",
-            "data" to mapOf("contextNotNull" to (context != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "B"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
     val recentReceipts by viewModel.recentReceipts.collectAsState()
     val contactCount by viewModel.contactCount.collectAsState()
     val totalSent by viewModel.totalSent.collectAsState()
@@ -120,126 +86,16 @@ fun PaykitDashboardScreen(
     val pendingRequests by viewModel.pendingRequests.collectAsState()
     val publishedMethodsCount by viewModel.publishedMethodsCount.collectAsState()
 
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:95",
-            "message" to "Before PubkyRingBridge.getInstance()",
-            "data" to emptyMap<String, Any>(),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
     val pubkyRingBridge = remember { 
-        try {
-            PubkyRingBridge.getInstance()
-        } catch (e: Exception) {
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:98",
-                    "message" to "PubkyRingBridge.getInstance() failed",
-                    "data" to mapOf("error" to (e.message ?: "unknown"), "errorType" to e.javaClass.simpleName),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "A"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (logErr: Exception) {}
-            // #endregion
-            null
-        }
+        runCatching { PubkyRingBridge.getInstance() }.getOrNull()
     }
     
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:105",
-            "message" to "After PubkyRingBridge.getInstance()",
-            "data" to mapOf("pubkyRingBridgeNotNull" to (pubkyRingBridge != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
     val isPubkyRingInstalled = remember(pubkyRingBridge) { 
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "PaykitDashboardScreen.kt:115",
-                "message" to "Calling isPubkyRingInstalled",
-                "data" to mapOf("pubkyRingBridgeNotNull" to (pubkyRingBridge != null), "contextNotNull" to (context != null)),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "A"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
         pubkyRingBridge?.isPubkyRingInstalled(context) ?: false
     }
 
     LaunchedEffect(Unit) {
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "PaykitDashboardScreen.kt:192",
-                "message" to "LaunchedEffect triggered, calling loadDashboard",
-                "data" to emptyMap<String, Any>(),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "B"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        
-        try {
-            viewModel.loadDashboard()
-            
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:205",
-                    "message" to "loadDashboard call completed",
-                    "data" to emptyMap<String, Any>(),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "B"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (e: Exception) {}
-            // #endregion
-        } catch (e: Exception) {
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:217",
-                    "message" to "loadDashboard threw exception",
-                    "data" to mapOf("error" to (e.message ?: "unknown"), "errorType" to e.javaClass.simpleName, "stackTrace" to e.stackTraceToString()),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "B"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (logErr: Exception) {}
-            // #endregion
-            throw e
-        }
+        viewModel.loadDashboard()
     }
 
     ScreenColumn {
