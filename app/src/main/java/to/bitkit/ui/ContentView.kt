@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import org.json.JSONObject
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -1645,27 +1644,17 @@ fun NavController.navigateToAboutSettings() = navigate(
 
 private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitDashboard> {
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "ContentView.kt:1646",
-                "message" to "Navigating to PaykitDashboard",
-                "data" to emptyMap<String, Any>(),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "C"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        
         to.bitkit.ui.paykit.PaykitDashboardScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToReceipts = { navController.navigate(Routes.PaykitReceipts) },
             onNavigateToContacts = { navController.navigate(Routes.PaykitContacts) },
             onNavigateToSubscriptions = { navController.navigate(Routes.PaykitSubscriptions) },
-            onNavigateToAutoPay = { navController.navigate(Routes.PaykitAutoPay) }
+            onNavigateToAutoPay = { navController.navigate(Routes.PaykitAutoPay) },
+            onNavigateToPaymentRequests = { navController.navigate(Routes.PaykitPaymentRequests) },
+            onNavigateToNoisePayment = { navController.navigate(Routes.PaykitNoisePayment) },
+            onNavigateToContactDiscovery = { navController.navigate(Routes.PaykitContactDiscovery) },
+            onNavigateToPrivateEndpoints = { navController.navigate(Routes.PaykitPrivateEndpoints) },
+            onNavigateToRotationSettings = { navController.navigate(Routes.PaykitRotationSettings) },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitContacts> {
