@@ -785,7 +785,7 @@ class PubkyRingBridge @Inject constructor(
 
         // Create session
         val session = PubkySession(
-            pubky = pubkey,
+            pubkey = pubkey,
             sessionSecret = sessionSecret,
             capabilities = capabilities,
             createdAt = Date(),

@@ -11,11 +11,13 @@ import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.models.RequestDirection
 import to.bitkit.paykit.services.NoisePaymentService
+import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Logger
 import java.net.ServerSocket
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.runBlocking
 
 /**
  * Background worker for handling incoming Noise protocol connections.
@@ -72,7 +74,7 @@ class NoiseServerWorker @AssistedInject constructor(
         try {
             // Start background server via NoisePaymentService
             noisePaymentService.startBackgroundServer(port) { request ->
-                handleIncomingRequest(request, fromPubkey)
+                runBlocking { handleIncomingRequest(request, fromPubkey) }
             }
             
             Logger.info("NoiseServerWorker: Successfully processed incoming request", context = TAG)
@@ -85,7 +87,7 @@ class NoiseServerWorker @AssistedInject constructor(
     }
     
     private suspend fun handleIncomingRequest(
-        noiseRequest: NoisePaymentService.NoisePaymentRequest,
+        noiseRequest: NoisePaymentRequest,
         expectedFromPubkey: String?
     ) {
         // Validate sender if expected pubkey was provided

@@ -201,7 +201,7 @@ class DirectoryService @Inject constructor(
         val json = kotlinx.serialization.json.Json.encodeToString(endpoint)
 
         try {
-            pubkyStorage.store(pushPath, json.toByteArray())
+            pubkyStorage.store(pushPath, json.toByteArray(), transport)
             Logger.info("Published push notification endpoint to directory", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish push endpoint", e, context = TAG)
@@ -235,7 +235,7 @@ class DirectoryService @Inject constructor(
         val pushPath = "${PAYKIT_PATH_PREFIX}push"
 
         try {
-            pubkyStorage.delete(pushPath)
+            pubkyStorage.delete(pushPath, transport)
             Logger.info("Removed push notification endpoint from directory", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove push endpoint", e, context = TAG)

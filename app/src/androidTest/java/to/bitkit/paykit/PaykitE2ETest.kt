@@ -5,6 +5,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -16,16 +18,21 @@ import to.bitkit.ui.MainActivity
 /**
  * End-to-end tests for Paykit integration with Pubky-ring
  */
+@HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class PaykitE2ETest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Before
     fun setup() {
+        hiltRule.inject()
         // Wait for app to initialize
         WalletTestHelper.waitForWalletReady(composeTestRule)
     }
