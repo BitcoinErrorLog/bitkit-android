@@ -111,6 +111,29 @@ fun PaymentRequestRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
+                    // Invoice Number
+                    Text(
+                        text = "Invoice: ${request.displayInvoiceNumber}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    
+                    // Receipt Link (if paid)
+                    if (request.isFulfilled) {
+                        request.receiptId?.let { receiptId ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "✓ Receipt: ${receiptId.take(8)}...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(

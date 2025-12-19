@@ -56,7 +56,7 @@ class PubkyRingBridge @Inject constructor(
         private const val TAG = "PubkyRingBridge"
 
         // Package name for Pubky-ring app
-        private const val PUBKY_RING_PACKAGE = "com.pubkyring"
+        private const val PUBKY_RING_PACKAGE = "to.pubky.ring"
 
         // URL schemes
         private const val PUBKY_RING_SCHEME = "pubkyring"
@@ -78,6 +78,7 @@ class PubkyRingBridge @Inject constructor(
         const val CALLBACK_PATH_PROFILE = "paykit-profile"
         const val CALLBACK_PATH_FOLLOWS = "paykit-follows"
         const val CALLBACK_PATH_CROSS_DEVICE_SESSION = "paykit-cross-session"
+        const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
 
         @Volatile
         private var instance: PubkyRingBridge? = null
@@ -99,6 +100,7 @@ class PubkyRingBridge @Inject constructor(
     // Pending continuations for async requests
     private var pendingSessionContinuation: Continuation<PubkySession>? = null
     private var pendingKeypairContinuation: Continuation<NoiseKeypair>? = null
+    private var pendingPaykitSetupContinuation: Continuation<PaykitSetupResult>? = null
 
     // Pending cross-device request ID
     private var pendingCrossDeviceRequestId: String? = null
@@ -159,12 +161,29 @@ class PubkyRingBridge @Inject constructor(
      */
     fun isPubkyRingInstalled(context: Context): Boolean {
         return try {
-            context.packageManager.getPackageInfo(PUBKY_RING_PACKAGE, 0)
-            true
-        } catch (e: PackageManager.NameNotFoundException) {
-            // Also try URL scheme check
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$PUBKY_RING_SCHEME://"))
-            intent.resolveActivity(context.packageManager) != null
+            // Method 1: Try to get package info (works on all Android versions)
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    // Android 13+ requires explicit query
+                    context.packageManager.getPackageInfo(PUBKY_RING_PACKAGE, PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.packageManager.getPackageInfo(PUBKY_RING_PACKAGE, 0)
+                }
+                Logger.debug("Pubky Ring detected via package info", context = TAG)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                // Package not found, try URL scheme check
+                Logger.debug("Package not found, trying URL scheme check", context = TAG)
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$PUBKY_RING_SCHEME://"))
+                val resolveInfo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                val found = resolveInfo != null
+                Logger.debug("URL scheme check result: $found", context = TAG)
+                found
+            }
+        } catch (e: Exception) {
+            Logger.error("Pubky Ring detection error: ${e.message}", e, context = TAG)
+            false
         }
     }
 
@@ -203,6 +222,48 @@ class PubkyRingBridge @Inject constructor(
         } catch (e: Exception) {
             Logger.error("Failed to open Pubky-ring", e, context = TAG)
             pendingSessionContinuation = null
+            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+        }
+    }
+
+    /**
+     * Request complete Paykit setup from Pubky-ring (session + noise keys in one request)
+     *
+     * This is the preferred method for initial Paykit setup as it:
+     * - Gets everything in a single user interaction
+     * - Ensures noise keys are available even if Ring is later unavailable
+     * - Includes both epoch 0 and epoch 1 keypairs for key rotation
+     *
+     * @param context Android context
+     * @return PaykitSetupResult containing session and noise keypairs
+     * @throws PubkyRingException if request fails or app not installed
+     */
+    suspend fun requestPaykitSetup(context: Context): PaykitSetupResult = suspendCancellableCoroutine { continuation ->
+        if (!isPubkyRingInstalled(context)) {
+            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
+            return@suspendCancellableCoroutine
+        }
+
+        val actualDeviceId = deviceId
+        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_PAYKIT_SETUP"
+        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
+        val requestUrl = "$PUBKY_RING_SCHEME://paykit-connect?deviceId=$actualDeviceId&callback=$encodedCallback"
+
+        Logger.info("Requesting Paykit setup from Pubky Ring", context = TAG)
+
+        pendingPaykitSetupContinuation = continuation
+
+        continuation.invokeOnCancellation {
+            pendingPaykitSetupContinuation = null
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Logger.error("Failed to open Pubky-ring for Paykit setup", e, context = TAG)
+            pendingPaykitSetupContinuation = null
             continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
         }
     }
@@ -620,6 +681,7 @@ class PubkyRingBridge @Inject constructor(
             CALLBACK_PATH_PROFILE -> handleProfileCallback(uri)
             CALLBACK_PATH_FOLLOWS -> handleFollowsCallback(uri)
             CALLBACK_PATH_CROSS_DEVICE_SESSION -> handleCrossDeviceSessionCallback(uri)
+            CALLBACK_PATH_PAYKIT_SETUP -> handlePaykitSetupCallback(uri)
             else -> false
         }
     }
@@ -701,6 +763,100 @@ class PubkyRingBridge @Inject constructor(
 
         pendingKeypairContinuation?.resume(keypair)
         pendingKeypairContinuation = null
+
+        return true
+    }
+
+    private fun handlePaykitSetupCallback(uri: Uri): Boolean {
+        val pubkey = uri.getQueryParameter("pubky")
+        val sessionSecret = uri.getQueryParameter("session_secret")
+        val deviceId = uri.getQueryParameter("device_id")
+
+        if (pubkey == null || sessionSecret == null || deviceId == null) {
+            pendingPaykitSetupContinuation?.resumeWithException(PubkyRingException.MissingParameters)
+            pendingPaykitSetupContinuation = null
+            return true
+        }
+
+        val capabilities = uri.getQueryParameter("capabilities")
+            ?.split(",")
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
+
+        // Create session
+        val session = PubkySession(
+            pubky = pubkey,
+            sessionSecret = sessionSecret,
+            capabilities = capabilities,
+            createdAt = Date(),
+            expiresAt = null,  // Sessions from paykit-connect don't expire
+        )
+
+        // Parse noise keypair epoch 0 (optional but expected)
+        var keypair0: NoiseKeypair? = null
+        val publicKey0 = uri.getQueryParameter("noise_public_key_0")
+        val secretKey0 = uri.getQueryParameter("noise_secret_key_0")
+        if (publicKey0 != null && secretKey0 != null) {
+            keypair0 = NoiseKeypair(
+                publicKey = publicKey0,
+                secretKey = secretKey0,
+                deviceId = deviceId,
+                epoch = 0u,
+            )
+        }
+
+        // Parse noise keypair epoch 1 (optional)
+        var keypair1: NoiseKeypair? = null
+        val publicKey1 = uri.getQueryParameter("noise_public_key_1")
+        val secretKey1 = uri.getQueryParameter("noise_secret_key_1")
+        if (publicKey1 != null && secretKey1 != null) {
+            keypair1 = NoiseKeypair(
+                publicKey = publicKey1,
+                secretKey = secretKey1,
+                deviceId = deviceId,
+                epoch = 1u,
+            )
+        }
+
+        val result = PaykitSetupResult(
+            session = session,
+            deviceId = deviceId,
+            noiseKeypair0 = keypair0,
+            noiseKeypair1 = keypair1,
+        )
+
+        // Cache session
+        sessionCache[pubkey] = session
+
+        // Cache and persist noise keypairs
+        if (keypair0 != null) {
+            val cacheKey = "$deviceId:0"
+            keypairCache[cacheKey] = keypair0
+            try {
+                val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
+                NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, 0u)
+                Logger.debug("Stored noise keypair for epoch 0", context = TAG)
+            } catch (e: Exception) {
+                Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
+            }
+        }
+
+        if (keypair1 != null) {
+            val cacheKey = "$deviceId:1"
+            keypairCache[cacheKey] = keypair1
+            try {
+                val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
+                NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, 1u)
+                Logger.debug("Stored noise keypair for epoch 1", context = TAG)
+            } catch (e: Exception) {
+                Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
+            }
+        }
+
+        Logger.info("Paykit setup callback received for ${pubkey.take(12)}...", context = TAG)
+
+        pendingPaykitSetupContinuation?.resume(result)
+        pendingPaykitSetupContinuation = null
 
         return true
     }
@@ -1006,6 +1162,24 @@ data class NoiseKeypair(
     val deviceId: String,
     val epoch: ULong,
 )
+
+/**
+ * Result from combined Paykit setup request.
+ * Contains everything needed to operate Paykit: session + noise keys.
+ */
+data class PaykitSetupResult(
+    /** Homeserver session for authenticated storage access */
+    val session: PubkySession,
+    /** Device ID used for noise key derivation */
+    val deviceId: String,
+    /** X25519 keypair for epoch 0 (current) */
+    val noiseKeypair0: NoiseKeypair?,
+    /** X25519 keypair for epoch 1 (for rotation) */
+    val noiseKeypair1: NoiseKeypair?,
+) {
+    /** Check if noise keys are available */
+    val hasNoiseKeys: Boolean get() = noiseKeypair0 != null
+}
 
 /**
  * Errors from PubkyRingBridge

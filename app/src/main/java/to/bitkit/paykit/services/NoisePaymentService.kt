@@ -30,7 +30,9 @@ data class NoisePaymentRequest(
     val methodId: String,
     val amount: String? = null,
     val currency: String? = null,
-    val description: String? = null
+    val description: String? = null,
+    /** Invoice number for cross-referencing */
+    val invoiceNumber: String? = null
 )
 
 /**
@@ -305,6 +307,188 @@ class NoisePaymentService @Inject constructor(
 
     private fun receiveLengthPrefixedData(): ByteArray {
         return receiveRawData()
+    }
+
+    // MARK: - Background Server Mode
+
+    private var serverSocket: java.net.ServerSocket? = null
+    private var isServerRunning = false
+    private var onRequestCallback: ((NoisePaymentRequest) -> Unit)? = null
+
+    /**
+     * Start a background Noise server to receive incoming payment requests.
+     * This is called when the app is woken by a push notification indicating
+     * an incoming Noise connection.
+     * 
+     * @param port Port to listen on
+     * @param onRequest Callback invoked when a payment request is received
+     */
+    suspend fun startBackgroundServer(
+        port: Int,
+        onRequest: (NoisePaymentRequest) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        if (isServerRunning) {
+            Logger.warn("Background server already running", context = TAG)
+            return@withContext
+        }
+
+        onRequestCallback = onRequest
+
+        try {
+            serverSocket = java.net.ServerSocket(port)
+            serverSocket?.soTimeout = 30000 // 30 second timeout waiting for connection
+            isServerRunning = true
+
+            Logger.info("Noise server started on port $port", context = TAG)
+
+            // Accept a single connection (push-wake mode)
+            val clientSocket = serverSocket?.accept()
+            if (clientSocket != null) {
+                handleServerConnection(clientSocket)
+            }
+
+        } catch (e: java.net.SocketTimeoutException) {
+            Logger.info("Server timeout - no incoming connection", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Server error", e, context = TAG)
+            throw e
+        } finally {
+            stopBackgroundServer()
+        }
+    }
+
+    /**
+     * Stop the background server
+     */
+    fun stopBackgroundServer() {
+        try {
+            serverSocket?.close()
+        } catch (_: Exception) {}
+        serverSocket = null
+        isServerRunning = false
+        onRequestCallback = null
+        Logger.info("Background server stopped", context = TAG)
+    }
+
+    /**
+     * Handle an incoming server connection
+     */
+    private suspend fun handleServerConnection(clientSocket: java.net.Socket) = withContext(Dispatchers.IO) {
+        socket = clientSocket
+
+        try {
+            // Get seed for server mode
+            val seedData = keyManager.getSecretKeyBytes()
+                ?: throw NoisePaymentError.NoIdentity
+
+            val deviceId = keyManager.getDeviceId()
+            val deviceIdBytes = deviceId.toByteArray()
+
+            // Create Noise manager in server mode
+            val config = FfiMobileConfig(
+                autoReconnect = false,
+                maxReconnectAttempts = 0u,
+                reconnectDelayMs = 0u,
+                batterySaver = false,
+                chunkSize = 32768u
+            )
+
+            noiseManager = FfiNoiseManager.newServer(
+                config = config,
+                serverSeed = seedData,
+                serverKid = "bitkit-android-server",
+                deviceId = deviceIdBytes
+            )
+
+            // Perform server-side handshake
+            performServerHandshake()
+
+            // Receive encrypted message
+            val ciphertext = receiveLengthPrefixedData()
+            val sessionId = _currentSessionId.value
+                ?: throw NoisePaymentError.ConnectionFailed("No session")
+
+            // Decrypt
+            val plaintext = noiseManager?.decrypt(sessionId, ciphertext)
+                ?: throw NoisePaymentError.DecryptionFailed("Failed to decrypt")
+
+            // Parse as payment request
+            val request = parsePaymentRequest(plaintext)
+
+            // Send confirmation response
+            val response = JSONObject().apply {
+                put("type", "confirm_receipt")
+                put("receipt_id", request.receiptId)
+                put("confirmed_at", System.currentTimeMillis() / 1000)
+            }
+            val responseData = response.toString().toByteArray()
+            val encryptedResponse = noiseManager?.encrypt(sessionId, responseData)
+                ?: throw NoisePaymentError.EncryptionFailed("Failed to encrypt response")
+            sendLengthPrefixedData(encryptedResponse)
+
+            // Notify callback
+            onRequestCallback?.invoke(request)
+
+            Logger.info("Successfully received payment request: ${request.receiptId}", context = TAG)
+
+        } catch (e: Exception) {
+            Logger.error("Error handling server connection", e, context = TAG)
+            throw e
+        } finally {
+            disconnect()
+        }
+    }
+
+    /**
+     * Perform server-side Noise handshake
+     */
+    private suspend fun performServerHandshake() = withContext(Dispatchers.IO) {
+        val manager = noiseManager ?: throw NoisePaymentError.HandshakeFailed("Noise manager not initialized")
+
+        // Receive first message from client
+        val firstMessage = receiveRawData()
+
+        // Process handshake
+        val result = try {
+            manager.acceptConnection(firstMessage)
+        } catch (e: Exception) {
+            Logger.error("Failed to accept Noise connection", e, context = TAG)
+            throw NoisePaymentError.HandshakeFailed("Failed to accept: ${e.message}")
+        }
+
+        // Send response
+        sendRawData(result.responseMessage)
+
+        _currentSessionId.value = result.sessionId
+        _isConnected.value = true
+        Logger.info("Server handshake completed, session: ${result.sessionId}", context = TAG)
+    }
+
+    /**
+     * Parse incoming payment request JSON
+     */
+    private fun parsePaymentRequest(data: ByteArray): NoisePaymentRequest {
+        val json = try {
+            JSONObject(String(data))
+        } catch (e: Exception) {
+            throw NoisePaymentError.InvalidResponse("Invalid JSON structure")
+        }
+
+        val type = json.optString("type")
+        if (type != "request_receipt") {
+            throw NoisePaymentError.InvalidResponse("Unexpected message type: $type")
+        }
+
+        return NoisePaymentRequest(
+            receiptId = json.optString("receipt_id", "rcpt_${UUID.randomUUID()}"),
+            payerPubkey = json.optString("payer"),
+            payeePubkey = json.optString("payee"),
+            methodId = json.optString("method_id"),
+            amount = json.optString("amount").ifEmpty { null },
+            currency = json.optString("currency").ifEmpty { null },
+            description = json.optString("description").ifEmpty { null },
+            invoiceNumber = json.optString("invoice_number").ifEmpty { null }
+        )
     }
 
     /**

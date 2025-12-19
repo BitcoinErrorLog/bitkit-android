@@ -161,6 +161,88 @@ class DirectoryService @Inject constructor(
         }
     }
 
+    // MARK: - Push Notification Endpoints
+
+    /**
+     * Push endpoint for receiving wake notifications
+     */
+    @kotlinx.serialization.Serializable
+    data class PushNotificationEndpoint(
+        val deviceToken: String,
+        val platform: String,  // "ios" or "android"
+        val noiseHost: String? = null,
+        val noisePort: Int? = null,
+        val noisePubkey: String? = null,
+        val createdAt: Long = System.currentTimeMillis() / 1000
+    )
+
+    /**
+     * Publish our push notification endpoint to the directory.
+     * This allows other users to discover how to wake our device for Noise connections.
+     */
+    suspend fun publishPushNotificationEndpoint(
+        deviceToken: String,
+        platform: String,
+        noiseHost: String? = null,
+        noisePort: Int? = null,
+        noisePubkey: String? = null
+    ) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+
+        val endpoint = PushNotificationEndpoint(
+            deviceToken = deviceToken,
+            platform = platform,
+            noiseHost = noiseHost,
+            noisePort = noisePort,
+            noisePubkey = noisePubkey
+        )
+
+        val pushPath = "${PAYKIT_PATH_PREFIX}push"
+        val json = kotlinx.serialization.json.Json.encodeToString(endpoint)
+
+        try {
+            pubkyStorage.store(pushPath, json.toByteArray())
+            Logger.info("Published push notification endpoint to directory", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to publish push endpoint", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    /**
+     * Discover push notification endpoint for a recipient.
+     * Used to send wake notifications before attempting Noise connections.
+     */
+    suspend fun discoverPushNotificationEndpoint(recipientPubkey: String): PushNotificationEndpoint? {
+        val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+        val pushPath = "${PAYKIT_PATH_PREFIX}push"
+
+        return try {
+            val data = pubkyStorage.retrieve(pushPath, adapter, recipientPubkey) ?: return null
+            val json = String(data)
+            kotlinx.serialization.json.Json.decodeFromString<PushNotificationEndpoint>(json)
+        } catch (e: Exception) {
+            Logger.error("Failed to discover push endpoint for $recipientPubkey", e, context = TAG)
+            null
+        }
+    }
+
+    /**
+     * Remove our push notification endpoint from the directory.
+     */
+    suspend fun removePushNotificationEndpoint() {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        val pushPath = "${PAYKIT_PATH_PREFIX}push"
+
+        try {
+            pubkyStorage.delete(pushPath)
+            Logger.info("Removed push notification endpoint from directory", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to remove push endpoint", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
     /**
      * Discover payment methods for a recipient
      */

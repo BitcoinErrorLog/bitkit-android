@@ -85,6 +85,20 @@ class PaymentRequestStorage @Inject constructor(
     }
 
     /**
+     * Get a request by invoice number
+     */
+    fun getRequestByInvoiceNumber(invoiceNumber: String): PaymentRequest? {
+        return listRequests().firstOrNull { it.invoiceNumber == invoiceNumber }
+    }
+
+    /**
+     * Get a request that was fulfilled by a specific receipt
+     */
+    fun getRequestByReceiptId(receiptId: String): PaymentRequest? {
+        return listRequests().firstOrNull { it.receiptId == receiptId }
+    }
+
+    /**
      * Add a new request
      */
     suspend fun addRequest(request: PaymentRequest) {
@@ -125,6 +139,27 @@ class PaymentRequestStorage @Inject constructor(
         val request = getRequest(id) ?: throw PaykitStorageException.LoadFailed(id)
         val updatedRequest = request.copy(status = status)
         updateRequest(updatedRequest)
+    }
+
+    /**
+     * Fulfill a request with a receipt (marks as paid and links receipt)
+     */
+    suspend fun fulfillRequest(id: String, receiptId: String) {
+        val request = getRequest(id) ?: throw PaykitStorageException.LoadFailed(id)
+        val updatedRequest = request.copy(status = PaymentRequestStatus.PAID, receiptId = receiptId)
+        updateRequest(updatedRequest)
+        Logger.info("PaymentRequestStorage: Fulfilled request $id with receipt $receiptId", context = TAG)
+    }
+
+    /**
+     * Fulfill a request by invoice number with a receipt
+     */
+    suspend fun fulfillRequestByInvoiceNumber(invoiceNumber: String, receiptId: String) {
+        val request = getRequestByInvoiceNumber(invoiceNumber)
+            ?: throw PaykitStorageException.LoadFailed("invoiceNumber:$invoiceNumber")
+        val updatedRequest = request.copy(status = PaymentRequestStatus.PAID, receiptId = receiptId)
+        updateRequest(updatedRequest)
+        Logger.info("PaymentRequestStorage: Fulfilled request by invoice $invoiceNumber with receipt $receiptId", context = TAG)
     }
 
     /**

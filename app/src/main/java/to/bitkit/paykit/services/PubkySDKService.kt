@@ -64,6 +64,39 @@ class PubkySDKService @Inject constructor(
     }
 
     /**
+     * Import a session from Pubky Ring
+     * This is used when receiving a session from Pubky Ring via callback
+     * 
+     * @param pubkey The z-base32 encoded public key (for verification)
+     * @param sessionSecret The full session token from Pubky Ring (already in format: <pubkey>:<cookie>)
+     */
+    suspend fun importSession(pubkey: String, sessionSecret: String): PubkyCoreSession = withContext(Dispatchers.IO) {
+        // sessionSecret from Pubky Ring is already in the format <pubkey>:<cookie>
+        // So we use it directly without modification
+        val sessionToken = sessionSecret
+        
+        // Use revalidateSession which accepts the token format
+        val result = uniffi.pubkycore.revalidateSession(sessionToken)
+        checkResult(result)
+
+        val sessionData = json.parseToJsonElement(result[1]).jsonObject
+        val session = PubkyCoreSession(
+            pubkey = sessionData["public_key"]?.jsonPrimitive?.content ?: pubkey,
+            sessionSecret = sessionData["session_secret"]?.jsonPrimitive?.content ?: sessionSecret,
+            capabilities = emptyList(),
+            expiresAt = null
+        )
+
+        sessionMutex.withLock {
+            sessionCache[session.pubkey] = session
+        }
+        persistSession(session)
+
+        Logger.info("Imported session for ${session.pubkey.take(12)}...", context = TAG)
+        session
+    }
+
+    /**
      * Sign in to homeserver using a secret key
      */
     suspend fun signin(secretKey: String): PubkyCoreSession = withContext(Dispatchers.IO) {

@@ -27,7 +27,11 @@ data class PaymentRequest(
     val createdAt: Long = System.currentTimeMillis(),
     val expiresAt: Long? = null,
     var status: PaymentRequestStatus = PaymentRequestStatus.PENDING,
-    val direction: RequestDirection
+    val direction: RequestDirection,
+    /** Optional invoice number for cross-referencing with receipts */
+    val invoiceNumber: String? = null,
+    /** ID of the receipt that fulfilled this request (if paid) */
+    var receiptId: String? = null
 ) {
     val counterpartyName: String
         get() {
@@ -38,4 +42,12 @@ data class PaymentRequest(
                 key
             }
         }
+
+    /** Display invoice number - returns invoiceNumber if set, otherwise request id */
+    val displayInvoiceNumber: String
+        get() = invoiceNumber ?: id
+
+    /** Check if this request has been fulfilled */
+    val isFulfilled: Boolean
+        get() = status == PaymentRequestStatus.PAID && receiptId != null
 }

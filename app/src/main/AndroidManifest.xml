@@ -6,6 +6,12 @@
         <intent>
             <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
         </intent>
+        <!-- Pubky Ring package visibility for Android 11+ -->
+        <package android:name="to.pubky.ring" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="pubkyring" />
+        </intent>
     </queries>
 
     <uses-feature
