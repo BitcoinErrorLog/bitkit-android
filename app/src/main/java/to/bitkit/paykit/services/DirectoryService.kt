@@ -1,7 +1,7 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import com.paykit.mobile.*
+import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
@@ -29,6 +29,10 @@ object PubkyConfig {
     /** Pubky app URL for staging */
     const val STAGING_APP_URL = "https://staging.pubky.app"
 
+    /** Paykit storage paths - matching paykit-lib conventions */
+    const val PAYKIT_PATH_PREFIX = "/pub/paykit.app/v0/"
+    const val PAYMENT_REQUESTS_PATH = "/pub/paykit.app/v0/requests/"
+
     /**
      * Get the homeserver base URL for directory operations
      */
@@ -36,6 +40,11 @@ object PubkyConfig {
         // The homeserver pubkey is used as the base for directory operations
         return homeserver
     }
+
+    /**
+     * Get the path for a payment request
+     */
+    fun paymentRequestPath(requestId: String): String = "${PAYMENT_REQUESTS_PATH}$requestId"
 }
 
 /**
@@ -119,7 +128,7 @@ class DirectoryService @Inject constructor(
         }
 
         return try {
-            com.paykit.mobile.discoverNoiseEndpoint(transport, recipientPubkey)
+discoverNoiseEndpoint(transport, recipientPubkey)
         } catch (e: Exception) {
             Logger.error("Failed to discover Noise endpoint for $recipientPubkey", e, context = TAG)
             null
@@ -138,7 +147,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            com.paykit.mobile.publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
+publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
             Logger.info("Published Noise endpoint: $host:$port", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish Noise endpoint", e, context = TAG)
@@ -153,7 +162,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-            com.paykit.mobile.removeNoiseEndpoint(transport)
+removeNoiseEndpoint(transport)
             Logger.info("Removed Noise endpoint", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove Noise endpoint", e, context = TAG)
@@ -246,7 +255,7 @@ class DirectoryService @Inject constructor(
     /**
      * Discover payment methods for a recipient
      */
-    suspend fun discoverPaymentMethods(pubkey: String): List<com.paykit.mobile.PaymentMethod> {
+    suspend fun discoverPaymentMethods(pubkey: String): List<uniffi.paykit_mobile.PaymentMethod> {
         val client = paykitClient ?: run {
             Logger.error("DirectoryService: PaykitClient not initialized", null, context = TAG)
             return emptyList()
@@ -295,6 +304,81 @@ class DirectoryService @Inject constructor(
             Logger.info("Removed payment method: $methodId", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove payment method $methodId", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    // MARK: - Cross-Device Payment Request Storage
+
+    /**
+     * Publish a payment request to Pubky storage for async retrieval.
+     * Stores the request at: /pub/paykit.app/v0/requests/{requestId}
+     * on the sender's homeserver so the recipient can fetch it later.
+     */
+    suspend fun publishPaymentRequest(request: to.bitkit.paykit.models.PaymentRequest) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+
+        val requestJson = kotlinx.serialization.json.Json.encodeToString(
+            to.bitkit.paykit.models.PaymentRequest.serializer(),
+            request
+        )
+
+        val path = PubkyConfig.paymentRequestPath(request.id)
+        try {
+            pubkyStorage.store(path, requestJson.toByteArray(), transport)
+            Logger.info("Published payment request: ${request.id}", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to publish payment request ${request.id}", e, context = TAG)
+            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        }
+    }
+
+    /**
+     * Fetch a payment request from a sender's Pubky storage.
+     * Retrieves from: pubky://{senderPubkey}/pub/paykit.app/v0/requests/{requestId}
+     */
+    suspend fun fetchPaymentRequest(
+        requestId: String,
+        senderPubkey: String
+    ): to.bitkit.paykit.models.PaymentRequest? {
+        val path = PubkyConfig.paymentRequestPath(requestId)
+        
+        // Use the proper pubky:// URI which uses DHT/Pkarr resolution
+        val pubkyUri = "pubky://$senderPubkey$path"
+        Logger.debug("Fetching payment request from: $pubkyUri", context = TAG)
+
+        return try {
+            val requestBytes = pubkySDKService.getData(pubkyUri)
+            if (requestBytes != null) {
+                val requestJson = String(requestBytes)
+                val request = kotlinx.serialization.json.Json.decodeFromString(
+                    to.bitkit.paykit.models.PaymentRequest.serializer(),
+                    requestJson
+                )
+                Logger.info("Successfully fetched payment request $requestId from ${senderPubkey.take(12)}...", context = TAG)
+                request
+            } else {
+                Logger.debug("Payment request $requestId not found at ${senderPubkey.take(12)}...", context = TAG)
+                null
+            }
+        } catch (e: Exception) {
+            Logger.error("Failed to fetch payment request $requestId from $senderPubkey", e, context = TAG)
+            null
+        }
+    }
+
+    /**
+     * Remove a payment request from storage (after it's been processed)
+     */
+    suspend fun removePaymentRequest(requestId: String) {
+        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        val path = PubkyConfig.paymentRequestPath(requestId)
+
+        try {
+            pubkyStorage.delete(path, transport)
+            Logger.info("Removed payment request: $requestId", context = TAG)
+        } catch (e: Exception) {
+            Logger.error("Failed to remove payment request $requestId", e, context = TAG)
             throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
         }
     }

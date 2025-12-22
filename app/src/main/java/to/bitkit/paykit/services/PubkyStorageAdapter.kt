@@ -1,7 +1,7 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import com.paykit.mobile.*
+import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType

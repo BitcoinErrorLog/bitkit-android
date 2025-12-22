@@ -148,6 +148,7 @@ class AppViewModel @Inject constructor(
     private val transferRepo: TransferRepo,
     private val pubkySDKService: PubkySDKService,
     private val pubkyRingBridge: PubkyRingBridge,
+    private val paykitManager: PaykitManager,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -1765,16 +1766,18 @@ class AppViewModel @Inject constructor(
             return@launch
         }
 
-        // Get PaykitManager client
-        val paykitManager = PaykitManager.getInstance()
+        // Initialize PaykitManager if needed and get client
         val paykitClient = try {
+            if (!paykitManager.isInitialized) {
+                paykitManager.initialize()
+            }
             paykitManager.getClient()
         } catch (e: Exception) {
             Logger.error("Paykit not initialized", e, context = TAG)
             toast(
                 type = Toast.ToastType.ERROR,
                 title = "Paykit Not Ready",
-                description = "Please wait for Paykit to initialize"
+                description = "Please connect to Pubky Ring first"
             )
             return@launch
         }

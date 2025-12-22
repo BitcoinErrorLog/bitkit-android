@@ -1,7 +1,7 @@
 package to.bitkit.paykit.services
 
-import com.paykit.mobile.X25519Keypair
-import com.paykit.mobile.deriveX25519Keypair
+import uniffi.paykit_mobile.X25519Keypair
+import uniffi.paykit_mobile.deriveX25519Keypair
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
 import javax.inject.Inject

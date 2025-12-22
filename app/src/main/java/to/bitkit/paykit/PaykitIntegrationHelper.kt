@@ -1,7 +1,7 @@
 package to.bitkit.paykit
 
-import com.paykit.mobile.BitcoinTxResultFfi
-import com.paykit.mobile.LightningPaymentResultFfi
+import uniffi.paykit_mobile.BitcoinTxResultFfi
+import uniffi.paykit_mobile.LightningPaymentResultFfi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

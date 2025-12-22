@@ -13,7 +13,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BITKIT_ANDROID="$SCRIPT_DIR/.."
-PAYKIT_RS="/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/paykit-rs-master"
+PAYKIT_RS="/Users/john/vibes-dev/paykit-rs-master"
 
 echo "========================================"
 echo "Updating Paykit Mobile Bindings"

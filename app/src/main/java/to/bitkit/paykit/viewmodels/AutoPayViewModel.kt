@@ -127,9 +127,9 @@ class AutoPayViewModel @Inject constructor(
     fun evaluate(peerPubkey: String, amount: Long, methodId: String): AutopayEvaluationResult {
         val settings = _settings.value
 
-        // Check if autopay is enabled
+        // If autopay is disabled, require manual approval
         if (!settings.isEnabled) {
-            return AutopayEvaluationResult.Denied("Auto-pay is disabled")
+            return AutopayEvaluationResult.NeedsApproval
         }
 
         // Reset daily limits if needed

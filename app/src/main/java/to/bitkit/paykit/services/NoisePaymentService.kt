@@ -1,7 +1,7 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import com.paykit.mobile.*
+import uniffi.paykit_mobile.*
 import com.pubky.noise.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
 import java.io.DataInputStream
@@ -23,26 +26,67 @@ import javax.inject.Singleton
 /**
  * A payment request to send over Noise channel
  */
+@Serializable
 data class NoisePaymentRequest(
+    @SerialName("receipt_id")
     val receiptId: String = "rcpt_${UUID.randomUUID()}",
+    @SerialName("payer")
     val payerPubkey: String,
+    @SerialName("payee")
     val payeePubkey: String,
+    @SerialName("method_id")
     val methodId: String,
     val amount: String? = null,
     val currency: String? = null,
     val description: String? = null,
     /** Invoice number for cross-referencing */
-    val invoiceNumber: String? = null
+    @SerialName("invoice_number")
+    val invoiceNumber: String? = null,
+    @SerialName("created_at")
+    val createdAt: Long = System.currentTimeMillis() / 1000
 )
 
 /**
  * Response from a payment request
  */
+@Serializable
 data class NoisePaymentResponse(
     val success: Boolean,
+    @SerialName("receipt_id")
     val receiptId: String? = null,
+    @SerialName("confirmed_at")
     val confirmedAt: Long? = null,
+    @SerialName("error_code")
     val errorCode: String? = null,
+    @SerialName("error_message")
+    val errorMessage: String? = null
+)
+
+/**
+ * Base class for Noise messages
+ */
+@Serializable
+data class NoiseMessage(
+    val type: String,
+    @SerialName("receipt_id")
+    val receiptId: String,
+    val payer: String? = null,
+    val payee: String? = null,
+    @SerialName("method_id")
+    val methodId: String? = null,
+    val amount: String? = null,
+    val currency: String? = null,
+    val description: String? = null,
+    @SerialName("invoice_number")
+    val invoiceNumber: String? = null,
+    @SerialName("created_at")
+    val createdAt: Long? = null,
+    @SerialName("confirmed_at")
+    val confirmedAt: Long? = null,
+    val success: Boolean? = null,
+    @SerialName("error_code")
+    val errorCode: String? = null,
+    @SerialName("error_message")
     val errorMessage: String? = null
 )
 
@@ -91,6 +135,7 @@ class NoisePaymentService @Inject constructor(
     // Noise manager and socket
     private var noiseManager: FfiNoiseManager? = null
     private var socket: Socket? = null
+    private val json = Json { ignoreUnknownKeys = true }
 
     // Configuration
     var connectionTimeoutMs: Int = 30000
@@ -120,19 +165,20 @@ class NoisePaymentService @Inject constructor(
             ?: throw NoisePaymentError.ConnectionFailed("Not connected")
 
         // Create message JSON
-        val messageJson = JSONObject().apply {
-            put("type", "request_receipt")
-            put("receipt_id", request.receiptId)
-            put("payer", request.payerPubkey)
-            put("payee", request.payeePubkey)
-            put("method_id", request.methodId)
-            request.amount?.let { put("amount", it) }
-            request.currency?.let { put("currency", it) }
-            request.description?.let { put("description", it) }
-            put("created_at", System.currentTimeMillis() / 1000)
-        }
+        val message = NoiseMessage(
+            type = "request_receipt",
+            receiptId = request.receiptId,
+            payer = request.payerPubkey,
+            payee = request.payeePubkey,
+            methodId = request.methodId,
+            amount = request.amount,
+            currency = request.currency,
+            description = request.description,
+            invoiceNumber = request.invoiceNumber,
+            createdAt = request.createdAt
+        )
 
-        val jsonData = messageJson.toString().toByteArray()
+        val jsonData = json.encodeToString(message).toByteArray()
 
         // Encrypt
         val ciphertext = try {
@@ -416,12 +462,13 @@ class NoisePaymentService @Inject constructor(
             val request = parsePaymentRequest(plaintext)
 
             // Send confirmation response
-            val response = JSONObject().apply {
-                put("type", "confirm_receipt")
-                put("receipt_id", request.receiptId)
-                put("confirmed_at", System.currentTimeMillis() / 1000)
-            }
-            val responseData = response.toString().toByteArray()
+            val response = NoiseMessage(
+                type = "confirm_receipt",
+                receiptId = request.receiptId,
+                confirmedAt = System.currentTimeMillis() / 1000,
+                success = true
+            )
+            val responseData = json.encodeToString(response).toByteArray()
             val encryptedResponse = noiseManager?.encrypt(sessionId, responseData)
                 ?: throw NoisePaymentError.EncryptionFailed("Failed to encrypt response")
             sendLengthPrefixedData(encryptedResponse)
@@ -468,26 +515,26 @@ class NoisePaymentService @Inject constructor(
      * Parse incoming payment request JSON
      */
     private fun parsePaymentRequest(data: ByteArray): NoisePaymentRequest {
-        val json = try {
-            JSONObject(String(data))
+        val message = try {
+            json.decodeFromString<NoiseMessage>(String(data))
         } catch (e: Exception) {
-            throw NoisePaymentError.InvalidResponse("Invalid JSON structure")
+            throw NoisePaymentError.InvalidResponse("Invalid JSON structure: ${e.message}")
         }
 
-        val type = json.optString("type")
-        if (type != "request_receipt") {
-            throw NoisePaymentError.InvalidResponse("Unexpected message type: $type")
+        if (message.type != "request_receipt") {
+            throw NoisePaymentError.InvalidResponse("Unexpected message type: ${message.type}")
         }
 
         return NoisePaymentRequest(
-            receiptId = json.optString("receipt_id", "rcpt_${UUID.randomUUID()}"),
-            payerPubkey = json.optString("payer"),
-            payeePubkey = json.optString("payee"),
-            methodId = json.optString("method_id"),
-            amount = json.optString("amount").ifEmpty { null },
-            currency = json.optString("currency").ifEmpty { null },
-            description = json.optString("description").ifEmpty { null },
-            invoiceNumber = json.optString("invoice_number").ifEmpty { null }
+            receiptId = message.receiptId,
+            payerPubkey = message.payer ?: "",
+            payeePubkey = message.payee ?: "",
+            methodId = message.methodId ?: "",
+            amount = message.amount,
+            currency = message.currency,
+            description = message.description,
+            invoiceNumber = message.invoiceNumber,
+            createdAt = message.createdAt ?: (System.currentTimeMillis() / 1000)
         )
     }
 
@@ -495,18 +542,18 @@ class NoisePaymentService @Inject constructor(
      * Parse payment response JSON
      */
     private fun parsePaymentResponse(data: ByteArray, expectedReceiptId: String): NoisePaymentResponse {
-        val json = try {
-            JSONObject(String(data))
+        val message = try {
+            json.decodeFromString<NoiseMessage>(String(data))
         } catch (e: Exception) {
-            throw NoisePaymentError.InvalidResponse("Invalid JSON structure")
+            throw NoisePaymentError.InvalidResponse("Invalid JSON structure: ${e.message}")
         }
 
-        return when (val msgType = json.optString("type")) {
+        return when (message.type) {
             "confirm_receipt" -> {
                 NoisePaymentResponse(
-                    success = true,
-                    receiptId = json.optString("receipt_id"),
-                    confirmedAt = json.optLong("confirmed_at"),
+                    success = message.success ?: true,
+                    receiptId = message.receiptId,
+                    confirmedAt = message.confirmedAt,
                     errorCode = null,
                     errorMessage = null
                 )
@@ -514,13 +561,13 @@ class NoisePaymentService @Inject constructor(
             "error" -> {
                 NoisePaymentResponse(
                     success = false,
-                    receiptId = null,
+                    receiptId = message.receiptId,
                     confirmedAt = null,
-                    errorCode = json.optString("code", "unknown"),
-                    errorMessage = json.optString("message", "Unknown error")
+                    errorCode = message.errorCode ?: "unknown",
+                    errorMessage = message.errorMessage ?: "Unknown error"
                 )
             }
-            else -> throw NoisePaymentError.InvalidResponse("Unexpected message type: $msgType")
+            else -> throw NoisePaymentError.InvalidResponse("Unexpected message type: ${message.type}")
         }
     }
 }

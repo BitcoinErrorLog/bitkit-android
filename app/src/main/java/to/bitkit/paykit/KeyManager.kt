@@ -2,7 +2,7 @@ package to.bitkit.paykit
 
 import android.content.Context
 import android.os.Build
-import com.paykit.mobile.*
+import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

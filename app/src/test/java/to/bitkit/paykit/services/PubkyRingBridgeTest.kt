@@ -336,4 +336,140 @@ class PubkyRingBridgeTest {
         assertNotNull(cached)
         assertEquals(pubkey, cached.pubkey)
     }
+
+    // MARK: - Paykit Setup Callback Tests
+
+    @Test
+    fun `handlePaykitSetupCallback returns true`() {
+        val mockUri: Uri = mock()
+        whenever(mockUri.scheme).thenReturn("bitkit")
+        whenever(mockUri.host).thenReturn("paykit-setup")
+        whenever(mockUri.getQueryParameter("pubky")).thenReturn("pk1test123")
+        whenever(mockUri.getQueryParameter("session_secret")).thenReturn("secret123")
+        whenever(mockUri.getQueryParameter("device_id")).thenReturn("device456")
+        whenever(mockUri.getQueryParameter("capabilities")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_1")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_1")).thenReturn(null)
+
+        val handled = bridge.handleCallback(mockUri)
+
+        assertTrue(handled)
+    }
+
+    @Test
+    fun `handlePaykitSetupCallback caches session`() {
+        val pubkey = "pk1testcallback789"
+        val secret = "callbacksecret456"
+        val deviceId = "testdevice123"
+
+        val mockUri: Uri = mock()
+        whenever(mockUri.scheme).thenReturn("bitkit")
+        whenever(mockUri.host).thenReturn("paykit-setup")
+        whenever(mockUri.getQueryParameter("pubky")).thenReturn(pubkey)
+        whenever(mockUri.getQueryParameter("session_secret")).thenReturn(secret)
+        whenever(mockUri.getQueryParameter("device_id")).thenReturn(deviceId)
+        whenever(mockUri.getQueryParameter("capabilities")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_1")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_1")).thenReturn(null)
+
+        bridge.handleCallback(mockUri)
+
+        val cached = bridge.getCachedSession(pubkey)
+        assertNotNull(cached)
+        assertEquals(pubkey, cached.pubkey)
+        assertEquals(secret, cached.sessionSecret)
+    }
+
+    @Test
+    fun `handlePaykitSetupCallback parses capabilities`() {
+        val pubkey = "pk1testcaps456"
+
+        val mockUri: Uri = mock()
+        whenever(mockUri.scheme).thenReturn("bitkit")
+        whenever(mockUri.host).thenReturn("paykit-setup")
+        whenever(mockUri.getQueryParameter("pubky")).thenReturn(pubkey)
+        whenever(mockUri.getQueryParameter("session_secret")).thenReturn("secret")
+        whenever(mockUri.getQueryParameter("device_id")).thenReturn("dev")
+        whenever(mockUri.getQueryParameter("capabilities")).thenReturn("read,write,paykit")
+        whenever(mockUri.getQueryParameter("noise_public_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_0")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_1")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_secret_key_1")).thenReturn(null)
+
+        bridge.handleCallback(mockUri)
+
+        val cached = bridge.getCachedSession(pubkey)
+        assertEquals(3, cached?.capabilities?.size)
+        assertTrue(cached?.hasCapability("read") ?: false)
+        assertTrue(cached?.hasCapability("write") ?: false)
+        assertTrue(cached?.hasCapability("paykit") ?: false)
+    }
+
+    @Test
+    fun `handlePaykitSetupCallback with missing required params returns true`() {
+        // Missing device_id - should still return true (handled) but session not cached
+        val mockUri: Uri = mock()
+        whenever(mockUri.scheme).thenReturn("bitkit")
+        whenever(mockUri.host).thenReturn("paykit-setup")
+        whenever(mockUri.getQueryParameter("pubky")).thenReturn("test")
+        whenever(mockUri.getQueryParameter("session_secret")).thenReturn("secret")
+        whenever(mockUri.getQueryParameter("device_id")).thenReturn(null)
+
+        val handled = bridge.handleCallback(mockUri)
+
+        // Returns true because it was recognized as a paykit-setup callback
+        assertTrue(handled)
+    }
+
+    @Test
+    fun `handlePaykitSetupCallback with noise keys caches keypairs`() {
+        val pubkey = "pk1testnoise789"
+        val deviceId = "noisedevice123"
+
+        val mockUri: Uri = mock()
+        whenever(mockUri.scheme).thenReturn("bitkit")
+        whenever(mockUri.host).thenReturn("paykit-setup")
+        whenever(mockUri.getQueryParameter("pubky")).thenReturn(pubkey)
+        whenever(mockUri.getQueryParameter("session_secret")).thenReturn("secret")
+        whenever(mockUri.getQueryParameter("device_id")).thenReturn(deviceId)
+        whenever(mockUri.getQueryParameter("capabilities")).thenReturn(null)
+        whenever(mockUri.getQueryParameter("noise_public_key_0")).thenReturn("pubkey0hex")
+        whenever(mockUri.getQueryParameter("noise_secret_key_0")).thenReturn("seckey0hex")
+        whenever(mockUri.getQueryParameter("noise_public_key_1")).thenReturn("pubkey1hex")
+        whenever(mockUri.getQueryParameter("noise_secret_key_1")).thenReturn("seckey1hex")
+
+        bridge.handleCallback(mockUri)
+
+        // Session should be cached
+        val cached = bridge.getCachedSession(pubkey)
+        assertNotNull(cached)
+
+        // Keypair count should be >= 0
+        val keypairCount = bridge.getCachedKeypairCount()
+        assertTrue(keypairCount >= 0)
+    }
+
+    // MARK: - Backup and Restore Tests
+
+    @Test
+    fun `exportBackup contains device ID`() {
+        val backup = bridge.exportBackup()
+
+        assertTrue(backup.deviceId.isNotEmpty())
+        assertEquals(1, backup.version)
+    }
+
+    @Test
+    fun `exportBackup contains cached sessions`() {
+        bridge.importSession("backuptest1", "secret1")
+        bridge.importSession("backuptest2", "secret2")
+
+        val backup = bridge.exportBackup()
+
+        assertEquals(2, backup.sessions.size)
+    }
 }

@@ -1,9 +1,9 @@
 package to.bitkit.paykit
 
 import android.content.Context
-import com.paykit.mobile.BitcoinNetworkFfi
-import com.paykit.mobile.LightningNetworkFfi
-import com.paykit.mobile.PaykitClient
+import uniffi.paykit_mobile.BitcoinNetworkFfi
+import uniffi.paykit_mobile.LightningNetworkFfi
+import uniffi.paykit_mobile.PaykitClient
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.lightningdevkit.ldknode.Network
@@ -123,8 +123,8 @@ class PaykitManager @Inject constructor(
 
         val paykitClient = client ?: throw PaykitException.NotInitialized
 
-        paykitClient.`registerBitcoinExecutor`(bitcoinExecutor!! as com.paykit.mobile.BitcoinExecutorFfi)
-        paykitClient.`registerLightningExecutor`(lightningExecutor!! as com.paykit.mobile.LightningExecutorFfi)
+        paykitClient.registerBitcoinExecutor(bitcoinExecutor!!)
+        paykitClient.registerLightningExecutor(lightningExecutor!!)
 
         hasExecutors = true
         Logger.info("Paykit executors registered successfully", context = TAG)

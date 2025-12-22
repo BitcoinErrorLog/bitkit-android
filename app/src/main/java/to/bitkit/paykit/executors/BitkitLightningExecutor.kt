@@ -1,9 +1,9 @@
 package to.bitkit.paykit.executors
 
-import com.paykit.mobile.DecodedInvoiceFfi
-import com.paykit.mobile.LightningExecutorFfi
-import com.paykit.mobile.LightningPaymentResultFfi
-import com.paykit.mobile.LightningPaymentStatusFfi
+import uniffi.paykit_mobile.DecodedInvoiceFfi
+import uniffi.paykit_mobile.LightningExecutorFfi
+import uniffi.paykit_mobile.LightningPaymentResultFfi
+import uniffi.paykit_mobile.LightningPaymentStatusFfi
 import com.synonym.bitkitcore.Scanner
 import com.synonym.bitkitcore.decode
 import kotlinx.coroutines.Dispatchers

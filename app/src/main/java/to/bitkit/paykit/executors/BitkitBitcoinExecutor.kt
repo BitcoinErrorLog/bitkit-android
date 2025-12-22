@@ -1,7 +1,7 @@
 package to.bitkit.paykit.executors
 
-import com.paykit.mobile.BitcoinExecutorFfi
-import com.paykit.mobile.BitcoinTxResultFfi
+import uniffi.paykit_mobile.BitcoinExecutorFfi
+import uniffi.paykit_mobile.BitcoinTxResultFfi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -136,10 +136,25 @@ class BitkitBitcoinExecutor(
 
             result.fold(
                 onSuccess = { payments ->
-                    // LDK doesn't directly expose txid in PaymentDetails for on-chain
-                    // This would require external block explorer integration
-                    // For now, return null and document this limitation
-                    null
+                    // Search through on-chain payments for matching transaction
+                    val payment = payments.firstOrNull { payment ->
+                        (payment.kind as? org.lightningdevkit.ldknode.PaymentKind.Onchain)?.txid == `txid`
+                    }
+
+                    if (payment != null && payment.kind is org.lightningdevkit.ldknode.PaymentKind.Onchain) {
+                        val kind = payment.kind as org.lightningdevkit.ldknode.PaymentKind.Onchain
+                        BitcoinTxResultFfi(
+                            `txid` = kind.txid,
+                            `rawTx` = null,
+                            `vout` = 0u, // Not directly available from PaymentDetails
+                            `feeSats` = payment.feePaidMsat?.let { it / 1000uL } ?: 0uL,
+                            `feeRate` = 1.0, // Not directly available
+                            `blockHeight` = null, // Confirmation info is separate
+                            `confirmations` = if (payment.status == org.lightningdevkit.ldknode.PaymentStatus.SUCCEEDED) 1uL else 0uL,
+                        )
+                    } else {
+                        null
+                    }
                 },
                 onFailure = { null }
             )
