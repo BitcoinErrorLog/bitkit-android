@@ -5,7 +5,7 @@ This directory contains pre-built native libraries (.so) for Paykit and Pubky-No
 ## Current Approach (Interim)
 
 Libraries are currently copied from source builds:
-- `libpaykit_mobile.so` - from `paykit-rs-master/paykit-mobile`
+- `libpaykit_mobile.so` - from `paykit-rs/paykit-mobile`
 - `libpubky_noise.so` - from `pubky-noise-main`
 
 ## Future: GitHub Packages
@@ -31,7 +31,7 @@ If you need to rebuild the libraries:
 
 ```bash
 # PaykitMobile
-cd paykit-rs-master/paykit-mobile
+cd paykit-rs/paykit-mobile
 ./build-android.sh --jniLibs
 
 # PubkyNoise

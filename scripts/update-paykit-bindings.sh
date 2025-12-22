@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Update Paykit Mobile bindings from paykit-rs-master
+# Update Paykit Mobile bindings from paykit-rs
 #
 # This script rebuilds the paykit-mobile library and copies the bindings
 # to bitkit-android to fix UniFFI contract version mismatches.
@@ -13,7 +13,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BITKIT_ANDROID="$SCRIPT_DIR/.."
-PAYKIT_RS="/Users/john/vibes-dev/paykit-rs-master"
+PAYKIT_RS="/Users/john/vibes-dev/paykit-rs"
 
 echo "========================================"
 echo "Updating Paykit Mobile Bindings"
@@ -22,7 +22,7 @@ echo ""
 
 # Check if paykit-rs exists
 if [ ! -d "$PAYKIT_RS" ]; then
-    echo "Error: paykit-rs-master not found at $PAYKIT_RS"
+    echo "Error: paykit-rs not found at $PAYKIT_RS"
     exit 1
 fi
 
