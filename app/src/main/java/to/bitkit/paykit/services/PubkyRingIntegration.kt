@@ -1,5 +1,7 @@
 package to.bitkit.paykit.services
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import uniffi.paykit_mobile.X25519Keypair
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
@@ -15,8 +17,10 @@ import javax.inject.Singleton
  */
 @Singleton
 class PubkyRingIntegration @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
     private val noiseKeyCache: NoiseKeyCache,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) {
     companion object {
         private const val TAG = "PubkyRingIntegration"
@@ -71,6 +75,50 @@ class PubkyRingIntegration @Inject constructor(
      * Check if we have a cached keypair for the current epoch
      */
     fun hasCurrentKeypair(): Boolean = keyManager.hasNoiseKeypair()
+
+    /**
+     * Get or refresh X25519 keypair with automatic cache miss recovery
+     *
+     * If the keypair is cached, returns it immediately.
+     * If not cached, automatically requests new setup from Ring.
+     *
+     * @param deviceId The device ID used for derivation context
+     * @param epoch The epoch for this keypair
+     * @return The keypair (either cached or freshly retrieved)
+     * @throws NoisePaymentError.NoKeypairCached if Ring request fails
+     */
+    suspend fun getOrRefreshKeypair(deviceId: String, epoch: UInt): X25519Keypair {
+        // Try cache first
+        return try {
+            getCachedKeypair(deviceId, epoch)
+        } catch (e: NoisePaymentError.NoKeypairCached) {
+            // Cache miss - request new setup from Ring
+            Logger.warn("Keypair cache miss for epoch $epoch, requesting from Ring", context = TAG)
+            pubkyRingBridge.requestPaykitSetup(context)
+            
+            // The bridge callback handler will have cached the result
+            // Try retrieving again
+            try {
+                getCachedKeypair(deviceId, epoch)
+            } catch (e2: NoisePaymentError.NoKeypairCached) {
+                // Still not available - this shouldn't happen
+                throw NoisePaymentError.NoKeypairCached(
+                    "Failed to refresh keypair from Ring for epoch $epoch"
+                )
+            }
+        }
+    }
+
+    /**
+     * Get the current keypair with automatic refresh on cache miss
+     * @return The cached or refreshed keypair for current epoch
+     * @throws NoisePaymentError.NoKeypairCached if Ring request fails
+     */
+    suspend fun getCurrentKeypairOrRefresh(): X25519Keypair {
+        val deviceId = keyManager.getDeviceId()
+        val epoch = keyManager.getCurrentEpoch()
+        return getOrRefreshKeypair(deviceId, epoch)
+    }
 
     /**
      * Cache a keypair received from Pubky Ring
