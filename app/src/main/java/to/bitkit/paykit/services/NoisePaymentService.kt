@@ -94,17 +94,18 @@ data class NoiseMessage(
  * Service errors
  */
 sealed class NoisePaymentError(message: String) : Exception(message) {
-    object NoIdentity : NoisePaymentError("No identity configured")
+    data object NoIdentity : NoisePaymentError("No identity configured")
+    class NoKeypairCached(msg: String) : NoisePaymentError(msg)
     class KeyDerivationFailed(msg: String) : NoisePaymentError("Failed to derive encryption keys: $msg")
-    object EndpointNotFound : NoisePaymentError("Recipient has no Noise endpoint published")
+    data object EndpointNotFound : NoisePaymentError("Recipient has no Noise endpoint published")
     class InvalidEndpoint(msg: String) : NoisePaymentError("Invalid endpoint format: $msg")
     class ConnectionFailed(msg: String) : NoisePaymentError("Connection failed: $msg")
     class HandshakeFailed(msg: String) : NoisePaymentError("Secure handshake failed: $msg")
     class EncryptionFailed(msg: String) : NoisePaymentError("Encryption failed: $msg")
     class DecryptionFailed(msg: String) : NoisePaymentError("Decryption failed: $msg")
     class InvalidResponse(msg: String) : NoisePaymentError("Invalid response: $msg")
-    object Timeout : NoisePaymentError("Operation timed out")
-    object Cancelled : NoisePaymentError("Operation cancelled")
+    data object Timeout : NoisePaymentError("Operation timed out")
+    data object Cancelled : NoisePaymentError("Operation cancelled")
     class ServerError(val code: String, message: String) : NoisePaymentError("Server error [$code]: $message")
 }
 
@@ -208,9 +209,12 @@ class NoisePaymentService @Inject constructor(
      * Connect to a Noise endpoint
      */
     private suspend fun connect(endpoint: NoiseEndpointInfo) = withContext(Dispatchers.IO) {
-        // Get Ed25519 seed from KeyManager
-        val seedData = keyManager.getSecretKeyBytes()
-            ?: throw NoisePaymentError.NoIdentity
+        // Get cached X25519 keypair from Ring (no local Ed25519 derivation)
+        val keypair = keyManager.getCachedNoiseKeypair()
+            ?: throw NoisePaymentError.NoKeypairCached("No noise keypair available. Please reconnect to Pubky Ring.")
+
+        // Use X25519 secret key as seed for Noise manager
+        val seedData = keypair.secretKeyHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
         val deviceId = keyManager.getDeviceId()
         val deviceIdBytes = deviceId.toByteArray()
@@ -221,7 +225,7 @@ class NoisePaymentService @Inject constructor(
             maxReconnectAttempts = 0u,
             reconnectDelayMs = 0u,
             batterySaver = false,
-            chunkSize = 32768u
+            chunkSize = 32768u,
         )
 
         // Create Noise manager
@@ -230,7 +234,7 @@ class NoisePaymentService @Inject constructor(
                 config = config,
                 clientSeed = seedData,
                 clientKid = "bitkit-android",
-                deviceId = deviceIdBytes
+                deviceId = deviceIdBytes,
             )
         } catch (e: Exception) {
             Logger.error("Failed to create Noise manager", e, context = TAG)
@@ -423,9 +427,12 @@ class NoisePaymentService @Inject constructor(
         socket = clientSocket
 
         try {
-            // Get seed for server mode
-            val seedData = keyManager.getSecretKeyBytes()
-                ?: throw NoisePaymentError.NoIdentity
+            // Get cached X25519 keypair from Ring (no local Ed25519 derivation)
+            val keypair = keyManager.getCachedNoiseKeypair()
+                ?: throw NoisePaymentError.NoKeypairCached("No noise keypair available. Please reconnect to Pubky Ring.")
+
+            // Use X25519 secret key as seed for Noise manager
+            val seedData = keypair.secretKeyHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
             val deviceId = keyManager.getDeviceId()
             val deviceIdBytes = deviceId.toByteArray()
@@ -436,14 +443,14 @@ class NoisePaymentService @Inject constructor(
                 maxReconnectAttempts = 0u,
                 reconnectDelayMs = 0u,
                 batterySaver = false,
-                chunkSize = 32768u
+                chunkSize = 32768u,
             )
 
             noiseManager = FfiNoiseManager.newServer(
                 config = config,
                 serverSeed = seedData,
                 serverKid = "bitkit-android-server",
-                deviceId = deviceIdBytes
+                deviceId = deviceIdBytes,
             )
 
             // Perform server-side handshake
