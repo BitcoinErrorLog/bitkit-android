@@ -1,15 +1,16 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
+import to.bitkit.paykit.di.PaykitOkHttp
+import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.*
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,17 +20,37 @@ import javax.inject.Singleton
  */
 @Singleton
 class PubkyStorageAdapter @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    @PaykitOkHttp private val httpClient: OkHttpClient,
 ) {
     companion object {
         private const val TAG = "PubkyStorageAdapter"
+
+        /**
+         * Default OkHttpClient for non-DI contexts.
+         * Prefer using Hilt injection where possible.
+         */
+        private val defaultClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build()
+        }
     }
+
+    /**
+     * Secondary constructor for manual instantiation without DI.
+     * Prefer using Hilt injection where possible.
+     */
+    constructor(context: Context) : this(context, defaultClient)
 
     /**
      * Create unauthenticated storage adapter for public reads
      */
-    fun createUnauthenticatedAdapter(homeserverBaseURL: String? = null): PubkyUnauthenticatedStorageAdapter {
-        return PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
+    fun createUnauthenticatedAdapter(homeserverURL: String? = null): PubkyUnauthenticatedStorageAdapter {
+        return PubkyUnauthenticatedStorageAdapter(httpClient, homeserverURL)
     }
 
     /**
@@ -37,9 +58,9 @@ class PubkyStorageAdapter @Inject constructor(
      */
     fun createAuthenticatedAdapter(
         sessionId: String,
-        homeserverBaseURL: String? = null
+        homeserverURL: String? = null,
     ): PubkyAuthenticatedStorageAdapter {
-        return PubkyAuthenticatedStorageAdapter(sessionId, homeserverBaseURL)
+        return PubkyAuthenticatedStorageAdapter(httpClient, sessionId, homeserverURL)
     }
 
     /**
@@ -84,14 +105,9 @@ class PubkyStorageAdapter @Inject constructor(
      * Store data in Pubky storage using authenticated transport
      */
     suspend fun store(path: String, data: ByteArray, transport: AuthenticatedTransportFfi) {
-        // For now, use OkHttpClient directly since transport is an FFI wrapper
+        // For now, use shared OkHttpClient since transport is an FFI wrapper
         val content = String(data)
         val urlString = "https://homeserver.pubky.app$path"
-
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .build()
 
         val mediaType = "application/json".toMediaType()
         val requestBody = content.toRequestBody(mediaType)
@@ -102,7 +118,7 @@ class PubkyStorageAdapter @Inject constructor(
             .header("Content-Type", "application/json")
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = httpClient.newCall(request).execute()
         if (response.code !in 200..299) {
             throw PubkyStorageException("Failed to store: HTTP ${response.code}")
         }
@@ -115,17 +131,12 @@ class PubkyStorageAdapter @Inject constructor(
     suspend fun delete(path: String, transport: AuthenticatedTransportFfi) {
         val urlString = "https://homeserver.pubky.app$path"
 
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .build()
-
         val request = Request.Builder()
             .url(urlString)
             .delete()
             .build()
 
-        val response = client.newCall(request).execute()
+        val response = httpClient.newCall(request).execute()
         if (response.code !in 200..299 && response.code != 404) {
             throw PubkyStorageException("Failed to delete: HTTP ${response.code}")
         }
@@ -137,18 +148,14 @@ class PubkyStorageAdapter @Inject constructor(
  * Adapter for unauthenticated (read-only) Pubky storage operations
  */
 class PubkyUnauthenticatedStorageAdapter(
-    private val homeserverBaseURL: String? = null
+    private val client: OkHttpClient,
+    private val homeserverURL: String? = null,
 ) : PubkyUnauthenticatedStorageCallback {
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .build()
-
     override fun get(ownerPubkey: String, path: String): StorageGetResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL/pubky$ownerPubkey$path"
+        val url = homeserverURL
+        val urlString = if (url != null) {
+            "$url/pubky$ownerPubkey$path"
         } else {
             "https://_pubky.$ownerPubkey$path"
         }
@@ -177,8 +184,8 @@ class PubkyUnauthenticatedStorageAdapter(
     }
 
     override fun list(ownerPubkey: String, prefix: String): StorageListResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL/pubky$ownerPubkey$prefix?shallow=true"
+        val urlString = if (homeserverURL != null) {
+            "$homeserverURL/pubky$ownerPubkey$prefix?shallow=true"
         } else {
             "https://_pubky.$ownerPubkey$prefix?shallow=true"
         }
@@ -238,14 +245,13 @@ class PubkyUnauthenticatedStorageAdapter(
  * Adapter for authenticated Pubky storage operations
  */
 class PubkyAuthenticatedStorageAdapter(
+    private val baseClient: OkHttpClient,
     private val sessionId: String,
-    private val homeserverBaseURL: String? = null
+    private val homeserverURL: String? = null,
 ) : PubkyAuthenticatedStorageCallback {
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+    // Create a client with cookie jar for session handling, sharing connection pool with base client
+    private val client: OkHttpClient = baseClient.newBuilder()
         .cookieJar(object : CookieJar {
             private val cookies = mutableListOf<Cookie>()
 
@@ -260,8 +266,8 @@ class PubkyAuthenticatedStorageAdapter(
         .build()
 
     override fun put(path: String, content: String): StorageOperationResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL$path"
+        val urlString = if (homeserverURL != null) {
+            "$homeserverURL$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -293,8 +299,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun get(path: String): StorageGetResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL$path"
+        val urlString = if (homeserverURL != null) {
+            "$homeserverURL$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -325,8 +331,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun delete(path: String): StorageOperationResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL$path"
+        val urlString = if (homeserverURL != null) {
+            "$homeserverURL$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -353,8 +359,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun list(prefix: String): StorageListResult {
-        val urlString = if (homeserverBaseURL != null) {
-            "$homeserverBaseURL$prefix?shallow=true"
+        val urlString = if (homeserverURL != null) {
+            "$homeserverURL$prefix?shallow=true"
         } else {
             "https://homeserver.pubky.app$prefix?shallow=true"
         }
