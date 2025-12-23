@@ -81,6 +81,15 @@ class KeyManager @Inject constructor(
     fun getCurrentEpoch(): UInt = currentEpoch
 
     /**
+     * Set current epoch to a specific value
+     * Used for key rotation when switching to a pre-cached epoch
+     */
+    suspend fun setCurrentEpoch(epoch: UInt) {
+        currentEpoch = epoch
+        saveEpoch(epoch)
+    }
+
+    /**
      * Rotate keys by incrementing epoch
      */
     suspend fun rotateKeys() {

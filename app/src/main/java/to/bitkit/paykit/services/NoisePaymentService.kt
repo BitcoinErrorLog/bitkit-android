@@ -149,6 +149,39 @@ class NoisePaymentService @Inject constructor(
     }
 
     /**
+     * Check if key rotation is needed and perform epoch swap
+     *
+     * This checks if we should rotate from epoch 0 to epoch 1.
+     * Rotation happens automatically when epoch 1 keys are available.
+     *
+     * @param forceRotation If true, rotate immediately if epoch 1 is available
+     * @return True if rotation occurred
+     */
+    suspend fun checkKeyRotation(forceRotation: Boolean = false): Boolean {
+        val currentEpoch = keyManager.getCurrentEpoch()
+        
+        // Only rotate from epoch 0 to epoch 1
+        if (currentEpoch != 0u) {
+            return false
+        }
+        
+        // Check if we have epoch 1 keypair available
+        if (keyManager.getCachedNoiseKeypair(1u) == null) {
+            return false
+        }
+        
+        // For now, rotation is manual via forceRotation parameter
+        // In production, this would check time-based thresholds or external signals
+        if (forceRotation) {
+            keyManager.setCurrentEpoch(1u)
+            Logger.info("Rotated to epoch 1 keypair", context = TAG)
+            return true
+        }
+        
+        return false
+    }
+
+    /**
      * Send a payment request over Noise protocol
      */
     suspend fun sendPaymentRequest(request: NoisePaymentRequest): NoisePaymentResponse = withContext(Dispatchers.IO) {
