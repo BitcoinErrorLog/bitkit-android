@@ -1,5 +1,7 @@
 package to.bitkit.paykit.services
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -28,7 +30,9 @@ import javax.inject.Singleton
  */
 @Singleton
 class PushRelayService @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val keyManager: KeyManager,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) {
     companion object {
         private const val TAG = "PushRelayService"
@@ -223,7 +227,7 @@ class PushRelayService @Inject constructor(
     
     // MARK: - Private Helpers
     
-    private inline fun <reified T> makeAuthenticatedRequest(
+    private suspend inline fun <reified T> makeAuthenticatedRequest(
         method: String,
         path: String,
         body: Map<String, Any>,
@@ -288,19 +292,10 @@ class PushRelayService @Inject constructor(
         }
     }
     
-    private fun signMessage(message: String, pubkey: String): String {
-        // TODO: Implement Ed25519 signing via PubkyRingBridge
-        // For now, this is a placeholder that would be replaced with actual signing
-        // The signature would be created by Ring since it holds the Ed25519 secret key
-        //
-        // In production, this would:
-        // 1. Send sign request to Ring via deep link or cached session
-        // 2. Ring signs with Ed25519 secret key
-        // 3. Return signature hex
-        //
-        // For the reference implementation, we'll use a mock signature
-        Logger.warn("Using placeholder signature - implement Ed25519 signing via Ring", context = TAG)
-        return "placeholder_signature_${message.take(32)}"
+    private suspend fun signMessage(message: String, pubkey: String): String {
+        // Request Ed25519 signature from Pubky Ring
+        // Ring holds the secret key and performs the signing
+        return pubkyRingBridge.requestSignature(context, message)
     }
     
     private fun sha256Hex(data: ByteArray): String {

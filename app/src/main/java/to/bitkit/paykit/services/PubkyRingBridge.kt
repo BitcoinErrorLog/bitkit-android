@@ -81,6 +81,7 @@ class PubkyRingBridge @Inject constructor(
         const val CALLBACK_PATH_FOLLOWS = "paykit-follows"
         const val CALLBACK_PATH_CROSS_DEVICE_SESSION = "paykit-cross-session"
         const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
+        const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result"  // Ed25519 signature result
 
         @Volatile
         private var instance: PubkyRingBridge? = null
@@ -457,6 +458,48 @@ class PubkyRingBridge @Inject constructor(
         }
     }
 
+    // MARK: - Ed25519 Signing
+
+    private var pendingSignatureContinuation: Continuation<String>? = null
+
+    /**
+     * Request an Ed25519 signature from Pubky-ring
+     *
+     * Ring signs the message with the user's Ed25519 secret key.
+     * Used for authenticating requests to external services (e.g., push relay).
+     *
+     * @param context Android context for launching Ring
+     * @param message The message to sign (UTF-8 string)
+     * @return Hex-encoded Ed25519 signature
+     */
+    suspend fun requestSignature(context: Context, message: String): String = suspendCancellableCoroutine { continuation ->
+        if (!isPubkyRingInstalled(context)) {
+            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
+            return@suspendCancellableCoroutine
+        }
+
+        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_SIGNATURE_RESULT"
+        val encodedMessage = URLEncoder.encode(message, "UTF-8")
+        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
+        val requestUrl = "$PUBKY_RING_SCHEME://sign-message?message=$encodedMessage&callback=$encodedCallback"
+
+        pendingSignatureContinuation = continuation
+
+        continuation.invokeOnCancellation {
+            pendingSignatureContinuation = null
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Logger.error("Failed to open Pubky-ring for signature", e, context = TAG)
+            pendingSignatureContinuation = null
+            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
+        }
+    }
+
     // MARK: - Cross-Device Authentication
 
     /**
@@ -698,6 +741,7 @@ class PubkyRingBridge @Inject constructor(
             CALLBACK_PATH_FOLLOWS -> handleFollowsCallback(uri)
             CALLBACK_PATH_CROSS_DEVICE_SESSION -> handleCrossDeviceSessionCallback(uri)
             CALLBACK_PATH_PAYKIT_SETUP -> handlePaykitSetupCallback(uri)
+            CALLBACK_PATH_SIGNATURE_RESULT -> handleSignatureCallback(uri)
             else -> false
         }
     }
@@ -1045,6 +1089,32 @@ class PubkyRingBridge @Inject constructor(
         return true
     }
 
+    private fun handleSignatureCallback(uri: Uri): Boolean {
+        // Check for error response
+        val error = uri.getQueryParameter("error")
+        if (error != null) {
+            Logger.warn("Signature request returned error: $error", context = TAG)
+            pendingSignatureContinuation?.resumeWithException(PubkyRingException.SignatureFailed)
+            pendingSignatureContinuation = null
+            return true
+        }
+        
+        // Get signature from response
+        val signature = uri.getQueryParameter("signature")
+        if (signature == null) {
+            pendingSignatureContinuation?.resumeWithException(PubkyRingException.InvalidCallback)
+            pendingSignatureContinuation = null
+            return true
+        }
+        
+        Logger.debug("Received Ed25519 signature from Pubky-ring", context = TAG)
+        
+        pendingSignatureContinuation?.resume(signature)
+        pendingSignatureContinuation = null
+        
+        return true
+    }
+
     private fun handleCrossDeviceSessionCallback(uri: Uri): Boolean {
         // Verify request ID matches
         val requestId = uri.getQueryParameter("request_id")
@@ -1354,6 +1424,7 @@ sealed class PubkyRingException(message: String) : Exception(message) {
     object MissingParameters : PubkyRingException("Missing parameters in Pubky-ring callback")
     object Timeout : PubkyRingException("Request to Pubky-ring timed out")
     object Cancelled : PubkyRingException("Request was cancelled")
+    object SignatureFailed : PubkyRingException("Failed to generate signature")
     data class CrossDeviceFailed(val reason: String) : PubkyRingException("Cross-device authentication failed: $reason")
 
     /**
@@ -1366,6 +1437,7 @@ sealed class PubkyRingException(message: String) : Exception(message) {
             is FailedToOpenApp -> "Could not open Pubky-ring. Please make sure it's installed correctly."
             is Timeout -> "The request timed out. Please try again."
             is Cancelled -> "Authentication was cancelled."
+            is SignatureFailed -> "Failed to sign the message. Please try again."
             is CrossDeviceFailed -> "Cross-device authentication failed. Please try again."
         }
 }
