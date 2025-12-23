@@ -72,7 +72,6 @@ class DirectoryService @Inject constructor(
     private var unauthenticatedTransport: UnauthenticatedTransportFfi? = null
     private var authenticatedTransport: AuthenticatedTransportFfi? = null
     private var homeserverURL: HomeserverURL? = null
-    private var homeserverBaseURL: String? = null
 
     /**
      * Initialize with PaykitClient
@@ -87,7 +86,7 @@ class DirectoryService @Inject constructor(
      */
     fun configurePubkyTransport(homeserverURL: HomeserverURL? = null) {
         this.homeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(this.homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(this.homeserverURL)
         unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(adapter)
     }
 
@@ -99,7 +98,7 @@ class DirectoryService @Inject constructor(
      */
     fun configureAuthenticatedTransport(sessionId: String, ownerPubkey: OwnerPubkey, homeserverURL: HomeserverURL? = null) {
         this.homeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
-        val adapter = pubkyStorage.createAuthenticatedAdapter(sessionId, this.homeserverURL?.value)
+        val adapter = pubkyStorage.createAuthenticatedAdapter(sessionId, this.homeserverURL)
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, ownerPubkey.value)
     }
 
@@ -110,11 +109,11 @@ class DirectoryService @Inject constructor(
         homeserverURL = HomeserverDefaults.defaultHomeserverURL
 
         // Configure authenticated transport
-        val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, homeserverURL?.value)
+        val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, homeserverURL)
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, session.pubkey)
 
         // Also configure unauthenticated transport
-        val unauthAdapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val unauthAdapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
         unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(unauthAdapter)
 
         Logger.info("Configured DirectoryService with Pubky session for ${session.pubkey}", context = TAG)
@@ -126,7 +125,7 @@ class DirectoryService @Inject constructor(
     suspend fun discoverNoiseEndpoint(recipientPubkey: String): NoiseEndpointInfo? {
         val transport = unauthenticatedTransport ?: run {
             // Create default transport if not configured
-            val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+            val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
             UnauthenticatedTransportFfi.fromCallback(adapter).also {
                 unauthenticatedTransport = it
             }
@@ -244,7 +243,7 @@ removeNoiseEndpoint(transport)
         replaceWith = ReplaceWith("PushRelayService.wake(recipientPubkey, WakeType.NOISE_CONNECT)"),
     )
     suspend fun discoverPushNotificationEndpoint(recipientPubkey: String): PushNotificationEndpoint? {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
         val pushPath = "${PAYKIT_PATH_PREFIX}push"
 
         return try {
@@ -283,7 +282,7 @@ removeNoiseEndpoint(transport)
         }
 
         val transport = unauthenticatedTransport ?: run {
-            val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+            val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
             UnauthenticatedTransportFfi.fromCallback(adapter).also {
                 unauthenticatedTransport = it
             }
@@ -408,7 +407,7 @@ removeNoiseEndpoint(transport)
      * Discover pending payment requests from the directory
      */
     suspend fun discoverPendingRequests(ownerPubkey: String): List<to.bitkit.paykit.workers.DiscoveredRequest> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
 
         return try {
             // List pending requests from the requests directory
@@ -438,7 +437,7 @@ removeNoiseEndpoint(transport)
     suspend fun discoverSubscriptionProposals(
         ownerPubkey: String
     ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
 
         return try {
             // List subscription proposals from the subscriptions directory
@@ -542,7 +541,7 @@ removeNoiseEndpoint(transport)
      * Fetch profile using direct FFI (fallback)
      */
     private suspend fun fetchProfileViaFFI(pubkey: String): PubkyProfile? {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
         val profilePath = "/pub/pubky.app/profile.json"
 
         return try {
@@ -563,9 +562,9 @@ removeNoiseEndpoint(transport)
                     }
                 }
                 PubkyProfile(
-                    name = json.optString("name", null),
-                    bio = json.optString("bio", null),
-                    avatar = json.optString("avatar", null),
+                    name = json.optString("name").takeIf { it.isNotEmpty() },
+                    bio = json.optString("bio").takeIf { it.isNotEmpty() },
+                    avatar = json.optString("avatar").takeIf { it.isNotEmpty() },
                     links = links
                 )
             } else {
@@ -648,7 +647,7 @@ removeNoiseEndpoint(transport)
      * Fetch follows using direct FFI (fallback)
      */
     private suspend fun fetchFollowsViaFFI(ownerPubkey: String): List<String> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
         val followsPath = "/pub/pubky.app/follows/"
 
         return try {
@@ -698,7 +697,7 @@ removeNoiseEndpoint(transport)
         val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return emptyList()
 
         // Create unauthenticated adapter for reading follows
-        val unauthAdapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL?.value)
+        val unauthAdapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
 
         // Fetch follows list from Pubky
         val followsPath = "/pub/pubky.app/follows/"

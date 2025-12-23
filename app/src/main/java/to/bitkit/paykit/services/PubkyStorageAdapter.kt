@@ -49,7 +49,7 @@ class PubkyStorageAdapter @Inject constructor(
     /**
      * Create unauthenticated storage adapter for public reads
      */
-    fun createUnauthenticatedAdapter(homeserverURL: String? = null): PubkyUnauthenticatedStorageAdapter {
+    fun createUnauthenticatedAdapter(homeserverURL: HomeserverURL? = null): PubkyUnauthenticatedStorageAdapter {
         return PubkyUnauthenticatedStorageAdapter(httpClient, homeserverURL)
     }
 
@@ -58,7 +58,7 @@ class PubkyStorageAdapter @Inject constructor(
      */
     fun createAuthenticatedAdapter(
         sessionId: String,
-        homeserverURL: String? = null,
+        homeserverURL: HomeserverURL? = null,
     ): PubkyAuthenticatedStorageAdapter {
         return PubkyAuthenticatedStorageAdapter(httpClient, sessionId, homeserverURL)
     }
@@ -149,11 +149,11 @@ class PubkyStorageAdapter @Inject constructor(
  */
 class PubkyUnauthenticatedStorageAdapter(
     private val client: OkHttpClient,
-    private val homeserverURL: String? = null,
+    private val homeserverURL: HomeserverURL? = null,
 ) : PubkyUnauthenticatedStorageCallback {
 
     override fun get(ownerPubkey: String, path: String): StorageGetResult {
-        val url = homeserverURL
+        val url = homeserverURL?.value
         val urlString = if (url != null) {
             "$url/pubky$ownerPubkey$path"
         } else {
@@ -184,8 +184,8 @@ class PubkyUnauthenticatedStorageAdapter(
     }
 
     override fun list(ownerPubkey: String, prefix: String): StorageListResult {
-        val urlString = if (homeserverURL != null) {
-            "$homeserverURL/pubky$ownerPubkey$prefix?shallow=true"
+        val urlString = if (homeserverURL?.value != null) {
+            "${homeserverURL.value}/pubky$ownerPubkey$prefix?shallow=true"
         } else {
             "https://_pubky.$ownerPubkey$prefix?shallow=true"
         }
@@ -247,7 +247,7 @@ class PubkyUnauthenticatedStorageAdapter(
 class PubkyAuthenticatedStorageAdapter(
     private val baseClient: OkHttpClient,
     private val sessionId: String,
-    private val homeserverURL: String? = null,
+    private val homeserverURL: HomeserverURL? = null,
 ) : PubkyAuthenticatedStorageCallback {
 
     // Create a client with cookie jar for session handling, sharing connection pool with base client
@@ -266,8 +266,8 @@ class PubkyAuthenticatedStorageAdapter(
         .build()
 
     override fun put(path: String, content: String): StorageOperationResult {
-        val urlString = if (homeserverURL != null) {
-            "$homeserverURL$path"
+        val urlString = if (homeserverURL?.value != null) {
+            "${homeserverURL.value}$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -299,8 +299,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun get(path: String): StorageGetResult {
-        val urlString = if (homeserverURL != null) {
-            "$homeserverURL$path"
+        val urlString = if (homeserverURL?.value != null) {
+            "${homeserverURL.value}$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -331,8 +331,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun delete(path: String): StorageOperationResult {
-        val urlString = if (homeserverURL != null) {
-            "$homeserverURL$path"
+        val urlString = if (homeserverURL?.value != null) {
+            "${homeserverURL.value}$path"
         } else {
             "https://homeserver.pubky.app$path"
         }
@@ -359,8 +359,8 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun list(prefix: String): StorageListResult {
-        val urlString = if (homeserverURL != null) {
-            "$homeserverURL$prefix?shallow=true"
+        val urlString = if (homeserverURL?.value != null) {
+            "${homeserverURL.value}$prefix?shallow=true"
         } else {
             "https://homeserver.pubky.app$prefix?shallow=true"
         }
