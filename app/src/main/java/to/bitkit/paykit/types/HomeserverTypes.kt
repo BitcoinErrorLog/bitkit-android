@@ -209,21 +209,72 @@ object HomeserverResolver {
     var overrideURL: HomeserverURL? = null
     
     /**
+     * Cache of resolved URLs with expiry
+     */
+    private val cache = mutableMapOf<HomeserverPubkey, Pair<HomeserverURL, Long>>()
+    
+    /**
+     * Known homeserver mappings (pubkey → URL)
+     */
+    private val knownHomeservers = mutableMapOf<String, String>()
+    
+    init {
+        loadDefaultMappings()
+    }
+    
+    /**
+     * Load default homeserver mappings
+     */
+    private fun loadDefaultMappings() {
+        // Production homeserver (Synonym mainnet)
+        knownHomeservers["8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty"] = "https://homeserver.pubky.app"
+        
+        // Staging homeserver (Synonym staging)
+        knownHomeservers["ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"] = "https://staging.homeserver.pubky.app"
+    }
+    
+    /**
+     * Add a custom homeserver mapping
+     */
+    fun addMapping(pubkey: HomeserverPubkey, url: HomeserverURL) {
+        knownHomeservers[pubkey.value] = url.value
+        cache.remove(pubkey)
+    }
+    
+    /**
      * Resolve a homeserver pubkey to its URL.
      *
-     * In production, this would perform DNS-based discovery.
-     * For now, it uses the default homeserver URL.
+     * Resolution order:
+     * 1. Check override (for testing)
+     * 2. Check cache
+     * 3. Check known mappings
+     * 4. Fall back to default
      *
      * @param pubkey The homeserver's pubkey
      * @return The resolved URL
      */
     fun resolve(pubkey: HomeserverPubkey): HomeserverURL {
-        // Check for override (testing/development)
+        // 1. Check for override (testing/development)
         overrideURL?.let { return it }
         
-        // TODO: Implement DNS-based resolution
-        // For now, all pubkeys resolve to the default homeserver
-        return HomeserverDefaults.defaultHomeserverURL
+        // 2. Check cache
+        val now = System.currentTimeMillis()
+        cache[pubkey]?.let { (url, expires) ->
+            if (now < expires) return url
+        }
+        
+        // 3. Check known mappings
+        knownHomeservers[pubkey.value]?.let { urlString ->
+            val url = HomeserverURL(urlString)
+            cache[pubkey] = url to (now + 3600 * 1000)
+            return url
+        }
+        
+        // 4. Fall back to default
+        // TODO: Implement DNS-based resolution via _pubky.<pubkey>
+        val defaultURL = HomeserverDefaults.defaultHomeserverURL
+        cache[pubkey] = defaultURL to (now + 3600 * 1000)
+        return defaultURL
     }
     
     /**
@@ -249,6 +300,13 @@ object HomeserverResolver {
         // For now, all sessions use the default homeserver
         // In production, this would be stored with the session
         return HomeserverDefaults.defaultHomeserverURL
+    }
+    
+    /**
+     * Clear the resolution cache
+     */
+    fun clearCache() {
+        cache.clear()
     }
 }
 
