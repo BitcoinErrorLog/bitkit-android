@@ -987,7 +987,10 @@ class PubkyRingBridge @Inject constructor(
             }
         }
         
-        // TODO: Delete the handoff file from homeserver after fetching
+        // TODO: Delete handoff file from homeserver to minimize attack window
+        // This should be handled by Ring after successful callback or via TTL expiry
+        // Bitkit could also issue a delete request using the new session, but requires
+        // PubkyStorageAdapter to be available in this context (DI refactor needed)
         
         setupResult
     }
