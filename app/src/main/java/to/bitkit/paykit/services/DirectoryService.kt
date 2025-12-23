@@ -188,7 +188,15 @@ removeNoiseEndpoint(transport)
     /**
      * Publish our push notification endpoint to the directory.
      * This allows other users to discover how to wake our device for Noise connections.
+     *
+     * @deprecated This publishes tokens publicly, enabling DoS attacks.
+     *   Use [PushRelayService.register] instead for secure push token registration.
+     *   This method will be removed in a future release.
      */
+    @Deprecated(
+        message = "Use PushRelayService.register() for secure push registration",
+        replaceWith = ReplaceWith("PushRelayService.register(deviceToken, listOf(\"wake\", \"payment_received\"))"),
+    )
     suspend fun publishPushNotificationEndpoint(
         deviceToken: String,
         platform: String,
@@ -221,7 +229,15 @@ removeNoiseEndpoint(transport)
     /**
      * Discover push notification endpoint for a recipient.
      * Used to send wake notifications before attempting Noise connections.
+     *
+     * @deprecated Use [PushRelayService.wake] instead.
+     *   Direct discovery exposes tokens publicly. The push relay service
+     *   handles routing without exposing tokens.
      */
+    @Deprecated(
+        message = "Use PushRelayService.wake() for secure wake notifications",
+        replaceWith = ReplaceWith("PushRelayService.wake(recipientPubkey, WakeType.NOISE_CONNECT)"),
+    )
     suspend fun discoverPushNotificationEndpoint(recipientPubkey: String): PushNotificationEndpoint? {
         val adapter = PubkyUnauthenticatedStorageAdapter(homeserverBaseURL)
         val pushPath = "${PAYKIT_PATH_PREFIX}push"
