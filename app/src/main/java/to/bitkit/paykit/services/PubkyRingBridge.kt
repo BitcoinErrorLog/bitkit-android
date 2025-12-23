@@ -7,8 +7,10 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -97,6 +99,20 @@ class PubkyRingBridge @Inject constructor(
         setInstance(this)
     }
 
+    // Coroutine scope for fire-and-forget persistence operations
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    /**
+     * Cleanup resources. Call when the bridge is no longer needed.
+     */
+    fun cleanup() {
+        scope.cancel("PubkyRingBridge cleanup")
+        pendingSessionContinuation = null
+        pendingKeypairContinuation = null
+        pendingPaykitSetupContinuation = null
+        Logger.debug("PubkyRingBridge cleaned up", context = TAG)
+    }
+
     // Pending continuations for async requests
     private var pendingSessionContinuation: Continuation<PubkySession>? = null
     private var pendingKeypairContinuation: Continuation<NoiseKeypair>? = null
@@ -131,13 +147,13 @@ class PubkyRingBridge @Inject constructor(
         // Generate new UUID
         val newId = UUID.randomUUID().toString().lowercase()
         
-        // Persist
-        try {
-            kotlinx.coroutines.runBlocking {
+        // Persist asynchronously (fire-and-forget, device ID is already in memory)
+        scope.launch {
+            try {
                 keychainStorage.setString(key, newId)
+            } catch (e: Exception) {
+                Logger.error("Failed to persist device ID", e, context = TAG)
             }
-        } catch (e: Exception) {
-            Logger.error("Failed to persist device ID", e, context = TAG)
         }
         
         Logger.info("Generated new device ID: ${newId.take(8)}...", context = TAG)
@@ -712,7 +728,7 @@ class PubkyRingBridge @Inject constructor(
         sessionCache[pubkey] = session
         
         // Persist to keychain (fire-and-forget)
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch {
             persistSession(session)
         }
 
@@ -768,6 +784,32 @@ class PubkyRingBridge @Inject constructor(
     }
 
     private fun handlePaykitSetupCallback(uri: Uri): Boolean {
+        // Check for secure handoff mode
+        val mode = uri.getQueryParameter("mode")
+        if (mode == "secure_handoff") {
+            val pubkey = uri.getQueryParameter("pubky")
+            val requestId = uri.getQueryParameter("request_id")
+            
+            if (pubkey == null || requestId == null) {
+                pendingPaykitSetupContinuation?.resumeWithException(PubkyRingException.MissingParameters)
+                pendingPaykitSetupContinuation = null
+                return true
+            }
+            
+            // Fetch payload from homeserver asynchronously
+            scope.launch {
+                try {
+                    val result = fetchSecureHandoffPayload(pubkey, requestId)
+                    pendingPaykitSetupContinuation?.resume(result)
+                } catch (e: Exception) {
+                    pendingPaykitSetupContinuation?.resumeWithException(e)
+                }
+                pendingPaykitSetupContinuation = null
+            }
+            return true
+        }
+        
+        // Legacy mode: secrets in URL
         val pubkey = uri.getQueryParameter("pubky")
         val sessionSecret = uri.getQueryParameter("session_secret")
         val deviceId = uri.getQueryParameter("device_id")
@@ -860,6 +902,95 @@ class PubkyRingBridge @Inject constructor(
 
         return true
     }
+    
+    /**
+     * Fetch secure handoff payload from homeserver
+     */
+    private suspend fun fetchSecureHandoffPayload(pubkey: String, requestId: String): PaykitSetupResult = withContext(Dispatchers.IO) {
+        val handoffUri = "pubky://$pubkey/pub/paykit.app/v0/handoff/$requestId"
+        
+        Logger.info("Fetching secure handoff payload from ${handoffUri.take(50)}...", context = TAG)
+        
+        // Fetch payload using uniffi.pubkycore.get
+        val result = uniffi.pubkycore.get(handoffUri)
+        if (result[0] == "error") {
+            throw PubkyRingException.InvalidCallback
+        }
+        
+        // Parse JSON payload
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val payload = json.decodeFromString<SecureHandoffPayload>(result[1])
+        
+        // Validate payload hasn't expired
+        if (System.currentTimeMillis() > payload.expiresAt) {
+            throw PubkyRingException.Timeout
+        }
+        
+        // Build session
+        val session = PubkySession(
+            pubkey = payload.pubky,
+            sessionSecret = payload.sessionSecret,
+            capabilities = payload.capabilities,
+            createdAt = Date(payload.createdAt),
+            expiresAt = null,
+        )
+        
+        // Build noise keypairs
+        var keypair0: NoiseKeypair? = null
+        var keypair1: NoiseKeypair? = null
+        
+        for (kp in payload.noiseKeypairs) {
+            val keypair = NoiseKeypair(
+                publicKey = kp.publicKey,
+                secretKey = kp.secretKey,
+                deviceId = payload.deviceId,
+                epoch = kp.epoch.toULong(),
+            )
+            
+            when (kp.epoch) {
+                0 -> keypair0 = keypair
+                1 -> keypair1 = keypair
+            }
+        }
+        
+        val setupResult = PaykitSetupResult(
+            session = session,
+            deviceId = payload.deviceId,
+            noiseKeypair0 = keypair0,
+            noiseKeypair1 = keypair1,
+        )
+        
+        Logger.info("Secure handoff payload received for ${payload.pubky.take(12)}...", context = TAG)
+        
+        // Cache session and keypairs
+        sessionCache[session.pubkey] = session
+        persistSession(session)
+        
+        if (keypair0 != null) {
+            val cacheKey0 = "${payload.deviceId}:0"
+            keypairCache[cacheKey0] = keypair0
+            try {
+                val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
+                NoiseKeyCache.getInstance().setKeySync(secretKeyData, payload.deviceId, 0u)
+            } catch (e: Exception) {
+                Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
+            }
+        }
+        if (keypair1 != null) {
+            val cacheKey1 = "${payload.deviceId}:1"
+            keypairCache[cacheKey1] = keypair1
+            try {
+                val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
+                NoiseKeyCache.getInstance().setKeySync(secretKeyData, payload.deviceId, 1u)
+            } catch (e: Exception) {
+                Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
+            }
+        }
+        
+        // TODO: Delete the handoff file from homeserver after fetching
+        
+        setupResult
+    }
 
     private fun handleProfileCallback(uri: Uri): Boolean {
         // Check for error response
@@ -943,7 +1074,7 @@ class PubkyRingBridge @Inject constructor(
         pendingCrossDeviceRequestId = null
         
         // Persist to keychain for cross-device sessions too (fire-and-forget)
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch {
             persistSession(session)
         }
 
@@ -1021,7 +1152,7 @@ class PubkyRingBridge @Inject constructor(
     fun setCachedSession(session: PubkySession) {
         sessionCache[session.pubkey] = session
         // Persist to keychain (fire-and-forget)
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch {
             persistSession(session)
         }
     }
@@ -1161,6 +1292,35 @@ data class NoiseKeypair(
     val secretKey: String,
     val deviceId: String,
     val epoch: ULong,
+)
+
+/**
+ * Secure handoff payload structure (stored on homeserver by Ring)
+ */
+@kotlinx.serialization.Serializable
+private data class SecureHandoffPayload(
+    val version: Int,
+    val pubky: String,
+    @kotlinx.serialization.SerialName("session_secret")
+    val sessionSecret: String,
+    val capabilities: List<String>,
+    @kotlinx.serialization.SerialName("device_id")
+    val deviceId: String,
+    @kotlinx.serialization.SerialName("noise_keypairs")
+    val noiseKeypairs: List<SecureHandoffNoiseKeypair>,
+    @kotlinx.serialization.SerialName("created_at")
+    val createdAt: Long,
+    @kotlinx.serialization.SerialName("expires_at")
+    val expiresAt: Long,
+)
+
+@kotlinx.serialization.Serializable
+private data class SecureHandoffNoiseKeypair(
+    val epoch: Int,
+    @kotlinx.serialization.SerialName("public_key")
+    val publicKey: String,
+    @kotlinx.serialization.SerialName("secret_key")
+    val secretKey: String,
 )
 
 /**
