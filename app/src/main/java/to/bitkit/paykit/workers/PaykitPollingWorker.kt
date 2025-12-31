@@ -49,6 +49,8 @@ class PaykitPollingWorker @AssistedInject constructor(
     private val directoryService: DirectoryService,
     private val autoPayEvaluator: AutoPayEvaluator,
     private val lightningRepo: LightningRepo,
+    private val paykitManager: PaykitManager,
+    private val paymentService: PaykitPaymentService,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -125,8 +127,7 @@ class PaykitPollingWorker @AssistedInject constructor(
             }
 
             // Get our pubkey from manager
-            val manager = PaykitManager.getInstance()
-            val ownerPubkey = manager.ownerPubkey
+            val ownerPubkey = paykitManager.ownerPubkey
             if (ownerPubkey == null) {
                 Logger.info("No owner pubkey configured, skipping poll", context = TAG)
                 return@runCatching Result.success()
@@ -263,7 +264,6 @@ class PaykitPollingWorker @AssistedInject constructor(
         }
 
         // Execute payment via Paykit payment service with spending limit enforcement
-        val paymentService = PaykitPaymentService.getInstance()
         val result = paymentService.pay(
             lightningRepo = lightningRepo,
             recipient = request.fromPubkey,

@@ -1,13 +1,16 @@
 package to.bitkit.paykit.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.Receipt
-import dagger.hilt.android.lifecycle.HiltViewModel
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.*
 import javax.inject.Inject
 
@@ -16,11 +19,13 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val receiptStorage: ReceiptStorage,
     private val contactStorage: ContactStorage,
     private val autoPayStorage: AutoPayStorage,
     private val subscriptionStorage: SubscriptionStorage,
-    private val paymentRequestStorage: PaymentRequestStorage
+    private val paymentRequestStorage: PaymentRequestStorage,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) : ViewModel() {
 
     private val _recentReceipts = MutableStateFlow<List<Receipt>>(emptyList())
@@ -58,6 +63,14 @@ class DashboardViewModel @Inject constructor(
 
     private val _publishedMethodsCount = MutableStateFlow(0)
     val publishedMethodsCount: StateFlow<Int> = _publishedMethodsCount.asStateFlow()
+
+    private val _isPubkyRingInstalled = MutableStateFlow(false)
+    val isPubkyRingInstalled: StateFlow<Boolean> = _isPubkyRingInstalled.asStateFlow()
+
+    init {
+        _isPubkyRingInstalled.value = pubkyRingBridge.isPubkyRingInstalled(context)
+        loadDashboard()
+    }
 
     fun loadDashboard() {
         viewModelScope.launch {

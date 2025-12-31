@@ -5,7 +5,9 @@ import com.synonym.bitkitcore.Activity
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.OnchainActivity
 import com.synonym.bitkitcore.PaymentType
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.doReturn
@@ -20,6 +22,8 @@ import to.bitkit.viewmodels.ActivityDetailViewModel
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
 
 class ActivityDetailViewModelTest : BaseUnitTest() {
     private lateinit var sut: ActivityDetailViewModel
@@ -100,6 +104,7 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
         // Load activity
         sut.loadActivity(ACTIVITY_ID)
+        advanceUntilIdle()
 
         // Verify initial state loaded
         val initialState = sut.uiState.value.activityLoadState
@@ -109,6 +114,7 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
         // Simulate activity update
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.success(updatedActivity))
         activitiesChangedFlow.value = System.currentTimeMillis()
+        advanceUntilIdle()
 
         // Verify ViewModel reflects updated activity
         val updatedState = sut.uiState.value.activityLoadState
@@ -127,13 +133,16 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
         // Load activity
         sut.loadActivity(ACTIVITY_ID)
+        advanceUntilIdle()
 
         // Clear state
         sut.clearActivityState()
+        advanceUntilIdle()
 
         // Trigger activity change
         val callCountBefore = mockingDetails(activityRepo).invocations.size
         activitiesChangedFlow.value = System.currentTimeMillis()
+        advanceUntilIdle()
 
         // Verify no reload after clear (getActivity not called again)
         val callCountAfter = mockingDetails(activityRepo).invocations.size
@@ -151,10 +160,12 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
         // Load activity
         sut.loadActivity(ACTIVITY_ID)
+        advanceUntilIdle()
 
         // Simulate reload failure
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.failure(Exception("Network error")))
         activitiesChangedFlow.value = System.currentTimeMillis()
+        advanceUntilIdle()
 
         // Verify last known state is preserved
         val state = sut.uiState.value.activityLoadState
@@ -167,6 +178,7 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.failure(Exception("Database error")))
 
         sut.loadActivity(ACTIVITY_ID)
+        advanceUntilIdle()
 
         val state = sut.uiState.value.activityLoadState
         assertTrue(state is ActivityDetailViewModel.ActivityLoadState.Error)

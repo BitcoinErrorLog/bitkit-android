@@ -29,6 +29,13 @@ internal open class App : Application(), Configuration.Provider {
         PaykitFeatureFlags.init(this)
     }
 
+    override fun onTerminate() {
+        super.onTerminate()
+        // Note: onTerminate() is not guaranteed to be called, only in emulator
+        // TODO: When migrating PubkyRingBridge from getInstance to DI,
+        // ensure cleanup() is called via proper lifecycle management
+    }
+
     companion object {
         @SuppressLint("StaticFieldLeak") // Should be safe given its manual memory management
         internal var currentActivity: CurrentActivity? = null

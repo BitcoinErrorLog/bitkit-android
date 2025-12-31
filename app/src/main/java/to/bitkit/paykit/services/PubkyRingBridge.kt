@@ -52,6 +52,8 @@ import kotlin.coroutines.resumeWithException
 @Singleton
 class PubkyRingBridge @Inject constructor(
     private val keychainStorage: to.bitkit.paykit.storage.PaykitKeychainStorage,
+    private val noiseKeyCache: NoiseKeyCache,
+    private val pubkyStorageAdapter: PubkyStorageAdapter,
 ) {
 
     companion object {
@@ -321,7 +323,7 @@ class PubkyRingBridge @Inject constructor(
         
         // Check persistent cache (NoiseKeyCache)
         try {
-            val cachedKey = NoiseKeyCache.getInstance().getKey(actualDeviceId, epoch.toUInt())
+            val cachedKey = noiseKeyCache.getKey(actualDeviceId, epoch.toUInt())
             if (cachedKey != null) {
                 Logger.debug("Noise keypair found in persistent cache for $cacheKey", context = TAG)
                 // We have the secret key, but to reconstruct the full keypair we'd need the public key
@@ -815,7 +817,7 @@ class PubkyRingBridge @Inject constructor(
         // Persist secret key to NoiseKeyCache (memory first, keychain persists async)
         try {
             val secretKeyData = secretKey.toByteArray(Charsets.UTF_8)
-            NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, epoch.toUInt())
+            noiseKeyCache.setKeySync(secretKeyData, deviceId, epoch.toUInt())
             Logger.debug("Stored noise keypair in NoiseKeyCache for $cacheKey", context = TAG)
         } catch (e: Exception) {
             Logger.warn("Failed to store noise keypair: ${e.message}", e, context = TAG)
@@ -920,7 +922,7 @@ class PubkyRingBridge @Inject constructor(
             keypairCache[cacheKey] = keypair0
             try {
                 val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
-                NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, 0u)
+                noiseKeyCache.setKeySync(secretKeyData, deviceId, 0u)
                 Logger.debug("Stored noise keypair for epoch 0", context = TAG)
             } catch (e: Exception) {
                 Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
@@ -932,7 +934,7 @@ class PubkyRingBridge @Inject constructor(
             keypairCache[cacheKey] = keypair1
             try {
                 val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
-                NoiseKeyCache.getInstance().setKeySync(secretKeyData, deviceId, 1u)
+                noiseKeyCache.setKeySync(secretKeyData, deviceId, 1u)
                 Logger.debug("Stored noise keypair for epoch 1", context = TAG)
             } catch (e: Exception) {
                 Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
@@ -1015,7 +1017,7 @@ class PubkyRingBridge @Inject constructor(
             keypairCache[cacheKey0] = keypair0
             try {
                 val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
-                NoiseKeyCache.getInstance().setKeySync(secretKeyData, payload.deviceId, 0u)
+                noiseKeyCache.setKeySync(secretKeyData, payload.deviceId, 0u)
             } catch (e: Exception) {
                 Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
             }
@@ -1025,16 +1027,26 @@ class PubkyRingBridge @Inject constructor(
             keypairCache[cacheKey1] = keypair1
             try {
                 val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
-                NoiseKeyCache.getInstance().setKeySync(secretKeyData, payload.deviceId, 1u)
+                noiseKeyCache.setKeySync(secretKeyData, payload.deviceId, 1u)
             } catch (e: Exception) {
                 Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
             }
         }
         
-        // TODO: Delete handoff file from homeserver to minimize attack window
-        // This should be handled by Ring after successful callback or via TTL expiry
-        // Bitkit could also issue a delete request using the new session, but requires
-        // PubkyStorageAdapter to be available in this context (DI refactor needed)
+        // Delete handoff file from homeserver to minimize attack window
+        scope.launch {
+            val handoffPath = "/pub/paykit.app/v0/handoff/$requestId"
+            val adapter = pubkyStorageAdapter.createAuthenticatedAdapter(
+                sessionId = session.sessionSecret,
+                homeserverURL = null,
+            )
+            val result = adapter.delete(handoffPath)
+            if (result.success) {
+                Logger.info("Deleted secure handoff payload: $requestId", context = TAG)
+            } else {
+                Logger.warn("Failed to delete handoff payload: ${result.error}", context = TAG)
+            }
+        }
         
         setupResult
     }
@@ -1289,7 +1301,6 @@ class PubkyRingBridge @Inject constructor(
         }
         
         // Restore noise keys
-        val noiseKeyCache = NoiseKeyCache.getInstance()
         for (noiseKey in backup.noiseKeys) {
             val cacheKey = "${noiseKey.deviceId}:${noiseKey.epoch}"
             

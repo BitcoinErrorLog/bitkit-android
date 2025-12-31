@@ -43,6 +43,10 @@ class ContactsViewModel @Inject constructor(
     private val _showingDiscoveryResults = MutableStateFlow(false)
     val showingDiscoveryResults: StateFlow<Boolean> = _showingDiscoveryResults.asStateFlow()
 
+    init {
+        loadContacts()
+    }
+
     fun loadContacts() {
         viewModelScope.launch {
             _isLoading.value = true

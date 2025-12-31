@@ -36,6 +36,10 @@ class ReceiptsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    init {
+        loadReceipts()
+    }
+
     fun loadReceipts() {
         viewModelScope.launch {
             _isLoading.value = true

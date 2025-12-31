@@ -6,9 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,14 +25,11 @@ fun PaykitAutoPayScreen(
     onNavigateBack: () -> Unit,
     viewModel: AutoPayViewModel = hiltViewModel()
 ) {
-    val settings by viewModel.settings.collectAsState()
-    val peerLimits by viewModel.peerLimits.collectAsState()
-    val rules by viewModel.rules.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val peerLimits by viewModel.peerLimits.collectAsStateWithLifecycle()
+    val rules by viewModel.rules.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSettings()
-    }
 
     ScreenColumn {
         AppTopBar(

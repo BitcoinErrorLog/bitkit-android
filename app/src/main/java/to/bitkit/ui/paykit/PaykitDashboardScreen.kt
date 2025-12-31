@@ -40,9 +40,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.viewmodels.DashboardViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
@@ -75,28 +73,19 @@ fun PaykitDashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val recentReceipts by viewModel.recentReceipts.collectAsState()
-    val contactCount by viewModel.contactCount.collectAsState()
-    val totalSent by viewModel.totalSent.collectAsState()
-    val totalReceived by viewModel.totalReceived.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val autoPayEnabled by viewModel.autoPayEnabled.collectAsState()
-    val activeSubscriptions by viewModel.activeSubscriptions.collectAsState()
-    val pendingRequests by viewModel.pendingRequests.collectAsState()
-    val publishedMethodsCount by viewModel.publishedMethodsCount.collectAsState()
+    val recentReceipts by viewModel.recentReceipts.collectAsStateWithLifecycle()
+    val contactCount by viewModel.contactCount.collectAsStateWithLifecycle()
+    val totalSent by viewModel.totalSent.collectAsStateWithLifecycle()
+    val totalReceived by viewModel.totalReceived.collectAsStateWithLifecycle()
+    val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val autoPayEnabled by viewModel.autoPayEnabled.collectAsStateWithLifecycle()
+    val activeSubscriptions by viewModel.activeSubscriptions.collectAsStateWithLifecycle()
+    val pendingRequests by viewModel.pendingRequests.collectAsStateWithLifecycle()
+    val publishedMethodsCount by viewModel.publishedMethodsCount.collectAsStateWithLifecycle()
 
-    val pubkyRingBridge = remember { 
-        runCatching { PubkyRingBridge.getInstance() }.getOrNull()
-    }
-    
-    val isPubkyRingInstalled = remember(pubkyRingBridge) { 
-        pubkyRingBridge?.isPubkyRingInstalled(context) ?: false
-    }
+    val isPubkyRingInstalled by viewModel.isPubkyRingInstalled.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadDashboard()
-    }
 
     ScreenColumn {
         AppTopBar(

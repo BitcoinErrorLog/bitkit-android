@@ -56,11 +56,13 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.services.CrossDeviceRequest
-import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySession
+import to.bitkit.paykit.viewmodels.PubkyRingAuthViewModel
 import to.bitkit.ui.theme.Colors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,35 +73,30 @@ fun PubkyRingAuthScreen(
     onNavigateToScanner: (() -> Unit)? = null,
     scannedQrCode: String? = null,
     modifier: Modifier = Modifier,
+    viewModel: PubkyRingAuthViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val bridge = remember { PubkyRingBridge.getInstance() }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    var crossDeviceRequest by remember { mutableStateOf<CrossDeviceRequest?>(null) }
-    var isPolling by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val crossDeviceRequest by viewModel.crossDeviceRequest.collectAsStateWithLifecycle()
+    val isPolling by viewModel.isPolling.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     var manualPubkey by remember { mutableStateOf("") }
     var manualSessionSecret by remember { mutableStateOf("") }
     var timeRemaining by remember { mutableLongStateOf(0L) }
     var pastedUrl by remember { mutableStateOf("") }
 
-    val isPubkyRingInstalled = remember { bridge.isPubkyRingInstalled(context) }
-    val recommendedMethod = remember { bridge.getRecommendedAuthMethod(context) }
+    val isPubkyRingInstalled = viewModel.isPubkyRingInstalled
+    val recommendedMethod = viewModel.recommendedMethod
 
     // Handle scanned QR code
     LaunchedEffect(scannedQrCode) {
         scannedQrCode?.let { qrCode ->
             if (qrCode.contains("pubky://") || qrCode.contains("pubkyring://")) {
-                try {
-                    val session = bridge.handleAuthUrl(qrCode)
-                    onSessionReceived(session)
-                } catch (e: Exception) {
-                    errorMessage = e.message ?: "Failed to process QR code"
-                }
+                viewModel.handleAuthUrl(qrCode, onSessionReceived)
             } else {
                 pastedUrl = qrCode
             }
@@ -115,21 +112,19 @@ fun PubkyRingAuthScreen(
 
     // Timer for countdown
     LaunchedEffect(crossDeviceRequest) {
-        while (crossDeviceRequest != null && !crossDeviceRequest!!.isExpired) {
-            timeRemaining = crossDeviceRequest!!.timeRemainingMs / 1000
+        val request = crossDeviceRequest ?: return@LaunchedEffect
+        while (!request.isExpired) {
+            timeRemaining = request.timeRemainingMs / 1000
             delay(1000)
         }
-        if (crossDeviceRequest?.isExpired == true) {
-            crossDeviceRequest = null
-            isPolling = false
-        }
+        viewModel.cancelCrossDeviceRequest()
     }
 
     // Show error snackbar
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
-            errorMessage = null
+            viewModel.clearError()
         }
     }
 
@@ -173,14 +168,7 @@ fun PubkyRingAuthScreen(
             when (pageIndex) {
                 0 -> SameDeviceTabContent(
                     onAuthenticate = {
-                        scope.launch {
-                            try {
-                                val session = bridge.requestSession(context)
-                                onSessionReceived(session)
-                            } catch (e: Exception) {
-                                errorMessage = e.message
-                            }
-                        }
+                        viewModel.requestSession(onSessionReceived)
                     },
                 )
                 1 -> CrossDeviceTabContent(
@@ -188,19 +176,8 @@ fun PubkyRingAuthScreen(
                     timeRemaining = timeRemaining,
                     isPolling = isPolling,
                     onGenerateRequest = {
-                        crossDeviceRequest = bridge.generateCrossDeviceRequest()
-                        isPolling = true
-                        scope.launch {
-                            try {
-                                val requestId = crossDeviceRequest?.requestId ?: return@launch
-                                val session = bridge.pollForCrossDeviceSession(requestId)
-                                isPolling = false
-                                onSessionReceived(session)
-                            } catch (e: Exception) {
-                                isPolling = false
-                                errorMessage = e.message
-                            }
-                        }
+                        viewModel.generateCrossDeviceRequest()
+                        viewModel.startPollingForSession(onSessionReceived)
                     },
                     onCopyLink = {
                         crossDeviceRequest?.url?.let { url ->
@@ -221,14 +198,7 @@ fun PubkyRingAuthScreen(
                         }
                     },
                     onConnect = {
-                        scope.launch {
-                            try {
-                                val session = bridge.handleAuthUrl(pastedUrl.trim())
-                                onSessionReceived(session)
-                            } catch (e: Exception) {
-                                errorMessage = e.message ?: "Invalid Pubky Ring URL"
-                            }
-                        }
+                        viewModel.handleAuthUrl(pastedUrl.trim(), onSessionReceived)
                     },
                 )
             }

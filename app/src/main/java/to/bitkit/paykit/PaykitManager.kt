@@ -123,8 +123,10 @@ class PaykitManager @Inject constructor(
 
         val paykitClient = client ?: throw PaykitException.NotInitialized
 
-        paykitClient.registerBitcoinExecutor(bitcoinExecutor!!)
-        paykitClient.registerLightningExecutor(lightningExecutor!!)
+        val btcExecutor = bitcoinExecutor ?: throw PaykitException.NotInitialized
+        val lnExecutor = lightningExecutor ?: throw PaykitException.NotInitialized
+        paykitClient.registerBitcoinExecutor(btcExecutor)
+        paykitClient.registerLightningExecutor(lnExecutor)
 
         hasExecutors = true
         Logger.info("Paykit executors registered successfully", context = TAG)
@@ -154,9 +156,9 @@ class PaykitManager @Inject constructor(
      * This opens Pubky-ring to authenticate and returns a session with credentials.
      */
     suspend fun requestPubkySession(context: Context): PubkySession {
-        if (PubkyRingBridge.getInstance().isPubkyRingInstalled(context)) {
+        if (pubkyRingBridge.isPubkyRingInstalled(context)) {
             Logger.info("Requesting session from Pubky-ring", context = TAG)
-            return PubkyRingBridge.getInstance().requestSession(context)
+            return pubkyRingBridge.requestSession(context)
         }
         throw PaykitException.PubkyRingNotInstalled
     }
@@ -167,7 +169,7 @@ class PaykitManager @Inject constructor(
     suspend fun getOrRequestSession(context: Context, pubkey: String? = null): PubkySession {
         // Check cache first
         if (pubkey != null) {
-            PubkyRingBridge.getInstance().getCachedSession(pubkey)?.let { cached ->
+            pubkyRingBridge.getCachedSession(pubkey)?.let { cached ->
                 return cached
             }
         }
@@ -180,13 +182,8 @@ class PaykitManager @Inject constructor(
      * Check if Pubky-ring is installed and available
      */
     fun isPubkyRingAvailable(context: Context): Boolean =
-        PubkyRingBridge.getInstance().isPubkyRingInstalled(context)
+        pubkyRingBridge.isPubkyRingInstalled(context)
 }
-
-/**
- * Extension function to get PaykitClient from PaykitManager
- */
-fun PaykitManager.getClient(): PaykitClient = getClient()
 
 enum class BitcoinNetworkConfig {
     MAINNET,

@@ -252,7 +252,7 @@ class PushRelayService @Inject constructor(
             val bodyHash = sha256Hex(bodyBytes)
             val message = "$method:$path:$timestamp:$bodyHash"
             
-            // Sign with Ed25519 (placeholder - actual implementation would use Ring)
+            // Sign with Ed25519 via Pubky Ring (Ring holds secret key)
             val signature = signMessage(message, pubkey)
             
             connection.setRequestProperty("X-Pubky-Signature", signature)

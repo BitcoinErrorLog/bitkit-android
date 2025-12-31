@@ -21,7 +21,15 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Background worker for handling incoming Noise protocol connections.
- * 
+ *
+ * ## Threading Model
+ *
+ * Uses `runBlocking` in the `startBackgroundServer` callback because:
+ * 1. The callback signature is non-suspend `(NoisePaymentRequest) -> Unit`
+ * 2. Called from within a CoroutineWorker's doWork suspend context
+ * 3. The callback runs on IO dispatcher and is already off main thread
+ * 4. Worker has built-in timeout handling via WorkManager constraints
+ *
  * This worker is started when a push notification indicates an incoming
  * Noise payment request. It:
  * 1. Starts a Noise server on the configured port

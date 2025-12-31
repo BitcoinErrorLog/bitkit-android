@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.pubky_noise
+package com.pubky.noise
 
 // Common helper code.
 //
@@ -2040,34 +2040,34 @@ sealed class FfiNoiseException: kotlin.Exception() {
     
     class Ring(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Pkarr(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Snow(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Serde(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class IdentityVerify(
@@ -2084,10 +2084,10 @@ sealed class FfiNoiseException: kotlin.Exception() {
     
     class Policy(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class InvalidPeerKey(
@@ -2098,39 +2098,39 @@ sealed class FfiNoiseException: kotlin.Exception() {
     
     class Network(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Timeout(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Storage(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Decryption(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class RateLimited(
         
-        val `message`: kotlin.String, 
+        val `msg`: kotlin.String, 
         
         /**
          * Optional retry delay in milliseconds.
@@ -2138,7 +2138,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `retryAfterMs`: kotlin.ULong?
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }, retryAfterMs=${ `retryAfterMs` }"
+            get() = "message=${ `msg` }, retryAfterMs=${ `retryAfterMs` }"
     }
     
     class MaxSessionsExceeded(
@@ -2149,26 +2149,26 @@ sealed class FfiNoiseException: kotlin.Exception() {
     
     class SessionExpired(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class ConnectionReset(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
     class Other(
         
-        val `message`: kotlin.String
+        val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "message=${ `msg` }"
     }
     
 
@@ -2326,22 +2326,22 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
         when(value) {
             is FfiNoiseException.Ring -> {
                 buf.putInt(1)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Pkarr -> {
                 buf.putInt(2)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Snow -> {
                 buf.putInt(3)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Serde -> {
                 buf.putInt(4)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.IdentityVerify -> {
@@ -2354,7 +2354,7 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             }
             is FfiNoiseException.Policy -> {
                 buf.putInt(7)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.InvalidPeerKey -> {
@@ -2363,27 +2363,27 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             }
             is FfiNoiseException.Network -> {
                 buf.putInt(9)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Timeout -> {
                 buf.putInt(10)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Storage -> {
                 buf.putInt(11)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Decryption -> {
                 buf.putInt(12)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.RateLimited -> {
                 buf.putInt(13)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 FfiConverterOptionalULong.write(value.`retryAfterMs`, buf)
                 Unit
             }
@@ -2393,17 +2393,17 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             }
             is FfiNoiseException.SessionExpired -> {
                 buf.putInt(15)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.ConnectionReset -> {
                 buf.putInt(16)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
             is FfiNoiseException.Other -> {
                 buf.putInt(17)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`msg`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }

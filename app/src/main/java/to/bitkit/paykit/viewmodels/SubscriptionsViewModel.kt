@@ -29,6 +29,10 @@ class SubscriptionsViewModel @Inject constructor(
     private val _showingAddSubscription = MutableStateFlow(false)
     val showingAddSubscription: StateFlow<Boolean> = _showingAddSubscription.asStateFlow()
 
+    init {
+        loadSubscriptions()
+    }
+
     fun loadSubscriptions() {
         viewModelScope.launch {
             _isLoading.value = true

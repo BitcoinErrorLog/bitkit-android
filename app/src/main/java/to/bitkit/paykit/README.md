@@ -94,31 +94,47 @@ PaykitIntegrationHelper.setupAsync(lightningRepo) { result ->
 ### Making Payments
 
 ```kotlin
-// Using the high-level service
-val service = PaykitPaymentService.getInstance()
+// Using dependency injection (recommended)
+@HiltViewModel
+class PaymentViewModel @Inject constructor(
+    private val paymentService: PaykitPaymentService,
+    private val lightningRepo: LightningRepo,
+) : ViewModel() {
 
-// Lightning payment
-val result = service.payLightning(lightningRepo, "lnbc10u1p0...", amountSats = null)
+    suspend fun pay(invoice: String) {
+        // Lightning payment
+        val result = paymentService.payLightning(lightningRepo, invoice, amountSats = null)
+        
+        // Check result
+        if (result.success) {
+            println("Payment succeeded: ${result.receipt.id}")
+        } else {
+            println("Payment failed: ${result.error?.userMessage}")
+        }
+    }
 
-// On-chain payment
-val result = service.payOnchain(lightningRepo, "bc1q...", amountSats = 50000uL, feeRate = 10.0)
-
-// Check result
-if (result.success) {
-    println("Payment succeeded: ${result.receipt.id}")
-} else {
-    println("Payment failed: ${result.error?.userMessage}")
+    suspend fun payOnchain(address: String) {
+        // On-chain payment
+        val result = paymentService.payOnchain(lightningRepo, address, amountSats = 50000uL, feeRate = 10.0)
+    }
 }
 ```
+
+> **Note:** `PaykitPaymentService.getInstance()` is deprecated. Use dependency injection instead.
 
 ### Observing Payment State
 
 ```kotlin
-// In ViewModel
-val paymentState = PaykitPaymentService.getInstance().paymentState
+// In ViewModel with dependency injection
+@HiltViewModel
+class PaymentViewModel @Inject constructor(
+    private val paymentService: PaykitPaymentService,
+) : ViewModel() {
+    val paymentState = paymentService.paymentState
+}
 
 // In Composable
-val state by paymentState.collectAsState()
+val state by viewModel.paymentState.collectAsStateWithLifecycle()
 
 when (state) {
     is PaykitPaymentState.Idle -> { /* Show payment form */ }
@@ -159,15 +175,20 @@ Network is automatically mapped from `Env.network`:
 ### Timeout Configuration
 
 ```kotlin
-// Default: 60,000 ms (60 seconds)
-PaykitPaymentService.getInstance().paymentTimeoutMs = 120_000L
+// In your ViewModel or DI module, configure via the injected service:
+@Inject constructor(private val paymentService: PaykitPaymentService) {
+    // Default: 60,000 ms (60 seconds)
+    paymentService.paymentTimeoutMs = 120_000L
+}
 ```
 
 ### Receipt Storage
 
 ```kotlin
 // Disable automatic receipt storage
-PaykitPaymentService.getInstance().autoStoreReceipts = false
+@Inject constructor(private val paymentService: PaykitPaymentService) {
+    paymentService.autoStoreReceipts = false
+}
 ```
 
 ## Error Handling
@@ -193,16 +214,44 @@ when (val error = result.error) {
 
 ## Dependency Injection
 
-PaykitManager is Hilt-compatible:
+PaykitManager and related services are Hilt-compatible. All services are annotated with `@Singleton` and use `@Inject constructor`:
 
 ```kotlin
-@Module
-@InstallIn(SingletonComponent::class)
-object PaykitModule {
-    @Provides
-    @Singleton
-    fun providePaykitManager(): PaykitManager = PaykitManager()
-}
+// ViewModel injection example
+@HiltViewModel
+class PaymentViewModel @Inject constructor(
+    private val paykitManager: PaykitManager,
+    private val paymentService: PaykitPaymentService,
+    private val spendingLimitManager: SpendingLimitManager,
+    private val receiptStore: PaykitReceiptStore,
+) : ViewModel()
+```
+
+### Migration from getInstance() to DI
+
+The following `getInstance()` methods are deprecated:
+
+| Class | Deprecated Method | Replacement |
+|-------|------------------|-------------|
+| `PaykitPaymentService` | `getInstance()` | `@Inject constructor(paymentService: PaykitPaymentService)` |
+| `SpendingLimitManager` | `getInstance()` | `@Inject constructor(manager: SpendingLimitManager)` |
+| `PaykitReceiptStore` | `getInstance(context)` | `@Inject constructor(store: PaykitReceiptStore)` |
+| `NoiseKeyCache` | `getInstance()` | `@Inject constructor(cache: NoiseKeyCache)` |
+| `PubkyRingBridge` | `getInstance()` | `@Inject constructor(bridge: PubkyRingBridge)` |
+| `PaykitManager` | `getInstance()` | `@Inject constructor(manager: PaykitManager)` |
+
+**Before (deprecated):**
+```kotlin
+val service = PaykitPaymentService.getInstance()
+val result = service.pay(...)
+```
+
+**After (recommended):**
+```kotlin
+@Inject constructor(private val paymentService: PaykitPaymentService)
+
+// Usage
+val result = paymentService.pay(...)
 ```
 
 ## Testing
@@ -366,6 +415,30 @@ PaykitConfigManager.retryBaseDelayMs = 1000L  // milliseconds
    - Payment details not logged in production
    - Receipt data encrypted using `EncryptedSharedPreferences`
    - No telemetry without explicit opt-in
+
+4. **Biometric Authentication:**
+   - `PaykitBiometricAuth` provides biometric confirmation for payments
+   - Default behavior blocks payments when biometric prompt cannot be shown
+   - Background workers (e.g., `SubscriptionCheckWorker`) should use spending limits as pre-approval
+
+### Biometric Policy for Background Payments
+
+Background workers cannot display biometric prompts. The recommended approach:
+
+| Scenario | Configuration | Rationale |
+|----------|--------------|-----------|
+| User-initiated payment (UI) | Default (`allowWithoutPrompt = false`) | Full biometric protection |
+| Auto-pay with spending limit | `allowWithoutPrompt = true` | Spending limit is the authorization |
+| Auto-pay without spending limit | Queue and notify user | Never bypass biometric without explicit opt-in |
+
+```kotlin
+// Example: Background subscription payment with spending limit
+val authResult = biometricAuth.authenticateForPayment(
+    amountSats = subscription.amountSats.toULong(),
+    description = "Subscription: ${subscription.providerName}",
+    allowWithoutPrompt = true, // OK: spending limit acts as pre-approval
+)
+```
 
 ### Configuration Reference
 

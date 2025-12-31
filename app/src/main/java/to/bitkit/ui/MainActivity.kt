@@ -67,6 +67,9 @@ class MainActivity : FragmentActivity() {
         private const val TAG = "MainActivity"
     }
 
+    @javax.inject.Inject
+    lateinit var pubkyRingBridge: PubkyRingBridge
+
     private val appViewModel by viewModels<AppViewModel>()
     private val walletViewModel by viewModels<WalletViewModel>()
     private val blocktankViewModel by viewModels<BlocktankViewModel>()
@@ -206,7 +209,7 @@ class MainActivity : FragmentActivity() {
     private fun handleIntent(intent: Intent) {
         intent.data?.let { uri ->
             // Check for Pubky-ring callbacks first (session, keypair, profile, follows)
-            if (PubkyRingBridge.getInstance().handleCallback(uri)) {
+            if (pubkyRingBridge.handleCallback(uri)) {
                 Logger.info("Handled Pubky-ring callback: ${uri.host}", context = TAG)
                 return
             }

@@ -1756,12 +1756,35 @@ class AppViewModel @Inject constructor(
         val requestId = uri.getQueryParameter("requestId")
         val fromPubkey = uri.getQueryParameter("from")
 
+        // Validate required parameters exist
         if (requestId == null || fromPubkey == null) {
             Logger.error("Invalid payment request URL: missing requestId or from", context = TAG)
             toast(
                 type = Toast.ToastType.ERROR,
                 title = "Invalid Request",
-                description = "Payment request URL is missing required parameters"
+                description = "Payment request URL is missing required parameters",
+            )
+            return@launch
+        }
+
+        // Validate requestId format (UUID)
+        if (!to.bitkit.paykit.utils.PaykitValidation.isValidUUID(requestId)) {
+            Logger.error("Invalid requestId format in deep link: $requestId", context = TAG)
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = "Invalid Request",
+                description = "Invalid request ID format",
+            )
+            return@launch
+        }
+
+        // Validate pubkey format (Z-Base32 or hex)
+        if (!to.bitkit.paykit.utils.PaykitValidation.isValidPubkey(fromPubkey)) {
+            Logger.error("Invalid pubkey format in deep link", context = TAG)
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = "Invalid Request",
+                description = "Invalid sender pubkey format",
             )
             return@launch
         }
@@ -1786,7 +1809,8 @@ class AppViewModel @Inject constructor(
         // Note: In production, this would be injected via Hilt
         val keychainStorage = PaykitKeychainStorage(keychain)
         val autoPayStorage = AutoPayStorage(keychainStorage)
-        val autoPayViewModel = AutoPayViewModel(autoPayStorage)
+        val autoPayEvaluatorService = to.bitkit.paykit.services.AutoPayEvaluatorService(autoPayStorage)
+        val autoPayViewModel = AutoPayViewModel(autoPayStorage, autoPayEvaluatorService)
 
         // Create PaymentRequestService
         val keyManager = KeyManager(context, keychain)

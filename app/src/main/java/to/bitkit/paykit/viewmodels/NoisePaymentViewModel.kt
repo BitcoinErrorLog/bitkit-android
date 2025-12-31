@@ -23,6 +23,7 @@ class NoisePaymentViewModel @Inject constructor(
     private val paymentService: PaykitPaymentService,
     private val lightningRepo: LightningRepo,
     private val keyManager: to.bitkit.paykit.KeyManager,
+    private val biometricAuth: to.bitkit.paykit.services.PaykitBiometricAuth,
 ) : ViewModel() {
 
     val myPubkey: StateFlow<String> = keyManager.publicKeyZ32
@@ -41,6 +42,9 @@ class NoisePaymentViewModel @Inject constructor(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _isAuthenticating = MutableStateFlow(false)
+    val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
 
     fun sendPayment(request: NoisePaymentRequest) {
         viewModelScope.launch {
@@ -91,6 +95,19 @@ class NoisePaymentViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Require biometric authentication for payments
+                _isAuthenticating.value = true
+                val authResult = biometricAuth.authenticateForPayment(
+                    amountSats = amountSats,
+                    description = "Authenticate to accept payment request from ${request.payerPubkey.take(16)}...",
+                )
+                _isAuthenticating.value = false
+
+                authResult.getOrElse { error ->
+                    _errorMessage.value = "Authentication failed: ${error.message}"
+                    return@launch
+                }
+
                 // Pay the requester
                 // The payer becomes the recipient when we accept the request
                 val result = paymentService.pay(
@@ -114,6 +131,8 @@ class NoisePaymentViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 _errorMessage.value = "Payment failed: ${e.message}"
+            } finally {
+                _isAuthenticating.value = false
             }
         }
     }

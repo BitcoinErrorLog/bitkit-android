@@ -1,5 +1,7 @@
 package to.bitkit.paykit.storage
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -9,7 +11,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Storage for spending limits with persistent keychain storage
+ * Storage for spending limits with persistent keychain storage.
+ *
+ * Thread-safe: Uses a Mutex to protect cache access and prevent race conditions
+ * during concurrent spending limit checks and updates.
  */
 @Singleton
 class SpendingLimitStorage @Inject constructor(
@@ -21,11 +26,12 @@ class SpendingLimitStorage @Inject constructor(
         private const val GLOBAL_LIMIT_KEY = "spending_limits.global_limit"
     }
 
+    private val cacheMutex = Mutex()
     private var peerLimitsCache: MutableMap<String, SpendingLimit>? = null
     private var globalLimitCache: SpendingLimit? = null
     private var cacheInitialized = false
 
-    private fun ensureCacheLoaded() {
+    private suspend fun ensureCacheLoaded() {
         if (cacheInitialized) return
         loadFromStorage()
         cacheInitialized = true
@@ -94,15 +100,15 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Get spending limit for a specific peer
      */
-    fun getSpendingLimitForPeer(peerPubkey: String): SpendingLimit? {
+    suspend fun getSpendingLimitForPeer(peerPubkey: String): SpendingLimit? = cacheMutex.withLock {
         ensureCacheLoaded()
-        return peerLimitsCache?.get(peerPubkey)
+        peerLimitsCache?.get(peerPubkey)
     }
 
     /**
      * Set spending limit for a peer
      */
-    suspend fun setSpendingLimitForPeer(peerPubkey: String, limit: SpendingLimit) {
+    suspend fun setSpendingLimitForPeer(peerPubkey: String, limit: SpendingLimit) = cacheMutex.withLock {
         ensureCacheLoaded()
         peerLimitsCache?.set(peerPubkey, limit)
         persistPeerLimits()
@@ -111,7 +117,7 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Remove spending limit for a peer
      */
-    suspend fun removeSpendingLimitForPeer(peerPubkey: String) {
+    suspend fun removeSpendingLimitForPeer(peerPubkey: String) = cacheMutex.withLock {
         ensureCacheLoaded()
         peerLimitsCache?.remove(peerPubkey)
         persistPeerLimits()
@@ -120,15 +126,15 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Get global spending limit
      */
-    fun getGlobalSpendingLimit(): SpendingLimit? {
+    suspend fun getGlobalSpendingLimit(): SpendingLimit? = cacheMutex.withLock {
         ensureCacheLoaded()
-        return globalLimitCache
+        globalLimitCache
     }
 
     /**
      * Set global spending limit
      */
-    suspend fun setGlobalSpendingLimit(limit: SpendingLimit) {
+    suspend fun setGlobalSpendingLimit(limit: SpendingLimit) = cacheMutex.withLock {
         ensureCacheLoaded()
         globalLimitCache = limit
         persistGlobalLimit()
@@ -137,7 +143,7 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Remove global spending limit
      */
-    suspend fun removeGlobalSpendingLimit() {
+    suspend fun removeGlobalSpendingLimit() = cacheMutex.withLock {
         ensureCacheLoaded()
         globalLimitCache = null
         persistGlobalLimit()
@@ -146,15 +152,15 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Get all peer limits
      */
-    fun getAllPeerLimits(): Map<String, SpendingLimit> {
+    suspend fun getAllPeerLimits(): Map<String, SpendingLimit> = cacheMutex.withLock {
         ensureCacheLoaded()
-        return peerLimitsCache?.toMap() ?: emptyMap()
+        peerLimitsCache?.toMap() ?: emptyMap()
     }
 
     /**
-     * Record spending against a peer's limit
+     * Record spending against a peer's limit (atomic operation)
      */
-    suspend fun recordSpending(peerPubkey: String, amountSats: Long) {
+    suspend fun recordSpending(peerPubkey: String, amountSats: Long) = cacheMutex.withLock {
         ensureCacheLoaded()
         peerLimitsCache?.get(peerPubkey)?.let { limit ->
             peerLimitsCache?.set(
@@ -174,7 +180,7 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Reset spending counters for a period
      */
-    suspend fun resetSpending(peerPubkey: String) {
+    suspend fun resetSpending(peerPubkey: String) = cacheMutex.withLock {
         ensureCacheLoaded()
         peerLimitsCache?.get(peerPubkey)?.let { limit ->
             peerLimitsCache?.set(
@@ -191,7 +197,7 @@ class SpendingLimitStorage @Inject constructor(
     /**
      * Reset global spending counter
      */
-    suspend fun resetGlobalSpending() {
+    suspend fun resetGlobalSpending() = cacheMutex.withLock {
         ensureCacheLoaded()
         globalLimitCache?.let { limit ->
             globalLimitCache = limit.copy(

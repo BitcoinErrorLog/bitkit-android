@@ -7,11 +7,14 @@ import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import to.bitkit.utils.Logger
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Persistent receipt store using EncryptedSharedPreferences.
@@ -19,8 +22,20 @@ import java.util.concurrent.ConcurrentHashMap
  * Provides thread-safe storage and retrieval of payment receipts.
  * Receipts are automatically persisted to disk and survive app restarts.
  * Uses encryption to protect sensitive payment data.
+ *
+ * ## Usage
+ *
+ * Prefer dependency injection:
+ * ```kotlin
+ * @Inject constructor(private val receiptStore: PaykitReceiptStore)
+ * ```
+ *
+ * Legacy `getInstance()` is deprecated and will be removed in a future release.
  */
-class PaykitReceiptStore(context: Context? = null) {
+@Singleton
+class PaykitReceiptStore @Inject constructor(
+    @ApplicationContext context: Context,
+) {
 
     companion object {
         private const val TAG = "PaykitReceiptStore"
@@ -31,10 +46,15 @@ class PaykitReceiptStore(context: Context? = null) {
         @Volatile
         private var instance: PaykitReceiptStore? = null
 
+        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitReceiptStore"))
         fun getInstance(context: Context): PaykitReceiptStore {
             return instance ?: synchronized(this) {
-                instance ?: PaykitReceiptStore(context.applicationContext).also { instance = it }
+                instance ?: throw IllegalStateException("PaykitReceiptStore not initialized. Use dependency injection.")
             }
+        }
+
+        internal fun setInstance(store: PaykitReceiptStore) {
+            instance = store
         }
     }
 
@@ -47,23 +67,23 @@ class PaykitReceiptStore(context: Context? = null) {
     private var isLoaded = false
 
     init {
-        context?.let { ctx ->
-            try {
-                val masterKey = MasterKey.Builder(ctx)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
+        setInstance(this)
+        
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
 
-                prefs = EncryptedSharedPreferences.create(
-                    ctx,
-                    PREFS_NAME,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                )
-                loadFromDisk()
-            } catch (e: Exception) {
-                Logger.error("Failed to initialize encrypted prefs, falling back to memory-only", e, context = TAG)
-            }
+            prefs = EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            loadFromDisk()
+        } catch (e: Exception) {
+            Logger.error("Failed to initialize encrypted prefs, falling back to memory-only", e, context = TAG)
         }
     }
 

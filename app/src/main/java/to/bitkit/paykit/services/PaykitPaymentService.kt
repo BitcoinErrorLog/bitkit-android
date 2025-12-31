@@ -24,14 +24,21 @@ import javax.inject.Singleton
  * - Receipt generation and storage
  * - Payment status tracking
  *
- * Usage:
+ * ## Usage
+ *
+ * Prefer dependency injection:
  * ```kotlin
- * val service = PaykitPaymentService.getInstance()
- * val result = service.pay(to = "lnbc...", amountSats = 10000)
+ * @Inject constructor(private val paymentService: PaykitPaymentService)
+ * val result = paymentService.pay(lightningRepo, "lnbc...", amountSats = 10000uL)
  * ```
+ *
+ * Legacy `getInstance()` is deprecated and will be removed in a future release.
  */
 @Singleton
-class PaykitPaymentService @Inject constructor() {
+class PaykitPaymentService @Inject constructor(
+    private val receiptStore: PaykitReceiptStore,
+    private val spendingLimitManager: SpendingLimitManager,
+) {
 
     companion object {
         private const val TAG = "PaykitPaymentService"
@@ -39,15 +46,23 @@ class PaykitPaymentService @Inject constructor() {
         @Volatile
         private var instance: PaykitPaymentService? = null
 
+        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitPaymentService"))
         fun getInstance(): PaykitPaymentService {
             return instance ?: synchronized(this) {
-                instance ?: PaykitPaymentService().also { instance = it }
+                instance ?: throw IllegalStateException("PaykitPaymentService not initialized. Use dependency injection.")
             }
+        }
+
+        internal fun setInstance(service: PaykitPaymentService) {
+            instance = service
         }
     }
 
+    init {
+        setInstance(this)
+    }
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val receiptStore = PaykitReceiptStore()
 
     /** Payment timeout in milliseconds */
     var paymentTimeoutMs: Long = 60_000L
@@ -137,7 +152,6 @@ class PaykitPaymentService @Inject constructor() {
         val paymentType = detectPaymentType(recipient)
 
         // If peer pubkey is provided and spending limit manager is initialized, use atomic spending
-        val spendingLimitManager = SpendingLimitManager.getInstance()
         if (peerPubkey != null && amountSats != null && spendingLimitManager.isInitialized) {
             return payWithSpendingLimit(
                 lightningRepo = lightningRepo,
@@ -187,8 +201,6 @@ class PaykitPaymentService @Inject constructor() {
         peerPubkey: String,
         paymentType: DetectedPaymentType,
     ): PaykitPaymentResult {
-        val spendingLimitManager = SpendingLimitManager.getInstance()
-
         return runCatching {
             spendingLimitManager.executeWithSpendingLimit(
                 peerPubkey = peerPubkey,

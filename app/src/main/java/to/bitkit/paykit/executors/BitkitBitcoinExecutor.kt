@@ -14,6 +14,23 @@ import to.bitkit.utils.Logger
  *
  * Bridges Bitkit's LightningRepo (which handles onchain) to Paykit's executor interface.
  * All methods are called synchronously from the Rust FFI layer.
+ *
+ * ## Threading Model
+ *
+ * This executor uses `runBlocking(Dispatchers.IO)` because the FFI interface
+ * requires synchronous returns. This is acceptable for the following reasons:
+ *
+ * 1. **Called from Rust thread**: The Paykit FFI calls these methods from a
+ *    Rust-managed thread, not the Android main thread, so blocking is safe.
+ *
+ * 2. **Timeout protection**: All operations use `withTimeout(TIMEOUT_MS)` to
+ *    prevent indefinite blocking (default 60 seconds).
+ *
+ * 3. **IO Dispatcher**: Work is dispatched to `Dispatchers.IO` to avoid
+ *    blocking the calling thread during network operations.
+ *
+ * **Future improvement**: When UniFFI supports async Kotlin callbacks, migrate
+ * to proper suspend functions.
  */
 class BitkitBitcoinExecutor(
     private val lightningRepo: LightningRepo,

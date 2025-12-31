@@ -25,11 +25,10 @@ import kotlinx.coroutines.withTimeout
 import to.bitkit.R
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.models.Subscription
+import to.bitkit.paykit.services.AutoPayEvaluatorService
 import to.bitkit.paykit.services.AutopayEvaluationResult
 import to.bitkit.paykit.services.PaykitPaymentService
-import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
-import to.bitkit.paykit.viewmodels.AutoPayViewModel
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import java.util.Calendar
@@ -39,14 +38,30 @@ import kotlin.time.Duration.Companion.minutes
 /**
  * Background worker for checking subscription payments due.
  * Runs periodically to process auto-pay for subscriptions.
+ *
+ * ## Retry Strategy
+ *
+ * Uses a two-tier retry approach:
+ *
+ * 1. **WorkManager Backoff**: When returning `Result.retry()`, WorkManager
+ *    automatically reschedules with exponential backoff (starting at 1 minute).
+ *    This is configured via `BackoffPolicy.EXPONENTIAL` in [schedule].
+ *
+ * 2. **Manual Retry Limit**: After 3 consecutive failures (`runAttemptCount >= 3`),
+ *    returns `Result.failure()` to prevent infinite retry loops. WorkManager
+ *    will still run the next scheduled periodic execution.
+ *
+ * The manual limit prevents battery drain from persistent network/node issues
+ * while still allowing the periodic schedule to retry later.
  */
 @HiltWorker
 class SubscriptionCheckWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val subscriptionStorage: SubscriptionStorage,
-    private val autoPayStorage: AutoPayStorage,
+    private val autoPayEvaluatorService: AutoPayEvaluatorService,
     private val lightningRepo: LightningRepo,
+    private val paymentService: PaykitPaymentService,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -151,7 +166,19 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             Result.success()
         } catch (e: Exception) {
             Logger.error("Subscription check failed", e, context = TAG)
-            Result.retry()
+            
+            // Implement exponential backoff retry logic
+            val runAttempt = runAttemptCount
+            when {
+                runAttempt < 3 -> {
+                    Logger.debug("Retrying subscription check (attempt $runAttempt)", context = TAG)
+                    Result.retry()
+                }
+                else -> {
+                    Logger.warn("Max retry attempts reached for subscription check", context = TAG)
+                    Result.failure()
+                }
+            }
         }
     }
 
@@ -218,11 +245,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
     private suspend fun processSubscriptionPayment(subscription: Subscription) {
         Logger.info("Processing payment for subscription ${subscription.id}", context = TAG)
 
-        // Create AutoPayViewModel for evaluation
-        val autoPayViewModel = AutoPayViewModel(autoPayStorage)
-        autoPayViewModel.loadSettings()
+        // Load settings before evaluation
+        autoPayEvaluatorService.loadSettings()
 
-        val evaluation = autoPayViewModel.evaluate(
+        val evaluation = autoPayEvaluatorService.evaluate(
             peerPubkey = subscription.providerPubkey,
             amount = subscription.amountSats,
             methodId = subscription.methodId
@@ -260,17 +286,10 @@ class SubscriptionCheckWorker @AssistedInject constructor(
         }
 
         // Determine the payment recipient from subscription
-        val recipient: String = if (!subscription.lastInvoice.isNullOrEmpty()) {
-            // Use the last invoice if available
-            subscription.lastInvoice!!
-        } else {
-            // Fall back to Paykit URI using provider pubkey
-            "paykit:${subscription.providerPubkey}"
-        }
+        val recipient: String = subscription.lastInvoice?.takeIf { it.isNotEmpty() }
+            ?: "paykit:${subscription.providerPubkey}"
 
         // Execute payment via PaykitPaymentService with spending limit enforcement
-        val paymentService = PaykitPaymentService.getInstance()
-
         val result = paymentService.pay(
             lightningRepo = lightningRepo,
             recipient = recipient,
