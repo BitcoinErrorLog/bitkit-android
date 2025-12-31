@@ -1028,13 +1028,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_pubky_noise_checksum_func_default_config() != 63887.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_pubky_noise_checksum_func_derive_device_key() != 2834.toShort()) {
+    if (lib.uniffi_pubky_noise_checksum_func_derive_device_key() != 53176.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_pubky_noise_checksum_func_performance_config() != 613.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_pubky_noise_checksum_func_public_key_from_secret() != 7711.toShort()) {
+    if (lib.uniffi_pubky_noise_checksum_func_public_key_from_secret() != 12954.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_pubky_noise_checksum_method_ffinoisemanager_accept_connection() != 45180.toShort()) {
@@ -2036,6 +2036,12 @@ public object FfiConverterTypeFfiConnectionStatus: FfiConverterRustBuffer<FfiCon
 
 
 
+/**
+ * FFI-exported error type for noise operations.
+ *
+ * Note: Field names use `msg` instead of `message` to avoid conflicts with
+ * Kotlin's `Exception.message` property in generated bindings.
+ */
 sealed class FfiNoiseException: kotlin.Exception() {
     
     class Ring(
@@ -2043,7 +2049,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Pkarr(
@@ -2051,7 +2057,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Snow(
@@ -2059,7 +2065,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Serde(
@@ -2067,7 +2073,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class IdentityVerify(
@@ -2087,7 +2093,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class InvalidPeerKey(
@@ -2101,7 +2107,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Timeout(
@@ -2109,7 +2115,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Storage(
@@ -2117,7 +2123,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Decryption(
@@ -2125,7 +2131,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class RateLimited(
@@ -2138,7 +2144,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `retryAfterMs`: kotlin.ULong?
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }, retryAfterMs=${ `retryAfterMs` }"
+            get() = "msg=${ `msg` }, retryAfterMs=${ `retryAfterMs` }"
     }
     
     class MaxSessionsExceeded(
@@ -2152,7 +2158,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class ConnectionReset(
@@ -2160,7 +2166,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
     class Other(
@@ -2168,7 +2174,7 @@ sealed class FfiNoiseException: kotlin.Exception() {
         val `msg`: kotlin.String
         ) : FfiNoiseException() {
         override val message
-            get() = "message=${ `msg` }"
+            get() = "msg=${ `msg` }"
     }
     
 
@@ -2240,22 +2246,22 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             is FfiNoiseException.Ring -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Pkarr -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Snow -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Serde -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.IdentityVerify -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
@@ -2268,7 +2274,7 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             is FfiNoiseException.Policy -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.InvalidPeerKey -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
@@ -2277,27 +2283,27 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             is FfiNoiseException.Network -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Timeout -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Storage -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Decryption -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.RateLimited -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
                 + FfiConverterOptionalULong.allocationSize(value.`retryAfterMs`)
             )
             is FfiNoiseException.MaxSessionsExceeded -> (
@@ -2307,17 +2313,17 @@ public object FfiConverterTypeFfiNoiseError : FfiConverterRustBuffer<FfiNoiseExc
             is FfiNoiseException.SessionExpired -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.ConnectionReset -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
             is FfiNoiseException.Other -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`msg`)
             )
         }
     }
@@ -2557,6 +2563,7 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
          *
          * # Errors
          *
+         * Returns `FfiNoiseError::Ring` if seed is less than 32 bytes.
          * Returns `FfiNoiseError::Other` if key derivation fails (extremely rare).
          */
     @Throws(FfiNoiseException::class) fun `deriveDeviceKey`(`seed`: kotlin.ByteArray, `deviceId`: kotlin.ByteArray, `epoch`: kotlin.UInt): kotlin.ByteArray {
@@ -2577,9 +2584,17 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
     )
     }
     
- fun `publicKeyFromSecret`(`secret`: kotlin.ByteArray): kotlin.ByteArray {
+
+        /**
+         * Derive a public key from a 32-byte secret.
+         *
+         * # Errors
+         *
+         * Returns `FfiNoiseError::Ring` if secret is less than 32 bytes.
+         */
+    @Throws(FfiNoiseException::class) fun `publicKeyFromSecret`(`secret`: kotlin.ByteArray): kotlin.ByteArray {
             return FfiConverterByteArray.lift(
-    uniffiRustCall() { _status ->
+    uniffiRustCallWithError(FfiNoiseException) { _status ->
     UniffiLib.INSTANCE.uniffi_pubky_noise_fn_func_public_key_from_secret(
         FfiConverterByteArray.lower(`secret`),_status)
 }
