@@ -297,6 +297,8 @@ room {
 
 tasks.withType<Detekt>().configureEach {
     ignoreFailures = true
+    // Exclude auto-generated UniFFI bindings from detekt analysis
+    exclude("**/com/pubky/noise/**")
     reports {
         html.required.set(true)
         sarif.required.set(true)

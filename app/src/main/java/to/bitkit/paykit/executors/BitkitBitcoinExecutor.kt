@@ -5,6 +5,7 @@ import uniffi.paykit_mobile.BitcoinTxResultFfi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.math.ceil
 import to.bitkit.paykit.PaykitException
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
@@ -74,8 +75,10 @@ class BitkitBitcoinExecutor(
             result.fold(
                 onSuccess = { txid ->
                     Logger.debug("Send successful, txid: $txid", context = TAG)
-                    // Estimate fee based on typical tx size
-                    val estimatedFee = (TYPICAL_TX_SIZE_VBYTES.toDouble() * (feeRate ?: 1.0)).toULong()
+                    // Estimate fee based on typical tx size using integer arithmetic
+                    // Convert feeRate (sat/vB as Double) to integer, rounding up for safety
+                    val feeRateSatPerVb = ceil(feeRate ?: 1.0).toLong().coerceAtLeast(1L)
+                    val estimatedFee = TYPICAL_TX_SIZE_VBYTES * feeRateSatPerVb.toULong()
 
                     BitcoinTxResultFfi(
                         `txid` = txid,

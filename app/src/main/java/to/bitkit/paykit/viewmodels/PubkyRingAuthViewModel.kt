@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.services.AuthMethod
 import to.bitkit.paykit.services.CrossDeviceRequest
+import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySession
 import javax.inject.Inject
@@ -22,6 +23,7 @@ import javax.inject.Inject
 class PubkyRingAuthViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val pubkyRingBridge: PubkyRingBridge,
+    private val directoryService: DirectoryService,
 ) : ViewModel() {
 
     val isPubkyRingInstalled: Boolean = pubkyRingBridge.isPubkyRingInstalled(context)
@@ -45,6 +47,8 @@ class PubkyRingAuthViewModel @Inject constructor(
             _errorMessage.value = null
             try {
                 val session = pubkyRingBridge.requestSession(context)
+                // Configure DirectoryService for authenticated writes to homeserver
+                directoryService.configureWithPubkySession(session)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -77,6 +81,8 @@ class PubkyRingAuthViewModel @Inject constructor(
             _errorMessage.value = null
             try {
                 val session = pubkyRingBridge.pollForCrossDeviceSession(request.requestId)
+                // Configure DirectoryService for authenticated writes to homeserver
+                directoryService.configureWithPubkySession(session)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -92,6 +98,8 @@ class PubkyRingAuthViewModel @Inject constructor(
             _errorMessage.value = null
             try {
                 val session = pubkyRingBridge.handleAuthUrl(url)
+                // Configure DirectoryService for authenticated writes to homeserver
+                directoryService.configureWithPubkySession(session)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message

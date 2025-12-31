@@ -10,6 +10,7 @@ import org.lightningdevkit.ldknode.Network
 import to.bitkit.env.Env
 import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
+import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
@@ -26,6 +27,7 @@ import javax.inject.Singleton
 class PaykitManager @Inject constructor(
     private val pubkyRingBridge: PubkyRingBridge,
     private val pubkySDKService: PubkySDKService,
+    private val directoryService: DirectoryService,
 ) {
 
     companion object {
@@ -102,6 +104,12 @@ class PaykitManager @Inject constructor(
         pubkySDKService.restoreSessions()
         pubkySDKService.configure()
 
+        // Configure DirectoryService with first available session for authenticated writes
+        pubkyRingBridge.cachedSessions.firstOrNull()?.let { session ->
+            directoryService.configureWithPubkySession(session)
+            Logger.info("DirectoryService configured with restored session", context = TAG)
+        }
+
         isInitialized = true
         Logger.info("PaykitManager initialized successfully", context = TAG)
     }
@@ -158,7 +166,10 @@ class PaykitManager @Inject constructor(
     suspend fun requestPubkySession(context: Context): PubkySession {
         if (pubkyRingBridge.isPubkyRingInstalled(context)) {
             Logger.info("Requesting session from Pubky-ring", context = TAG)
-            return pubkyRingBridge.requestSession(context)
+            val session = pubkyRingBridge.requestSession(context)
+            // Configure DirectoryService for authenticated writes to homeserver
+            directoryService.configureWithPubkySession(session)
+            return session
         }
         throw PaykitException.PubkyRingNotInstalled
     }
