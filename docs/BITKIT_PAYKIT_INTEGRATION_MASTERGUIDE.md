@@ -1,9 +1,11 @@
 # Bitkit + Paykit Integration Master Guide
 
 > **For Synonym Development Team**  
-> **Version**: 1.1  
-> **Last Updated**: December 23, 2025  
+> **Version**: 1.2  
+> **Last Updated**: December 31, 2025  
 > **Status**: Reference Implementation - Production Verification Required
+>
+> **⚠️ CRITICAL: Read [COMPONENT_ROLES.md](COMPONENT_ROLES.md) first to understand the distinction between homeserver sessions, Noise sessions, and the role of each component.**
 
 This guide documents the complete integration of Paykit into Bitkit iOS, Bitkit Android, and Pubky Ring. It serves as a detailed map for production developers to follow, including all steps, quirks, stubs, and future work.
 
@@ -40,9 +42,15 @@ This guide documents the complete integration of Paykit into Bitkit iOS, Bitkit 
 17. [Architectural Hardening](#17-architectural-hardening) ⭐ NEW
 
 **Related Documents**:
+- ⭐ [COMPONENT_ROLES.md](COMPONENT_ROLES.md) - **Critical: Understand component roles and session types**
 - 📘 [PHASE_1-4_IMPROVEMENTS.md](PHASE_1-4_IMPROVEMENTS.md) - Detailed implementation summary
 - 🔒 [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) - Security model and threat analysis
 - 🔔 [PUSH_RELAY_DESIGN.md](PUSH_RELAY_DESIGN.md) - Push relay service specification
+
+**Recent Fixes (December 31, 2025)**:
+- ✅ Fixed session wiring: `DirectoryService.configureWithPubkySession()` now called in all session receipt paths
+- ✅ iOS: Renamed `PubkySession` struct to `PubkyRingSession` to avoid collision with UniFFI-generated type
+- ✅ Both platforms: Session from Pubky-ring now properly enables authenticated writes to homeserver
 
 ---
 
