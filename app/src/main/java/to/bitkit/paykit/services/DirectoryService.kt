@@ -54,7 +54,15 @@ object PubkyConfig {
 /**
  * Service for interacting with the Pubky directory
  * Uses PaykitClient FFI methods for directory operations
+ *
+ * Note: This class has many functions (22) because it consolidates all directory operations
+ * in one place for simpler dependency injection. A future refactoring could split it into:
+ * - DirectoryProfileService (profile operations)
+ * - DirectoryFollowsService (follows/discovery operations)
+ * - DirectoryPushService (push notification endpoints)
+ * - DirectoryPaymentRequestService (payment request storage)
  */
+@Suppress("TooManyFunctions") // Intentional consolidation of directory operations
 @Singleton
 class DirectoryService @Inject constructor(
     @ApplicationContext private val context: Context,

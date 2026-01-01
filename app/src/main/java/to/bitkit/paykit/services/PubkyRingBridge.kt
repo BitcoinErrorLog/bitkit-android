@@ -48,7 +48,12 @@ import kotlin.coroutines.resumeWithException
  * 2. User scans QR or opens link on device with Pubky-ring
  * 3. Pubky-ring processes request and publishes session to relay/homeserver
  * 4. Bitkit polls relay for session response using request_id
+ *
+ * Note: This class is large because it handles all Pubky-ring communication in one place.
+ * Callback parsing is delegated to PubkyRingCallbackParser and secure handoff to SecureHandoffHandler.
+ * The remaining complexity is inherent to the multi-mode authentication flows.
  */
+@Suppress("TooManyFunctions", "LargeClass") // Bridge pattern requires centralized request/callback handling
 @Singleton
 class PubkyRingBridge @Inject constructor(
     private val keychainStorage: to.bitkit.paykit.storage.PaykitKeychainStorage,
@@ -787,23 +792,18 @@ class PubkyRingBridge @Inject constructor(
     }
 
     private fun handleKeypairCallback(uri: Uri): Boolean {
-        val publicKey = uri.getQueryParameter("public_key")
-        val secretKey = uri.getQueryParameter("secret_key")
-        val deviceId = uri.getQueryParameter("device_id")
-        val epochStr = uri.getQueryParameter("epoch")
-
-        if (publicKey == null || secretKey == null || deviceId == null || epochStr == null) {
-            pendingKeypairContinuation?.resumeWithException(PubkyRingException.MissingParameters)
+        val keypairResult = callbackParser.parseKeypairCallback(uri)
+        if (keypairResult is PubkyRingCallbackParser.CallbackResult.Error) {
+            pendingKeypairContinuation?.resumeWithException(keypairResult.exception)
             pendingKeypairContinuation = null
             return true
         }
 
-        val epoch = epochStr.toULongOrNull()
-        if (epoch == null) {
-            pendingKeypairContinuation?.resumeWithException(PubkyRingException.InvalidCallback)
-            pendingKeypairContinuation = null
-            return true
-        }
+        val keypairData = (keypairResult as PubkyRingCallbackParser.CallbackResult.Success).data
+        val publicKey = keypairData.publicKey
+        val secretKey = keypairData.secretKey
+        val deviceId = keypairData.deviceId
+        val epoch = keypairData.epoch
 
         val keypair = NoiseKeypair(
             publicKey = publicKey,
