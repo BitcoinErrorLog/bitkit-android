@@ -54,6 +54,8 @@ class PubkyRingBridge @Inject constructor(
     private val keychainStorage: to.bitkit.paykit.storage.PaykitKeychainStorage,
     private val noiseKeyCache: NoiseKeyCache,
     private val pubkyStorageAdapter: PubkyStorageAdapter,
+    private val callbackParser: PubkyRingCallbackParser,
+    private val secureHandoffHandler: SecureHandoffHandler,
 ) {
 
     companion object {
@@ -830,274 +832,151 @@ class PubkyRingBridge @Inject constructor(
     }
 
     private fun handlePaykitSetupCallback(uri: Uri): Boolean {
-        // Check for secure handoff mode
-        val mode = uri.getQueryParameter("mode")
-        if (mode == "secure_handoff") {
-            val pubkey = uri.getQueryParameter("pubky")
-            val requestId = uri.getQueryParameter("request_id")
-            
-            if (pubkey == null || requestId == null) {
-                pendingPaykitSetupContinuation?.resumeWithException(PubkyRingException.MissingParameters)
+        if (callbackParser.isSecureHandoffMode(uri)) {
+            return handleSecureHandoffMode(uri)
+        }
+        return handleLegacySetupMode(uri)
+    }
+
+    private fun handleSecureHandoffMode(uri: Uri): Boolean {
+        when (val result = callbackParser.parseSecureHandoffReference(uri)) {
+            is PubkyRingCallbackParser.CallbackResult.Error -> {
+                pendingPaykitSetupContinuation?.resumeWithException(result.exception)
                 pendingPaykitSetupContinuation = null
                 return true
             }
-            
-            // Fetch payload from homeserver asynchronously
-            scope.launch {
-                try {
-                    val result = fetchSecureHandoffPayload(pubkey, requestId)
-                    pendingPaykitSetupContinuation?.resume(result)
-                } catch (e: Exception) {
-                    pendingPaykitSetupContinuation?.resumeWithException(e)
+            is PubkyRingCallbackParser.CallbackResult.Success -> {
+                val ref = result.data
+                scope.launch {
+                    try {
+                        val setupResult = secureHandoffHandler.fetchAndProcessPayload(
+                            pubkey = ref.pubkey,
+                            requestId = ref.requestId,
+                            scope = scope,
+                            onSessionPersisted = { session ->
+                                sessionCache[session.pubkey] = session
+                                persistSession(session)
+                            }
+                        )
+                        pendingPaykitSetupContinuation?.resume(setupResult)
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
+                    } catch (e: PubkyRingException) {
+                        pendingPaykitSetupContinuation?.resumeWithException(e)
+                    } catch (e: Exception) {
+                        pendingPaykitSetupContinuation?.resumeWithException(
+                            PubkyRingException.CrossDeviceFailed(e.message ?: "Unknown error")
+                        )
+                    }
+                    pendingPaykitSetupContinuation = null
                 }
-                pendingPaykitSetupContinuation = null
-            }
-            return true
-        }
-        
-        // Legacy mode: secrets in URL
-        val pubkey = uri.getQueryParameter("pubky")
-        val sessionSecret = uri.getQueryParameter("session_secret")
-        val deviceId = uri.getQueryParameter("device_id")
-
-        if (pubkey == null || sessionSecret == null || deviceId == null) {
-            pendingPaykitSetupContinuation?.resumeWithException(PubkyRingException.MissingParameters)
-            pendingPaykitSetupContinuation = null
-            return true
-        }
-
-        val capabilities = uri.getQueryParameter("capabilities")
-            ?.split(",")
-            ?.filter { it.isNotEmpty() }
-            ?: emptyList()
-
-        // Create session
-        val session = PubkySession(
-            pubkey = pubkey,
-            sessionSecret = sessionSecret,
-            capabilities = capabilities,
-            createdAt = Date(),
-            expiresAt = null,  // Sessions from paykit-connect don't expire
-        )
-
-        // Parse noise keypair epoch 0 (optional but expected)
-        var keypair0: NoiseKeypair? = null
-        val publicKey0 = uri.getQueryParameter("noise_public_key_0")
-        val secretKey0 = uri.getQueryParameter("noise_secret_key_0")
-        if (publicKey0 != null && secretKey0 != null) {
-            keypair0 = NoiseKeypair(
-                publicKey = publicKey0,
-                secretKey = secretKey0,
-                deviceId = deviceId,
-                epoch = 0u,
-            )
-        }
-
-        // Parse noise keypair epoch 1 (optional)
-        var keypair1: NoiseKeypair? = null
-        val publicKey1 = uri.getQueryParameter("noise_public_key_1")
-        val secretKey1 = uri.getQueryParameter("noise_secret_key_1")
-        if (publicKey1 != null && secretKey1 != null) {
-            keypair1 = NoiseKeypair(
-                publicKey = publicKey1,
-                secretKey = secretKey1,
-                deviceId = deviceId,
-                epoch = 1u,
-            )
-        }
-
-        val result = PaykitSetupResult(
-            session = session,
-            deviceId = deviceId,
-            noiseKeypair0 = keypair0,
-            noiseKeypair1 = keypair1,
-        )
-
-        // Cache session
-        sessionCache[pubkey] = session
-
-        // Cache and persist noise keypairs
-        if (keypair0 != null) {
-            val cacheKey = "$deviceId:0"
-            keypairCache[cacheKey] = keypair0
-            try {
-                val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
-                noiseKeyCache.setKeySync(secretKeyData, deviceId, 0u)
-                Logger.debug("Stored noise keypair for epoch 0", context = TAG)
-            } catch (e: Exception) {
-                Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
+                return true
             }
         }
-
-        if (keypair1 != null) {
-            val cacheKey = "$deviceId:1"
-            keypairCache[cacheKey] = keypair1
-            try {
-                val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
-                noiseKeyCache.setKeySync(secretKeyData, deviceId, 1u)
-                Logger.debug("Stored noise keypair for epoch 1", context = TAG)
-            } catch (e: Exception) {
-                Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
-            }
-        }
-
-        Logger.info("Paykit setup callback received for ${pubkey.take(12)}...", context = TAG)
-
-        pendingPaykitSetupContinuation?.resume(result)
-        pendingPaykitSetupContinuation = null
-
-        return true
     }
-    
-    /**
-     * Fetch secure handoff payload from homeserver
-     */
-    private suspend fun fetchSecureHandoffPayload(pubkey: String, requestId: String): PaykitSetupResult = withContext(Dispatchers.IO) {
-        val handoffUri = "pubky://$pubkey/pub/paykit.app/v0/handoff/$requestId"
-        
-        Logger.info("Fetching secure handoff payload from ${handoffUri.take(50)}...", context = TAG)
-        
-        // Fetch payload using uniffi.pubkycore.get
-        val result = uniffi.pubkycore.get(handoffUri)
-        if (result[0] == "error") {
-            throw PubkyRingException.InvalidCallback
+
+    private fun handleLegacySetupMode(uri: Uri): Boolean {
+        when (val result = callbackParser.parseLegacySetupCallback(uri)) {
+            is PubkyRingCallbackParser.CallbackResult.Error -> {
+                pendingPaykitSetupContinuation?.resumeWithException(result.exception)
+                pendingPaykitSetupContinuation = null
+                return true
+            }
+            is PubkyRingCallbackParser.CallbackResult.Success -> {
+                val data = result.data
+                val setupResult = buildSetupResultFromLegacyData(data)
+                cacheAndPersistSetupResult(setupResult)
+                Logger.info("Paykit setup callback received for ${data.session.pubkey.take(12)}...", context = TAG)
+                pendingPaykitSetupContinuation?.resume(setupResult)
+                pendingPaykitSetupContinuation = null
+                return true
+            }
         }
-        
-        // Parse JSON payload
-        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-        val payload = json.decodeFromString<SecureHandoffPayload>(result[1])
-        
-        // Validate payload hasn't expired
-        if (System.currentTimeMillis() > payload.expiresAt) {
-            throw PubkyRingException.Timeout
-        }
-        
-        // Build session
+    }
+
+    private fun buildSetupResultFromLegacyData(data: PubkyRingCallbackParser.LegacySetupData): PaykitSetupResult {
         val session = PubkySession(
-            pubkey = payload.pubky,
-            sessionSecret = payload.sessionSecret,
-            capabilities = payload.capabilities,
-            createdAt = Date(payload.createdAt),
+            pubkey = data.session.pubkey,
+            sessionSecret = data.session.sessionSecret,
+            capabilities = data.session.capabilities,
+            createdAt = Date(),
             expiresAt = null,
         )
-        
-        // Build noise keypairs
-        var keypair0: NoiseKeypair? = null
-        var keypair1: NoiseKeypair? = null
-        
-        for (kp in payload.noiseKeypairs) {
-            val keypair = NoiseKeypair(
-                publicKey = kp.publicKey,
-                secretKey = kp.secretKey,
-                deviceId = payload.deviceId,
-                epoch = kp.epoch.toULong(),
+
+        val keypair0 = data.keypair0?.let {
+            NoiseKeypair(
+                publicKey = it.publicKey,
+                secretKey = it.secretKey,
+                deviceId = it.deviceId,
+                epoch = it.epoch,
             )
-            
-            when (kp.epoch) {
-                0 -> keypair0 = keypair
-                1 -> keypair1 = keypair
-            }
         }
-        
-        val setupResult = PaykitSetupResult(
+
+        val keypair1 = data.keypair1?.let {
+            NoiseKeypair(
+                publicKey = it.publicKey,
+                secretKey = it.secretKey,
+                deviceId = it.deviceId,
+                epoch = it.epoch,
+            )
+        }
+
+        return PaykitSetupResult(
             session = session,
-            deviceId = payload.deviceId,
+            deviceId = data.deviceId,
             noiseKeypair0 = keypair0,
             noiseKeypair1 = keypair1,
         )
-        
-        Logger.info("Secure handoff payload received for ${payload.pubky.take(12)}...", context = TAG)
-        
-        // Cache session and keypairs
-        sessionCache[session.pubkey] = session
-        persistSession(session)
-        
-        if (keypair0 != null) {
-            val cacheKey0 = "${payload.deviceId}:0"
-            keypairCache[cacheKey0] = keypair0
-            try {
-                val secretKeyData = keypair0.secretKey.toByteArray(Charsets.UTF_8)
-                noiseKeyCache.setKeySync(secretKeyData, payload.deviceId, 0u)
-            } catch (e: Exception) {
-                Logger.warn("Failed to store noise keypair epoch 0: ${e.message}", e, context = TAG)
-            }
+    }
+
+    private fun cacheAndPersistSetupResult(result: PaykitSetupResult) {
+        sessionCache[result.session.pubkey] = result.session
+
+        result.noiseKeypair0?.let { keypair ->
+            val cacheKey = "${result.deviceId}:0"
+            keypairCache[cacheKey] = keypair
+            persistKeypairQuietly(keypair, result.deviceId, 0u)
         }
-        if (keypair1 != null) {
-            val cacheKey1 = "${payload.deviceId}:1"
-            keypairCache[cacheKey1] = keypair1
-            try {
-                val secretKeyData = keypair1.secretKey.toByteArray(Charsets.UTF_8)
-                noiseKeyCache.setKeySync(secretKeyData, payload.deviceId, 1u)
-            } catch (e: Exception) {
-                Logger.warn("Failed to store noise keypair epoch 1: ${e.message}", e, context = TAG)
-            }
+
+        result.noiseKeypair1?.let { keypair ->
+            val cacheKey = "${result.deviceId}:1"
+            keypairCache[cacheKey] = keypair
+            persistKeypairQuietly(keypair, result.deviceId, 1u)
         }
-        
-        // Delete handoff file from homeserver to minimize attack window
-        scope.launch {
-            val handoffPath = "/pub/paykit.app/v0/handoff/$requestId"
-            val adapter = pubkyStorageAdapter.createAuthenticatedAdapter(
-                sessionId = session.sessionSecret,
-                homeserverURL = null,
-            )
-            val result = adapter.delete(handoffPath)
-            if (result.success) {
-                Logger.info("Deleted secure handoff payload: $requestId", context = TAG)
-            } else {
-                Logger.warn("Failed to delete handoff payload: ${result.error}", context = TAG)
-            }
+    }
+
+    private fun persistKeypairQuietly(keypair: NoiseKeypair, deviceId: String, epoch: UInt) {
+        try {
+            val secretKeyData = keypair.secretKey.toByteArray(Charsets.UTF_8)
+            noiseKeyCache.setKeySync(secretKeyData, deviceId, epoch)
+            Logger.debug("Stored noise keypair for epoch $epoch", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to store noise keypair epoch $epoch: ${e.message}", e, context = TAG)
         }
-        
-        setupResult
     }
 
     private fun handleProfileCallback(uri: Uri): Boolean {
-        // Check for error response
-        val error = uri.getQueryParameter("error")
-        if (error != null) {
-            Logger.warn("Profile request returned error: $error", context = TAG)
-            pendingProfileContinuation?.resume(null)
-            pendingProfileContinuation = null
-            return true
+        val profile = callbackParser.parseProfileCallback(uri)
+        if (profile != null) {
+            Logger.debug("Received profile from Pubky-ring: ${profile.name ?: "unknown"}", context = TAG)
+        } else {
+            Logger.warn("Profile request returned error or no data", context = TAG)
         }
-        
-        // Build profile from response
-        val profile = PubkyProfile(
-            name = uri.getQueryParameter("name"),
-            bio = uri.getQueryParameter("bio"),
-            avatar = uri.getQueryParameter("avatar"),
-            links = null, // Links would need JSON parsing, simplified for now
-        )
-        
-        Logger.debug("Received profile from Pubky-ring: ${profile.name ?: "unknown"}", context = TAG)
-        
         pendingProfileContinuation?.resume(profile)
         pendingProfileContinuation = null
-        
         return true
     }
-    
+
     private fun handleFollowsCallback(uri: Uri): Boolean {
-        // Check for error response
-        val error = uri.getQueryParameter("error")
-        if (error != null) {
-            Logger.warn("Follows request returned error: $error", context = TAG)
+        val follows = callbackParser.parseFollowsCallback(uri)
+        if (follows == null) {
+            Logger.warn("Follows request returned error", context = TAG)
             pendingFollowsContinuation?.resume(emptyList())
-            pendingFollowsContinuation = null
-            return true
+        } else {
+            Logger.debug("Received ${follows.size} follows from Pubky-ring", context = TAG)
+            pendingFollowsContinuation?.resume(follows)
         }
-        
-        // Parse follows list (comma-separated pubkeys)
-        val follows = uri.getQueryParameter("follows")
-            ?.split(",")
-            ?.filter { it.isNotEmpty() }
-            ?: emptyList()
-        
-        Logger.debug("Received ${follows.size} follows from Pubky-ring", context = TAG)
-        
-        pendingFollowsContinuation?.resume(follows)
         pendingFollowsContinuation = null
-        
         return true
     }
 
@@ -1376,35 +1255,6 @@ data class NoiseKeypair(
     val secretKey: String,
     val deviceId: String,
     val epoch: ULong,
-)
-
-/**
- * Secure handoff payload structure (stored on homeserver by Ring)
- */
-@kotlinx.serialization.Serializable
-private data class SecureHandoffPayload(
-    val version: Int,
-    val pubky: String,
-    @kotlinx.serialization.SerialName("session_secret")
-    val sessionSecret: String,
-    val capabilities: List<String>,
-    @kotlinx.serialization.SerialName("device_id")
-    val deviceId: String,
-    @kotlinx.serialization.SerialName("noise_keypairs")
-    val noiseKeypairs: List<SecureHandoffNoiseKeypair>,
-    @kotlinx.serialization.SerialName("created_at")
-    val createdAt: Long,
-    @kotlinx.serialization.SerialName("expires_at")
-    val expiresAt: Long,
-)
-
-@kotlinx.serialization.Serializable
-private data class SecureHandoffNoiseKeypair(
-    val epoch: Int,
-    @kotlinx.serialization.SerialName("public_key")
-    val publicKey: String,
-    @kotlinx.serialization.SerialName("secret_key")
-    val secretKey: String,
 )
 
 /**

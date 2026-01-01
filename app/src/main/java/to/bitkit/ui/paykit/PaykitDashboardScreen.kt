@@ -50,7 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.viewmodels.DashboardViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar

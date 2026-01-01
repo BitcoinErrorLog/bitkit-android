@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.viewmodels.AutoPayViewModel

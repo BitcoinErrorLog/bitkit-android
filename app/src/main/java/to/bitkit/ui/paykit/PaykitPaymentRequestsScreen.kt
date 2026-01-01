@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.models.RequestDirection

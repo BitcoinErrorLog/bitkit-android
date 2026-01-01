@@ -513,8 +513,8 @@ removeNoiseEndpoint(transport)
             return PubkyProfile(
                 name = sdkProfile.name,
                 bio = sdkProfile.bio,
-                avatar = sdkProfile.image, // SDK uses 'image', DirectoryService uses 'avatar'
-                links = sdkProfile.links?.map { PubkyProfileLink(title = it.title, url = it.url) }
+                image = sdkProfile.image,
+                links = sdkProfile.links?.map { PubkyProfileLink(title = it.title, url = it.url) },
             )
         } catch (e: Exception) {
             Logger.debug("PubkySDKService profile fetch failed: ${e.message}", context = TAG)
@@ -564,8 +564,8 @@ removeNoiseEndpoint(transport)
                 PubkyProfile(
                     name = json.optString("name").takeIf { it.isNotEmpty() },
                     bio = json.optString("bio").takeIf { it.isNotEmpty() },
-                    avatar = json.optString("avatar").takeIf { it.isNotEmpty() },
-                    links = links
+                    image = json.optString("image").takeIf { it.isNotEmpty() },
+                    links = links,
                 )
             } else {
                 null
@@ -586,7 +586,7 @@ removeNoiseEndpoint(transport)
         val profileJson = org.json.JSONObject().apply {
             profile.name?.let { put("name", it) }
             profile.bio?.let { put("bio", it) }
-            profile.avatar?.let { put("avatar", it) }
+            profile.image?.let { put("image", it) }
             profile.links?.let { links ->
                 val linksArray = org.json.JSONArray()
                 links.forEach { link ->
@@ -709,12 +709,17 @@ removeNoiseEndpoint(transport)
             // Check if this follow has payment methods
             val paymentMethods = discoverPaymentMethods(followPubkey)
             if (paymentMethods.isNotEmpty()) {
+                // Fetch profile to get name (best effort)
+                val profileName = runCatching {
+                    pubkySDKService.fetchProfile(followPubkey).name
+                }.getOrNull()
+
                 discovered.add(
                     DiscoveredContact(
                         pubkey = followPubkey,
-                        name = null as String?, // Could fetch from Pubky profile
+                        name = profileName,
                         hasPaymentMethods = true,
-                        supportedMethods = paymentMethods.map { it.methodId }
+                        supportedMethods = paymentMethods.map { it.methodId },
                     )
                 )
             }
@@ -730,8 +735,8 @@ removeNoiseEndpoint(transport)
 data class PubkyProfile(
     val name: String? = null,
     val bio: String? = null,
-    val avatar: String? = null,
-    val links: List<PubkyProfileLink>? = null
+    val image: String? = null,
+    val links: List<PubkyProfileLink>? = null,
 )
 
 data class PubkyProfileLink(

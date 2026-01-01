@@ -5,12 +5,13 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.DiscoveredContact
 import to.bitkit.paykit.storage.ContactStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import to.bitkit.utils.Logger
 import javax.inject.Inject
 
 /**
@@ -19,7 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
     private val contactStorage: ContactStorage,
-    private val directoryService: DirectoryService
+    private val directoryService: DirectoryService,
 ) : ViewModel() {
 
     private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
@@ -34,14 +35,11 @@ class ContactsViewModel @Inject constructor(
     private val _showingAddContact = MutableStateFlow(false)
     val showingAddContact: StateFlow<Boolean> = _showingAddContact.asStateFlow()
 
-    private val _showingDiscovery = MutableStateFlow(false)
-    val showingDiscovery: StateFlow<Boolean> = _showingDiscovery.asStateFlow()
+    private val _discoveredContacts = MutableStateFlow<List<DiscoveredContact>>(emptyList())
+    val discoveredContacts: StateFlow<List<DiscoveredContact>> = _discoveredContacts.asStateFlow()
 
-    private val _discoveredContacts = MutableStateFlow<List<Contact>>(emptyList())
-    val discoveredContacts: StateFlow<List<Contact>> = _discoveredContacts.asStateFlow()
-
-    private val _showingDiscoveryResults = MutableStateFlow(false)
-    val showingDiscoveryResults: StateFlow<Boolean> = _showingDiscoveryResults.asStateFlow()
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     init {
         loadContacts()
@@ -67,33 +65,33 @@ class ContactsViewModel @Inject constructor(
 
     fun addContact(contact: Contact) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 contactStorage.saveContact(contact)
                 loadContacts()
-            } catch (e: Exception) {
-                Logger.error("ContactsViewModel: Failed to add contact", e, context = "ContactsViewModel")
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to add contact: ${e.message}" }
             }
         }
     }
 
     fun updateContact(contact: Contact) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 contactStorage.saveContact(contact)
                 loadContacts()
-            } catch (e: Exception) {
-                Logger.error("ContactsViewModel: Failed to update contact", e, context = "ContactsViewModel")
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to update contact: ${e.message}" }
             }
         }
     }
 
     fun deleteContact(contact: Contact) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 contactStorage.deleteContact(contact.id)
                 loadContacts()
-            } catch (e: Exception) {
-                Logger.error("ContactsViewModel: Failed to delete contact", e, context = "ContactsViewModel")
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to delete contact: ${e.message}" }
             }
         }
     }
@@ -101,26 +99,22 @@ class ContactsViewModel @Inject constructor(
     fun discoverContacts() {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                // In production, would fetch from directory
-                // For now, return empty
-                _discoveredContacts.value = emptyList()
-                _showingDiscoveryResults.value = true
-            } catch (e: Exception) {
-                Logger.error("ContactsViewModel: Failed to discover contacts", e, context = "ContactsViewModel")
-            } finally {
-                _isLoading.value = false
+            runCatching {
+                _discoveredContacts.value = directoryService.discoverContactsFromFollows()
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to discover contacts: ${e.message}" }
             }
+            _isLoading.value = false
         }
     }
 
     fun importDiscovered(contacts: List<Contact>) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 contactStorage.importContacts(contacts)
                 loadContacts()
-            } catch (e: Exception) {
-                Logger.error("ContactsViewModel: Failed to import contacts", e, context = "ContactsViewModel")
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to import contacts: ${e.message}" }
             }
         }
     }
@@ -134,11 +128,27 @@ class ContactsViewModel @Inject constructor(
         _showingAddContact.value = showing
     }
 
-    fun setShowingDiscovery(showing: Boolean) {
-        _showingDiscovery.value = showing
+    fun followContact(pubkey: String) {
+        viewModelScope.launch {
+            runCatching {
+                directoryService.addFollow(pubkey)
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to follow: ${e.message}" }
+            }
+        }
     }
 
-    fun setShowingDiscoveryResults(showing: Boolean) {
-        _showingDiscoveryResults.value = showing
+    fun unfollowContact(pubkey: String) {
+        viewModelScope.launch {
+            runCatching {
+                directoryService.removeFollow(pubkey)
+            }.onFailure { e ->
+                _errorMessage.update { "Failed to unfollow: ${e.message}" }
+            }
+        }
+    }
+
+    fun clearError() {
+        _errorMessage.value = null
     }
 }
