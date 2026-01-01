@@ -1,21 +1,42 @@
 # E2E Test: Import Identity into Pubky Ring
 # Preconditions:
-#   - Pubky Ring app installed
+#   - Pubky Ring app installed with bundled JS
 #   - test-primary.pkarr pushed to /sdcard/Download/ via setup.sh
 #   - Emulator running with network access
 appId: to.pubky.ring
 name: Import Test Identity
 ---
-# Start fresh - clear app data if needed
+# Start fresh - clear app data
 - clearState
 
 # Launch Ring app
 - launchApp
 
 # Wait for app to load
-- waitForAnimationToEnd
+- waitForAnimationToEnd:
+    timeout: 10000
 
-# On first launch, may see onboarding - tap "Get Started" if visible
+# Handle Terms of Use screen if visible
+- runFlow:
+    when:
+      visible: "Terms of Use"
+    commands:
+      # Tap the Terms of Use checkbox
+      - tapOn:
+          text: "I declare that I have read and accept the terms of use."
+      - waitForAnimationToEnd
+      
+      # Tap Privacy Policy checkbox at absolute coordinates
+      - tapOn:
+          point: "1000,1900"
+      - waitForAnimationToEnd
+      
+      # Tap Continue button
+      - tapOn: "Continue"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# Handle onboarding "Get Started" screen if visible
 - runFlow:
     when:
       visible: "Get Started"
@@ -23,72 +44,37 @@ name: Import Test Identity
       - tapOn: "Get Started"
       - waitForAnimationToEnd
 
-# Tap "Add pubky" button on home screen
-- tapOn:
-    text: "Add pubky"
-    optional: true
+# Now we should see the main screen with pubky list
+# Tap on the "+ Add pubky" button
+- tapOn: "Add pubky"
+- waitForAnimationToEnd
 
-# If no Add pubky visible, look for + button or alternative
-- runFlow:
-    when:
-      notVisible: "Import pubky"
-    commands:
-      - tapOn:
-          id: ".*add.*"
-          optional: true
-
-# Tap "Import pubky" button
+# On the "Your keys, your identity" screen, tap "Import pubky"
 - tapOn: "Import pubky"
 - waitForAnimationToEnd
 
 # Select "Encrypted File" option
 - tapOn: "Encrypted File"
-- waitForAnimationToEnd
+- waitForAnimationToEnd:
+    timeout: 10000
 
-# File picker should open - select the test file
-# On Android emulator, the file picker shows /sdcard/Download contents
-# Look for our test file
-- runFlow:
-    when:
-      visible: "test-primary.pkarr"
-    commands:
-      - tapOn: "test-primary.pkarr"
+# File picker should open - select our test file
+# The file should be visible under "Recent files"
+- tapOn: "test-primary.pkarr"
+- waitForAnimationToEnd:
+    timeout: 5000
 
-# Alternative: If using system file picker, navigate to Downloads
-- runFlow:
-    when:
-      notVisible: "test-primary.pkarr"
-    commands:
-      # Try tapping Downloads folder in system picker
-      - tapOn:
-          text: "Downloads"
-          optional: true
-      - waitForAnimationToEnd
-      - tapOn:
-          text: "test-primary.pkarr"
-          optional: true
-
-# BackupPrompt sheet should appear asking for password
-- waitForAnimationToEnd
-
-# Enter the password
-- inputText:
-    text: "tester"
+# Password prompt should appear - enter the password
+- inputText: "tester"
 
 # Tap Import button
 - tapOn: "Import"
 
 # Wait for import to complete
 - waitForAnimationToEnd:
-    timeout: 10000
+    timeout: 15000
 
-# Verify import was successful
-# The success sheet should appear or pubky should be visible
-- assertVisible:
-    text: ".*[Ss]uccess.*|.*[Ii]mported.*"
-    optional: true
-
-# Tap Continue or Done if present
+# Handle success sheet - tap Continue
 - runFlow:
     when:
       visible: "Continue"
@@ -96,14 +82,21 @@ name: Import Test Identity
       - tapOn: "Continue"
       - waitForAnimationToEnd
 
-# Close any remaining sheets
+# May need to handle setup screen
 - runFlow:
     when:
       visible: "Done"
     commands:
       - tapOn: "Done"
+      - waitForAnimationToEnd
 
-# Final verification - we should now see a pubky on the home screen
-# The pubky name/id should be visible in the list
-- assertNotVisible: "No Pubkys"
+# Skip any optional screens
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+      - waitForAnimationToEnd
 
+# Final verification - pubky should be visible, not the placeholder
+- assertNotVisible: "xxxxx..xxxxx"
