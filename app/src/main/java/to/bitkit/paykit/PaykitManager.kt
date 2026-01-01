@@ -15,6 +15,8 @@ import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
+import to.bitkit.paykit.services.SessionRefreshWorker
+import to.bitkit.paykit.workers.PaykitPollingWorker
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -25,6 +27,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class PaykitManager @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: Context,
     private val pubkyRingBridge: PubkyRingBridge,
     private val pubkySDKService: PubkySDKService,
     private val directoryService: DirectoryService,
@@ -105,10 +108,14 @@ class PaykitManager @Inject constructor(
         pubkySDKService.configure()
 
         // Configure DirectoryService with first available session for authenticated writes
-        pubkyRingBridge.cachedSessions.firstOrNull()?.let { session ->
+        pubkyRingBridge.getCachedSessions().firstOrNull()?.let { session ->
             directoryService.configureWithPubkySession(session)
             Logger.info("DirectoryService configured with restored session", context = TAG)
         }
+
+        // Schedule background workers for session refresh and polling
+        SessionRefreshWorker.schedule(appContext)
+        PaykitPollingWorker.schedule(appContext)
 
         isInitialized = true
         Logger.info("PaykitManager initialized successfully", context = TAG)
