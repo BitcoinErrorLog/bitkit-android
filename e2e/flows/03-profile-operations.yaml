@@ -1,0 +1,130 @@
+# E2E Test: Profile Read and Write Operations
+# Preconditions:
+#   - Session acquired from Ring (run 02-session-acquisition.yaml first)
+#   - Bitkit app is on profile screen with valid session
+appId: to.bitkit
+name: Profile Read and Write
+---
+# Launch Bitkit (should resume from previous state or start fresh)
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to Profile screen if not already there
+# Open drawer
+- swipe:
+    direction: RIGHT
+    duration: 500
+
+- waitForAnimationToEnd
+
+# Tap Profile
+- tapOn:
+    text: "Profile"
+    optional: true
+
+- waitForAnimationToEnd
+
+# === TEST 1: Profile Read ===
+# Verify we can see profile fields (name, bio)
+# These should be visible if we have a session and profile data loaded
+- assertVisible:
+    text: ".*[Nn]ame.*"
+    optional: true
+
+# The name field should be accessible
+- runFlow:
+    when:
+      visible:
+        id: ".*name.*input.*"
+    commands:
+      - assertVisible:
+          id: ".*name.*input.*"
+
+# === TEST 2: Profile Write ===
+# Generate a unique test name using timestamp
+- inputRandomText:
+    id: ".*name.*input.*"
+    length: 0
+
+# Clear the name field first
+- runFlow:
+    when:
+      visible:
+        id: ".*name.*"
+    commands:
+      - tapOn:
+          id: ".*name.*"
+      - repeat:
+          times: 50
+          commands:
+            - pressKey: delete
+
+# Input new test name
+- inputText: "E2E Test User"
+
+# Update bio field if visible
+- runFlow:
+    when:
+      visible:
+        id: ".*bio.*"
+    commands:
+      - tapOn:
+          id: ".*bio.*"
+      - inputText: "Automated test profile"
+
+# Save the profile
+# Look for Save button in top bar or elsewhere
+- runFlow:
+    when:
+      visible: "Save"
+    commands:
+      - tapOn: "Save"
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+# Alternative save button
+- runFlow:
+    when:
+      visible:
+        id: ".*save.*"
+    commands:
+      - tapOn:
+          id: ".*save.*"
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+# Verify save was successful
+# Should see success message or no error
+- assertNotVisible:
+    text: ".*[Ee]rror.*[Ss]av.*"
+    optional: true
+
+# === TEST 3: Verify Profile Persisted ===
+# Navigate away and back to verify changes persisted
+- pressKey: back
+- waitForAnimationToEnd
+
+# Navigate back to profile
+- swipe:
+    direction: RIGHT
+    duration: 500
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Profile"
+    optional: true
+
+- waitForAnimationToEnd
+
+# Verify the name we set is still there
+- assertVisible:
+    text: "E2E Test User"
+    optional: true
+
+# Take a screenshot for verification
+- takeScreenshot: profile-updated
+

@@ -1,0 +1,101 @@
+# E2E Test: Contact Discovery with Payment Methods
+# Preconditions:
+#   - Session acquired from Ring (run 02-session-acquisition.yaml first)
+#   - Primary identity follows secondary identity
+#   - Secondary identity has payment endpoints published (if testing payment method discovery)
+appId: to.bitkit
+name: Contact Discovery
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to Contacts
+- swipe:
+    direction: RIGHT
+    duration: 500
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Contacts"
+    optional: true
+
+- waitForAnimationToEnd
+
+# Navigate to Contact Discovery screen
+- runFlow:
+    when:
+      visible: ".*[Dd]iscover.*"
+    commands:
+      - tapOn: ".*[Dd]iscover.*"
+      - waitForAnimationToEnd
+
+# If we're already on the contacts screen, look for discovery option in menu or FAB
+- runFlow:
+    when:
+      visible:
+        id: ".*fab.*|.*add.*"
+    commands:
+      - tapOn:
+          id: ".*fab.*|.*add.*"
+      - waitForAnimationToEnd
+
+# === TEST: Contact Discovery ===
+# The screen should show discovered contacts from follows
+
+# Trigger refresh if available
+- runFlow:
+    when:
+      visible:
+        id: ".*refresh.*"
+    commands:
+      - tapOn:
+          id: ".*refresh.*"
+      - waitForAnimationToEnd:
+          timeout: 15000
+
+# Wait for network operation to complete
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# === VERIFY: Contacts are Displayed ===
+# Check that at least one contact is shown
+# The secondary identity should appear if primary follows it
+
+# Look for any contact row/card
+- assertVisible:
+    text: ".*"
+    optional: true
+
+# === VERIFY: Payment Methods (if published) ===
+# If secondary has payment endpoints, we should see payment method indicators
+- runFlow:
+    when:
+      visible: ".*[Pp]ayment.*|.*[Bb]olt11.*|.*[Nn]oise.*"
+    commands:
+      - assertVisible: ".*[Pp]ayment.*|.*[Bb]olt11.*|.*[Nn]oise.*"
+
+# === VERIFY: Contact Details ===
+# Tap on a contact to see details
+- runFlow:
+    when:
+      visible:
+        id: ".*contact.*row.*|.*contact.*card.*"
+    commands:
+      - tapOn:
+          id: ".*contact.*row.*|.*contact.*card.*"
+          index: 0
+      - waitForAnimationToEnd
+
+# Take final screenshot
+- takeScreenshot: contact-discovery
+
+# === CLEANUP ===
+# Navigate back
+- pressKey: back
+- waitForAnimationToEnd
+

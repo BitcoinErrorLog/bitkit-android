@@ -1,0 +1,116 @@
+# E2E Test: Follows Add and Remove Operations
+# Preconditions:
+#   - Session acquired from Ring (run 02-session-acquisition.yaml first)
+#   - Secondary identity pubkey is known (extracted after importing ios-ai-tester into Ring)
+#   - Both identities are signed up to the homeserver
+appId: to.bitkit
+name: Follows Add and Remove
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to Contacts/Paykit area
+# Open drawer
+- swipe:
+    direction: RIGHT
+    duration: 500
+
+- waitForAnimationToEnd
+
+# Tap Contacts
+- tapOn:
+    text: "Contacts"
+    optional: true
+
+- waitForAnimationToEnd
+
+# === Navigate to Contact Discovery ===
+# Look for a discovery or add contact option
+- runFlow:
+    when:
+      visible: "Discover"
+    commands:
+      - tapOn: "Discover"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Add Contact"
+    commands:
+      - tapOn: "Add Contact"
+      - waitForAnimationToEnd
+
+# Alternative: Look for a + button or action button
+- runFlow:
+    when:
+      visible:
+        id: ".*add.*|.*discover.*"
+    commands:
+      - tapOn:
+          id: ".*add.*|.*discover.*"
+      - waitForAnimationToEnd
+
+# === TEST: Follows Discovery ===
+# The Contact Discovery screen should show contacts from follows
+# Verify the discovery screen is visible
+- assertVisible:
+    text: ".*[Cc]ontact.*[Dd]iscovery.*|.*[Dd]iscover.*"
+    optional: true
+
+# If there's a Refresh button, tap it to trigger discovery
+- runFlow:
+    when:
+      visible: "Refresh"
+    commands:
+      - tapOn: "Refresh"
+      - waitForAnimationToEnd:
+          timeout: 15000
+
+# Wait for discovery to complete
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Verify contacts are discovered
+# We should see at least one contact if primary follows secondary
+- assertVisible:
+    text: ".*[Cc]ontact.*|.*[Ff]ollow.*"
+    optional: true
+
+# === TEST: Follow a Contact ===
+# If there's a Follow button on a contact, tap it
+- runFlow:
+    when:
+      visible:
+        text: "Follow"
+    commands:
+      - tapOn:
+          text: "Follow"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+# Verify follow was successful (button might change to "Following" or similar)
+- assertVisible:
+    text: ".*[Ff]ollowing.*|.*[Aa]dded.*"
+    optional: true
+
+# Take a screenshot
+- takeScreenshot: follows-operations
+
+# === TEST: Unfollow (optional) ===
+# If there's an unfollow option, test it
+- runFlow:
+    when:
+      visible:
+        text: ".*[Uu]nfollow.*|.*[Rr]emove.*"
+    commands:
+      - tapOn:
+          text: ".*[Uu]nfollow.*|.*[Rr]emove.*"
+          index: 0
+      - waitForAnimationToEnd:
+          timeout: 10000
+

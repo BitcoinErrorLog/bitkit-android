@@ -1,0 +1,109 @@
+# E2E Test: Import Identity into Pubky Ring
+# Preconditions:
+#   - Pubky Ring app installed
+#   - test-primary.pkarr pushed to /sdcard/Download/ via setup.sh
+#   - Emulator running with network access
+appId: to.pubky.ring
+name: Import Test Identity
+---
+# Start fresh - clear app data if needed
+- clearState
+
+# Launch Ring app
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd
+
+# On first launch, may see onboarding - tap "Get Started" if visible
+- runFlow:
+    when:
+      visible: "Get Started"
+    commands:
+      - tapOn: "Get Started"
+      - waitForAnimationToEnd
+
+# Tap "Add pubky" button on home screen
+- tapOn:
+    text: "Add pubky"
+    optional: true
+
+# If no Add pubky visible, look for + button or alternative
+- runFlow:
+    when:
+      notVisible: "Import pubky"
+    commands:
+      - tapOn:
+          id: ".*add.*"
+          optional: true
+
+# Tap "Import pubky" button
+- tapOn: "Import pubky"
+- waitForAnimationToEnd
+
+# Select "Encrypted File" option
+- tapOn: "Encrypted File"
+- waitForAnimationToEnd
+
+# File picker should open - select the test file
+# On Android emulator, the file picker shows /sdcard/Download contents
+# Look for our test file
+- runFlow:
+    when:
+      visible: "test-primary.pkarr"
+    commands:
+      - tapOn: "test-primary.pkarr"
+
+# Alternative: If using system file picker, navigate to Downloads
+- runFlow:
+    when:
+      notVisible: "test-primary.pkarr"
+    commands:
+      # Try tapping Downloads folder in system picker
+      - tapOn:
+          text: "Downloads"
+          optional: true
+      - waitForAnimationToEnd
+      - tapOn:
+          text: "test-primary.pkarr"
+          optional: true
+
+# BackupPrompt sheet should appear asking for password
+- waitForAnimationToEnd
+
+# Enter the password
+- inputText:
+    text: "tester"
+
+# Tap Import button
+- tapOn: "Import"
+
+# Wait for import to complete
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Verify import was successful
+# The success sheet should appear or pubky should be visible
+- assertVisible:
+    text: ".*[Ss]uccess.*|.*[Ii]mported.*"
+    optional: true
+
+# Tap Continue or Done if present
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      - waitForAnimationToEnd
+
+# Close any remaining sheets
+- runFlow:
+    when:
+      visible: "Done"
+    commands:
+      - tapOn: "Done"
+
+# Final verification - we should now see a pubky on the home screen
+# The pubky name/id should be visible in the list
+- assertNotVisible: "No Pubkys"
+

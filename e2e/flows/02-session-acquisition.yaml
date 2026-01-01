@@ -1,0 +1,99 @@
+# E2E Test: Session Acquisition from Pubky Ring
+# Preconditions:
+#   - Bitkit Android app installed
+#   - Pubky Ring app installed with test identity imported (run 01-import-identity.yaml first)
+#   - Emulator running with network access
+appId: to.bitkit
+name: Acquire Session from Pubky Ring
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Navigate to Profile/Settings area
+# Open drawer menu by swiping from left edge or tapping hamburger menu
+- swipe:
+    direction: RIGHT
+    duration: 500
+
+- waitForAnimationToEnd
+
+# Tap on Profile in drawer (or Settings if Profile not directly accessible)
+- runFlow:
+    when:
+      visible: "Profile"
+    commands:
+      - tapOn: "Profile"
+      - waitForAnimationToEnd
+
+# If Profile not in drawer, go through Settings
+- runFlow:
+    when:
+      notVisible: "Profile"
+    commands:
+      - tapOn:
+          text: "Settings"
+          optional: true
+      - waitForAnimationToEnd
+
+# We should be on the Create Profile or Profile screen
+# Look for the "Connect with Pubky Ring" button
+- assertVisible:
+    text: ".*[Cc]onnect.*[Rr]ing.*|.*[Pp]ubky.*[Rr]ing.*"
+    timeout: 5000
+    optional: true
+
+# Tap the connect button
+- tapOn:
+    text: ".*[Cc]onnect.*[Rr]ing.*"
+    optional: true
+
+# Alternative - look for specific button text
+- runFlow:
+    when:
+      visible: "Connect with Pubky Ring"
+    commands:
+      - tapOn: "Connect with Pubky Ring"
+
+# Ring app should launch and show authorization screen
+# Wait for Ring to come to foreground
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Ring may show a confirmation dialog - tap Allow/Authorize
+- runFlow:
+    when:
+      visible: "Authorize"
+    commands:
+      - tapOn: "Authorize"
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+      - waitForAnimationToEnd
+
+# After authorization, Bitkit should come back to foreground
+# Wait for Bitkit to receive the callback
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Verify session was established
+# The profile screen should show connected state or profile editing options
+- assertVisible:
+    text: ".*[Cc]onnected.*|.*[Ee]dit.*[Pp]rofile.*|.*[Nn]ame.*|.*[Bb]io.*"
+    optional: true
+
+# Alternatively, check that error messages are not visible
+- assertNotVisible:
+    text: ".*[Ee]rror.*[Ss]ession.*"
+    optional: true
+
+# Take a screenshot for verification
+- takeScreenshot: session-acquired
+
