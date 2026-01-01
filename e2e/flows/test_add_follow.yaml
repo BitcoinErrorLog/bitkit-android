@@ -1,0 +1,22 @@
+appId: to.bitkit.dev
+---
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    id: ".*HeaderMenu.*"
+- waitForAnimationToEnd
+- tapOn: "CONTACTS"
+- waitForAnimationToEnd
+- tapOn: "Discover Contacts"
+- waitForAnimationToEnd
+- assertVisible: "Add Follow by Pubkey"
+- tapOn:
+    id: "PubkeyInput"
+- inputText: "n3pfudgxncn8i1e6icuq7umoczemjuyi6xdfrfczk3o8ej3e55my"
+- hideKeyboard
+- takeScreenshot: before-add-follow
+- tapOn:
+    id: "AddFollowButton"
+- waitForAnimationToEnd
+- takeScreenshot: after-add-follow
+

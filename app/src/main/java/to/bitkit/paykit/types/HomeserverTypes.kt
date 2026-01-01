@@ -271,10 +271,108 @@ object HomeserverResolver {
         }
         
         // 4. Fall back to default
-        // TODO: Implement DNS-based resolution via _pubky.<pubkey>
+        // Note: DNS resolution is available via resolveWithDNS() for async contexts
         val defaultURL = HomeserverDefaults.defaultHomeserverURL
         cache[pubkey] = defaultURL to (now + 3600 * 1000)
         return defaultURL
+    }
+    
+    /**
+     * Resolve a homeserver pubkey with DNS lookup fallback.
+     * 
+     * This async version tries DNS TXT record lookup at _pubky.{pubkey}
+     * before falling back to the default homeserver.
+     *
+     * @param pubkey The homeserver's pubkey
+     * @return The resolved URL
+     */
+    suspend fun resolveWithDNS(pubkey: HomeserverPubkey): HomeserverURL {
+        // 1. Check for override (testing/development)
+        overrideURL?.let { return it }
+        
+        // 2. Check cache
+        val now = System.currentTimeMillis()
+        cache[pubkey]?.let { (url, expires) ->
+            if (now < expires) return url
+        }
+        
+        // 3. Check known mappings
+        knownHomeservers[pubkey.value]?.let { urlString ->
+            val url = HomeserverURL(urlString)
+            cache[pubkey] = url to (now + 3600 * 1000)
+            return url
+        }
+        
+        // 4. Try DNS-based resolution
+        val dnsResolved = resolveViaDNS(pubkey.value)
+        if (dnsResolved != null) {
+            cache[pubkey] = dnsResolved to (now + 3600 * 1000)
+            return dnsResolved
+        }
+        
+        // 5. Fall back to default
+        val defaultURL = HomeserverDefaults.defaultHomeserverURL
+        cache[pubkey] = defaultURL to (now + 3600 * 1000)
+        return defaultURL
+    }
+    
+    /**
+     * Resolve homeserver via DNS TXT record at _pubky.{pubkey}
+     * 
+     * Requires API 29+. Returns null if DNS lookup fails or API not available.
+     */
+    @android.annotation.SuppressLint("NewApi")
+    private suspend fun resolveViaDNS(pubkey: String): HomeserverURL? {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            return null
+        }
+        
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val dnsName = "_pubky.$pubkey"
+            
+            try {
+                val resolver = android.net.DnsResolver.getInstance()
+                val latch = java.util.concurrent.CountDownLatch(1)
+                var result: HomeserverURL? = null
+                
+                resolver.rawQuery(
+                    null,
+                    dnsName,
+                    android.net.DnsResolver.TYPE_TXT,
+                    android.net.DnsResolver.FLAG_EMPTY,
+                    java.util.concurrent.Executors.newSingleThreadExecutor(),
+                    null,
+                    object : android.net.DnsResolver.Callback<ByteArray> {
+                        override fun onAnswer(answer: ByteArray, rcode: Int) {
+                            result = parseTxtRecord(answer)
+                            latch.countDown()
+                        }
+                        override fun onError(error: android.net.DnsResolver.DnsException) {
+                            latch.countDown()
+                        }
+                    }
+                )
+                
+                latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                result
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+    
+    /**
+     * Parse DNS TXT record for homeserver URL.
+     * Expected format: "hs=https://homeserver.example.com"
+     */
+    private fun parseTxtRecord(data: ByteArray): HomeserverURL? {
+        return try {
+            val txt = String(data, Charsets.UTF_8)
+            val urlMatch = Regex("hs=([^\\s]+)").find(txt)
+            urlMatch?.groupValues?.get(1)?.let { HomeserverURL(it) }
+        } catch (e: Exception) {
+            null
+        }
     }
     
     /**

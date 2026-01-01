@@ -16,11 +16,13 @@ import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -28,9 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -51,6 +56,7 @@ fun ContactDiscoveryScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var pubkeyToFollow by remember { mutableStateOf("") }
 
     LaunchedEffect(viewModel) {
         viewModel.discoverContacts()
@@ -105,6 +111,47 @@ fun ContactDiscoveryScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Title(text = "Add Follow by Pubkey")
+                        OutlinedTextField(
+                            value = pubkeyToFollow,
+                            onValueChange = { pubkeyToFollow = it },
+                            label = { Text("Enter pubkey (z-base-32)") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("PubkeyInput"),
+                        )
+                        Button(
+                            onClick = {
+                                if (pubkeyToFollow.isNotBlank()) {
+                                    viewModel.followContact(pubkeyToFollow.trim())
+                                    pubkeyToFollow = ""
+                                    viewModel.discoverContacts()
+                                }
+                            },
+                            enabled = pubkeyToFollow.isNotBlank() && !isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("AddFollowButton"),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp),
+                            )
+                            Text("Add Follow")
+                        }
                     }
                 }
 

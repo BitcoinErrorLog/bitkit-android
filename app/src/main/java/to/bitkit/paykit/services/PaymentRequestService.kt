@@ -3,6 +3,7 @@ package to.bitkit.paykit.services
 import uniffi.paykit_mobile.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.storage.PaymentRequestStorage
@@ -51,7 +52,8 @@ class PaymentRequestService @Inject constructor(
     private val paykitClient: PaykitClient,
     private val autopayEvaluator: IAutopayEvaluator,
     private val paymentRequestStorage: PaymentRequestStorage,
-    private val directoryService: DirectoryService
+    private val directoryService: DirectoryService,
+    private val paykitManager: PaykitManager,
 ) {
     companion object {
         private const val TAG = "PaymentRequestService"
@@ -166,7 +168,9 @@ class PaymentRequestService @Inject constructor(
 
         // Step 2: Try fetching from sender's Pubky storage
         Logger.info("Fetching payment request $requestId from sender's Pubky storage", context = TAG)
-        val remoteRequest = directoryService.fetchPaymentRequest(requestId, fromPubkey)
+        val recipientPubkey = paykitManager.ownerPubkey
+            ?: throw IllegalStateException("Owner pubkey not set")
+        val remoteRequest = directoryService.fetchPaymentRequest(requestId, fromPubkey, recipientPubkey)
         if (remoteRequest != null) {
             // Cache locally for future access
             paymentRequestStorage.addRequest(remoteRequest)

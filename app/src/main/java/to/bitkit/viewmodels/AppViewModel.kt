@@ -1815,7 +1815,7 @@ class AppViewModel @Inject constructor(
         // Create PaymentRequestService
         val keyManager = KeyManager(context, keychain)
         val pubkyStorage = PubkyStorageAdapter(context)
-        val directoryService = DirectoryService(context, keyManager, pubkyStorage, pubkySDKService, pubkyRingBridge).apply {
+        val directoryService = DirectoryService(context, keyManager, pubkyStorage, pubkySDKService, pubkyRingBridge, keychainStorage).apply {
             initialize(paykitClient)
         }
 

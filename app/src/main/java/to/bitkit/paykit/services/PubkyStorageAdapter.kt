@@ -54,13 +54,15 @@ class PubkyStorageAdapter @Inject constructor(
     }
 
     /**
-     * Create authenticated storage adapter for writes
+     * Create authenticated storage adapter for writes.
+     * Uses Pubky transport URL format: https://_pubky.{ownerPubkey}/{path}
      */
     fun createAuthenticatedAdapter(
-        sessionId: String,
+        sessionSecret: String,
+        ownerPubkey: String,
         homeserverURL: HomeserverURL? = null,
     ): PubkyAuthenticatedStorageAdapter {
-        return PubkyAuthenticatedStorageAdapter(httpClient, sessionId, homeserverURL)
+        return PubkyAuthenticatedStorageAdapter(httpClient, sessionSecret, ownerPubkey, homeserverURL)
     }
 
     /**
@@ -154,16 +156,23 @@ class PubkyUnauthenticatedStorageAdapter(
 
     override fun get(ownerPubkey: String, path: String): StorageGetResult {
         val url = homeserverURL?.value
+        // When using central homeserver, path is just /path, owner identified via pubky-host header
         val urlString = if (url != null) {
-            "$url/pubky$ownerPubkey$path"
+            "$url$path"
         } else {
             "https://_pubky.$ownerPubkey$path"
         }
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .get()
-            .build()
+
+        // Add pubky-host header when using central homeserver
+        if (url != null) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()
@@ -184,16 +193,24 @@ class PubkyUnauthenticatedStorageAdapter(
     }
 
     override fun list(ownerPubkey: String, prefix: String): StorageListResult {
+        // When using central homeserver, path is just /prefix, owner identified via pubky-host header
+        // When using Pubky DNS format, pubkey is in the hostname
         val urlString = if (homeserverURL?.value != null) {
-            "${homeserverURL.value}/pubky$ownerPubkey$prefix?shallow=true"
+            "${homeserverURL.value}$prefix?shallow=true"
         } else {
             "https://_pubky.$ownerPubkey$prefix?shallow=true"
         }
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .get()
-            .build()
+
+        // Add pubky-host header when using central homeserver
+        if (homeserverURL?.value != null) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()
@@ -205,27 +222,38 @@ class PubkyUnauthenticatedStorageAdapter(
                     if (body.isNullOrEmpty()) {
                         StorageListResult(success = true, entries = emptyList(), error = null)
                     } else {
+                        // Response can be:
+                        // 1. JSON array of objects with "path" field
+                        // 2. JSON array of strings (paths)
+                        // 3. Line-separated pubky:// URLs (from homeserver)
                         try {
                             val jsonArray = JSONArray(body)
                             val entries = mutableListOf<String>()
                             for (i in 0 until jsonArray.length()) {
-                                val item = jsonArray.getJSONObject(i)
-                                entries.add(item.getString("path"))
+                                try {
+                                    val item = jsonArray.getJSONObject(i)
+                                    entries.add(item.getString("path"))
+                                } catch (e: Exception) {
+                                    entries.add(jsonArray.getString(i))
+                                }
                             }
                             StorageListResult(success = true, entries = entries, error = null)
                         } catch (e: Exception) {
-                            try {
-                                val jsonArray = JSONArray(body)
-                                val entries = mutableListOf<String>()
-                                for (i in 0 until jsonArray.length()) {
-                                    entries.add(jsonArray.getString(i))
+                            // Try parsing as line-separated pubky:// URLs
+                            val entries = body.lines()
+                                .filter { it.startsWith("pubky://") }
+                                .mapNotNull { line ->
+                                    // Extract the last path segment (follow pubkey)
+                                    // Format: pubky://{owner}/pub/pubky.app/follows/{followPubkey}
+                                    line.substringAfterLast("/").takeIf { it.isNotEmpty() }
                                 }
+                            if (entries.isNotEmpty()) {
                                 StorageListResult(success = true, entries = entries, error = null)
-                            } catch (e2: Exception) {
+                            } else {
                                 StorageListResult(
                                     success = false,
                                     entries = emptyList(),
-                                    error = "Failed to parse response: ${e2.message}"
+                                    error = "Failed to parse response: ${e.message}"
                                 )
                             }
                         }
@@ -242,13 +270,19 @@ class PubkyUnauthenticatedStorageAdapter(
 }
 
 /**
- * Adapter for authenticated Pubky storage operations
+ * Adapter for authenticated Pubky storage operations.
+ * Uses the Pubky transport URL format: https://_pubky.{ownerPubkey}/{path}
+ * Cookie format: {ownerPubkey}={sessionSecret}
  */
 class PubkyAuthenticatedStorageAdapter(
     private val baseClient: OkHttpClient,
-    private val sessionId: String,
+    private val sessionSecret: String,
+    private val ownerPubkey: String,
     private val homeserverURL: HomeserverURL? = null,
 ) : PubkyAuthenticatedStorageCallback {
+    companion object {
+        private const val TAG = "PubkyAuthStorage"
+    }
 
     // Create a client with cookie jar for session handling, sharing connection pool with base client
     private val client: OkHttpClient = baseClient.newBuilder()
@@ -265,31 +299,78 @@ class PubkyAuthenticatedStorageAdapter(
         })
         .build()
 
-    override fun put(path: String, content: String): StorageOperationResult {
-        val urlString = if (homeserverURL?.value != null) {
-            "${homeserverURL.value}$path"
-        } else {
-            "https://homeserver.pubky.app$path"
+    /**
+     * Build the transport URL for the owner's storage.
+     * When using homeserverURL, the pubky-host header identifies the owner (see addPubkyHostHeader).
+     * Otherwise falls back to Pubky DNS format: https://_pubky.{ownerPubkey}/{path}
+     */
+    private fun buildTransportUrl(path: String): String {
+        val relativePath = path.trimStart('/')
+        // Use concrete homeserver URL if available (recommended for mobile/Android)
+        // The owner is identified via pubky-host header, not the URL path
+        homeserverURL?.value?.let { baseUrl ->
+            return "$baseUrl/$relativePath"
         }
+        // Fallback to Pubky DNS format (requires special DNS resolution)
+        return "https://_pubky.$ownerPubkey/$relativePath"
+    }
+
+    /**
+     * Check if we need to add the pubky-host header (when using central homeserver URL)
+     */
+    private fun needsPubkyHostHeader(): Boolean = homeserverURL != null
+
+    /**
+     * Build the session cookie in Pubky format: {ownerPubkey}={actualSecret}
+     * The sessionSecret may come as "{pubkey}:{actualSecret}" format from Pubky Ring,
+     * so we extract just the actualSecret portion after the colon.
+     */
+    private fun buildSessionCookie(): String {
+        val actualSecret = if (sessionSecret.contains(":")) {
+            sessionSecret.substringAfter(":")
+        } else {
+            sessionSecret
+        }
+        return "$ownerPubkey=$actualSecret"
+    }
+
+    override fun put(path: String, content: String): StorageOperationResult {
+        val urlString = buildTransportUrl(path)
+        val cookieValue = buildSessionCookie()
+
+        Logger.debug("PUT request to: $urlString", context = TAG)
+        Logger.debug("Cookie name length: ${ownerPubkey.length}, secret length: ${sessionSecret.length}", context = TAG)
+        Logger.debug("Cookie full: $cookieValue", context = TAG)
+        Logger.debug("Content: ${content.take(100)}", context = TAG)
 
         val mediaType = "application/json".toMediaType()
         val requestBody = content.toRequestBody(mediaType)
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .put(requestBody)
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .header("Cookie", "session=$sessionId")
-            .build()
+            .header("Cookie", cookieValue)
+
+        // Add pubky-host header when using central homeserver URL
+        if (needsPubkyHostHeader()) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+            Logger.debug("pubky-host: $ownerPubkey", context = TAG)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()
+            val responseBody = response.body?.string()
+
+            Logger.debug("Response code: ${response.code}, body: ${responseBody?.take(200)}", context = TAG)
 
             if (response.code in 200..299) {
                 StorageOperationResult(success = true, error = null)
             } else {
-                StorageOperationResult(success = false, error = "HTTP ${response.code}")
+                StorageOperationResult(success = false, error = "HTTP ${response.code}: $responseBody")
             }
         } catch (e: IOException) {
             StorageOperationResult(success = false, error = "Network error: ${e.message}")
@@ -299,18 +380,19 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun get(path: String): StorageGetResult {
-        val urlString = if (homeserverURL?.value != null) {
-            "${homeserverURL.value}$path"
-        } else {
-            "https://homeserver.pubky.app$path"
-        }
+        val urlString = buildTransportUrl(path)
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .get()
             .header("Accept", "application/json")
-            .header("Cookie", "session=$sessionId")
-            .build()
+            .header("Cookie", buildSessionCookie())
+
+        if (needsPubkyHostHeader()) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()
@@ -331,17 +413,18 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun delete(path: String): StorageOperationResult {
-        val urlString = if (homeserverURL?.value != null) {
-            "${homeserverURL.value}$path"
-        } else {
-            "https://homeserver.pubky.app$path"
-        }
+        val urlString = buildTransportUrl(path)
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .delete()
-            .header("Cookie", "session=$sessionId")
-            .build()
+            .header("Cookie", buildSessionCookie())
+
+        if (needsPubkyHostHeader()) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()
@@ -359,18 +442,19 @@ class PubkyAuthenticatedStorageAdapter(
     }
 
     override fun list(prefix: String): StorageListResult {
-        val urlString = if (homeserverURL?.value != null) {
-            "${homeserverURL.value}$prefix?shallow=true"
-        } else {
-            "https://homeserver.pubky.app$prefix?shallow=true"
-        }
+        val urlString = "${buildTransportUrl(prefix)}?shallow=true"
 
-        val request = Request.Builder()
+        var requestBuilder = Request.Builder()
             .url(urlString)
             .get()
             .header("Accept", "application/json")
-            .header("Cookie", "session=$sessionId")
-            .build()
+            .header("Cookie", buildSessionCookie())
+
+        if (needsPubkyHostHeader()) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
 
         return try {
             val response = client.newCall(request).execute()

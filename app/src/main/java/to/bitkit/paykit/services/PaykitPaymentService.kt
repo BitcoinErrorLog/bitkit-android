@@ -8,8 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import to.bitkit.paykit.PaykitException
 import to.bitkit.paykit.PaykitIntegrationHelper
+import to.bitkit.paykit.PaykitManager
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.SelectionPreferences
+import uniffi.paykit_mobile.SelectionStrategy
 import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
@@ -38,6 +41,8 @@ import javax.inject.Singleton
 class PaykitPaymentService @Inject constructor(
     private val receiptStore: PaykitReceiptStore,
     private val spendingLimitManager: SpendingLimitManager,
+    private val directoryService: DirectoryService,
+    private val paykitManager: PaykitManager,
 ) {
 
     companion object {
@@ -175,11 +180,7 @@ class PaykitPaymentService @Inject constructor(
                 }
                 payOnchain(lightningRepo, recipient, amountSats, feeRate)
             }
-            DetectedPaymentType.PAYKIT -> PaykitPaymentResult(
-                success = false,
-                receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
-                error = PaykitPaymentError.UnsupportedPaymentType
-            )
+            DetectedPaymentType.PAYKIT -> payPaykitUri(recipient, amountSats)
             DetectedPaymentType.UNKNOWN -> PaykitPaymentResult(
                 success = false,
                 receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
@@ -187,6 +188,134 @@ class PaykitPaymentService @Inject constructor(
             )
         }
     }
+
+    // MARK: - Smart Method Selection
+
+    /**
+     * Select optimal payment method for a recipient based on strategy.
+     *
+     * @param recipientPubkey Recipient's pubkey
+     * @param amountSats Payment amount
+     * @param strategy Selection strategy (default: BALANCED)
+     * @return Selected payment method or null if none available
+     */
+    suspend fun selectOptimalMethod(
+        recipientPubkey: String,
+        amountSats: ULong,
+        strategy: SelectionStrategy = SelectionStrategy.BALANCED,
+    ): uniffi.paykit_mobile.PaymentMethod? {
+        val client = runCatching { paykitManager.getClient() }.getOrNull() ?: return null
+
+        val methods = directoryService.discoverPaymentMethods(recipientPubkey)
+        if (methods.isEmpty()) return null
+
+        return runCatching {
+            val preferences = SelectionPreferences(
+                strategy = strategy,
+                excludedMethods = emptyList(),
+                maxFeeSats = null,
+                maxConfirmationTimeSecs = null,
+            )
+            val result = client.selectMethod(methods, amountSats, preferences)
+            result.selectedMethod
+        }.getOrElse { e ->
+            Logger.warn("Method selection failed, using first available: ${e.message}", context = TAG)
+            methods.firstOrNull()
+        }
+    }
+
+    /**
+     * Execute a Paykit URI payment.
+     *
+     * Discovers payment methods for the recipient and executes payment using smart selection.
+     *
+     * @param uri The Paykit URI (e.g., "paykit:pubkey" or "pip:pubkey")
+     * @param amountSats Amount in satoshis
+     * @return Payment result
+     */
+    private suspend fun payPaykitUri(
+        uri: String,
+        amountSats: ULong?,
+    ): PaykitPaymentResult {
+        Logger.info("Executing Paykit URI payment: $uri", context = TAG)
+        _paymentState.value = PaykitPaymentState.Processing
+
+        val pubkey = extractPubkeyFromUri(uri)
+        val amount = amountSats ?: 0uL
+
+        // Use smart method selection
+        val selectedMethod = selectOptimalMethod(pubkey, amount)
+        if (selectedMethod == null) {
+            Logger.warn("No payment methods found for $pubkey", context = TAG)
+            val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
+            _paymentState.value = PaykitPaymentState.Failed(PaykitPaymentError.InvalidRecipient("No payment methods found for $pubkey"))
+            return PaykitPaymentResult(
+                success = false,
+                receipt = receipt,
+                error = PaykitPaymentError.InvalidRecipient("No payment methods found for $pubkey"),
+            )
+        }
+
+        Logger.info("Selected payment method: ${selectedMethod.methodId}", context = TAG)
+
+        return try {
+            val client = paykitManager.getClient()
+
+            val result = client.executePayment(
+                methodId = selectedMethod.methodId,
+                endpoint = selectedMethod.endpoint,
+                amountSats = amount,
+                metadataJson = null,
+            )
+
+            val receipt = PaykitReceipt(
+                id = UUID.randomUUID().toString(),
+                type = PaykitReceiptType.LIGHTNING,
+                recipient = pubkey,
+                amountSats = amount,
+                feeSats = 0uL,
+                paymentHash = result.executionId,
+                preimage = null,
+                txid = result.executionId,
+                timestamp = Date(),
+                status = PaykitReceiptStatus.SUCCEEDED,
+            )
+
+            if (autoStoreReceipts) {
+                receiptStore.store(receipt)
+            }
+
+            Logger.info("Paykit URI payment succeeded: ${result.executionId}", context = TAG)
+            _paymentState.value = PaykitPaymentState.Succeeded(receipt)
+
+            PaykitPaymentResult(
+                success = true,
+                receipt = receipt,
+                error = null,
+            )
+        } catch (e: Exception) {
+            Logger.error("Paykit URI payment failed", e, context = TAG)
+
+            val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
+            if (autoStoreReceipts) {
+                receiptStore.store(receipt)
+            }
+
+            _paymentState.value = PaykitPaymentState.Failed(mapError(e))
+
+            PaykitPaymentResult(
+                success = false,
+                receipt = receipt,
+                error = mapError(e),
+            )
+        }
+    }
+
+    private fun extractPubkeyFromUri(uri: String): String {
+        return uri
+            .removePrefix("paykit:")
+            .removePrefix("pip:")
+            .trim()
 
     /**
      * Execute a payment with atomic spending limit enforcement.

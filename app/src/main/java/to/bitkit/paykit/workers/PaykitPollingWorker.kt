@@ -27,11 +27,16 @@ import to.bitkit.R
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.PaykitManager
+import to.bitkit.paykit.models.PaymentRequest
+import to.bitkit.paykit.models.PaymentRequestStatus
+import to.bitkit.paykit.models.RequestDirection
 import to.bitkit.paykit.services.AutoPayEvaluator
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaykitPaymentService
+import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 /**
@@ -51,6 +56,7 @@ class PaykitPollingWorker @AssistedInject constructor(
     private val lightningRepo: LightningRepo,
     private val paykitManager: PaykitManager,
     private val paymentService: PaykitPaymentService,
+    private val paymentRequestStorage: PaymentRequestStorage,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -148,6 +154,9 @@ class PaykitPollingWorker @AssistedInject constructor(
             }
             Logger.info("${newRequests.size} new requests to process", context = TAG)
 
+            // Persist discovered requests to storage for UI display
+            persistDiscoveredRequests(newRequests, ownerPubkey)
+
             // Process each new request
             for (request in newRequests) {
                 processRequest(request)
@@ -208,6 +217,32 @@ class PaykitPollingWorker @AssistedInject constructor(
         return requests
     }
 
+    private fun persistDiscoveredRequests(requests: List<DiscoveredRequest>, ownerPubkey: String) {
+        for (request in requests) {
+            // Only persist payment requests, not subscription proposals
+            if (request.type != RequestType.PaymentRequest) continue
+
+            val paymentRequest = PaymentRequest(
+                id = request.requestId,
+                fromPubkey = request.fromPubkey,
+                toPubkey = ownerPubkey,
+                amountSats = request.amountSats,
+                currency = "BTC",
+                methodId = "lightning",
+                description = request.description ?: "",
+                status = PaymentRequestStatus.PENDING,
+                direction = RequestDirection.INCOMING,
+                createdAt = request.createdAt ?: Date(),
+            )
+
+            // Don't overwrite if already exists
+            if (paymentRequestStorage.getRequest(request.requestId) == null) {
+                paymentRequestStorage.addRequest(paymentRequest)
+                Logger.debug("Persisted discovered request ${request.requestId} to storage", context = TAG)
+            }
+        }
+    }
+
     private suspend fun processRequest(request: DiscoveredRequest) {
         Logger.info("Processing request ${request.requestId} of type ${request.type}", context = TAG)
 
@@ -233,6 +268,8 @@ class PaykitPollingWorker @AssistedInject constructor(
                 val paymentResult = executePayment(request)
                 if (paymentResult.isSuccess) {
                     sendPaymentSuccessNotification(request)
+                    // Clean up processed request from directory
+                    cleanupProcessedRequest(request)
                 } else {
                     sendPaymentFailureNotification(request, paymentResult.exceptionOrNull())
                 }
@@ -263,16 +300,30 @@ class PaykitPollingWorker @AssistedInject constructor(
             throw PaykitPollingException("Node not ready within timeout")
         }
 
+        // Construct paykit: URI for proper payment routing
+        val paykitUri = "paykit:${request.fromPubkey}"
+
         // Execute payment via Paykit payment service with spending limit enforcement
         val result = paymentService.pay(
             lightningRepo = lightningRepo,
-            recipient = request.fromPubkey,
+            recipient = paykitUri,
             amountSats = request.amountSats.toULong(),
             peerPubkey = request.fromPubkey, // Use peer pubkey for spending limit
         )
 
         if (!result.success) {
             throw PaykitPollingException(result.error?.message ?: "Payment failed")
+        }
+    }
+
+    private suspend fun cleanupProcessedRequest(request: DiscoveredRequest) {
+        val ownerPubkey = paykitManager.ownerPubkey ?: return
+
+        runCatching {
+            directoryService.removePaymentRequest(request.requestId, ownerPubkey)
+            Logger.info("Cleaned up processed request ${request.requestId} from directory", context = TAG)
+        }.onFailure { error ->
+            Logger.warn("Failed to cleanup request ${request.requestId}: ${error.message}", context = TAG)
         }
     }
 

@@ -127,7 +127,8 @@ class SecureHandoffHandler @Inject constructor(
             try {
                 val handoffPath = "/pub/paykit.app/v0/handoff/$requestId"
                 val adapter = pubkyStorageAdapter.createAuthenticatedAdapter(
-                    sessionId = session.sessionSecret,
+                    sessionSecret = session.sessionSecret,
+                    ownerPubkey = session.pubkey,
                     homeserverURL = null,
                 )
                 val result = adapter.delete(handoffPath)

@@ -62,8 +62,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.R
+import java.util.Date
+import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
+import to.bitkit.paykit.services.PubkySession
 import to.bitkit.paykit.services.SDKPubkyProfile
 import to.bitkit.paykit.services.SDKProfileLink
 import to.bitkit.paykit.storage.PaykitKeychainStorage
@@ -636,6 +639,7 @@ class CreateProfileViewModel @Inject constructor(
     private val pubkyRingBridge: PubkyRingBridge,
     private val keychainStorage: PaykitKeychainStorage,
     private val settingsStore: SettingsStore,
+    private val directoryService: DirectoryService,
 ) : ViewModel() {
 
     companion object {
@@ -682,6 +686,15 @@ class CreateProfileViewModel @Inject constructor(
             if (sessionSecret != null) {
                 try {
                     pubkySDKService.importSession(storedPubkey, sessionSecret)
+                    // Configure DirectoryService for authenticated writes
+                    directoryService.configureWithPubkySession(
+                        PubkySession(
+                            pubkey = storedPubkey,
+                            sessionSecret = sessionSecret,
+                            capabilities = listOf("read", "write"),
+                            createdAt = Date(),
+                        )
+                    )
                     Logger.debug("Session restored for ${storedPubkey.take(12)}...", context = TAG)
                 } catch (e: Exception) {
                     Logger.error("Failed to restore session, may need to reconnect", e, context = TAG)
@@ -748,6 +761,9 @@ class CreateProfileViewModel @Inject constructor(
                 
                 // Import the session into PubkySDK using the session token
                 pubkySDKService.importSession(setupResult.session.pubkey, setupResult.session.sessionSecret)
+                
+                // Configure DirectoryService for authenticated writes to homeserver
+                directoryService.configureWithPubkySession(setupResult.session)
                 
                 // Store pubkey, session secret, and device ID so we can restore everything on app restart
                 keychainStorage.setString(KEY_PUBLIC, setupResult.session.pubkey)

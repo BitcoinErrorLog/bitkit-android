@@ -3,7 +3,10 @@ package to.bitkit.paykit.services
 import android.content.Context
 import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import to.bitkit.paykit.KeyManager
+import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.paykit.types.HomeserverResolver
 import to.bitkit.paykit.types.HomeserverDefaults
@@ -46,8 +49,16 @@ object PubkyConfig {
     }
 
     /**
-     * Get the path for a payment request
+     * Get the path for a payment request addressed to a recipient.
+     * Path format: /pub/paykit.app/v0/requests/{recipientPubkey}/{requestId}
      */
+    fun paymentRequestPath(recipientPubkey: String, requestId: String): String =
+        "${PAYMENT_REQUESTS_PATH}$recipientPubkey/$requestId"
+
+    @Deprecated(
+        "Use paymentRequestPath(recipientPubkey, requestId) for proper request addressing",
+        ReplaceWith("paymentRequestPath(recipientPubkey, requestId)")
+    )
     fun paymentRequestPath(requestId: String): String = "${PAYMENT_REQUESTS_PATH}$requestId"
 }
 
@@ -70,15 +81,19 @@ class DirectoryService @Inject constructor(
     private val pubkyStorage: PubkyStorageAdapter,
     private val pubkySDKService: PubkySDKService,
     private val pubkyRingBridge: PubkyRingBridge,
+    private val keychainStorage: PaykitKeychainStorage,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
         private const val PAYKIT_PATH_PREFIX = "/pub/paykit.app/v0/"
+        private const val KEY_PUBLIC = "pubky.identity.public"
+        private const val KEY_SESSION_SECRET = "pubky.session.secret"
     }
 
     private var paykitClient: PaykitClient? = null
     private var unauthenticatedTransport: UnauthenticatedTransportFfi? = null
     private var authenticatedTransport: AuthenticatedTransportFfi? = null
+    private var authenticatedAdapter: PubkyAuthenticatedStorageAdapter? = null
     private var homeserverURL: HomeserverURL? = null
 
     /**
@@ -106,7 +121,8 @@ class DirectoryService @Inject constructor(
      */
     fun configureAuthenticatedTransport(sessionId: String, ownerPubkey: OwnerPubkey, homeserverURL: HomeserverURL? = null) {
         this.homeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
-        val adapter = pubkyStorage.createAuthenticatedAdapter(sessionId, this.homeserverURL)
+        val adapter = pubkyStorage.createAuthenticatedAdapter(sessionId, ownerPubkey.value, this.homeserverURL)
+        authenticatedAdapter = adapter
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, ownerPubkey.value)
     }
 
@@ -116,8 +132,9 @@ class DirectoryService @Inject constructor(
     fun configureWithPubkySession(session: PubkySession) {
         homeserverURL = HomeserverDefaults.defaultHomeserverURL
 
-        // Configure authenticated transport
-        val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, homeserverURL)
+        // Configure authenticated transport and adapter
+        val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, session.pubkey, homeserverURL)
+        authenticatedAdapter = adapter  // Save adapter for direct put/delete operations
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, session.pubkey)
 
         // Also configure unauthenticated transport
@@ -126,6 +143,36 @@ class DirectoryService @Inject constructor(
 
         Logger.info("Configured DirectoryService with Pubky session for ${session.pubkey}", context = TAG)
     }
+
+    /**
+     * Attempt to auto-configure from stored keychain credentials.
+     * Returns true if successfully configured, false if no stored session exists.
+     */
+    suspend fun tryRestoreFromKeychain(): Boolean {
+        if (isConfigured) return true
+
+        val storedPubkey = keychainStorage.getString(KEY_PUBLIC) ?: return false
+        val sessionSecret = keychainStorage.getString(KEY_SESSION_SECRET) ?: return false
+
+        configureWithPubkySession(
+            PubkySession(
+                pubkey = storedPubkey,
+                sessionSecret = sessionSecret,
+                capabilities = listOf("read", "write"),
+                createdAt = java.util.Date(),
+            )
+        )
+
+        // Also import session into SDK
+        runCatching { pubkySDKService.importSession(storedPubkey, sessionSecret) }
+
+        return true
+    }
+
+    /**
+     * Check if the service is configured with an authenticated transport
+     */
+    val isConfigured: Boolean get() = authenticatedTransport != null
 
     /**
      * Discover noise endpoint for a recipient
@@ -178,104 +225,6 @@ removeNoiseEndpoint(transport)
             Logger.info("Removed Noise endpoint", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove Noise endpoint", e, context = TAG)
-            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
-        }
-    }
-
-    // MARK: - Push Notification Endpoints
-
-    /**
-     * Push endpoint for receiving wake notifications
-     */
-    @kotlinx.serialization.Serializable
-    data class PushNotificationEndpoint(
-        val deviceToken: String,
-        val platform: String,  // "ios" or "android"
-        val noiseHost: String? = null,
-        val noisePort: Int? = null,
-        val noisePubkey: String? = null,
-        val createdAt: Long = System.currentTimeMillis() / 1000
-    )
-
-    /**
-     * Publish our push notification endpoint to the directory.
-     * This allows other users to discover how to wake our device for Noise connections.
-     *
-     * @deprecated This publishes tokens publicly, enabling DoS attacks.
-     *   Use [PushRelayService.register] instead for secure push token registration.
-     *   This method will be removed in a future release.
-     */
-    @Deprecated(
-        message = "Use PushRelayService.register() for secure push registration",
-        replaceWith = ReplaceWith("PushRelayService.register(deviceToken, listOf(\"wake\", \"payment_received\"))"),
-    )
-    suspend fun publishPushNotificationEndpoint(
-        deviceToken: String,
-        platform: String,
-        noiseHost: String? = null,
-        noisePort: Int? = null,
-        noisePubkey: String? = null
-    ) {
-        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
-
-        val endpoint = PushNotificationEndpoint(
-            deviceToken = deviceToken,
-            platform = platform,
-            noiseHost = noiseHost,
-            noisePort = noisePort,
-            noisePubkey = noisePubkey
-        )
-
-        val pushPath = "${PAYKIT_PATH_PREFIX}push"
-        val json = kotlinx.serialization.json.Json.encodeToString(endpoint)
-
-        try {
-            pubkyStorage.store(pushPath, json.toByteArray(), transport)
-            Logger.info("Published push notification endpoint to directory", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to publish push endpoint", e, context = TAG)
-            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
-        }
-    }
-
-    /**
-     * Discover push notification endpoint for a recipient.
-     * Used to send wake notifications before attempting Noise connections.
-     *
-     * @deprecated Use [PushRelayService.wake] instead.
-     *   Direct discovery exposes tokens publicly. The push relay service
-     *   handles routing without exposing tokens.
-     */
-    @Deprecated(
-        message = "Use PushRelayService.wake() for secure wake notifications",
-        replaceWith = ReplaceWith("PushRelayService.wake(recipientPubkey, WakeType.NOISE_CONNECT)"),
-    )
-    suspend fun discoverPushNotificationEndpoint(recipientPubkey: String): PushNotificationEndpoint? {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
-        val pushPath = "${PAYKIT_PATH_PREFIX}push"
-
-        return try {
-            val data = pubkyStorage.retrieve(pushPath, adapter, recipientPubkey) ?: return null
-            val json = String(data)
-            kotlinx.serialization.json.Json.decodeFromString<PushNotificationEndpoint>(json)
-        } catch (e: Exception) {
-            Logger.error("Failed to discover push endpoint for $recipientPubkey", e, context = TAG)
-            null
-        }
-    }
-
-    /**
-     * Remove our push notification endpoint from the directory.
-     */
-    suspend fun removePushNotificationEndpoint() {
-        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
-        val pushPath = "${PAYKIT_PATH_PREFIX}push"
-
-        try {
-            pubkyStorage.delete(pushPath, transport)
-            Logger.info("Removed push notification endpoint from directory", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to remove push endpoint", e, context = TAG)
             throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
         }
     }
@@ -340,10 +289,16 @@ removeNoiseEndpoint(transport)
 
     /**
      * Publish a payment request to Pubky storage for async retrieval.
-     * Stores the request at: /pub/paykit.app/v0/requests/{requestId}
+     * Stores the request at: /pub/paykit.app/v0/requests/{recipientPubkey}/{requestId}
      * on the sender's homeserver so the recipient can fetch it later.
+     *
+     * @param request The payment request to publish
+     * @param recipientPubkey The pubkey of the recipient (who should process the request)
      */
-    suspend fun publishPaymentRequest(request: to.bitkit.paykit.models.PaymentRequest) {
+    suspend fun publishPaymentRequest(
+        request: to.bitkit.paykit.models.PaymentRequest,
+        recipientPubkey: String,
+    ) {
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         val requestJson = kotlinx.serialization.json.Json.encodeToString(
@@ -351,10 +306,10 @@ removeNoiseEndpoint(transport)
             request
         )
 
-        val path = PubkyConfig.paymentRequestPath(request.id)
+        val path = PubkyConfig.paymentRequestPath(recipientPubkey, request.id)
         try {
             pubkyStorage.store(path, requestJson.toByteArray(), transport)
-            Logger.info("Published payment request: ${request.id}", context = TAG)
+            Logger.info("Published payment request: ${request.id} to $recipientPubkey", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish payment request ${request.id}", e, context = TAG)
             throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
@@ -363,13 +318,18 @@ removeNoiseEndpoint(transport)
 
     /**
      * Fetch a payment request from a sender's Pubky storage.
-     * Retrieves from: pubky://{senderPubkey}/pub/paykit.app/v0/requests/{requestId}
+     * Retrieves from: pubky://{senderPubkey}/pub/paykit.app/v0/requests/{recipientPubkey}/{requestId}
+     *
+     * @param requestId The unique request ID
+     * @param senderPubkey The pubkey of the sender (who published the request)
+     * @param recipientPubkey The pubkey of the recipient (owner of the requests directory)
      */
     suspend fun fetchPaymentRequest(
         requestId: String,
-        senderPubkey: String
+        senderPubkey: String,
+        recipientPubkey: String,
     ): to.bitkit.paykit.models.PaymentRequest? {
-        val path = PubkyConfig.paymentRequestPath(requestId)
+        val path = PubkyConfig.paymentRequestPath(recipientPubkey, requestId)
         
         // Use the proper pubky:// URI which uses DHT/Pkarr resolution
         val pubkyUri = "pubky://$senderPubkey$path"
@@ -396,15 +356,18 @@ removeNoiseEndpoint(transport)
     }
 
     /**
-     * Remove a payment request from storage (after it's been processed)
+     * Remove a payment request from storage (after it's been processed).
+     *
+     * @param requestId The unique request ID
+     * @param recipientPubkey The pubkey of the recipient (owner of the requests directory)
      */
-    suspend fun removePaymentRequest(requestId: String) {
+    suspend fun removePaymentRequest(requestId: String, recipientPubkey: String) {
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
-        val path = PubkyConfig.paymentRequestPath(requestId)
+        val path = PubkyConfig.paymentRequestPath(recipientPubkey, requestId)
 
         try {
             pubkyStorage.delete(path, transport)
-            Logger.info("Removed payment request: $requestId", context = TAG)
+            Logger.info("Removed payment request: $requestId from $recipientPubkey", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove payment request $requestId", e, context = TAG)
             throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
@@ -588,7 +551,9 @@ removeNoiseEndpoint(transport)
      * Publish profile to Pubky directory
      */
     suspend fun publishProfile(profile: PubkyProfile) {
-        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        // Auto-restore from keychain if not configured
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
         val profilePath = "/pub/pubky.app/profile.json"
 
         val profileJson = org.json.JSONObject().apply {
@@ -609,13 +574,12 @@ removeNoiseEndpoint(transport)
             }
         }
 
-        try {
-            pubkyStorage.store(profilePath, profileJson.toString().toByteArray(), transport)
-            Logger.info("Published profile to Pubky directory", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to publish profile", e, context = TAG)
-            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        val result = adapter.put(profilePath, profileJson.toString())
+        if (!result.success) {
+            Logger.error("Failed to publish profile: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
+        Logger.info("Published profile to Pubky directory", context = TAG)
     }
 
     // MARK: - Follows Operations
@@ -668,72 +632,98 @@ removeNoiseEndpoint(transport)
 
     /**
      * Add a follow to the Pubky directory
+     * Per pubky-app-specs, follows require a created_at timestamp
      */
     suspend fun addFollow(pubkey: String) {
-        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        // Auto-restore from keychain if not configured
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
         val followPath = "/pub/pubky.app/follows/$pubkey"
 
-        try {
-            pubkyStorage.store(followPath, "{}".toByteArray(), transport)
-            Logger.info("Added follow: $pubkey", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to add follow $pubkey", e, context = TAG)
-            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        // Per pubky-app-specs: PubkyAppFollow requires created_at (Unix timestamp in microseconds)
+        val createdAt = System.currentTimeMillis() * 1000 // Convert millis to micros
+        val followJson = """{"created_at":$createdAt}"""
+
+        val result = adapter.put(followPath, followJson)
+        if (!result.success) {
+            Logger.error("Failed to add follow $pubkey: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
+        Logger.info("Added follow: $pubkey", context = TAG)
     }
 
     /**
      * Remove a follow from the Pubky directory
      */
     suspend fun removeFollow(pubkey: String) {
-        val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
+        // Auto-restore from keychain if not configured
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
         val followPath = "/pub/pubky.app/follows/$pubkey"
 
-        try {
-            pubkyStorage.delete(followPath, transport)
-            Logger.info("Removed follow: $pubkey", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to remove follow $pubkey", e, context = TAG)
-            throw DirectoryError.PublishFailed(e.message ?: "Unknown error")
+        val result = adapter.delete(followPath)
+        if (!result.success) {
+            Logger.error("Failed to remove follow $pubkey: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
+        Logger.info("Removed follow: $pubkey", context = TAG)
     }
 
     /**
      * Discover contacts from Pubky follows directory
      */
-    suspend fun discoverContactsFromFollows(): List<DiscoveredContact> {
-        val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return emptyList()
+    suspend fun discoverContactsFromFollows(): List<DiscoveredContact> = withContext(Dispatchers.IO) {
+        // Ensure session is restored from keychain (configures homeserverURL)
+        if (!isConfigured) tryRestoreFromKeychain()
 
-        // Create unauthenticated adapter for reading follows
+        // Use same keychain key as tryRestoreFromKeychain to get the stored pubkey
+        val ownerPubkey = keychainStorage.getString(KEY_PUBLIC) ?: run {
+            Logger.warn("No pubkey found in keychain for discovery", context = TAG)
+            return@withContext emptyList()
+        }
+
+        Logger.debug("Starting contact discovery for $ownerPubkey", context = TAG)
+
+        // Create unauthenticated adapter for reading follows (using configured homeserverURL)
         val unauthAdapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
 
         // Fetch follows list from Pubky
         val followsPath = "/pub/pubky.app/follows/"
-        val followsList = pubkyStorage.listDirectory(followsPath, unauthAdapter, ownerPubkey)
+        val followsList = runCatching {
+            pubkyStorage.listDirectory(followsPath, unauthAdapter, ownerPubkey)
+        }.getOrElse { e ->
+            Logger.error("Failed to list follows: ${e.message}", context = TAG)
+            return@withContext emptyList()
+        }
+
+        Logger.debug("Found ${followsList.size} follows: $followsList", context = TAG)
 
         val discovered = mutableListOf<DiscoveredContact>()
 
         for (followPubkey in followsList) {
+            // Fetch profile to get name (best effort)
+            val profile = runCatching {
+                pubkySDKService.fetchProfile(followPubkey)
+            }.getOrNull()
+
             // Check if this follow has payment methods
             val paymentMethods = discoverPaymentMethods(followPubkey)
-            if (paymentMethods.isNotEmpty()) {
-                // Fetch profile to get name (best effort)
-                val profileName = runCatching {
-                    pubkySDKService.fetchProfile(followPubkey).name
-                }.getOrNull()
 
+            // Include contact if they have a profile OR payment methods
+            if (profile != null || paymentMethods.isNotEmpty()) {
                 discovered.add(
                     DiscoveredContact(
                         pubkey = followPubkey,
-                        name = profileName,
-                        hasPaymentMethods = true,
+                        name = profile?.name,
+                        hasPaymentMethods = paymentMethods.isNotEmpty(),
                         supportedMethods = paymentMethods.map { it.methodId },
                     )
                 )
             }
         }
 
-        return discovered
+        Logger.debug("Discovered ${discovered.size} contacts", context = TAG)
+        discovered
     }
 }
 

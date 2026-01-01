@@ -2,11 +2,13 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.DiscoveredContact
@@ -131,7 +133,9 @@ class ContactsViewModel @Inject constructor(
     fun followContact(pubkey: String) {
         viewModelScope.launch {
             runCatching {
-                directoryService.addFollow(pubkey)
+                withContext(Dispatchers.IO) {
+                    directoryService.addFollow(pubkey)
+                }
             }.onFailure { e ->
                 _errorMessage.update { "Failed to follow: ${e.message}" }
             }
@@ -141,7 +145,9 @@ class ContactsViewModel @Inject constructor(
     fun unfollowContact(pubkey: String) {
         viewModelScope.launch {
             runCatching {
-                directoryService.removeFollow(pubkey)
+                withContext(Dispatchers.IO) {
+                    directoryService.removeFollow(pubkey)
+                }
             }.onFailure { e ->
                 _errorMessage.update { "Failed to unfollow: ${e.message}" }
             }
