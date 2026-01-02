@@ -11,6 +11,7 @@ import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.PaykitManager
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.PaymentCandidate
 import uniffi.paykit_mobile.SelectionPreferences
 import uniffi.paykit_mobile.SelectionStrategy
 import java.util.Date
@@ -297,52 +298,31 @@ class PaykitPaymentService @Inject constructor(
 
             // Build ordered methods: primary first, then fallbacks
             val orderedMethods = buildOrderedPaymentMethods(pubkey, selectedMethod)
-            val attemptedMethods = mutableListOf<String>()
-            var lastError: Exception? = null
-            var successResult: uniffi.paykit_mobile.PaymentExecutionResult? = null
-
-            // Execute with fallback loop
-            for (method in orderedMethods) {
-                attemptedMethods.add(method.methodId)
-                Logger.debug("Attempting payment via ${method.methodId}", context = TAG)
-
-                val result = runCatching {
-                    client.executePayment(
-                        methodId = method.methodId,
-                        endpoint = method.endpoint,
-                        amountSats = amount,
-                        metadataJson = null,
-                    )
-                }
-
-                if (result.isSuccess && result.getOrNull()?.success == true) {
-                    successResult = result.getOrNull()
-                    break
-                }
-
-                // Check if error is retryable
-                val error = (result.exceptionOrNull() as? Exception)
-                    ?: result.getOrNull()?.error?.let { Exception(it) }
-                lastError = error
-
-                val isRetryable = isRetryableError(error?.message ?: result.getOrNull()?.error)
-                if (!isRetryable) {
-                    Logger.warn("Non-retryable error on ${method.methodId}: ${error?.message}", context = TAG)
-                    break
-                }
-
-                Logger.debug("Retryable error on ${method.methodId}: ${error?.message}, trying next", context = TAG)
+            val candidates = orderedMethods.map { method ->
+                PaymentCandidate(
+                    methodId = method.methodId,
+                    endpoint = method.endpoint,
+                )
             }
 
-            if (successResult == null) {
-                val summary = "All ${attemptedMethods.size} methods failed: ${attemptedMethods.joinToString(", ")}"
-                Logger.warn(summary, context = TAG)
+            val execution = client.executeWithFallbacks(
+                candidates = candidates,
+                amountSats = amount,
+                metadataJson = null,
+            )
+
+            val attemptedMethods = execution.attempts.map { it.methodId }
+
+            val successResult = execution.successfulExecution
+            if (!execution.success || successResult == null || !successResult.success) {
+                Logger.warn(execution.summary, context = TAG)
                 val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
-                _paymentState.value = PaykitPaymentState.Failed(mapError(lastError ?: Exception(summary)))
+                val errorMsg = execution.attempts.lastOrNull()?.error ?: execution.summary
+                _paymentState.value = PaykitPaymentState.Failed(mapError(Exception(errorMsg)))
                 return PaykitPaymentResult(
                     success = false,
                     receipt = receipt,
-                    error = mapError(lastError ?: Exception(summary)),
+                    error = mapError(Exception(errorMsg)),
                 )
             }
 

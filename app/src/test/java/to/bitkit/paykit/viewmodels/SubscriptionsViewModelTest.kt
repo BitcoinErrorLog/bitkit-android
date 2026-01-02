@@ -144,7 +144,7 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
     }
 
     @Test
-    fun `acceptProposal removes proposal from directory after accepting`() = test {
+    fun `acceptProposal does not remove proposal from directory after accepting`() = test {
         val proposal = DiscoveredSubscriptionProposal(
             subscriptionId = "prop-123",
             providerPubkey = "pk:provider",
@@ -154,15 +154,14 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
             createdAt = System.currentTimeMillis(),
         )
         wheneverBlocking { subscriptionStorage.saveSubscription(any()) }.thenAnswer { }
-        wheneverBlocking { directoryService.removeSubscriptionProposal(any(), any()) }.thenAnswer { }
 
         viewModel.acceptProposal(proposal, enableAutopay = false)
 
-        verify(directoryService).removeSubscriptionProposal("prop-123", "pk:owner")
+        verify(directoryService, never()).removeSubscriptionProposal(any(), any())
     }
 
     @Test
-    fun `declineProposal removes proposal from directory`() = test {
+    fun `declineProposal does not remove proposal from directory`() = test {
         val proposal = DiscoveredSubscriptionProposal(
             subscriptionId = "prop-decline",
             providerPubkey = "pk:provider",
@@ -171,11 +170,10 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
             frequency = "daily",
             createdAt = System.currentTimeMillis(),
         )
-        wheneverBlocking { directoryService.removeSubscriptionProposal(any(), any()) }.thenAnswer { }
 
         viewModel.declineProposal(proposal)
 
-        verify(directoryService).removeSubscriptionProposal("prop-decline", "pk:owner")
+        verify(directoryService, never()).removeSubscriptionProposal(any(), any())
     }
 
     @Test
