@@ -557,7 +557,7 @@ removeNoiseEndpoint(transport)
                     val proposalPath = "$proposalsPath$proposalId"
                     val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, peerPubkey)
                     val envelopeJson = envelopeBytes?.let { String(it) }
-                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, myPubkey)
+                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, myPubkey, peerPubkey)
                 } catch (e: Exception) {
                     Logger.error("Failed to parse proposal $proposalId", e, context = TAG)
                     null
@@ -592,7 +592,8 @@ removeNoiseEndpoint(transport)
                     val proposalPath = "$proposalsPath$proposalId"
                     val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, ownerPubkey)
                     val envelopeJson = envelopeBytes?.let { String(it) }
-                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, ownerPubkey)
+                    // NOTE: This deprecated method cannot verify provider binding since we don't know who we're polling
+                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, ownerPubkey, expectedProviderPubkey = null)
                 } catch (e: Exception) {
                     Logger.error("Failed to parse proposal $proposalId", e, context = TAG)
                     null
@@ -688,7 +689,7 @@ removeNoiseEndpoint(transport)
         return try {
             val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, providerPubkey)
             val envelopeJson = envelopeBytes?.let { String(it) }
-            decryptAndParseSubscriptionProposal(proposalId, envelopeJson, subscriberPubkey)
+            decryptAndParseSubscriptionProposal(proposalId, envelopeJson, subscriberPubkey, providerPubkey)
         } catch (e: Exception) {
             Logger.error("Failed to fetch subscription proposal $proposalId", e, context = TAG)
             null
@@ -786,12 +787,14 @@ removeNoiseEndpoint(transport)
      * @param proposalId The proposal ID
      * @param envelopeJson The JSON string of the sealed blob (or null)
      * @param subscriberPubkey Our pubkey (used for canonical AAD computation)
-     * @return The parsed proposal or null if decryption/parsing fails
+     * @param expectedProviderPubkey If provided, verifies that provider_pubkey in the proposal matches this value
+     * @return The parsed proposal or null if decryption/parsing/validation fails
      */
     private fun decryptAndParseSubscriptionProposal(
         proposalId: String,
         envelopeJson: String?,
         subscriberPubkey: String,
+        expectedProviderPubkey: String? = null,
     ): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
         if (envelopeJson.isNullOrBlank()) return null
 
@@ -816,9 +819,24 @@ removeNoiseEndpoint(transport)
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 
+            val providerPubkey = obj.optString("provider_pubkey", "")
+
+            // SECURITY: Verify provider identity binding
+            if (expectedProviderPubkey != null && providerPubkey.isNotEmpty()) {
+                val normalizedExpected = PaykitV0Protocol.normalizePubkeyZ32(expectedProviderPubkey)
+                val normalizedActual = PaykitV0Protocol.normalizePubkeyZ32(providerPubkey)
+                if (normalizedExpected != normalizedActual) {
+                    Logger.error(
+                        "Provider identity mismatch for proposal $proposalId: expected $normalizedExpected, got $normalizedActual",
+                        context = TAG,
+                    )
+                    return null
+                }
+            }
+
             to.bitkit.paykit.workers.DiscoveredSubscriptionProposal(
                 subscriptionId = proposalId,
-                providerPubkey = obj.optString("provider_pubkey", ""),
+                providerPubkey = providerPubkey,
                 amountSats = obj.optLong("amount_sats", 0),
                 description = if (obj.has("description")) obj.getString("description") else null,
                 frequency = obj.optString("frequency", "monthly"),
