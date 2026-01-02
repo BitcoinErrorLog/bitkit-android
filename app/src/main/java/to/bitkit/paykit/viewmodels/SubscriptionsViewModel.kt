@@ -14,6 +14,7 @@ import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.models.SubscriptionProposal
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.storage.AutoPayStorage
+import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.workers.DiscoveredSubscriptionProposal
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionStorage: SubscriptionStorage,
+    private val proposalStorage: SubscriptionProposalStorage,
     private val directoryService: DirectoryService,
     private val autoPayStorage: AutoPayStorage,
     private val keyManager: KeyManager,
@@ -146,7 +148,17 @@ class SubscriptionsViewModel @Inject constructor(
                 return@launch
             }
             runCatching {
-                directoryService.discoverSubscriptionProposals(ownerPubkey)
+                // Load from persisted storage (polling worker handles discovery)
+                proposalStorage.pendingProposals(ownerPubkey).map { stored ->
+                    DiscoveredSubscriptionProposal(
+                        subscriptionId = stored.id,
+                        providerPubkey = stored.providerPubkey,
+                        amountSats = stored.amountSats,
+                        description = stored.description,
+                        frequency = stored.frequency,
+                        createdAt = stored.createdAt,
+                    )
+                }
             }.onSuccess { proposals ->
                 _uiState.update { it.copy(incomingProposals = proposals, isLoadingProposals = false) }
             }.onFailure { e ->
@@ -196,6 +208,12 @@ class SubscriptionsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isAccepting = true, error = null) }
 
+            val ownerPubkey = keyManager.getCurrentPublicKeyZ32()
+            if (ownerPubkey == null) {
+                _uiState.update { it.copy(isAccepting = false, error = "No identity configured") }
+                return@launch
+            }
+
             val subscription = Subscription.create(
                 providerName = proposal.providerPubkey.take(8),
                 providerPubkey = proposal.providerPubkey,
@@ -206,6 +224,9 @@ class SubscriptionsViewModel @Inject constructor(
 
             runCatching {
                 subscriptionStorage.saveSubscription(subscription)
+
+                // Mark proposal as accepted in proposal storage
+                proposalStorage.markAccepted(ownerPubkey, proposal.subscriptionId)
 
                 if (enableAutopay) {
                     val rule = AutoPayRule(
@@ -229,10 +250,6 @@ class SubscriptionsViewModel @Inject constructor(
                         autoPayStorage.savePeerLimit(limit)
                     }
                 }
-
-                // NOTE: In the v0 provider-storage model, proposals are stored on the provider's
-                // homeserver. Subscribers cannot delete proposals from provider storage.
-                // Mark as accepted locally; the proposal remains on provider storage (their cleanup).
             }.onSuccess {
                 loadSubscriptions()
                 loadIncomingProposals()
@@ -254,13 +271,9 @@ class SubscriptionsViewModel @Inject constructor(
                 return@launch
             }
 
-            // NOTE: In the v0 provider-storage model, proposals are stored on the provider's
-            // homeserver. Subscribers cannot delete proposals from provider storage.
-            // Mark as declined locally; the proposal remains on provider storage (their cleanup).
             runCatching {
-                // Local-only decline: remove from seen set to avoid re-showing
-                // (actual remote delete is not possible in provider-storage model)
-                Logger.debug("Declining proposal ${proposal.subscriptionId} (local-only)", context = TAG)
+                // Mark as declined in proposal storage (local-only; no remote delete)
+                proposalStorage.markDeclined(ownerPubkey, proposal.subscriptionId)
             }.onSuccess {
                 loadIncomingProposals()
                 _uiState.update { it.copy(isDeclining = false) }

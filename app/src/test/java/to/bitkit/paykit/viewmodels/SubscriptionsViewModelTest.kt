@@ -14,6 +14,7 @@ import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.storage.AutoPayStorage
+import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.workers.DiscoveredSubscriptionProposal
 import to.bitkit.test.BaseUnitTest
@@ -24,6 +25,7 @@ import kotlin.test.assertTrue
 class SubscriptionsViewModelTest : BaseUnitTest() {
 
     private lateinit var subscriptionStorage: SubscriptionStorage
+    private lateinit var proposalStorage: SubscriptionProposalStorage
     private lateinit var directoryService: DirectoryService
     private lateinit var autoPayStorage: AutoPayStorage
     private lateinit var keyManager: KeyManager
@@ -32,16 +34,18 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
     @Before
     fun setup() {
         subscriptionStorage = mock()
+        proposalStorage = mock()
         directoryService = mock()
         autoPayStorage = mock()
         keyManager = mock()
 
         whenever(subscriptionStorage.listSubscriptions()).thenReturn(emptyList())
         whenever(keyManager.getCurrentPublicKeyZ32()).thenReturn("pk:owner")
-        wheneverBlocking { directoryService.discoverSubscriptionProposals(any()) }.thenReturn(emptyList())
+        whenever(proposalStorage.pendingProposals(any())).thenReturn(emptyList())
 
         viewModel = SubscriptionsViewModel(
             subscriptionStorage,
+            proposalStorage,
             directoryService,
             autoPayStorage,
             keyManager,

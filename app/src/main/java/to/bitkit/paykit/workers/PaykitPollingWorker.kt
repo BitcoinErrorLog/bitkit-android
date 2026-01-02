@@ -57,6 +57,8 @@ class PaykitPollingWorker @AssistedInject constructor(
     private val paykitManager: PaykitManager,
     private val paymentService: PaykitPaymentService,
     private val paymentRequestStorage: PaymentRequestStorage,
+    private val proposalStorage: to.bitkit.paykit.storage.SubscriptionProposalStorage,
+    private val keyManager: to.bitkit.paykit.KeyManager,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -68,7 +70,7 @@ class PaykitPollingWorker @AssistedInject constructor(
         private const val NODE_READY_TIMEOUT_MS = 30_000L
         private const val MIN_BACKOFF_MILLIS = 10_000L
 
-        // Set of seen request IDs to avoid duplicate notifications
+        // Set of seen payment request IDs to avoid duplicate notifications (in-memory cache only)
         private val seenRequestIds = mutableSetOf<String>()
 
         fun schedule(context: Context) {
@@ -297,8 +299,35 @@ class PaykitPollingWorker @AssistedInject constructor(
     }
 
     private suspend fun processSubscriptionProposal(request: DiscoveredRequest) {
-        // Subscription proposals always need manual approval
-        sendSubscriptionProposalNotification(request)
+        val identityPubkey = keyManager.getCurrentPublicKeyZ32()
+        if (identityPubkey.isNullOrBlank()) {
+            Logger.warn("No identity pubkey, skipping proposal processing", context = TAG)
+            return
+        }
+
+        // Check if already seen (prevents duplicate notifications across restarts)
+        if (proposalStorage.hasSeen(identityPubkey, request.requestId)) {
+            Logger.debug("Proposal ${request.requestId} already seen, skipping notification", context = TAG)
+            return
+        }
+
+        // Persist the proposal and mark as seen
+        val proposal = DiscoveredSubscriptionProposal(
+            subscriptionId = request.requestId,
+            providerPubkey = request.fromPubkey,
+            amountSats = request.amountSats,
+            description = request.description,
+            frequency = "monthly", // Default if not specified
+            createdAt = request.createdAt,
+        )
+
+        val isNew = proposalStorage.saveProposal(identityPubkey, proposal)
+        proposalStorage.markSeen(identityPubkey, request.requestId)
+
+        // Only notify for new proposals
+        if (isNew) {
+            sendSubscriptionProposalNotification(request)
+        }
     }
 
     private suspend fun executePayment(request: DiscoveredRequest): kotlin.Result<Unit> = runCatching {
