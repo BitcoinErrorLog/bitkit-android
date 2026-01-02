@@ -219,6 +219,7 @@ class PaykitPollingWorker @AssistedInject constructor(
                             amountSats = proposal.amountSats,
                             description = proposal.description,
                             createdAt = proposal.createdAt,
+                            frequency = proposal.frequency,
                         ),
                     )
                 }
@@ -317,7 +318,7 @@ class PaykitPollingWorker @AssistedInject constructor(
             providerPubkey = request.fromPubkey,
             amountSats = request.amountSats,
             description = request.description,
-            frequency = "monthly", // Default if not specified
+            frequency = request.frequency ?: "monthly",
             createdAt = request.createdAt,
         )
 
@@ -501,6 +502,7 @@ data class DiscoveredRequest(
     val amountSats: Long,
     val description: String?,
     val createdAt: Long,
+    val frequency: String? = null,
 )
 
 enum class RequestType {
