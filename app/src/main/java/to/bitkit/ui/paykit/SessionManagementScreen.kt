@@ -49,9 +49,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,7 +66,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -91,7 +90,7 @@ fun SessionManagementScreen(
     viewModel: SessionManagementViewModel = hiltViewModel(),
     onBack: () -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -101,10 +100,6 @@ fun SessionManagementScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var sessionToDelete by remember { mutableStateOf<PubkySession?>(null) }
     var showMenu by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadSessions()
-    }
 
     Scaffold(
         topBar = {
@@ -685,6 +680,10 @@ class SessionManagementViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SessionManagementUiState())
     val uiState: StateFlow<SessionManagementUiState> = _uiState.asStateFlow()
+
+    init {
+        loadSessions()
+    }
 
     fun loadSessions() {
         val sessions = pubkyRingBridge.getCachedSessions()

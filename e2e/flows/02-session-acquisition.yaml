@@ -1,0 +1,40 @@
+# E2E Test: Session Acquisition from Pubky Ring
+# Preconditions:
+#   - Bitkit Android app installed
+#   - Pubky Ring app installed with test identity imported (run 01-import-identity.yaml first)
+appId: to.bitkit.dev
+name: Acquire Session from Pubky Ring
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Tap on profile header area to access profile setup
+- tapOn:
+    point: "55,95"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Tap "Connect with Pubky Ring" button
+- tapOn: "Connect with Pubky Ring"
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Ring should open with pubky selection
+# Select the imported pubky (tap on the row)
+- tapOn:
+    point: "355,750"
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Verify we're back in Bitkit with Edit Profile screen
+- assertVisible: "Edit Profile"
+
+# Verify pubky ID is shown
+- assertVisible: "Your Pubky ID"
+
+# Take a screenshot for verification
+- takeScreenshot: session-acquired

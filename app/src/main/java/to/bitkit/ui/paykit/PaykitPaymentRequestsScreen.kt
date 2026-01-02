@@ -7,50 +7,41 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.models.RequestDirection
-import to.bitkit.paykit.storage.PaymentRequestStorage
+import to.bitkit.paykit.viewmodels.PaymentRequestsViewModel
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 
 @Composable
 fun PaykitPaymentRequestsScreen(
     onNavigateBack: () -> Unit,
-    paymentRequestStorage: PaymentRequestStorage? = null
+    viewModel: PaymentRequestsViewModel = hiltViewModel()
 ) {
-    // TODO: Create ViewModel for PaymentRequests
-    val requests = remember { mutableStateOf(emptyList<PaymentRequest>()) }
-    val isLoading = remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isLoading.value = true
-        // TODO: Load requests from storage
-        isLoading.value = false
-    }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Payment Requests",
+            titleText = "Payment Requests", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
-        if (isLoading.value) {
+        if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
-        } else if (requests.value.isEmpty()) {
+        } else if (uiState.requests.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -69,10 +60,14 @@ fun PaykitPaymentRequestsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = requests.value,
+                    items = uiState.requests,
                     key = { it.id }
                 ) { request ->
-                    PaymentRequestRow(request = request)
+                    PaymentRequestRow(
+                        request = request,
+                        onAccept = { viewModel.acceptRequest(request) },
+                        onDecline = { viewModel.declineRequest(request) }
+                    )
                 }
             }
         }
@@ -80,7 +75,11 @@ fun PaykitPaymentRequestsScreen(
 }
 
 @Composable
-fun PaymentRequestRow(request: PaymentRequest) {
+fun PaymentRequestRow(
+    request: PaymentRequest,
+    onAccept: () -> Unit = {},
+    onDecline: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -112,6 +111,29 @@ fun PaymentRequestRow(request: PaymentRequest) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
+                    // Invoice Number
+                    Text(
+                        text = "Invoice: ${request.displayInvoiceNumber}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    
+                    // Receipt Link (if paid)
+                    if (request.isFulfilled) {
+                        request.receiptId?.let { receiptId ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "✓ Receipt: ${receiptId.take(8)}...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -134,13 +156,13 @@ fun PaymentRequestRow(request: PaymentRequest) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { /* TODO: Accept request */ },
+                        onClick = onAccept,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Accept")
                     }
                     OutlinedButton(
-                        onClick = { /* TODO: Decline request */ },
+                        onClick = onDecline,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Decline")

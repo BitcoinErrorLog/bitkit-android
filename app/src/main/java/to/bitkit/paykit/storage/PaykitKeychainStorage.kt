@@ -89,6 +89,26 @@ class PaykitKeychainStorage @Inject constructor(
     }
 
     /**
+     * Set string value synchronously (for use in non-suspend contexts)
+     * Note: Uses runBlocking - prefer suspend version where possible
+     */
+    fun setStringSync(key: String, value: String) {
+        kotlinx.coroutines.runBlocking {
+            setString(key, value)
+        }
+    }
+
+    /**
+     * Delete key synchronously (for use in non-suspend contexts)
+     * Note: Uses runBlocking - prefer suspend version where possible
+     */
+    fun deleteSync(key: String) {
+        kotlinx.coroutines.runBlocking {
+            delete(key)
+        }
+    }
+
+    /**
      * List all keys with a given prefix
      * Note: This requires the keychain to support listing, which may need implementation
      */

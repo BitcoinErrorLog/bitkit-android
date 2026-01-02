@@ -19,17 +19,9 @@ class SpendingLimitManager @Inject constructor() {
 
     companion object {
         private const val TAG = "SpendingLimitManager"
-
-        @Volatile
-        private var instance: SpendingLimitManager? = null
-
-        fun getInstance(): SpendingLimitManager {
-            return instance ?: synchronized(this) {
-                instance ?: SpendingLimitManager().also { instance = it }
-            }
-        }
     }
 
+    @Volatile
     private var ffiManager: SpendingManagerFfi? = null
     private val mutex = Mutex()
 
@@ -44,7 +36,9 @@ class SpendingLimitManager @Inject constructor() {
     }
 
     /**
-     * Check if the manager is initialized
+     * Check if the manager is initialized (thread-safe read via @Volatile).
+     * For operations that depend on initialization state, prefer using the suspend
+     * methods directly which will throw [SpendingLimitException.NotInitialized] if not ready.
      */
     val isInitialized: Boolean
         get() = ffiManager != null
@@ -60,7 +54,7 @@ class SpendingLimitManager @Inject constructor() {
         peerPubkey: String,
         limitSats: Long,
         period: String = "daily",
-    ): PeerSpendingLimit {
+    ): PeerSpendingLimit = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         val ffiLimit = manager.setPeerSpendingLimit(
@@ -70,7 +64,7 @@ class SpendingLimitManager @Inject constructor() {
         )
         Logger.info("Set spending limit for $peerPubkey: $limitSats sats ($period)", context = TAG)
 
-        return ffiLimit.toDomain()
+        ffiLimit.toDomain()
     }
 
     /**
@@ -78,27 +72,27 @@ class SpendingLimitManager @Inject constructor() {
      * @param peerPubkey The peer's public key
      * @return The spending limit if set
      */
-    suspend fun getSpendingLimit(peerPubkey: String): PeerSpendingLimit? {
+    suspend fun getSpendingLimit(peerPubkey: String): PeerSpendingLimit? = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
-        val ffiLimit = manager.getPeerSpendingLimit(peerPubkey = peerPubkey) ?: return null
-        return ffiLimit.toDomain()
+        val ffiLimit = manager.getPeerSpendingLimit(peerPubkey = peerPubkey) ?: return@withLock null
+        ffiLimit.toDomain()
     }
 
     /**
      * List all spending limits
      * @return List of all configured spending limits
      */
-    suspend fun listSpendingLimits(): List<PeerSpendingLimit> {
+    suspend fun listSpendingLimits(): List<PeerSpendingLimit> = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
-        return manager.listSpendingLimits().map { it.toDomain() }
+        manager.listSpendingLimits().map { it.toDomain() }
     }
 
     /**
      * Remove the spending limit for a peer
      */
-    suspend fun removeSpendingLimit(peerPubkey: String) {
+    suspend fun removeSpendingLimit(peerPubkey: String) = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         manager.removePeerSpendingLimit(peerPubkey = peerPubkey)
@@ -112,20 +106,20 @@ class SpendingLimitManager @Inject constructor() {
      * @return A reservation if successful
      * @throws SpendingLimitException.WouldExceedLimit if the amount would exceed the limit
      */
-    suspend fun tryReserveSpending(peerPubkey: String, amountSats: Long): SpendingReservation {
+    suspend fun tryReserveSpending(peerPubkey: String, amountSats: Long): SpendingReservation = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         val ffiReservation = manager.tryReserveSpending(peerPubkey = peerPubkey, amountSats = amountSats)
         Logger.debug("Reserved $amountSats sats for $peerPubkey, id: ${ffiReservation.reservationId}", context = TAG)
 
-        return ffiReservation.toDomain()
+        ffiReservation.toDomain()
     }
 
     /**
      * Commit a spending reservation (marks the spending as final)
      * This operation is idempotent.
      */
-    suspend fun commitSpending(reservationId: String) {
+    suspend fun commitSpending(reservationId: String) = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         manager.commitSpending(reservationId = reservationId)
@@ -143,7 +137,7 @@ class SpendingLimitManager @Inject constructor() {
      * Rollback a spending reservation (releases the reserved amount)
      * This operation is idempotent.
      */
-    suspend fun rollbackSpending(reservationId: String) {
+    suspend fun rollbackSpending(reservationId: String) = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         manager.rollbackSpending(reservationId = reservationId)
@@ -161,19 +155,19 @@ class SpendingLimitManager @Inject constructor() {
      * Check if spending an amount would exceed the limit (non-blocking check)
      * @return Result containing whether the limit would be exceeded and remaining details
      */
-    suspend fun wouldExceedLimit(peerPubkey: String, amountSats: Long): SpendingCheckResult {
+    suspend fun wouldExceedLimit(peerPubkey: String, amountSats: Long): SpendingCheckResult = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
 
         val ffiResult = manager.wouldExceedSpendingLimit(peerPubkey = peerPubkey, amountSats = amountSats)
-        return ffiResult.toDomain()
+        ffiResult.toDomain()
     }
 
     /**
      * Get the number of active (in-flight) reservations
      */
-    suspend fun activeReservationsCount(): UInt {
+    suspend fun activeReservationsCount(): UInt = mutex.withLock {
         val manager = ffiManager ?: throw SpendingLimitException.NotInitialized
-        return manager.activeReservationsCount()
+        manager.activeReservationsCount()
     }
 
     /**

@@ -1,0 +1,34 @@
+# E2E Test: Profile Read and Write Operations
+# Preconditions:
+#   - Session acquired from Ring (run 02-session-acquisition.yaml first)
+#   - Bitkit app is on Edit Profile screen with valid session
+appId: to.bitkit.dev
+name: Profile Read and Write
+---
+# Verify we're on the Edit Profile screen with identity connected
+- assertVisible: "Edit Profile"
+- assertVisible: "Your Pubky ID"
+
+# === TEST: Profile Write ===
+# Clear and enter a new display name
+- tapOn: "Display Name"
+- eraseText
+- inputText: "E2E Test User"
+- hideKeyboard
+
+# Clear and enter a bio
+- tapOn: "Bio"
+- eraseText
+- inputText: "Automated E2E test profile"
+- hideKeyboard
+
+# Publish the profile
+- tapOn: "Publish Profile"
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Verify profile was published successfully
+- assertVisible: "Profile published successfully"
+
+# Take a screenshot for verification
+- takeScreenshot: profile-published

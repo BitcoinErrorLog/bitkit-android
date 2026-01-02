@@ -15,7 +15,10 @@ enum class BlocktankNotificationType {
     paykitPaymentRequest,
     paykitSubscriptionDue,
     paykitAutoPayExecuted,
-    paykitSubscriptionFailed;
+    paykitSubscriptionFailed,
+    
+    /** Incoming Noise protocol request - wake app to start Noise server */
+    paykitNoiseRequest;
 
     override fun toString(): String = when {
         name.startsWith("paykit") -> "paykit.$name"

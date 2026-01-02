@@ -17,6 +17,8 @@ import to.bitkit.env.Env.DERIVATION_NAME
 import to.bitkit.ext.fromBase64
 import to.bitkit.ext.fromHex
 import to.bitkit.models.BlocktankNotificationType
+import to.bitkit.models.BlocktankNotificationType.paykitNoiseRequest
+import to.bitkit.paykit.workers.NoiseServerWorker
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.ui.pushNotification
 import to.bitkit.utils.Crypto
@@ -76,6 +78,12 @@ class FcmService : FirebaseMessagingService() {
     }
 
     private fun handleAsync() {
+        // Check if this is a Noise request - handle separately
+        if (notificationType == paykitNoiseRequest) {
+            handleNoiseRequest()
+            return
+        }
+        
         val work = OneTimeWorkRequestBuilder<WakeNodeWorker>()
             .setInputData(
                 workDataOf(
@@ -87,6 +95,35 @@ class FcmService : FirebaseMessagingService() {
         WorkManager.getInstance(this)
             .beginWith(work)
             .enqueue()
+    }
+    
+    /**
+     * Handle incoming Noise protocol request by starting NoiseServerWorker
+     */
+    private fun handleNoiseRequest() {
+        Logger.debug("Handling incoming Noise request notification", context = TAG)
+        
+        // Extract Noise-specific data from payload
+        val fromPubkey = notificationPayload?.get("from_pubkey")?.toString()?.removeSurrounding("\"")
+        val endpointHost = notificationPayload?.get("endpoint_host")?.toString()?.removeSurrounding("\"")
+        val endpointPort = notificationPayload?.get("endpoint_port")?.toString()?.removeSurrounding("\"")?.toIntOrNull() ?: 9000
+        val noisePubkey = notificationPayload?.get("noise_pubkey")?.toString()?.removeSurrounding("\"")
+        
+        val work = OneTimeWorkRequestBuilder<NoiseServerWorker>()
+            .setInputData(
+                workDataOf(
+                    NoiseServerWorker.KEY_FROM_PUBKEY to fromPubkey,
+                    NoiseServerWorker.KEY_ENDPOINT_HOST to endpointHost,
+                    NoiseServerWorker.KEY_ENDPOINT_PORT to endpointPort,
+                    NoiseServerWorker.KEY_NOISE_PUBKEY to noisePubkey,
+                )
+            )
+            .build()
+        
+        WorkManager.getInstance(this)
+            .enqueue(work)
+        
+        Logger.info("Scheduled NoiseServerWorker for incoming request from ${fromPubkey?.take(12)}...", context = TAG)
     }
 
     private fun handleNow(data: Map<String, String>) {

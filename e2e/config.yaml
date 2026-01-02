@@ -1,0 +1,33 @@
+# Maestro E2E Test Configuration
+# https://maestro.mobile.dev/
+
+# App identifiers
+apps:
+  bitkit:
+    id: to.bitkit
+    name: Bitkit
+  ring:
+    id: to.pubky.ring
+    name: Pubky Ring
+
+# Test identity configuration
+# Credentials stored in /Users/john/vibes-dev/credentials/
+testIdentity:
+  primary:
+    file: android-ai-tester-backup-2026-01-01_12-18-17.pkarr
+    password: tester
+    description: Primary test account for Bitkit Android
+  secondary:
+    file: ios-ai-tester-backup-2026-01-01_12-16-19.pkarr
+    password: tester
+    description: Secondary account for follows/discovery testing
+
+# Homeserver
+homeserver: 8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty
+
+# Timeouts
+timeouts:
+  appLaunch: 10000
+  deeplink: 5000
+  networkOperation: 15000
+

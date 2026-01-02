@@ -5,14 +5,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import to.bitkit.paykit.storage.RotationSettings
-import to.bitkit.paykit.storage.RotationSettingsStorage
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import to.bitkit.paykit.viewmodels.RotationSettingsViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -20,93 +20,99 @@ import to.bitkit.ui.scaffold.ScreenColumn
 @Composable
 fun RotationSettingsScreen(
     onNavigateBack: () -> Unit,
-    rotationSettingsStorage: RotationSettingsStorage? = null
+    viewModel: RotationSettingsViewModel = hiltViewModel()
 ) {
-    // TODO: Create ViewModel for RotationSettings
-    val settings = remember { mutableStateOf<RotationSettings?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Rotation Settings",
+            titleText = "Rotation Settings", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Global Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Global Settings
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Title(text = "Global Settings")
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Auto-Rotate Enabled",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "Automatically rotate endpoints after use",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Title(text = "Global Settings")
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Auto-Rotate Enabled",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Automatically rotate endpoints after use",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = uiState.settings?.autoRotateEnabled ?: false,
+                                onCheckedChange = { viewModel.updateAutoRotateEnabled(it) }
                             )
                         }
-                        Switch(
-                            checked = settings.value?.autoRotateEnabled ?: false,
-                            onCheckedChange = {
-                                // TODO: Update settings
-                            }
+
+                        OutlinedTextField(
+                            value = uiState.settings?.defaultPolicy ?: "on-use",
+                            onValueChange = { viewModel.updateDefaultPolicy(it) },
+                            label = { Text("Default Policy") },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-
-                    OutlinedTextField(
-                        value = settings.value?.defaultPolicy ?: "on-use",
-                        onValueChange = { /* TODO: Update policy */ },
-                        label = { Text("Default Policy") },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true
-                    )
                 }
-            }
 
-            // Method Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Method Settings
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Title(text = "Method Settings")
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Title(text = "Method Settings")
 
-                    settings.value?.methodSettings?.entries?.forEach { entry ->
-                        val methodId: String = entry.key
-                        val methodSettings: to.bitkit.paykit.storage.MethodRotationSettings = entry.value
-                        MethodRotationCard(
-                            methodId = methodId,
-                            methodSettings = methodSettings
-                        )
-                    } ?: run {
-                        Text(
-                            text = "No method-specific settings",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        val methodSettings = uiState.settings?.methodSettings
+                        if (methodSettings.isNullOrEmpty()) {
+                            Text(
+                                text = "No method-specific settings",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            methodSettings.forEach { (methodId, settings) ->
+                                MethodRotationCard(
+                                    methodId = methodId,
+                                    methodSettings = settings
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -5,11 +5,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.viewmodels.NoisePaymentViewModel
 import to.bitkit.ui.scaffold.AppTopBar
@@ -26,14 +27,17 @@ fun NoisePaymentScreen(
     var methodId by remember { mutableStateOf("lightning") }
     var description by remember { mutableStateOf("") }
 
-    val isConnecting by viewModel.isConnecting.collectAsState()
-    val isConnected by viewModel.isConnected.collectAsState()
-    val paymentResponse by viewModel.paymentResponse.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val myPubkey by viewModel.myPubkey.collectAsStateWithLifecycle()
+    val isConnecting by viewModel.isConnecting.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
+    val isAuthenticating by viewModel.isAuthenticating.collectAsStateWithLifecycle()
+    val paymentRequest by viewModel.paymentRequest.collectAsStateWithLifecycle()
+    val paymentResponse by viewModel.paymentResponse.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Noise Payment",
+            titleText = "Noise Payment", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -103,7 +107,7 @@ fun NoisePaymentScreen(
                         Button(
                             onClick = {
                                 val request = NoisePaymentRequest(
-                                    payerPubkey = "", // TODO: Get from identity
+                                    payerPubkey = myPubkey,
                                     payeePubkey = recipientPubkey,
                                     methodId = methodId,
                                     amount = amount.takeIf { it.isNotEmpty() },
@@ -112,7 +116,7 @@ fun NoisePaymentScreen(
                                 viewModel.sendPayment(request)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !isConnecting && recipientPubkey.isNotEmpty() && amount.isNotEmpty()
+                            enabled = !isConnecting && myPubkey.isNotEmpty() && recipientPubkey.isNotEmpty() && amount.isNotEmpty()
                         ) {
                             if (isConnecting) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp))
@@ -133,19 +137,61 @@ fun NoisePaymentScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Waiting for payment request...",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        // Show incoming payment request if we have one
+                        if (paymentRequest != null) {
+                            val request = paymentRequest!!
+                            Text(
+                                text = "Incoming Payment Request",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            HorizontalDivider()
+                            Text("From: ${request.payerPubkey.take(16)}...")
+                            Text("Amount: ${request.amount ?: "N/A"} sats")
+                            request.description?.let {
+                                Text("Description: $it")
+                            }
 
-                        Button(
-                            onClick = { viewModel.receivePayment() },
-                            enabled = !isConnecting
-                        ) {
-                            if (isConnecting) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                            if (isAuthenticating) {
+                                CircularProgressIndicator()
+                                Text(
+                                    text = "Authenticating...",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             } else {
-                                Text("Start Listening")
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.declineIncomingRequest() },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Decline")
+                                    }
+                                    Button(
+                                        onClick = { viewModel.acceptIncomingRequest() },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Accept & Pay")
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Waiting for payment request...",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+
+                            Button(
+                                onClick = { viewModel.receivePayment() },
+                                enabled = !isConnecting
+                            ) {
+                                if (isConnecting) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                } else {
+                                    Text("Start Listening")
+                                }
                             }
                         }
                     }

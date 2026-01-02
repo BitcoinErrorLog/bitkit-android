@@ -2,6 +2,7 @@ package to.bitkit.ui.screens.wallets
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -44,8 +45,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -139,6 +143,10 @@ fun HomeScreen(
     val bgPaymentsIntroSeen: Boolean by settingsViewModel.bgPaymentsIntroSeen.collectAsStateWithLifecycle()
     val quickPayIntroSeen by settingsViewModel.quickPayIntroSeen.collectAsStateWithLifecycle()
     val latestActivities by activityListViewModel.latestActivities.collectAsStateWithLifecycle()
+    
+    // Profile data for header
+    val displayName by settingsViewModel.displayName.collectAsStateWithLifecycle()
+    val profileAvatarUrl by settingsViewModel.profileAvatarUrl.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -163,6 +171,8 @@ fun HomeScreen(
         walletNavController = walletNavController,
         drawerState = drawerState,
         latestActivities = latestActivities,
+        displayName = displayName,
+        profileAvatarUrl = profileAvatarUrl,
         onRefresh = {
             activityListViewModel.resync()
             walletViewModel.onPullToRefresh()
@@ -286,6 +296,8 @@ private fun Content(
     drawerState: DrawerState,
     hazeState: HazeState = rememberHazeState(),
     latestActivities: List<Activity>?,
+    displayName: String = "Your Name",
+    profileAvatarUrl: String = "",
     onClickProfile: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onRemoveSuggestion: (Suggestion) -> Unit = {},
@@ -305,6 +317,8 @@ private fun Content(
         val heightStatusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         TopBar(
             hazeState = hazeState,
+            displayName = displayName,
+            profileAvatarUrl = profileAvatarUrl,
             onClickProfile = onClickProfile,
             rootNavController = rootNavController,
             scope = scope,
@@ -624,6 +638,8 @@ private fun Widgets(homeUiState: HomeUiState) {
 @OptIn(ExperimentalMaterial3Api::class)
 private fun TopBar(
     hazeState: HazeState,
+    displayName: String = "Your Name",
+    profileAvatarUrl: String = "",
     onClickProfile: () -> Unit,
     rootNavController: NavController,
     scope: CoroutineScope,
@@ -653,16 +669,35 @@ private fun TopBar(
                         .clickableAlpha(onClick = onClickProfile)
                         .testTag("Header")
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = stringResource(R.string.slashtags__your_name_capital),
-                        tint = Colors.White64,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    // Avatar - show initial if we have a name, otherwise default icon
+                    if (displayName != "Your Name" && displayName.isNotEmpty()) {
+                        // Show initial with brand color background
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Colors.Brand24, CircleShape)
+                        ) {
+                            Text(
+                                text = displayName.take(1).uppercase(),
+                                style = androidx.compose.ui.text.TextStyle(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Colors.Brand
+                                )
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = displayName,
+                            tint = Colors.White64,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                     HorizontalSpacer(16.dp)
                     Title(
-                        text = stringResource(R.string.slashtags__your_name_capital),
-                        Modifier.testTag("EmptyProfileHeader")
+                        text = displayName,
+                        Modifier.testTag("ProfileHeader")
                     )
                 }
             },

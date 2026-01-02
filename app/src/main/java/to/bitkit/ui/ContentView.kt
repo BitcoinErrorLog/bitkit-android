@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import org.json.JSONObject
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -1645,27 +1644,18 @@ fun NavController.navigateToAboutSettings() = navigate(
 
 private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitDashboard> {
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "ContentView.kt:1646",
-                "message" to "Navigating to PaykitDashboard",
-                "data" to emptyMap<String, Any>(),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "C"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        
         to.bitkit.ui.paykit.PaykitDashboardScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToReceipts = { navController.navigate(Routes.PaykitReceipts) },
             onNavigateToContacts = { navController.navigate(Routes.PaykitContacts) },
             onNavigateToSubscriptions = { navController.navigate(Routes.PaykitSubscriptions) },
-            onNavigateToAutoPay = { navController.navigate(Routes.PaykitAutoPay) }
+            onNavigateToAutoPay = { navController.navigate(Routes.PaykitAutoPay) },
+            onNavigateToPaymentRequests = { navController.navigate(Routes.PaykitPaymentRequests) },
+            onNavigateToNoisePayment = { navController.navigate(Routes.PaykitNoisePayment) },
+            onNavigateToContactDiscovery = { navController.navigate(Routes.PaykitContactDiscovery) },
+            onNavigateToPrivateEndpoints = { navController.navigate(Routes.PaykitPrivateEndpoints) },
+            onNavigateToRotationSettings = { navController.navigate(Routes.PaykitRotationSettings) },
+            onNavigateToPubkyRingAuth = { navController.navigate(Routes.PubkyRingAuth) },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitContacts> {
@@ -1696,7 +1686,14 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitSubscriptions> {
         to.bitkit.ui.paykit.PaykitSubscriptionsScreen(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToSubscriptionDetail = { id -> /* TODO: Navigate to subscription detail */ }
+            onNavigateToSubscriptionDetail = { id -> navController.navigate(Routes.PaykitSubscriptionDetail(id)) },
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitSubscriptionDetail> { backStackEntry ->
+        val id = backStackEntry.toRoute<Routes.PaykitSubscriptionDetail>().id
+        to.bitkit.ui.paykit.SubscriptionDetailScreen(
+            subscriptionId = id,
+            onNavigateBack = { navController.popBackStack() },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitAutoPay> {
@@ -1727,6 +1724,23 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitRotationSettings> {
         to.bitkit.ui.paykit.RotationSettingsScreen(
             onNavigateBack = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.PubkyRingAuth> { backstackEntry ->
+        // Check for scanned QR code result
+        val scannedQrCode = backstackEntry.savedStateHandle.get<String>("scanned_qr_code")
+        
+        to.bitkit.paykit.ui.PubkyRingAuthScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onSessionReceived = { session ->
+                // Session is already cached in PubkyRingBridge.importSession()
+                navController.popBackStack()
+            },
+            onNavigateToScanner = {
+                backstackEntry.savedStateHandle[SCAN_REQUEST_KEY] = true
+                navController.navigate(Routes.QrScanner)
+            },
+            scannedQrCode = scannedQrCode,
         )
     }
 }
@@ -2064,6 +2078,9 @@ sealed interface Routes {
     data object PaykitSubscriptions : Routes
 
     @Serializable
+    data class PaykitSubscriptionDetail(val id: String) : Routes
+
+    @Serializable
     data object PaykitAutoPay : Routes
 
     @Serializable
@@ -2080,4 +2097,7 @@ sealed interface Routes {
 
     @Serializable
     data object PaykitRotationSettings : Routes
+
+    @Serializable
+    data object PubkyRingAuth : Routes
 }

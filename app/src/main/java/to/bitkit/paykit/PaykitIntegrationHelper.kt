@@ -1,7 +1,7 @@
 package to.bitkit.paykit
 
-import com.paykit.mobile.BitcoinTxResultFfi
-import com.paykit.mobile.LightningPaymentResultFfi
+import uniffi.paykit_mobile.BitcoinTxResultFfi
+import uniffi.paykit_mobile.LightningPaymentResultFfi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,7 +30,8 @@ object PaykitIntegrationHelper {
      * @throws PaykitException if setup fails
      */
     suspend fun setup(lightningRepo: LightningRepo) {
-        val manager = PaykitManager.getInstance()
+        val manager = PaykitManager.getSharedInstance()
+            ?: throw PaykitException.NotInitialized
 
         manager.initialize()
         manager.registerExecutors(lightningRepo)
@@ -64,16 +65,16 @@ object PaykitIntegrationHelper {
      */
     val isReady: Boolean
         get() {
-            val manager = PaykitManager.getInstance()
+            val manager = PaykitManager.getSharedInstance() ?: return false
             return manager.isInitialized && manager.hasExecutors
         }
 
     /**
      * Get the current network configuration.
      */
-    val networkInfo: Pair<BitcoinNetworkConfig, LightningNetworkConfig>
+    val networkInfo: Pair<BitcoinNetworkConfig, LightningNetworkConfig>?
         get() {
-            val manager = PaykitManager.getInstance()
+            val manager = PaykitManager.getSharedInstance() ?: return null
             return manager.bitcoinNetwork to manager.lightningNetwork
         }
 
@@ -140,7 +141,7 @@ object PaykitIntegrationHelper {
      * Call this during logout or wallet reset.
      */
     fun reset() {
-        PaykitManager.getInstance().reset()
+        PaykitManager.getSharedInstance()?.reset()
         Logger.info("Paykit integration reset", context = TAG)
     }
 }

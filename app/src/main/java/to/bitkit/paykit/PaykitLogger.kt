@@ -120,7 +120,7 @@ object PaykitLogger {
         category: String,
         context: Map<String, Any>?
     ) {
-        if (level < PaykitConfigManager.logLevel) {
+        if (compareLogLevels(level, PaykitConfigManager.logLevel) < 0) {
             return
         }
 
@@ -150,8 +150,8 @@ object PaykitLogger {
             PaykitLogLevel.NONE -> ""
         }
 
-    private operator fun PaykitLogLevel.compareTo(other: PaykitLogLevel): Int {
-        return this.ordinal.compareTo(other.ordinal)
+    private fun compareLogLevels(a: PaykitLogLevel, b: PaykitLogLevel): Int {
+        return a.ordinal.compareTo(b.ordinal)
     }
 }
 

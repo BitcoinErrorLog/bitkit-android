@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
@@ -55,14 +54,15 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.services.CrossDeviceRequest
-import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySession
+import to.bitkit.paykit.viewmodels.PubkyRingAuthViewModel
 import to.bitkit.ui.theme.Colors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,24 +70,38 @@ import to.bitkit.ui.theme.Colors
 fun PubkyRingAuthScreen(
     onNavigateBack: () -> Unit,
     onSessionReceived: (PubkySession) -> Unit,
+    onNavigateToScanner: (() -> Unit)? = null,
+    scannedQrCode: String? = null,
     modifier: Modifier = Modifier,
+    viewModel: PubkyRingAuthViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val bridge = remember { PubkyRingBridge.getInstance() }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    var crossDeviceRequest by remember { mutableStateOf<CrossDeviceRequest?>(null) }
-    var isPolling by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val crossDeviceRequest by viewModel.crossDeviceRequest.collectAsStateWithLifecycle()
+    val isPolling by viewModel.isPolling.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     var manualPubkey by remember { mutableStateOf("") }
     var manualSessionSecret by remember { mutableStateOf("") }
     var timeRemaining by remember { mutableLongStateOf(0L) }
+    var pastedUrl by remember { mutableStateOf("") }
 
-    val isPubkyRingInstalled = remember { bridge.isPubkyRingInstalled(context) }
-    val recommendedMethod = remember { bridge.getRecommendedAuthMethod(context) }
+    val isPubkyRingInstalled = viewModel.isPubkyRingInstalled
+    val recommendedMethod = viewModel.recommendedMethod
+
+    // Handle scanned QR code
+    LaunchedEffect(scannedQrCode) {
+        scannedQrCode?.let { qrCode ->
+            if (qrCode.contains("pubky://") || qrCode.contains("pubkyring://")) {
+                viewModel.handleAuthUrl(qrCode, onSessionReceived)
+            } else {
+                pastedUrl = qrCode
+            }
+        }
+    }
 
     // Set initial tab based on availability
     LaunchedEffect(Unit) {
@@ -98,28 +112,26 @@ fun PubkyRingAuthScreen(
 
     // Timer for countdown
     LaunchedEffect(crossDeviceRequest) {
-        while (crossDeviceRequest != null && !crossDeviceRequest!!.isExpired) {
-            timeRemaining = crossDeviceRequest!!.timeRemainingMs / 1000
+        val request = crossDeviceRequest ?: return@LaunchedEffect
+        while (!request.isExpired) {
+            timeRemaining = request.timeRemainingMs / 1000
             delay(1000)
         }
-        if (crossDeviceRequest?.isExpired == true) {
-            crossDeviceRequest = null
-            isPolling = false
-        }
+        viewModel.cancelCrossDeviceRequest()
     }
 
     // Show error snackbar
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
-            errorMessage = null
+            viewModel.clearError()
         }
     }
 
     val tabs = if (isPubkyRingInstalled) {
-        listOf("Same Device", "QR Code", "Manual")
+        listOf("Same Device", "Show QR", "Scan/Paste")
     } else {
-        listOf("QR Code", "Manual")
+        listOf("Show QR", "Scan/Paste")
     }
 
     Scaffold(
@@ -156,14 +168,7 @@ fun PubkyRingAuthScreen(
             when (pageIndex) {
                 0 -> SameDeviceTabContent(
                     onAuthenticate = {
-                        scope.launch {
-                            try {
-                                val session = bridge.requestSession(context)
-                                onSessionReceived(session)
-                            } catch (e: Exception) {
-                                errorMessage = e.message
-                            }
-                        }
+                        viewModel.requestSession(onSessionReceived)
                     },
                 )
                 1 -> CrossDeviceTabContent(
@@ -171,19 +176,8 @@ fun PubkyRingAuthScreen(
                     timeRemaining = timeRemaining,
                     isPolling = isPolling,
                     onGenerateRequest = {
-                        crossDeviceRequest = bridge.generateCrossDeviceRequest()
-                        isPolling = true
-                        scope.launch {
-                            try {
-                                val requestId = crossDeviceRequest?.requestId ?: return@launch
-                                val session = bridge.pollForCrossDeviceSession(requestId)
-                                isPolling = false
-                                onSessionReceived(session)
-                            } catch (e: Exception) {
-                                isPolling = false
-                                errorMessage = e.message
-                            }
-                        }
+                        viewModel.generateCrossDeviceRequest()
+                        viewModel.startPollingForSession(onSessionReceived)
                     },
                     onCopyLink = {
                         crossDeviceRequest?.url?.let { url ->
@@ -194,17 +188,17 @@ fun PubkyRingAuthScreen(
                         }
                     },
                 )
-                2 -> ManualEntryTabContent(
-                    pubkey = manualPubkey,
-                    onPubkeyChange = { manualPubkey = it },
-                    sessionSecret = manualSessionSecret,
-                    onSessionSecretChange = { manualSessionSecret = it },
-                    onImport = {
-                        val session = bridge.importSession(
-                            pubkey = manualPubkey.trim(),
-                            sessionSecret = manualSessionSecret.trim(),
-                        )
-                        onSessionReceived(session)
+                2 -> ScanPasteTabContent(
+                    pastedUrl = pastedUrl,
+                    onPastedUrlChange = { pastedUrl = it },
+                    onScanClick = onNavigateToScanner,
+                    onPasteFromClipboard = {
+                        clipboardManager.getText()?.text?.let { text ->
+                            pastedUrl = text
+                        }
+                    },
+                    onConnect = {
+                        viewModel.handleAuthUrl(pastedUrl.trim(), onSessionReceived)
                     },
                 )
             }
@@ -425,12 +419,12 @@ private fun CrossDeviceTabContent(
 }
 
 @Composable
-private fun ManualEntryTabContent(
-    pubkey: String,
-    onPubkeyChange: (String) -> Unit,
-    sessionSecret: String,
-    onSessionSecretChange: (String) -> Unit,
-    onImport: () -> Unit,
+private fun ScanPasteTabContent(
+    pastedUrl: String,
+    onPastedUrlChange: (String) -> Unit,
+    onScanClick: (() -> Unit)?,
+    onPasteFromClipboard: () -> Unit,
+    onConnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -441,7 +435,7 @@ private fun ManualEntryTabContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Default.Keyboard,
+            imageVector = Icons.Default.QrCode,
             contentDescription = null,
             modifier = Modifier.size(60.dp),
             tint = Colors.Brand,
@@ -450,7 +444,7 @@ private fun ManualEntryTabContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Manual Entry",
+            text = "Scan or Paste",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
@@ -458,7 +452,7 @@ private fun ManualEntryTabContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter your Pubky credentials manually if other methods aren't available.",
+            text = "Scan a Pubky Ring QR code or paste the connection URL.",
             style = MaterialTheme.typography.bodyMedium,
             color = Colors.White64,
             textAlign = TextAlign.Center,
@@ -466,38 +460,55 @@ private fun ManualEntryTabContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        if (onScanClick != null) {
+            Button(
+                onClick = onScanClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                ),
+            ) {
+                Icon(Icons.Default.QrCode, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Scan QR Code")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "or paste a URL",
+                style = MaterialTheme.typography.bodySmall,
+                color = Colors.White64,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         OutlinedTextField(
-            value = pubkey,
-            onValueChange = onPubkeyChange,
-            label = { Text("Public Key (z-base32)") },
-            placeholder = { Text("e.g., z6mk...") },
+            value = pastedUrl,
+            onValueChange = onPastedUrlChange,
+            label = { Text("Pubky Ring URL") },
+            placeholder = { Text("pubky://... or pubkyring://...") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = sessionSecret,
-            onValueChange = onSessionSecretChange,
-            label = { Text("Session Secret") },
-            placeholder = { Text("Secret from Pubky-ring") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = onPasteFromClipboard) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Paste from clipboard")
+                }
+            },
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = onImport,
+            onClick = onConnect,
             modifier = Modifier.fillMaxWidth(),
-            enabled = pubkey.isNotBlank() && sessionSecret.isNotBlank(),
+            enabled = pastedUrl.isNotBlank(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Colors.Brand,
             ),
         ) {
-            Text("Import Session")
+            Text("Connect")
         }
     }
 }

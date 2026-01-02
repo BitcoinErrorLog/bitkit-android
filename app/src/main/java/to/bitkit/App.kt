@@ -9,6 +9,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import to.bitkit.env.Env
+import to.bitkit.paykit.PaykitFeatureFlags
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -25,6 +26,14 @@ internal open class App : Application(), Configuration.Provider {
         super.onCreate()
         currentActivity = CurrentActivity().also { registerActivityLifecycleCallbacks(it) }
         Env.initAppStoragePath(filesDir.absolutePath)
+        PaykitFeatureFlags.init(this)
+    }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        // Note: onTerminate() is not guaranteed to be called, only in emulator
+        // TODO: When migrating PubkyRingBridge from getInstance to DI,
+        // ensure cleanup() is called via proper lifecycle management
     }
 
     companion object {

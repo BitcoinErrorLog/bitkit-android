@@ -8,14 +8,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
 import to.bitkit.ui.components.SearchInput
@@ -29,17 +28,14 @@ fun PaykitContactsScreen(
     onNavigateToContactDetail: (String) -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel()
 ) {
-    val contacts by viewModel.contacts.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val contacts by viewModel.contacts.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadContacts()
-    }
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Contacts",
+            titleText = "Contacts", // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
             actions = {
                 IconButton(onClick = onNavigateToContactDiscovery) {

@@ -1,25 +1,31 @@
 package to.bitkit.paykit.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import to.bitkit.paykit.models.Receipt
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.*
 import javax.inject.Inject
 
 /**
  * ViewModel for Paykit Dashboard
  */
+@HiltViewModel
 class DashboardViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val receiptStorage: ReceiptStorage,
     private val contactStorage: ContactStorage,
     private val autoPayStorage: AutoPayStorage,
     private val subscriptionStorage: SubscriptionStorage,
-    private val paymentRequestStorage: PaymentRequestStorage
+    private val paymentRequestStorage: PaymentRequestStorage,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) : ViewModel() {
 
     private val _recentReceipts = MutableStateFlow<List<Receipt>>(emptyList())
@@ -58,39 +64,17 @@ class DashboardViewModel @Inject constructor(
     private val _publishedMethodsCount = MutableStateFlow(0)
     val publishedMethodsCount: StateFlow<Int> = _publishedMethodsCount.asStateFlow()
 
+    private val _isPubkyRingInstalled = MutableStateFlow(false)
+    val isPubkyRingInstalled: StateFlow<Boolean> = _isPubkyRingInstalled.asStateFlow()
+
+    init {
+        _isPubkyRingInstalled.value = pubkyRingBridge.isPubkyRingInstalled(context)
+        loadDashboard()
+    }
+
     fun loadDashboard() {
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "DashboardViewModel.kt:60",
-                "message" to "loadDashboard called",
-                "data" to emptyMap<String, Any>(),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "B"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        
         viewModelScope.launch {
             _isLoading.value = true
-
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "DashboardViewModel.kt:68",
-                    "message" to "Before loading receipts",
-                    "data" to emptyMap<String, Any>(),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "B"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (e: Exception) {}
-            // #endregion
 
             // Load recent receipts
             _recentReceipts.value = receiptStorage.recentReceipts(limit = 5)

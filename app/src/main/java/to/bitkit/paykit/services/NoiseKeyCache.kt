@@ -16,24 +16,6 @@ class NoiseKeyCache @Inject constructor(
 ) {
     companion object {
         private const val TAG = "NoiseKeyCache"
-        
-        @Volatile
-        private var instance: NoiseKeyCache? = null
-        
-        /**
-         * Get singleton instance (for non-DI access)
-         */
-        fun getInstance(): NoiseKeyCache {
-            return instance ?: throw IllegalStateException("NoiseKeyCache not initialized. Use dependency injection.")
-        }
-        
-        internal fun setInstance(cache: NoiseKeyCache) {
-            instance = cache
-        }
-    }
-    
-    init {
-        setInstance(this)
     }
 
     private val memoryCache = mutableMapOf<String, ByteArray>()

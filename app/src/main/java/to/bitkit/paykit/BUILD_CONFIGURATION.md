@@ -6,7 +6,7 @@ This guide explains how to configure the Bitkit Android Gradle project to integr
 
 - Android Studio Arctic Fox or later
 - Android NDK (for native libraries)
-- PaykitMobile jniLibs built (see `paykit-rs-master/paykit-mobile/BUILD.md`)
+- PaykitMobile jniLibs built (see `paykit-rs/paykit-mobile/BUILD.md`)
 - Kotlin bindings generated
 
 ## Step 1: Configure NDK
@@ -20,13 +20,13 @@ ndk.dir=/Users/YOU/Library/Android/sdk/ndk/25.2.9519653
 
 1. Build the native libraries:
    ```bash
-   cd paykit-rs-master/paykit-mobile
+   cd paykit-rs/paykit-mobile
    ./build-android.sh
    ```
 
 2. Copy jniLibs to project:
    ```bash
-   cp -r paykit-rs-master/paykit-mobile/jniLibs/* \
+   cp -r paykit-rs/paykit-mobile/jniLibs/* \
      bitkit-android/app/src/main/jniLibs/
    ```
 
@@ -47,7 +47,7 @@ ndk.dir=/Users/YOU/Library/Android/sdk/ndk/25.2.9519653
 
 1. Copy generated Kotlin bindings:
    ```bash
-   cp paykit-rs-master/paykit-mobile/kotlin/generated/com/paykit/mobile/paykit_mobile.kt \
+   cp paykit-rs/paykit-mobile/kotlin/generated/com/paykit/mobile/paykit_mobile.kt \
      bitkit-android/app/src/main/java/com/paykit/mobile/
    ```
 

@@ -1,14 +1,6 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import com.pubky.sdk.AuthFlowInfo
-import com.pubky.sdk.KeyProvider
-import com.pubky.sdk.ListItem
-import com.pubky.sdk.PubkyException
-import com.pubky.sdk.PubkySession as FfiPubkySession
-import com.pubky.sdk.Sdk
-import com.pubky.sdk.SessionInfo
-import com.pubky.sdk.SignupOptions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -17,14 +9,18 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.utils.Logger
+import uniffi.pubkycore.*
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Service for direct Pubky homeserver operations using real FFI bindings
+ * Service for direct Pubky homeserver operations using pubky-core-ffi bindings
  */
 @Singleton
 class PubkySDKService @Inject constructor(
@@ -37,19 +33,13 @@ class PubkySDKService @Inject constructor(
         private const val FOLLOWS_CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
     }
 
-    // FFI SDK instance
-    private var sdk: Sdk? = null
-
     // Current homeserver
     var homeserver: String = PubkyConfig.DEFAULT_HOMESERVER
         private set
 
-    // Session cache (FFI sessions)
-    private val ffiSessionCache = mutableMapOf<String, FfiPubkySession>()
+    // Session cache
+    private val sessionCache = mutableMapOf<String, PubkyCoreSession>()
     private val sessionMutex = Mutex()
-
-    // Legacy session cache for compatibility
-    private val legacySessionCache = mutableMapOf<String, LegacyPubkySession>()
 
     // Profile cache
     private val profileCache = mutableMapOf<String, CachedProfile>()
@@ -59,13 +49,10 @@ class PubkySDKService @Inject constructor(
     private val followsCache = mutableMapOf<String, CachedFollows>()
     private val followsMutex = Mutex()
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     init {
-        try {
-            sdk = Sdk()
-            Logger.info("PubkySDKService initialized with real FFI SDK", context = TAG)
-        } catch (e: Exception) {
-            Logger.error("Failed to initialize FFI SDK", e = e, context = TAG)
-        }
+        Logger.info("PubkySDKService initialized with pubky-core-ffi", context = TAG)
     }
 
     /**
@@ -77,134 +64,214 @@ class PubkySDKService @Inject constructor(
     }
 
     /**
-     * Sign in to homeserver using a secret key
+     * Import a session from Pubky Ring
+     * This is used when receiving a session from Pubky Ring via callback
+     * 
+     * @param pubkey The z-base32 encoded public key (for verification)
+     * @param sessionSecret The full session token from Pubky Ring (already in format: <pubkey>:<cookie>)
      */
-    suspend fun signin(secretKey: ByteArray, homeserver: String? = null): LegacyPubkySession = withContext(Dispatchers.IO) {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
+    suspend fun importSession(pubkey: String, sessionSecret: String): PubkyCoreSession = withContext(Dispatchers.IO) {
+        // sessionSecret from Pubky Ring is already in the format <pubkey>:<cookie>
+        // So we use it directly without modification
+        val sessionToken = sessionSecret
+        
+        // Use revalidateSession which accepts the token format
+        val result = uniffi.pubkycore.revalidateSession(sessionToken)
+        checkResult(result)
 
-        val keyProvider = SecretKeyProviderImpl(secretKey)
-        val hs = homeserver ?: this@PubkySDKService.homeserver
-
-        val ffiSession = currentSdk.signin(keyProvider, hs)
+        val sessionData = json.parseToJsonElement(result[1]).jsonObject
+        val session = PubkyCoreSession(
+            pubkey = sessionData["public_key"]?.jsonPrimitive?.content ?: pubkey,
+            sessionSecret = sessionData["session_secret"]?.jsonPrimitive?.content ?: sessionSecret,
+            capabilities = emptyList(),
+            expiresAt = null
+        )
 
         sessionMutex.withLock {
-            val info = ffiSession.info()
-            ffiSessionCache[info.pubkey] = ffiSession
-
-            // Create legacy session for compatibility
-            val session = LegacyPubkySession(
-                pubkey = info.pubkey,
-                sessionSecret = info.sessionSecret ?: "",
-                capabilities = info.capabilities,
-                expiresAt = info.expiresAt?.let { Date(it.toLong() * 1000) }
-            )
-            legacySessionCache[info.pubkey] = session
-            persistSession(session)
-
-            Logger.info("Signed in as ${info.pubkey.take(12)}...", context = TAG)
-            session
+            sessionCache[session.pubkey] = session
         }
+        persistSession(session)
+
+        Logger.info("Imported session for ${session.pubkey.take(12)}...", context = TAG)
+        session
+    }
+
+    /**
+     * Sign in to homeserver using a secret key
+     */
+    suspend fun signin(secretKey: String): PubkyCoreSession = withContext(Dispatchers.IO) {
+        val result = signIn(secretKey)
+        checkResult(result)
+
+        val sessionData = json.parseToJsonElement(result[1]).jsonObject
+        val session = PubkyCoreSession(
+            pubkey = sessionData["public_key"]?.jsonPrimitive?.content ?: "",
+            sessionSecret = sessionData["session_secret"]?.jsonPrimitive?.content ?: "",
+            capabilities = emptyList(),
+            expiresAt = null
+        )
+
+        sessionMutex.withLock {
+            sessionCache[session.pubkey] = session
+        }
+        persistSession(session)
+
+        Logger.info("Signed in as ${session.pubkey.take(12)}...", context = TAG)
+        session
     }
 
     /**
      * Sign up to homeserver
      */
     suspend fun signup(
-        secretKey: ByteArray,
+        secretKey: String,
         homeserver: String? = null,
-        signupToken: ULong? = null
-    ): LegacyPubkySession = withContext(Dispatchers.IO) {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
-
-        val keyProvider = SecretKeyProviderImpl(secretKey)
+        signupToken: String? = null
+    ): PubkyCoreSession = withContext(Dispatchers.IO) {
         val hs = homeserver ?: this@PubkySDKService.homeserver
+        val result = signUp(secretKey, hs, signupToken)
+        checkResult(result)
 
-        val options = signupToken?.let { SignupOptions(capabilities = null, signupToken = it) }
-
-        val ffiSession = currentSdk.signup(keyProvider, hs, options)
-
-        sessionMutex.withLock {
-            val info = ffiSession.info()
-            ffiSessionCache[info.pubkey] = ffiSession
-
-            // Create legacy session for compatibility
-            val session = LegacyPubkySession(
-                pubkey = info.pubkey,
-                sessionSecret = info.sessionSecret ?: "",
-                capabilities = info.capabilities,
-                expiresAt = info.expiresAt?.let { Date(it.toLong() * 1000) }
-            )
-            legacySessionCache[info.pubkey] = session
-            persistSession(session)
-
-            Logger.info("Signed up as ${info.pubkey.take(12)}...", context = TAG)
-            session
-        }
-    }
-
-    /**
-     * Start auth flow for QR/deeplink authentication
-     */
-    fun startAuthFlow(capabilities: List<String>): AuthFlowInfo {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
-        return currentSdk.startAuthFlow(capabilities)
-    }
-
-    /**
-     * Await approval of auth flow
-     */
-    suspend fun awaitApproval(requestId: String): LegacyPubkySession = withContext(Dispatchers.IO) {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
-
-        val ffiSession = currentSdk.awaitApproval(requestId)
+        val sessionData = json.parseToJsonElement(result[1]).jsonObject
+        val session = PubkyCoreSession(
+            pubkey = sessionData["public_key"]?.jsonPrimitive?.content ?: "",
+            sessionSecret = sessionData["session_secret"]?.jsonPrimitive?.content ?: "",
+            capabilities = emptyList(),
+            expiresAt = null
+        )
 
         sessionMutex.withLock {
-            val info = ffiSession.info()
-            ffiSessionCache[info.pubkey] = ffiSession
-
-            // Create legacy session for compatibility
-            val session = LegacyPubkySession(
-                pubkey = info.pubkey,
-                sessionSecret = info.sessionSecret ?: "",
-                capabilities = info.capabilities,
-                expiresAt = info.expiresAt?.let { Date(it.toLong() * 1000) }
-            )
-            legacySessionCache[info.pubkey] = session
-            persistSession(session)
-
-            Logger.info("Auth flow approved for ${info.pubkey.take(12)}...", context = TAG)
-            session
+            sessionCache[session.pubkey] = session
         }
-    }
-
-    /**
-     * Set a session from Pubky-ring callback (for compatibility)
-     */
-    suspend fun setSession(session: LegacyPubkySession) = sessionMutex.withLock {
-        legacySessionCache[session.pubkey] = session
         persistSession(session)
-        Logger.info("Session set for pubkey: ${session.pubkey.take(12)}...", context = TAG)
+
+        Logger.info("Signed up as ${session.pubkey.take(12)}...", context = TAG)
+        session
+    }
+
+    /**
+     * Revalidate a session
+     */
+    suspend fun revalidateSession(sessionSecret: String): PubkyCoreSession = withContext(Dispatchers.IO) {
+        val result = uniffi.pubkycore.revalidateSession(sessionSecret)
+        checkResult(result)
+
+        val sessionData = json.parseToJsonElement(result[1]).jsonObject
+        val session = PubkyCoreSession(
+            pubkey = sessionData["public_key"]?.jsonPrimitive?.content ?: "",
+            sessionSecret = sessionData["session_secret"]?.jsonPrimitive?.content ?: "",
+            capabilities = emptyList(),
+            expiresAt = null
+        )
+
+        sessionMutex.withLock {
+            sessionCache[session.pubkey] = session
+        }
+        persistSession(session)
+
+        Logger.info("Session revalidated for ${session.pubkey.take(12)}...", context = TAG)
+        session
+    }
+
+    /**
+     * Parse an auth URL
+     */
+    fun parseAuthUrl(url: String): JsonObject {
+        val result = uniffi.pubkycore.parseAuthUrl(url)
+        checkResult(result)
+        return json.parseToJsonElement(result[1]).jsonObject
+    }
+
+    /**
+     * Approve an auth request
+     */
+    suspend fun approveAuth(url: String, secretKey: String) = withContext(Dispatchers.IO) {
+        val result = auth(url, secretKey)
+        checkResult(result)
+        Logger.info("Auth approved", context = TAG)
     }
 
     /**
      * Get cached session for a pubkey
      */
-    suspend fun getSession(pubkey: String): LegacyPubkySession? = sessionMutex.withLock {
-        legacySessionCache[pubkey]
+    suspend fun getSession(pubkey: String): PubkyCoreSession? = sessionMutex.withLock {
+        sessionCache[pubkey]
     }
 
     /**
      * Check if we have an active session
      */
     suspend fun hasActiveSession(): Boolean = sessionMutex.withLock {
-        legacySessionCache.isNotEmpty() || ffiSessionCache.isNotEmpty()
+        sessionCache.isNotEmpty()
     }
 
     /**
-     * Get the current active session (first available)
+     * Get the current active session
      */
-    suspend fun activeSession(): LegacyPubkySession? = sessionMutex.withLock {
-        legacySessionCache.values.firstOrNull()
+    suspend fun activeSession(): PubkyCoreSession? = sessionMutex.withLock {
+        sessionCache.values.firstOrNull()
+    }
+
+    // MARK: - Session Expiration & Refresh
+
+    /**
+     * Check if a session is expired or will expire soon
+     */
+    fun isSessionExpired(session: PubkyCoreSession, bufferSeconds: Long = 300): Boolean {
+        val expiresAt = session.expiresAt ?: return false // No expiration set
+        return System.currentTimeMillis() + (bufferSeconds * 1000) >= expiresAt.time
+    }
+
+    /**
+     * Refresh a session before it expires
+     */
+    suspend fun refreshSession(pubkey: String): PubkyCoreSession {
+        val session = getSession(pubkey) ?: throw PubkySDKException.NoSession()
+
+        Logger.info("Refreshing session for ${pubkey.take(12)}...", context = TAG)
+
+        return try {
+            val refreshedSession = revalidateSession(session.sessionSecret)
+            Logger.info("Session refreshed successfully for ${pubkey.take(12)}...", context = TAG)
+            refreshedSession
+        } catch (e: Exception) {
+            Logger.error("Failed to refresh session for ${pubkey.take(12)}...", e = e, context = TAG)
+            throw e
+        }
+    }
+
+    /**
+     * Get a valid session, refreshing if needed
+     */
+    suspend fun getValidSession(pubkey: String): PubkyCoreSession {
+        val session = getSession(pubkey) ?: throw PubkySDKException.NoSession()
+
+        // Check if session needs refresh (5 minutes buffer)
+        if (isSessionExpired(session, bufferSeconds = 300)) {
+            Logger.info("Session expiring soon for ${pubkey.take(12)}..., refreshing", context = TAG)
+            return refreshSession(pubkey)
+        }
+
+        return session
+    }
+
+    /**
+     * Check all sessions and refresh those expiring soon
+     */
+    suspend fun refreshExpiringSessions() {
+        val sessions = sessionMutex.withLock {
+            sessionCache.values.toList()
+        }
+
+        for (session in sessions) {
+            if (isSessionExpired(session, bufferSeconds = 600)) { // 10 minute buffer
+                try {
+                    refreshSession(session.pubkey)
+                } catch (e: Exception) {
+                    Logger.error("Failed to refresh expiring session for ${session.pubkey.take(12)}...", e = e, context = TAG)
+                }
+            }
+        }
     }
 
     // MARK: - Profile Operations
@@ -221,18 +288,15 @@ class PubkySDKService @Inject constructor(
             }
         }
 
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
-
         val profileUri = "pubky://$pubkey/pub/$app/profile.json"
         Logger.debug("Fetching profile from $profileUri", context = TAG)
 
-        val publicStorage = currentSdk.publicStorage()
-        val data = withContext(Dispatchers.IO) {
-            publicStorage.get(profileUri)
+        val result = withContext(Dispatchers.IO) {
+            get(profileUri)
         }
+        checkResult(result)
 
-        val profileJson = String(data.map { it.toByte() }.toByteArray())
-        val profile = Json.decodeFromString<SDKPubkyProfile>(profileJson)
+        val profile = json.decodeFromString<SDKPubkyProfile>(result[1])
 
         // Cache the result
         profileCache[pubkey] = CachedProfile(profile, System.currentTimeMillis())
@@ -253,19 +317,20 @@ class PubkySDKService @Inject constructor(
             }
         }
 
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
-
         val followsUri = "pubky://$pubkey/pub/$app/follows/"
         Logger.debug("Fetching follows from $followsUri", context = TAG)
 
-        val publicStorage = currentSdk.publicStorage()
-        val items = withContext(Dispatchers.IO) {
-            publicStorage.list(followsUri)
+        val result = withContext(Dispatchers.IO) {
+            list(followsUri)
         }
+        checkResult(result)
 
-        // Extract pubkeys from entry names
-        val follows = items.mapNotNull { item ->
-            item.name.takeIf { it.isNotEmpty() }
+        // Parse the JSON array of URLs
+        val urls = json.decodeFromString<List<String>>(result[1])
+
+        // Extract pubkeys from URLs
+        val follows = urls.mapNotNull { url ->
+            url.split("/").lastOrNull()?.takeIf { it.isNotEmpty() }
         }
 
         // Cache the result
@@ -280,53 +345,144 @@ class PubkySDKService @Inject constructor(
     /**
      * Get data from homeserver (public read)
      */
-    suspend fun get(uri: String): ByteArray? = withContext(Dispatchers.IO) {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
+    suspend fun getData(uri: String): ByteArray? = withContext(Dispatchers.IO) {
+        val result = get(uri)
 
-        val publicStorage = currentSdk.publicStorage()
-        try {
-            publicStorage.get(uri).map { it.toByte() }.toByteArray()
-        } catch (e: Exception) {
-            null
+        if (result[0] == "error") {
+            if (result[1].contains("404") || result[1].contains("Not found")) {
+                return@withContext null
+            }
+            throw PubkySDKException.FetchFailed(result[1])
         }
+
+        // Handle base64 encoded binary data
+        if (result[1].startsWith("base64:")) {
+            val base64String = result[1].removePrefix("base64:")
+            return@withContext android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+        }
+
+        result[1].toByteArray()
     }
 
     /**
-     * Put data to homeserver (requires session)
+     * Put data to homeserver (requires secret key)
      */
-    suspend fun put(path: String, data: ByteArray, pubkey: String) = withContext(Dispatchers.IO) {
-        val ffiSession = sessionMutex.withLock {
-            ffiSessionCache[pubkey]
-        } ?: throw PubkySDKException.NoSession()
-
-        val storage = ffiSession.storage()
-        storage.put(path, data.map { it.toUByte() })
-
-        Logger.debug("Put data to $path", context = TAG)
+    suspend fun putData(url: String, content: String, secretKey: String) = withContext(Dispatchers.IO) {
+        val result = put(url, content, secretKey)
+        checkResult(result)
+        Logger.debug("Put data to $url", context = TAG)
     }
 
     /**
-     * Delete data from homeserver (requires session)
+     * Delete data from homeserver
      */
-    suspend fun delete(path: String, pubkey: String) = withContext(Dispatchers.IO) {
-        val ffiSession = sessionMutex.withLock {
-            ffiSessionCache[pubkey]
-        } ?: throw PubkySDKException.NoSession()
-
-        val storage = ffiSession.storage()
-        storage.delete(path)
-
-        Logger.debug("Deleted $path", context = TAG)
+    suspend fun deleteData(url: String, secretKey: String) = withContext(Dispatchers.IO) {
+        val result = deleteFile(url, secretKey)
+        checkResult(result)
+        Logger.debug("Deleted $url", context = TAG)
     }
 
     /**
      * List directory contents
      */
-    suspend fun listDirectory(uri: String): List<ListItem> = withContext(Dispatchers.IO) {
-        val currentSdk = sdk ?: throw PubkySDKException.NotConfigured()
+    suspend fun listDirectory(uri: String): List<String> = withContext(Dispatchers.IO) {
+        val result = list(uri)
+        checkResult(result)
+        json.decodeFromString(result[1])
+    }
 
-        val publicStorage = currentSdk.publicStorage()
-        publicStorage.list(uri)
+    // MARK: - Key Operations
+
+    /**
+     * Generate a new secret key
+     */
+    fun generateNewSecretKey(): Triple<String, String, String> {
+        val result = generateSecretKey()
+        checkResult(result)
+
+        val data = json.parseToJsonElement(result[1]).jsonObject
+        return Triple(
+            data["secret_key"]?.jsonPrimitive?.content ?: "",
+            data["public_key"]?.jsonPrimitive?.content ?: "",
+            data["uri"]?.jsonPrimitive?.content ?: ""
+        )
+    }
+
+    /**
+     * Get public key from secret key
+     */
+    fun getPublicKey(secretKey: String): Pair<String, String> {
+        val result = getPublicKeyFromSecretKey(secretKey)
+        checkResult(result)
+
+        val data = json.parseToJsonElement(result[1]).jsonObject
+        return Pair(
+            data["public_key"]?.jsonPrimitive?.content ?: "",
+            data["uri"]?.jsonPrimitive?.content ?: ""
+        )
+    }
+
+    /**
+     * Get homeserver for a pubkey
+     */
+    suspend fun getHomeserverFor(pubkey: String): String = withContext(Dispatchers.IO) {
+        val result = getHomeserver(pubkey)
+        checkResult(result)
+        result[1]
+    }
+
+    // MARK: - Recovery
+
+    /**
+     * Create a recovery file
+     */
+    fun createRecoveryFileData(secretKey: String, passphrase: String): String {
+        val result = createRecoveryFile(secretKey, passphrase)
+        checkResult(result)
+        return result[1]
+    }
+
+    /**
+     * Decrypt a recovery file
+     */
+    fun decryptRecoveryFileData(recoveryFile: String, passphrase: String): String {
+        val result = decryptRecoveryFile(recoveryFile, passphrase)
+        checkResult(result)
+        return result[1]
+    }
+
+    // MARK: - Mnemonic
+
+    /**
+     * Generate a mnemonic phrase
+     */
+    fun generateMnemonic(): String {
+        val result = generateMnemonicPhrase()
+        checkResult(result)
+        return result[1]
+    }
+
+    /**
+     * Convert mnemonic to keypair
+     */
+    fun mnemonicToKeypair(mnemonic: String): Triple<String, String, String> {
+        val result = mnemonicPhraseToKeypair(mnemonic)
+        checkResult(result)
+
+        val data = json.parseToJsonElement(result[1]).jsonObject
+        return Triple(
+            data["secret_key"]?.jsonPrimitive?.content ?: "",
+            data["public_key"]?.jsonPrimitive?.content ?: "",
+            data["uri"]?.jsonPrimitive?.content ?: ""
+        )
+    }
+
+    /**
+     * Validate mnemonic phrase
+     */
+    fun validateMnemonic(mnemonic: String): Boolean {
+        val result = validateMnemonicPhrase(mnemonic)
+        return result[1] == "true"
     }
 
     // MARK: - Session Persistence
@@ -339,8 +495,8 @@ class PubkySDKService @Inject constructor(
 
         for (key in sessionKeys) {
             try {
-                val json = keychainStorage.getString(key) ?: continue
-                val session = Json.decodeFromString<LegacyPubkySession>(json)
+                val jsonStr = keychainStorage.getString(key) ?: continue
+                val session = json.decodeFromString<PubkyCoreSession>(jsonStr)
 
                 // Check if session is expired
                 session.expiresAt?.let { expiresAt ->
@@ -351,25 +507,24 @@ class PubkySDKService @Inject constructor(
                     }
                 }
 
-                legacySessionCache[session.pubkey] = session
+                sessionCache[session.pubkey] = session
                 Logger.info("Restored session for ${session.pubkey.take(12)}...", context = TAG)
             } catch (e: Exception) {
                 Logger.error("Failed to restore session from $key", e = e, context = TAG)
             }
         }
 
-        Logger.info("Restored ${legacySessionCache.size} sessions from keychain", context = TAG)
+        Logger.info("Restored ${sessionCache.size} sessions from keychain", context = TAG)
     }
 
     /**
      * Clear all cached sessions
      */
     suspend fun clearSessions() = sessionMutex.withLock {
-        for (pubkey in legacySessionCache.keys) {
+        for (pubkey in sessionCache.keys) {
             keychainStorage.delete("pubky.session.$pubkey")
         }
-        legacySessionCache.clear()
-        ffiSessionCache.clear()
+        sessionCache.clear()
 
         Logger.info("Cleared all sessions", context = TAG)
     }
@@ -377,20 +532,10 @@ class PubkySDKService @Inject constructor(
     /**
      * Sign out a specific session
      */
-    suspend fun signout(pubkey: String) = withContext(Dispatchers.IO) {
-        val ffiSession = sessionMutex.withLock {
-            ffiSessionCache[pubkey]
-        }
-
-        ffiSession?.signout()
-
-        sessionMutex.withLock {
-            ffiSessionCache.remove(pubkey)
-            legacySessionCache.remove(pubkey)
-            keychainStorage.delete("pubky.session.$pubkey")
-        }
-
-        Logger.info("Signed out ${pubkey.take(12)}...", context = TAG)
+    suspend fun signout(sessionSecret: String) = withContext(Dispatchers.IO) {
+        val result = signOut(sessionSecret)
+        checkResult(result)
+        Logger.info("Signed out", context = TAG)
     }
 
     /**
@@ -404,26 +549,20 @@ class PubkySDKService @Inject constructor(
 
     // MARK: - Private Helpers
 
-    private suspend fun persistSession(session: LegacyPubkySession) {
+    private suspend fun persistSession(session: PubkyCoreSession) {
         try {
-            val json = Json.encodeToString(session)
-            keychainStorage.setString("pubky.session.${session.pubkey}", json)
+            val jsonStr = json.encodeToString(session)
+            keychainStorage.setString("pubky.session.${session.pubkey}", jsonStr)
             Logger.debug("Persisted session for ${session.pubkey.take(12)}...", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to persist session", e = e, context = TAG)
         }
     }
-}
 
-/**
- * Key provider implementation for FFI
- */
-private class SecretKeyProviderImpl(private val key: ByteArray) : KeyProvider {
-    override fun secretKey(): List<UByte> {
-        if (key.size != 32) {
-            throw PubkyException.InvalidInput("Secret key must be 32 bytes")
+    private fun checkResult(result: List<String>) {
+        if (result[0] == "error") {
+            throw PubkySDKException.FetchFailed(result[1])
         }
-        return key.map { it.toUByte() }
     }
 }
 
@@ -441,10 +580,10 @@ sealed class PubkySDKException(message: String) : Exception(message) {
 }
 
 /**
- * Legacy session for compatibility with existing code
+ * Pubky Core session
  */
 @Serializable
-data class LegacyPubkySession(
+data class PubkyCoreSession(
     val pubkey: String,
     val sessionSecret: String,
     val capabilities: List<String>,
@@ -496,4 +635,3 @@ private data class CachedFollows(
 ) {
     fun isExpired(ttlMs: Long): Boolean = System.currentTimeMillis() - fetchedAt > ttlMs
 }
-

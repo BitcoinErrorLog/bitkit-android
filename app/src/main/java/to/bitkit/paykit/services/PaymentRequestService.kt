@@ -1,8 +1,9 @@
 package to.bitkit.paykit.services
 
-import com.paykit.mobile.*
+import uniffi.paykit_mobile.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.storage.PaymentRequestStorage
@@ -51,7 +52,8 @@ class PaymentRequestService @Inject constructor(
     private val paykitClient: PaykitClient,
     private val autopayEvaluator: IAutopayEvaluator,
     private val paymentRequestStorage: PaymentRequestStorage,
-    private val directoryService: DirectoryService
+    private val directoryService: DirectoryService,
+    private val paykitManager: PaykitManager,
 ) {
     companion object {
         private const val TAG = "PaymentRequestService"
@@ -148,18 +150,35 @@ class PaymentRequestService @Inject constructor(
     // MARK: - Private Helpers
 
     /**
-     * Fetch payment request details from storage
+     * Fetch payment request details.
+     * Tries in order:
+     * 1. Local storage (fastest, for requests we already know about)
+     * 2. Remote Pubky storage (for cross-device requests from sender)
      */
     private suspend fun fetchPaymentRequest(requestId: String, fromPubkey: String): PaymentRequest {
-        val request = paymentRequestStorage.getRequest(requestId)
-            ?: throw IllegalStateException("Payment request not found: $requestId")
-
-        // Verify the request is from the expected pubkey
-        if (request.fromPubkey != fromPubkey) {
-            throw IllegalStateException("Payment request pubkey mismatch")
+        // Step 1: Try local storage first
+        val localRequest = paymentRequestStorage.getRequest(requestId)
+        if (localRequest != null) {
+            if (localRequest.fromPubkey != fromPubkey) {
+                throw IllegalStateException("Payment request pubkey mismatch")
+            }
+            Logger.debug("Found payment request $requestId in local storage", context = TAG)
+            return localRequest
         }
 
-        return request
+        // Step 2: Try fetching from sender's Pubky storage
+        Logger.info("Fetching payment request $requestId from sender's Pubky storage", context = TAG)
+        val recipientPubkey = paykitManager.ownerPubkey
+            ?: throw IllegalStateException("Owner pubkey not set")
+        val remoteRequest = directoryService.fetchPaymentRequest(requestId, fromPubkey, recipientPubkey)
+        if (remoteRequest != null) {
+            // Cache locally for future access
+            paymentRequestStorage.addRequest(remoteRequest)
+            Logger.info("Fetched and cached payment request $requestId from remote", context = TAG)
+            return remoteRequest
+        }
+
+        throw IllegalStateException("Payment request not found: $requestId (checked local and remote storage)")
     }
 
     /**

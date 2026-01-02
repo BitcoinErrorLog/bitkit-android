@@ -7,13 +7,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import to.bitkit.paykit.storage.PrivateEndpointStorage
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import to.bitkit.paykit.viewmodels.PrivateEndpointsViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
@@ -21,14 +22,13 @@ import to.bitkit.ui.scaffold.ScreenColumn
 @Composable
 fun PrivateEndpointsScreen(
     onNavigateBack: () -> Unit,
-    privateEndpointStorage: PrivateEndpointStorage? = null
+    viewModel: PrivateEndpointsViewModel = hiltViewModel()
 ) {
-    // TODO: Create ViewModel for PrivateEndpoints
-    val peers = remember { mutableStateOf<List<String>>(emptyList()) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Private Endpoints",
+            titleText = "Private Endpoints", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -55,7 +55,14 @@ fun PrivateEndpointsScreen(
                 }
             }
 
-            if (peers.value.isEmpty()) {
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.peers.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -71,7 +78,7 @@ fun PrivateEndpointsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        items = peers.value,
+                        items = uiState.peers,
                         key = { it }
                     ) { peer ->
                         PeerEndpointsCard(peer = peer)

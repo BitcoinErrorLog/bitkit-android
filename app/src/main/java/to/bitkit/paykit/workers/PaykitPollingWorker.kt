@@ -27,11 +27,16 @@ import to.bitkit.R
 import to.bitkit.models.NodeLifecycleState
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.PaykitManager
+import to.bitkit.paykit.models.PaymentRequest
+import to.bitkit.paykit.models.PaymentRequestStatus
+import to.bitkit.paykit.models.RequestDirection
 import to.bitkit.paykit.services.AutoPayEvaluator
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaykitPaymentService
+import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 /**
@@ -49,6 +54,9 @@ class PaykitPollingWorker @AssistedInject constructor(
     private val directoryService: DirectoryService,
     private val autoPayEvaluator: AutoPayEvaluator,
     private val lightningRepo: LightningRepo,
+    private val paykitManager: PaykitManager,
+    private val paymentService: PaykitPaymentService,
+    private val paymentRequestStorage: PaymentRequestStorage,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -125,8 +133,7 @@ class PaykitPollingWorker @AssistedInject constructor(
             }
 
             // Get our pubkey from manager
-            val manager = PaykitManager.getInstance()
-            val ownerPubkey = manager.ownerPubkey
+            val ownerPubkey = paykitManager.ownerPubkey
             if (ownerPubkey == null) {
                 Logger.info("No owner pubkey configured, skipping poll", context = TAG)
                 return@runCatching Result.success()
@@ -146,6 +153,9 @@ class PaykitPollingWorker @AssistedInject constructor(
                 }
             }
             Logger.info("${newRequests.size} new requests to process", context = TAG)
+
+            // Persist discovered requests to storage for UI display
+            persistDiscoveredRequests(newRequests, ownerPubkey)
 
             // Process each new request
             for (request in newRequests) {
@@ -177,34 +187,72 @@ class PaykitPollingWorker @AssistedInject constructor(
     private suspend fun discoverPendingRequests(ownerPubkey: String): List<DiscoveredRequest> {
         val requests = mutableListOf<DiscoveredRequest>()
 
-        // Discover payment requests from directory
-        runCatching {
-            val paymentRequests = directoryService.discoverPendingRequests(ownerPubkey)
-            requests.addAll(paymentRequests)
-        }.onFailure { error ->
-            Logger.error("Failed to discover payment requests", error, context = TAG)
+        // Get list of known peers (follows) to poll
+        val knownPeers = runCatching {
+            directoryService.fetchFollows(appContext)
+        }.getOrElse { error ->
+            Logger.error("Failed to fetch follows for peer polling", error, context = TAG)
+            emptyList()
         }
 
-        // Discover subscription proposals
-        runCatching {
-            val proposals = directoryService.discoverSubscriptionProposals(ownerPubkey)
-            for (proposal in proposals) {
-                requests.add(
-                    DiscoveredRequest(
-                        requestId = proposal.subscriptionId,
-                        type = RequestType.SubscriptionProposal,
-                        fromPubkey = proposal.providerPubkey,
-                        amountSats = proposal.amountSats,
-                        description = proposal.description,
-                        createdAt = proposal.createdAt,
-                    ),
-                )
+        // Poll each peer's storage for requests/proposals addressed to us
+        for (peerPubkey in knownPeers) {
+            // Discover payment requests from peer's storage
+            runCatching {
+                val paymentRequests = directoryService.discoverPendingRequestsFromPeer(peerPubkey, ownerPubkey)
+                requests.addAll(paymentRequests)
+            }.onFailure { error ->
+                Logger.debug("Failed to discover requests from peer ${peerPubkey.take(12)}: ${error.message}", context = TAG)
             }
-        }.onFailure { error ->
-            Logger.error("Failed to discover subscription proposals", error, context = TAG)
+
+            // Discover subscription proposals from peer's storage
+            runCatching {
+                val proposals = directoryService.discoverSubscriptionProposalsFromPeer(peerPubkey, ownerPubkey)
+                for (proposal in proposals) {
+                    requests.add(
+                        DiscoveredRequest(
+                            requestId = proposal.subscriptionId,
+                            type = RequestType.SubscriptionProposal,
+                            fromPubkey = proposal.providerPubkey,
+                            amountSats = proposal.amountSats,
+                            description = proposal.description,
+                            createdAt = proposal.createdAt,
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                Logger.debug("Failed to discover proposals from peer ${peerPubkey.take(12)}: ${error.message}", context = TAG)
+            }
         }
 
+        Logger.debug("Discovered ${requests.size} pending requests from ${knownPeers.size} peers", context = TAG)
         return requests
+    }
+
+    private suspend fun persistDiscoveredRequests(requests: List<DiscoveredRequest>, ownerPubkey: String) {
+        for (request in requests) {
+            // Only persist payment requests, not subscription proposals
+            if (request.type != RequestType.PaymentRequest) continue
+
+            val paymentRequest = PaymentRequest(
+                id = request.requestId,
+                fromPubkey = request.fromPubkey,
+                toPubkey = ownerPubkey,
+                amountSats = request.amountSats,
+                currency = "BTC",
+                methodId = "lightning",
+                description = request.description ?: "",
+                status = PaymentRequestStatus.PENDING,
+                direction = RequestDirection.INCOMING,
+                createdAt = request.createdAt,
+            )
+
+            // Don't overwrite if already exists
+            if (paymentRequestStorage.getRequest(request.requestId) == null) {
+                paymentRequestStorage.addRequest(paymentRequest)
+                Logger.debug("Persisted discovered request ${request.requestId} to storage", context = TAG)
+            }
+        }
     }
 
     private suspend fun processRequest(request: DiscoveredRequest) {
@@ -232,6 +280,8 @@ class PaykitPollingWorker @AssistedInject constructor(
                 val paymentResult = executePayment(request)
                 if (paymentResult.isSuccess) {
                     sendPaymentSuccessNotification(request)
+                    // Clean up processed request from directory
+                    cleanupProcessedRequest(request)
                 } else {
                     sendPaymentFailureNotification(request, paymentResult.exceptionOrNull())
                 }
@@ -262,11 +312,13 @@ class PaykitPollingWorker @AssistedInject constructor(
             throw PaykitPollingException("Node not ready within timeout")
         }
 
+        // Construct paykit: URI for proper payment routing
+        val paykitUri = "paykit:${request.fromPubkey}"
+
         // Execute payment via Paykit payment service with spending limit enforcement
-        val paymentService = PaykitPaymentService.getInstance()
         val result = paymentService.pay(
             lightningRepo = lightningRepo,
-            recipient = request.fromPubkey,
+            recipient = paykitUri,
             amountSats = request.amountSats.toULong(),
             peerPubkey = request.fromPubkey, // Use peer pubkey for spending limit
         )
@@ -274,6 +326,23 @@ class PaykitPollingWorker @AssistedInject constructor(
         if (!result.success) {
             throw PaykitPollingException(result.error?.message ?: "Payment failed")
         }
+    }
+
+    /**
+     * Cleanup processed request.
+     *
+     * NOTE: In the v0 sender-storage model, requests are stored on the sender's homeserver.
+     * Recipients cannot delete requests from sender storage. Deduplication is handled locally
+     * via [seenRequestIds] and [paymentRequestStorage].
+     *
+     * This method is intentionally a no-op - we only log for diagnostics.
+     */
+    @Suppress("UnusedParameter")
+    private fun cleanupProcessedRequest(request: DiscoveredRequest) {
+        Logger.debug(
+            "Request ${request.requestId} processed (no remote delete in sender-storage model)",
+            context = TAG,
+        )
     }
 
     private fun sendManualApprovalNotification(request: DiscoveredRequest) {

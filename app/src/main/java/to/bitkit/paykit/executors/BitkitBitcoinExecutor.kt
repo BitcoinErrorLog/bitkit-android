@@ -1,10 +1,11 @@
 package to.bitkit.paykit.executors
 
-import com.paykit.mobile.BitcoinExecutorFfi
-import com.paykit.mobile.BitcoinTxResultFfi
+import uniffi.paykit_mobile.BitcoinExecutorFfi
+import uniffi.paykit_mobile.BitcoinTxResultFfi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.math.ceil
 import to.bitkit.paykit.PaykitException
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
@@ -14,6 +15,23 @@ import to.bitkit.utils.Logger
  *
  * Bridges Bitkit's LightningRepo (which handles onchain) to Paykit's executor interface.
  * All methods are called synchronously from the Rust FFI layer.
+ *
+ * ## Threading Model
+ *
+ * This executor uses `runBlocking(Dispatchers.IO)` because the FFI interface
+ * requires synchronous returns. This is acceptable for the following reasons:
+ *
+ * 1. **Called from Rust thread**: The Paykit FFI calls these methods from a
+ *    Rust-managed thread, not the Android main thread, so blocking is safe.
+ *
+ * 2. **Timeout protection**: All operations use `withTimeout(TIMEOUT_MS)` to
+ *    prevent indefinite blocking (default 60 seconds).
+ *
+ * 3. **IO Dispatcher**: Work is dispatched to `Dispatchers.IO` to avoid
+ *    blocking the calling thread during network operations.
+ *
+ * **Future improvement**: When UniFFI supports async Kotlin callbacks, migrate
+ * to proper suspend functions.
  */
 class BitkitBitcoinExecutor(
     private val lightningRepo: LightningRepo,
@@ -57,8 +75,10 @@ class BitkitBitcoinExecutor(
             result.fold(
                 onSuccess = { txid ->
                     Logger.debug("Send successful, txid: $txid", context = TAG)
-                    // Estimate fee based on typical tx size
-                    val estimatedFee = (TYPICAL_TX_SIZE_VBYTES.toDouble() * (feeRate ?: 1.0)).toULong()
+                    // Estimate fee based on typical tx size using integer arithmetic
+                    // Convert feeRate (sat/vB as Double) to integer, rounding up for safety
+                    val feeRateSatPerVb = ceil(feeRate ?: 1.0).toLong().coerceAtLeast(1L)
+                    val estimatedFee = TYPICAL_TX_SIZE_VBYTES * feeRateSatPerVb.toULong()
 
                     BitcoinTxResultFfi(
                         `txid` = txid,
@@ -136,10 +156,25 @@ class BitkitBitcoinExecutor(
 
             result.fold(
                 onSuccess = { payments ->
-                    // LDK doesn't directly expose txid in PaymentDetails for on-chain
-                    // This would require external block explorer integration
-                    // For now, return null and document this limitation
-                    null
+                    // Search through on-chain payments for matching transaction
+                    val payment = payments.firstOrNull { payment ->
+                        (payment.kind as? org.lightningdevkit.ldknode.PaymentKind.Onchain)?.txid == `txid`
+                    }
+
+                    if (payment != null && payment.kind is org.lightningdevkit.ldknode.PaymentKind.Onchain) {
+                        val kind = payment.kind as org.lightningdevkit.ldknode.PaymentKind.Onchain
+                        BitcoinTxResultFfi(
+                            `txid` = kind.txid,
+                            `rawTx` = null,
+                            `vout` = 0u, // Not directly available from PaymentDetails
+                            `feeSats` = payment.feePaidMsat?.let { it / 1000uL } ?: 0uL,
+                            `feeRate` = 1.0, // Not directly available
+                            `blockHeight` = null, // Confirmation info is separate
+                            `confirmations` = if (payment.status == org.lightningdevkit.ldknode.PaymentStatus.SUCCEEDED) 1uL else 0uL,
+                        )
+                    } else {
+                        null
+                    }
                 },
                 onFailure = { null }
             )

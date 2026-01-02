@@ -1,19 +1,22 @@
 package to.bitkit.paykit
 
 import android.content.Context
-import com.paykit.mobile.BitcoinNetworkFfi
-import com.paykit.mobile.LightningNetworkFfi
-import com.paykit.mobile.PaykitClient
+import uniffi.paykit_mobile.BitcoinNetworkFfi
+import uniffi.paykit_mobile.LightningNetworkFfi
+import uniffi.paykit_mobile.PaykitClient
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.lightningdevkit.ldknode.Network
 import to.bitkit.env.Env
 import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
+import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
+import to.bitkit.paykit.services.SessionRefreshWorker
+import to.bitkit.paykit.workers.PaykitPollingWorker
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -24,28 +27,28 @@ import javax.inject.Singleton
  */
 @Singleton
 class PaykitManager @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: Context,
     private val pubkyRingBridge: PubkyRingBridge,
     private val pubkySDKService: PubkySDKService,
+    private val directoryService: DirectoryService,
 ) {
 
     companion object {
         private const val TAG = "PaykitManager"
-
+        
         @Volatile
         private var instance: PaykitManager? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitManager"))
-        fun getInstance(): PaykitManager {
-            return instance ?: throw IllegalStateException("PaykitManager not initialized. Use dependency injection.")
-        }
         
-        internal fun setInstance(manager: PaykitManager) {
-            instance = manager
-        }
+        /**
+         * Get the shared instance for non-DI contexts (e.g., objects).
+         * Prefer Hilt injection where possible.
+         */
+        internal fun getSharedInstance(): PaykitManager? = instance
     }
     
     init {
-        setInstance(this)
+        // Store reference for non-DI access
+        instance = this
     }
 
     private var client: PaykitClient? = null
@@ -102,6 +105,16 @@ class PaykitManager @Inject constructor(
         pubkySDKService.restoreSessions()
         pubkySDKService.configure()
 
+        // Configure DirectoryService with first available session for authenticated writes
+        pubkyRingBridge.getCachedSessions().firstOrNull()?.let { session ->
+            directoryService.configureWithPubkySession(session)
+            Logger.info("DirectoryService configured with restored session", context = TAG)
+        }
+
+        // Schedule background workers for session refresh and polling
+        SessionRefreshWorker.schedule(appContext)
+        PaykitPollingWorker.schedule(appContext)
+
         isInitialized = true
         Logger.info("PaykitManager initialized successfully", context = TAG)
     }
@@ -123,8 +136,10 @@ class PaykitManager @Inject constructor(
 
         val paykitClient = client ?: throw PaykitException.NotInitialized
 
-        paykitClient.`registerBitcoinExecutor`(bitcoinExecutor!! as com.paykit.mobile.BitcoinExecutorFfi)
-        paykitClient.`registerLightningExecutor`(lightningExecutor!! as com.paykit.mobile.LightningExecutorFfi)
+        val btcExecutor = bitcoinExecutor ?: throw PaykitException.NotInitialized
+        val lnExecutor = lightningExecutor ?: throw PaykitException.NotInitialized
+        paykitClient.registerBitcoinExecutor(btcExecutor)
+        paykitClient.registerLightningExecutor(lnExecutor)
 
         hasExecutors = true
         Logger.info("Paykit executors registered successfully", context = TAG)
@@ -154,9 +169,12 @@ class PaykitManager @Inject constructor(
      * This opens Pubky-ring to authenticate and returns a session with credentials.
      */
     suspend fun requestPubkySession(context: Context): PubkySession {
-        if (PubkyRingBridge.getInstance().isPubkyRingInstalled(context)) {
+        if (pubkyRingBridge.isPubkyRingInstalled(context)) {
             Logger.info("Requesting session from Pubky-ring", context = TAG)
-            return PubkyRingBridge.getInstance().requestSession(context)
+            val session = pubkyRingBridge.requestSession(context)
+            // Configure DirectoryService for authenticated writes to homeserver
+            directoryService.configureWithPubkySession(session)
+            return session
         }
         throw PaykitException.PubkyRingNotInstalled
     }
@@ -167,7 +185,7 @@ class PaykitManager @Inject constructor(
     suspend fun getOrRequestSession(context: Context, pubkey: String? = null): PubkySession {
         // Check cache first
         if (pubkey != null) {
-            PubkyRingBridge.getInstance().getCachedSession(pubkey)?.let { cached ->
+            pubkyRingBridge.getCachedSession(pubkey)?.let { cached ->
                 return cached
             }
         }
@@ -180,13 +198,8 @@ class PaykitManager @Inject constructor(
      * Check if Pubky-ring is installed and available
      */
     fun isPubkyRingAvailable(context: Context): Boolean =
-        PubkyRingBridge.getInstance().isPubkyRingInstalled(context)
+        pubkyRingBridge.isPubkyRingInstalled(context)
 }
-
-/**
- * Extension function to get PaykitClient from PaykitManager
- */
-fun PaykitManager.getClient(): PaykitClient = getClient()
 
 enum class BitcoinNetworkConfig {
     MAINNET,

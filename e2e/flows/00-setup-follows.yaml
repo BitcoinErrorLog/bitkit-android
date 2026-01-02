@@ -1,0 +1,95 @@
+# E2E Test Setup: Establish Follows Relationship
+# This flow ensures the primary identity follows the secondary identity
+# Run after both identities are imported into Ring, before main tests
+# 
+# Preconditions:
+#   - Primary identity (android-ai-tester) imported into Ring
+#   - Secondary identity (ios-ai-tester) imported into Ring
+#   - Both signed up to homeserver
+appId: to.pubky.ring
+name: Setup Follows Relationship
+---
+# Launch Ring
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd
+
+# === Import Secondary Identity ===
+# First, we need to import the secondary identity if not already done
+# Check if we need to add another pubky
+
+# Tap Add pubky to import secondary
+- runFlow:
+    when:
+      visible: "Add pubky"
+    commands:
+      - tapOn: "Add pubky"
+      - waitForAnimationToEnd
+      
+      - tapOn: "Import pubky"
+      - waitForAnimationToEnd
+      
+      - tapOn: "Encrypted File"
+      - waitForAnimationToEnd
+      
+      # Select secondary identity file
+      - runFlow:
+          when:
+            visible: "test-secondary.pkarr"
+          commands:
+            - tapOn: "test-secondary.pkarr"
+      
+      - runFlow:
+          when:
+            notVisible: "test-secondary.pkarr"
+          commands:
+            - tapOn:
+                text: "Downloads"
+                optional: true
+            - waitForAnimationToEnd
+            - tapOn:
+                text: "test-secondary.pkarr"
+                optional: true
+      
+      - waitForAnimationToEnd
+      
+      # Enter password
+      - inputText: "tester"
+      
+      - tapOn: "Import"
+      
+      - waitForAnimationToEnd:
+          timeout: 10000
+      
+      # Close success dialog
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
+            - waitForAnimationToEnd
+      
+      - runFlow:
+          when:
+            visible: "Done"
+          commands:
+            - tapOn: "Done"
+            - waitForAnimationToEnd
+
+# === Establish Follows Relationship ===
+# The follows relationship needs to be established via Bitkit's contact discovery
+# or by using Ring's internal features if available.
+# 
+# Note: The actual follows relationship may need to be established
+# through Bitkit's DirectoryService.addFollow() API,
+# which is triggered when tapping "Follow" in Contact Discovery.
+#
+# This flow primarily ensures both identities are imported into Ring.
+
+# Take a screenshot showing both identities
+- takeScreenshot: ring-both-identities
+
+# Final state: Ring should have two pubkys visible
+- assertNotVisible: "No Pubkys"
+

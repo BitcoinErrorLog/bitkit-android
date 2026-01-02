@@ -40,12 +40,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -53,9 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import org.json.JSONObject
-import to.bitkit.paykit.services.PubkyRingBridge
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.viewmodels.DashboardViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
@@ -77,174 +72,24 @@ fun PaykitDashboardScreen(
     onNavigateToPubkyRingAuth: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:79",
-            "message" to "PaykitDashboardScreen composable entry",
-            "data" to mapOf("hasViewModel" to (viewModel != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
     val context = LocalContext.current
-    
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:82",
-            "message" to "Before collectAsState calls",
-            "data" to mapOf("contextNotNull" to (context != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "B"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
-    val recentReceipts by viewModel.recentReceipts.collectAsState()
-    val contactCount by viewModel.contactCount.collectAsState()
-    val totalSent by viewModel.totalSent.collectAsState()
-    val totalReceived by viewModel.totalReceived.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val autoPayEnabled by viewModel.autoPayEnabled.collectAsState()
-    val activeSubscriptions by viewModel.activeSubscriptions.collectAsState()
-    val pendingRequests by viewModel.pendingRequests.collectAsState()
-    val publishedMethodsCount by viewModel.publishedMethodsCount.collectAsState()
+    val recentReceipts by viewModel.recentReceipts.collectAsStateWithLifecycle()
+    val contactCount by viewModel.contactCount.collectAsStateWithLifecycle()
+    val totalSent by viewModel.totalSent.collectAsStateWithLifecycle()
+    val totalReceived by viewModel.totalReceived.collectAsStateWithLifecycle()
+    val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val autoPayEnabled by viewModel.autoPayEnabled.collectAsStateWithLifecycle()
+    val activeSubscriptions by viewModel.activeSubscriptions.collectAsStateWithLifecycle()
+    val pendingRequests by viewModel.pendingRequests.collectAsStateWithLifecycle()
+    val publishedMethodsCount by viewModel.publishedMethodsCount.collectAsStateWithLifecycle()
 
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:95",
-            "message" to "Before PubkyRingBridge.getInstance()",
-            "data" to emptyMap<String, Any>(),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
-    val pubkyRingBridge = remember { 
-        try {
-            PubkyRingBridge.getInstance()
-        } catch (e: Exception) {
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:98",
-                    "message" to "PubkyRingBridge.getInstance() failed",
-                    "data" to mapOf("error" to (e.message ?: "unknown"), "errorType" to e.javaClass.simpleName),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "A"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (logErr: Exception) {}
-            // #endregion
-            null
-        }
-    }
-    
-    // #region agent log
-    try {
-        val logData = mapOf(
-            "location" to "PaykitDashboardScreen.kt:105",
-            "message" to "After PubkyRingBridge.getInstance()",
-            "data" to mapOf("pubkyRingBridgeNotNull" to (pubkyRingBridge != null)),
-            "timestamp" to System.currentTimeMillis(),
-            "sessionId" to "debug-session",
-            "runId" to "run1",
-            "hypothesisId" to "A"
-        )
-        java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-    } catch (e: Exception) {}
-    // #endregion
-    
-    val isPubkyRingInstalled = remember(pubkyRingBridge) { 
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "PaykitDashboardScreen.kt:115",
-                "message" to "Calling isPubkyRingInstalled",
-                "data" to mapOf("pubkyRingBridgeNotNull" to (pubkyRingBridge != null), "contextNotNull" to (context != null)),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "A"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        pubkyRingBridge?.isPubkyRingInstalled(context) ?: false
-    }
+    val isPubkyRingInstalled by viewModel.isPubkyRingInstalled.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        // #region agent log
-        try {
-            val logData = mapOf(
-                "location" to "PaykitDashboardScreen.kt:192",
-                "message" to "LaunchedEffect triggered, calling loadDashboard",
-                "data" to emptyMap<String, Any>(),
-                "timestamp" to System.currentTimeMillis(),
-                "sessionId" to "debug-session",
-                "runId" to "run1",
-                "hypothesisId" to "B"
-            )
-            java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-        } catch (e: Exception) {}
-        // #endregion
-        
-        try {
-            viewModel.loadDashboard()
-            
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:205",
-                    "message" to "loadDashboard call completed",
-                    "data" to emptyMap<String, Any>(),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "B"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (e: Exception) {}
-            // #endregion
-        } catch (e: Exception) {
-            // #region agent log
-            try {
-                val logData = mapOf(
-                    "location" to "PaykitDashboardScreen.kt:217",
-                    "message" to "loadDashboard threw exception",
-                    "data" to mapOf("error" to (e.message ?: "unknown"), "errorType" to e.javaClass.simpleName, "stackTrace" to e.stackTraceToString()),
-                    "timestamp" to System.currentTimeMillis(),
-                    "sessionId" to "debug-session",
-                    "runId" to "run1",
-                    "hypothesisId" to "B"
-                )
-                java.io.File("/Users/john/Library/Mobile Documents/com~apple~CloudDocs/vibes/pubky-ring/.cursor/debug.log").appendText(org.json.JSONObject(logData).toString() + "\n")
-            } catch (logErr: Exception) {}
-            // #endregion
-            throw e
-        }
-    }
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Paykit Dashboard",
+            titleText = "Paykit Dashboard", // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
         )
 
@@ -331,14 +176,14 @@ private fun StatsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Total Sent",
+                title = "Total Sent", // TODO: Localize via Transifex
                 value = formatSats(totalSent),
                 icon = Icons.Default.ArrowUpward,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Total Received",
+                title = "Total Received", // TODO: Localize via Transifex
                 value = formatSats(totalReceived),
                 icon = Icons.Default.ArrowDownward,
                 color = MaterialTheme.colorScheme.primary,
@@ -351,14 +196,14 @@ private fun StatsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Contacts",
+                title = "Contacts", // TODO: Localize via Transifex
                 value = contactCount.toString(),
                 icon = Icons.Default.People,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Pending",
+                title = "Pending", // TODO: Localize via Transifex
                 value = pendingCount.toString(),
                 icon = Icons.Default.Schedule,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -383,7 +228,7 @@ private fun QuickAccessSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Auto-Pay",
+                title = "Auto-Pay", // TODO: Localize via Transifex
                 subtitle = if (autoPayEnabled) "ON" else "OFF",
                 icon = Icons.Default.Repeat,
                 color = Colors.Brand,
@@ -391,7 +236,7 @@ private fun QuickAccessSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Subscriptions",
+                title = "Subscriptions", // TODO: Localize via Transifex
                 subtitle = if (activeSubscriptions > 0) "$activeSubscriptions active" else "Manage",
                 icon = Icons.Default.CalendarToday,
                 color = MaterialTheme.colorScheme.primary,
@@ -419,7 +264,7 @@ private fun PaymentsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Payment Requests",
+                title = "Payment Requests", // TODO: Localize via Transifex
                 subtitle = if (pendingRequests > 0) "$pendingRequests pending" else "View all",
                 icon = Icons.Default.Notifications,
                 color = MaterialTheme.colorScheme.primary,
@@ -427,8 +272,8 @@ private fun PaymentsSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Noise Payment",
-                subtitle = "Private transfers",
+                title = "Noise Payment", // TODO: Localize via Transifex
+                subtitle = "Private transfers", // TODO: Localize via Transifex
                 icon = Icons.Default.Waves,
                 color = MaterialTheme.colorScheme.secondary,
                 onClick = onNavigateToNoisePayment,
@@ -441,7 +286,7 @@ private fun PaymentsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Contacts",
+                title = "Contacts", // TODO: Localize via Transifex
                 subtitle = if (contactCount > 0) "$contactCount saved" else "Manage",
                 icon = Icons.Default.Person,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -449,8 +294,8 @@ private fun PaymentsSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Discover",
-                subtitle = "Find contacts",
+                title = "Discover", // TODO: Localize via Transifex
+                subtitle = "Find contacts", // TODO: Localize via Transifex
                 icon = Icons.Default.Search,
                 color = Colors.Green,
                 onClick = onNavigateToContactDiscovery,
@@ -476,7 +321,7 @@ private fun IdentitySection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Endpoints",
+                title = "Endpoints", // TODO: Localize via Transifex
                 subtitle = if (publishedMethodsCount > 0) "$publishedMethodsCount published" else "Setup",
                 icon = Icons.Default.Link,
                 color = MaterialTheme.colorScheme.secondary,
@@ -484,8 +329,8 @@ private fun IdentitySection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Key Rotation",
-                subtitle = "Security",
+                title = "Key Rotation", // TODO: Localize via Transifex
+                subtitle = "Security", // TODO: Localize via Transifex
                 icon = Icons.Default.Key,
                 color = Colors.Yellow,
                 onClick = onNavigateToRotationSettings,

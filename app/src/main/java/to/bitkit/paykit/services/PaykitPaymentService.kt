@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import to.bitkit.paykit.PaykitException
 import to.bitkit.paykit.PaykitIntegrationHelper
+import to.bitkit.paykit.PaykitManager
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.PaymentCandidate
+import uniffi.paykit_mobile.SelectionPreferences
+import uniffi.paykit_mobile.SelectionStrategy
 import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
@@ -24,30 +28,29 @@ import javax.inject.Singleton
  * - Receipt generation and storage
  * - Payment status tracking
  *
- * Usage:
+ * ## Usage
+ *
+ * Prefer dependency injection:
  * ```kotlin
- * val service = PaykitPaymentService.getInstance()
- * val result = service.pay(to = "lnbc...", amountSats = 10000)
+ * @Inject constructor(private val paymentService: PaykitPaymentService)
+ * val result = paymentService.pay(lightningRepo, "lnbc...", amountSats = 10000uL)
  * ```
+ *
+ * Legacy `getInstance()` is deprecated and will be removed in a future release.
  */
 @Singleton
-class PaykitPaymentService @Inject constructor() {
+class PaykitPaymentService @Inject constructor(
+    private val receiptStore: PaykitReceiptStore,
+    private val spendingLimitManager: SpendingLimitManager,
+    private val directoryService: DirectoryService,
+    private val paykitManager: PaykitManager,
+) {
 
     companion object {
         private const val TAG = "PaykitPaymentService"
-
-        @Volatile
-        private var instance: PaykitPaymentService? = null
-
-        fun getInstance(): PaykitPaymentService {
-            return instance ?: synchronized(this) {
-                instance ?: PaykitPaymentService().also { instance = it }
-            }
-        }
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val receiptStore = PaykitReceiptStore()
 
     /** Payment timeout in milliseconds */
     var paymentTimeoutMs: Long = 60_000L
@@ -137,7 +140,6 @@ class PaykitPaymentService @Inject constructor() {
         val paymentType = detectPaymentType(recipient)
 
         // If peer pubkey is provided and spending limit manager is initialized, use atomic spending
-        val spendingLimitManager = SpendingLimitManager.getInstance()
         if (peerPubkey != null && amountSats != null && spendingLimitManager.isInitialized) {
             return payWithSpendingLimit(
                 lightningRepo = lightningRepo,
@@ -161,17 +163,230 @@ class PaykitPaymentService @Inject constructor() {
                 }
                 payOnchain(lightningRepo, recipient, amountSats, feeRate)
             }
-            DetectedPaymentType.PAYKIT -> PaykitPaymentResult(
-                success = false,
-                receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
-                error = PaykitPaymentError.UnsupportedPaymentType
-            )
+            DetectedPaymentType.PAYKIT -> payPaykitUri(recipient, amountSats)
             DetectedPaymentType.UNKNOWN -> PaykitPaymentResult(
                 success = false,
                 receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
                 error = PaykitPaymentError.InvalidRecipient(recipient)
             )
         }
+    }
+
+    // MARK: - Smart Method Selection
+
+    /**
+     * Select optimal payment method for a recipient based on strategy.
+     *
+     * @param recipientPubkey Recipient's pubkey
+     * @param amountSats Payment amount
+     * @param strategy Selection strategy (default: BALANCED)
+     * @return Selected payment method or null if none available
+     */
+    suspend fun selectOptimalMethod(
+        recipientPubkey: String,
+        amountSats: ULong,
+        strategy: SelectionStrategy = SelectionStrategy.BALANCED,
+    ): uniffi.paykit_mobile.PaymentMethod? {
+        val client = runCatching { paykitManager.getClient() }.getOrNull() ?: return null
+
+        val methods = directoryService.discoverPaymentMethods(recipientPubkey)
+        if (methods.isEmpty()) return null
+
+        return runCatching {
+            val preferences = SelectionPreferences(
+                strategy = strategy,
+                excludedMethods = emptyList(),
+                maxFeeSats = null,
+                maxConfirmationTimeSecs = null,
+            )
+            val result = client.selectMethod(methods, amountSats, preferences)
+            // Try primary method first, then fallback methods
+            methods.find { it.methodId == result.primaryMethod }
+                ?: result.fallbackMethods.firstNotNullOfOrNull { fallback ->
+                    methods.find { it.methodId == fallback }
+                }
+        }.getOrElse { e ->
+            Logger.warn("Method selection failed, using first available: ${e.message}", context = TAG)
+            methods.firstOrNull()
+        }
+    }
+
+    /**
+     * Build ordered payment methods for fallback execution.
+     *
+     * Returns primary method first, followed by fallback methods.
+     *
+     * @param recipientPubkey Recipient's pubkey
+     * @param primaryMethod The primary selected method
+     * @return Ordered list of payment methods
+     */
+    private suspend fun buildOrderedPaymentMethods(
+        recipientPubkey: String,
+        primaryMethod: uniffi.paykit_mobile.PaymentMethod,
+    ): List<uniffi.paykit_mobile.PaymentMethod> {
+        val client = runCatching { paykitManager.getClient() }.getOrNull()
+            ?: return listOf(primaryMethod)
+
+        val methods = directoryService.discoverPaymentMethods(recipientPubkey)
+
+        // Get selection result to determine fallback order
+        val selectionResult = runCatching {
+            val preferences = SelectionPreferences(
+                strategy = SelectionStrategy.BALANCED,
+                excludedMethods = emptyList(),
+                maxFeeSats = null,
+                maxConfirmationTimeSecs = null,
+            )
+            client.selectMethod(methods, 0uL, preferences)
+        }.getOrNull()
+
+        // Build ordered list: primary first, then fallbacks
+        val orderedMethods = mutableListOf<uniffi.paykit_mobile.PaymentMethod>()
+
+        // Add primary method
+        orderedMethods.add(primaryMethod)
+
+        // Add fallback methods (if available)
+        if (selectionResult != null) {
+            for (fallbackMethodId in selectionResult.fallbackMethods) {
+                val fallbackMethod = methods.find { it.methodId == fallbackMethodId }
+                if (fallbackMethod != null && fallbackMethod.methodId != primaryMethod.methodId) {
+                    orderedMethods.add(fallbackMethod)
+                }
+            }
+        }
+
+        return orderedMethods
+    }
+
+    /**
+     * Execute a Paykit URI payment.
+     *
+     * Discovers payment methods for the recipient and executes payment using smart selection.
+     *
+     * @param uri The Paykit URI (e.g., "paykit:pubkey" or "pip:pubkey")
+     * @param amountSats Amount in satoshis
+     * @return Payment result
+     */
+    private suspend fun payPaykitUri(
+        uri: String,
+        amountSats: ULong?,
+    ): PaykitPaymentResult {
+        Logger.info("Executing Paykit URI payment: $uri", context = TAG)
+        _paymentState.value = PaykitPaymentState.Processing
+
+        val pubkey = extractPubkeyFromUri(uri)
+        val amount = amountSats ?: 0uL
+
+        // Use smart method selection
+        val selectedMethod = selectOptimalMethod(pubkey, amount)
+        if (selectedMethod == null) {
+            Logger.warn("No payment methods found for $pubkey", context = TAG)
+            val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
+            _paymentState.value = PaykitPaymentState.Failed(PaykitPaymentError.InvalidRecipient("No payment methods found for $pubkey"))
+            return PaykitPaymentResult(
+                success = false,
+                receipt = receipt,
+                error = PaykitPaymentError.InvalidRecipient("No payment methods found for $pubkey"),
+            )
+        }
+
+        Logger.info("Selected payment method: ${selectedMethod.methodId}", context = TAG)
+
+        return try {
+            val client = paykitManager.getClient()
+
+            // Build ordered methods: primary first, then fallbacks
+            val orderedMethods = buildOrderedPaymentMethods(pubkey, selectedMethod)
+            val candidates = orderedMethods.map { method ->
+                PaymentCandidate(
+                    methodId = method.methodId,
+                    endpoint = method.endpoint,
+                )
+            }
+
+            val execution = client.executeWithFallbacks(
+                candidates = candidates,
+                amountSats = amount,
+                metadataJson = null,
+            )
+
+            val attemptedMethods = execution.attempts.map { it.methodId }
+
+            val successResult = execution.successfulExecution
+            if (!execution.success || successResult == null || !successResult.success) {
+                Logger.warn(execution.summary, context = TAG)
+                val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
+                val errorMsg = execution.attempts.lastOrNull()?.error ?: execution.summary
+                _paymentState.value = PaykitPaymentState.Failed(mapError(Exception(errorMsg)))
+                return PaykitPaymentResult(
+                    success = false,
+                    receipt = receipt,
+                    error = mapError(Exception(errorMsg)),
+                )
+            }
+
+            // Determine receipt type based on successful method
+            val receiptType = when {
+                successResult.methodId.contains("onchain", ignoreCase = true) ||
+                successResult.methodId.contains("bitcoin", ignoreCase = true) -> PaykitReceiptType.ONCHAIN
+                else -> PaykitReceiptType.LIGHTNING
+            }
+
+            val receipt = PaykitReceipt(
+                id = UUID.randomUUID().toString(),
+                type = receiptType,
+                recipient = pubkey,
+                amountSats = amount,
+                feeSats = 0uL,
+                paymentHash = successResult.executionId,
+                preimage = null,
+                txid = successResult.executionId,
+                timestamp = Date(),
+                status = PaykitReceiptStatus.SUCCEEDED,
+            )
+
+            if (autoStoreReceipts) {
+                receiptStore.store(receipt)
+            }
+
+            // Log fallback attempts if any
+            if (attemptedMethods.size > 1) {
+                val attemptSummary = attemptedMethods.joinToString(" → ")
+                Logger.info("Paykit payment succeeded after ${attemptedMethods.size} attempts: $attemptSummary", context = TAG)
+            } else {
+                Logger.info("Paykit URI payment succeeded: ${successResult.executionId}", context = TAG)
+            }
+            _paymentState.value = PaykitPaymentState.Succeeded(receipt)
+
+            PaykitPaymentResult(
+                success = true,
+                receipt = receipt,
+                error = null,
+            )
+        } catch (e: Exception) {
+            Logger.error("Paykit URI payment failed", e, context = TAG)
+
+            val receipt = createFailedReceipt(uri, amount, PaykitReceiptType.LIGHTNING)
+            if (autoStoreReceipts) {
+                receiptStore.store(receipt)
+            }
+
+            _paymentState.value = PaykitPaymentState.Failed(mapError(e))
+
+            PaykitPaymentResult(
+                success = false,
+                receipt = receipt,
+                error = mapError(e),
+            )
+        }
+    }
+
+    private fun extractPubkeyFromUri(uri: String): String {
+        return uri
+            .removePrefix("paykit:")
+            .removePrefix("pip:")
+            .trim()
     }
 
     /**
@@ -187,8 +402,6 @@ class PaykitPaymentService @Inject constructor() {
         peerPubkey: String,
         paymentType: DetectedPaymentType,
     ): PaykitPaymentResult {
-        val spendingLimitManager = SpendingLimitManager.getInstance()
-
         return runCatching {
             spendingLimitManager.executeWithSpendingLimit(
                 peerPubkey = peerPubkey,
@@ -381,6 +594,34 @@ class PaykitPaymentService @Inject constructor() {
             is PaykitException.PaymentFailed -> PaykitPaymentError.PaymentFailed(error.reason)
             else -> PaykitPaymentError.Unknown(error.message ?: error.toString())
         }
+    }
+
+    /**
+     * Determine if an error is retryable (should try next fallback method).
+     *
+     * Non-retryable errors stop the fallback loop to avoid double-spend risks.
+     */
+    private fun isRetryableError(errorMessage: String?): Boolean {
+        if (errorMessage == null) return true
+
+        val msg = errorMessage.lowercase()
+
+        // Non-retryable patterns (could cause double-spend or are permanent)
+        val nonRetryablePatterns = listOf(
+            "already paid",
+            "duplicate payment",
+            "duplicate invoice",
+            "insufficient balance",
+            "insufficient funds",
+            "invoice expired",
+            "payment hash already exists",
+            "invoice already paid",
+            "amount too low",
+            "amount below minimum",
+            "permanently failed",
+        )
+
+        return nonRetryablePatterns.none { msg.contains(it) }
     }
 
     /** Reset payment state to idle. */

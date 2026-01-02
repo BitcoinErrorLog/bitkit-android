@@ -261,6 +261,49 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Profile data
+    val profileName = settingsStore.data.map { it.profileName }
+        .asStateFlow(initialValue = "")
+
+    val profileBio = settingsStore.data.map { it.profileBio }
+        .asStateFlow(initialValue = "")
+
+    val profileAvatarUrl = settingsStore.data.map { it.profileAvatarUrl }
+        .asStateFlow(initialValue = "")
+
+    val profilePubkyId = settingsStore.data.map { it.profilePubkyId }
+        .asStateFlow(initialValue = "")
+    
+    val displayName = settingsStore.data.map { 
+        it.profileName.ifEmpty { "Your Name" } 
+    }.asStateFlow(initialValue = "Your Name")
+
+    fun updateProfile(name: String, bio: String, avatarUrl: String, pubkyId: String) {
+        viewModelScope.launch {
+            settingsStore.update {
+                it.copy(
+                    profileName = name,
+                    profileBio = bio,
+                    profileAvatarUrl = avatarUrl,
+                    profilePubkyId = pubkyId
+                )
+            }
+        }
+    }
+
+    fun clearProfile() {
+        viewModelScope.launch {
+            settingsStore.update {
+                it.copy(
+                    profileName = "",
+                    profileBio = "",
+                    profileAvatarUrl = "",
+                    profilePubkyId = ""
+                )
+            }
+        }
+    }
+
     // utils
     private fun <T> Flow<T>.asStateFlow(
         started: SharingStarted = SharingStarted.WhileSubscribed(5000),

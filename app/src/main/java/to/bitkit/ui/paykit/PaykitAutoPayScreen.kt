@@ -6,14 +6,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.viewmodels.AutoPayViewModel
@@ -26,18 +25,15 @@ fun PaykitAutoPayScreen(
     onNavigateBack: () -> Unit,
     viewModel: AutoPayViewModel = hiltViewModel()
 ) {
-    val settings by viewModel.settings.collectAsState()
-    val peerLimits by viewModel.peerLimits.collectAsState()
-    val rules by viewModel.rules.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val peerLimits by viewModel.peerLimits.collectAsStateWithLifecycle()
+    val rules by viewModel.rules.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSettings()
-    }
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Auto-Pay Settings",
+            titleText = "Auto-Pay Settings", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -145,7 +141,12 @@ fun PaykitAutoPayScreen(
                             )
                         } else {
                             rules.forEach { rule ->
-                                RuleCard(rule = rule)
+                                RuleCard(
+                                    rule = rule,
+                                    onToggleEnabled = { enabled ->
+                                        viewModel.updateRule(rule.copy(isEnabled = enabled))
+                                    }
+                                )
                             }
                         }
                     }
@@ -185,7 +186,10 @@ fun PeerLimitCard(limit: PeerSpendingLimit) {
 }
 
 @Composable
-fun RuleCard(rule: AutoPayRule) {
+fun RuleCard(
+    rule: AutoPayRule,
+    onToggleEnabled: (Boolean) -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -206,9 +210,7 @@ fun RuleCard(rule: AutoPayRule) {
                 )
                 Switch(
                     checked = rule.isEnabled,
-                    onCheckedChange = {
-                        // TODO: Update rule enabled state
-                    }
+                    onCheckedChange = onToggleEnabled
                 )
             }
 

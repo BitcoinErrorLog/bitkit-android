@@ -2,6 +2,19 @@
 
 This file provides guidance to AI agents like Cursor/Claude Code/Codex/WARP when working with code in this repository.
 
+## Java Environment (CRITICAL)
+
+Java is installed via Homebrew. Before running ANY gradle or java command, set the environment:
+
+```sh
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Example: `export JAVA_HOME="/opt/homebrew/opt/openjdk@21" && ./gradlew compileDevDebugKotlin`
+
+DO NOT claim Java is unavailable - it IS installed at the path above.
+
 ## Build Commands
 
 ```sh

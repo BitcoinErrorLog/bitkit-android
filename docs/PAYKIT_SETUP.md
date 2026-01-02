@@ -206,11 +206,16 @@ E2E=true ./gradlew assembleDevRelease
 The app supports simulated sessions for development:
 
 ```kotlin
-// In test code
-PubkyRingBridge.getInstance(context).handleCallback(
-    Uri.parse("bitkit://paykit-session?pubkey=...")
+// In test code, inject PubkyRingBridge and call handleCallback
+@Inject constructor(private val pubkyRingBridge: PubkyRingBridge)
+
+// Then simulate a session callback:
+pubkyRingBridge.handleCallback(
+    Uri.parse("bitkit://paykit-session?pubkey=...&session_secret=...")
 )
 ```
+
+> **Note:** `PubkyRingBridge.getInstance()` is deprecated. Use dependency injection instead.
 
 ## Next Steps
 

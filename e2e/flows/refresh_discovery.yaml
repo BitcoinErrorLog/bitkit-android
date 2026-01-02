@@ -1,0 +1,18 @@
+appId: to.bitkit.dev
+---
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    id: ".*HeaderMenu.*"
+- waitForAnimationToEnd
+- tapOn: "CONTACTS"
+- waitForAnimationToEnd
+- tapOn: "Discover Contacts"
+- waitForAnimationToEnd
+- takeScreenshot: before-refresh
+- tapOn:
+    point: "655,136"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: after-refresh
+

@@ -28,7 +28,11 @@ data class Receipt(
     var txId: String? = null,
     var proof: String? = null,
     var proofVerified: Boolean = false,
-    var proofVerifiedAt: Long? = null
+    var proofVerifiedAt: Long? = null,
+    /** ID of the payment request this receipt fulfills (if any) */
+    val requestId: String? = null,
+    /** Invoice number from the original request (for cross-referencing) */
+    val invoiceNumber: String? = null
 ) {
     companion object {
         fun create(
@@ -37,7 +41,9 @@ data class Receipt(
             counterpartyName: String? = null,
             amountSats: Long,
             paymentMethod: String,
-            memo: String? = null
+            memo: String? = null,
+            requestId: String? = null,
+            invoiceNumber: String? = null
         ): Receipt {
             return Receipt(
                 id = UUID.randomUUID().toString(),
@@ -46,7 +52,9 @@ data class Receipt(
                 counterpartyName = counterpartyName,
                 amountSats = amountSats,
                 paymentMethod = paymentMethod,
-                memo = memo
+                memo = memo,
+                requestId = requestId,
+                invoiceNumber = invoiceNumber
             )
         }
     }

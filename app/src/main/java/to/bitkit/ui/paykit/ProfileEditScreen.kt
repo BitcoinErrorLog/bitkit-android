@@ -14,12 +14,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,19 +33,21 @@ import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyProfile
 import to.bitkit.paykit.services.PubkyProfileLink
+import to.bitkit.paykit.services.DirectoryError
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @Composable
 fun ProfileEditScreen(
     onBackClick: () -> Unit,
     viewModel: ProfileEditViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ProfileEditContent(
         uiState = uiState,
@@ -73,7 +76,7 @@ private fun ProfileEditContent(
 ) {
     ScreenColumn {
         AppTopBar(
-            titleText = "Edit Profile",
+            titleText = "Edit Profile", // TODO: Localize via Transifex
             onBackClick = onBackClick,
             actions = {
                 if (uiState.hasChanges && !uiState.isSaving) {
@@ -408,13 +411,23 @@ class ProfileEditViewModel @Inject constructor(
                 } else {
                     _uiState.update { it.copy(isLoading = false) }
                 }
-            } catch (e: Exception) {
-                Logger.error("Failed to load profile", e, context = TAG)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: DirectoryError.NotConfigured) {
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to load profile: ${e.message}"
-                    )
+                    it.copy(isLoading = false, errorMessage = "Not connected to Pubky")
+                }
+            } catch (e: DirectoryError.NetworkError) {
+                Logger.error("Network error loading profile", e, context = TAG)
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Network error: ${e.message}")
+                }
+            } catch (e: DirectoryError.NotFound) {
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: DirectoryError) {
+                Logger.error("Directory error loading profile", e, context = TAG)
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Failed to load profile: ${e.message}")
                 }
             }
         }
@@ -492,11 +505,11 @@ class ProfileEditViewModel @Inject constructor(
             val profile = PubkyProfile(
                 name = state.name.takeIf { it.isNotEmpty() },
                 bio = state.bio.takeIf { it.isNotEmpty() },
-                avatar = null,
+                image = null,
                 links = state.links
                     .filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
                     .map { PubkyProfileLink(it.title, it.url) }
-                    .takeIf { it.isNotEmpty() }
+                    .takeIf { it.isNotEmpty() },
             )
 
             try {
@@ -509,13 +522,26 @@ class ProfileEditViewModel @Inject constructor(
                         successMessage = "Profile published successfully!"
                     )
                 }
-            } catch (e: Exception) {
-                Logger.error("Failed to publish profile", e, context = TAG)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: DirectoryError.NotConfigured) {
                 _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        errorMessage = "Failed to publish: ${e.message}"
-                    )
+                    it.copy(isSaving = false, errorMessage = "Not connected to Pubky")
+                }
+            } catch (e: DirectoryError.NetworkError) {
+                Logger.error("Network error publishing profile", e, context = TAG)
+                _uiState.update {
+                    it.copy(isSaving = false, errorMessage = "Network error: ${e.message}")
+                }
+            } catch (e: DirectoryError.PublishFailed) {
+                Logger.error("Publish failed", e, context = TAG)
+                _uiState.update {
+                    it.copy(isSaving = false, errorMessage = "Failed to publish: ${e.message}")
+                }
+            } catch (e: DirectoryError) {
+                Logger.error("Directory error publishing profile", e, context = TAG)
+                _uiState.update {
+                    it.copy(isSaving = false, errorMessage = "Failed to publish: ${e.message}")
                 }
             }
         }

@@ -420,7 +420,7 @@ lifecycleScope.launch {
 
 ## References
 
-- Paykit Roadmap: `paykit-rs-master/PAYKIT_ROADMAP.md`
+- Paykit Roadmap: `paykit-rs/PAYKIT_ROADMAP.md`
 - iOS Integration: `bitkit-ios/PAYKIT_INTEGRATION.md`
-- Phase 3 Report: `paykit-rs-master/FINAL_DELIVERY_REPORT.md`
+- Phase 3 Report: `paykit-rs/FINAL_DELIVERY_REPORT.md`
 

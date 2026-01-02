@@ -83,6 +83,11 @@ data class SettingsData(
     val defaultTransactionSpeed: TransactionSpeed = TransactionSpeed.default(),
     val showEmptyBalanceView: Boolean = true,
     val hasSeenSpendingIntro: Boolean = false,
+    // Profile data (cached locally)
+    val profileName: String = "",
+    val profileBio: String = "",
+    val profileAvatarUrl: String = "",
+    val profilePubkyId: String = "",
     val hasSeenWidgetsIntro: Boolean = false,
     val hasSeenTransferIntro: Boolean = false,
     val hasSeenSavingsIntro: Boolean = false,
