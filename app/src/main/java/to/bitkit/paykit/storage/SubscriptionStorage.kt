@@ -3,6 +3,7 @@ package to.bitkit.paykit.storage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -10,31 +11,36 @@ import javax.inject.Singleton
 
 /**
  * Manages persistent storage of subscriptions using Keychain.
+ *
+ * Storage is scoped by the current identity pubkey to prevent data leaks
+ * between different identities.
  */
 @Singleton
 class SubscriptionStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: KeyManager,
 ) {
     companion object {
         private const val TAG = "SubscriptionStorage"
     }
 
-    private var subscriptionsCache: List<Subscription>? = null
-    private val identityName: String = "default"
+    private var subscriptionsCache: MutableMap<String, List<Subscription>> = mutableMapOf()
+
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val storageKey: String
-        get() = "subscriptions.$identityName"
+        get() = "subscriptions.$currentIdentity"
 
     fun listSubscriptions(): List<Subscription> {
-        if (subscriptionsCache != null) {
-            return subscriptionsCache!!
-        }
+        val identity = currentIdentity
+        subscriptionsCache[identity]?.let { return it }
 
         return try {
             val data = keychain.retrieve(storageKey) ?: return emptyList()
             val json = String(data)
             val subscriptions = Json.decodeFromString<List<Subscription>>(json)
-            subscriptionsCache = subscriptions
+            subscriptionsCache[identity] = subscriptions
             subscriptions
         } catch (e: Exception) {
             Logger.error("SubscriptionStorage: Failed to load subscriptions", e, context = TAG)
@@ -99,14 +105,17 @@ class SubscriptionStorage @Inject constructor(
     }
 
     suspend fun clearAll() {
+        val identity = currentIdentity
         persistSubscriptions(emptyList())
+        subscriptionsCache.remove(identity)
     }
 
     private suspend fun persistSubscriptions(subscriptions: List<Subscription>) {
+        val identity = currentIdentity
         try {
             val json = Json.encodeToString(subscriptions)
             keychain.store(storageKey, json.toByteArray())
-            subscriptionsCache = subscriptions
+            subscriptionsCache[identity] = subscriptions
         } catch (e: Exception) {
             Logger.error("SubscriptionStorage: Failed to persist subscriptions", e, context = TAG)
             throw PaykitStorageException.SaveFailed(storageKey)

@@ -68,24 +68,28 @@ data class RotationEvent(
 )
 
 /**
- * Manages rotation settings and history persistence
+ * Manages rotation settings and history persistence.
+ *
+ * Storage is scoped by the current identity pubkey.
  */
 @Singleton
 class RotationSettingsStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: to.bitkit.paykit.KeyManager,
 ) {
     companion object {
         private const val TAG = "RotationSettingsStorage"
         private const val MAX_HISTORY_EVENTS = 100
     }
 
-    private val identityName: String = "default"
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val settingsKey: String
-        get() = "rotation_settings.$identityName"
+        get() = "rotation_settings.$currentIdentity"
 
     private val historyKey: String
-        get() = "rotation_history.$identityName"
+        get() = "rotation_history.$currentIdentity"
 
     // MARK: - Settings
 

@@ -3,6 +3,7 @@ package to.bitkit.paykit.storage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.models.RequestDirection
@@ -12,36 +13,40 @@ import javax.inject.Singleton
 
 /**
  * Manages persistent storage of payment requests using Keychain.
+ *
+ * Storage is scoped by the current identity pubkey.
  */
 @Singleton
 class PaymentRequestStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: KeyManager,
 ) {
     companion object {
         private const val TAG = "PaymentRequestStorage"
         private const val MAX_REQUESTS_TO_KEEP = 200
     }
 
-    private var requestsCache: List<PaymentRequest>? = null
-    private val identityName: String = "default"
+    private var requestsCache: MutableMap<String, List<PaymentRequest>> = mutableMapOf()
+
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val requestsKey: String
-        get() = "payment_requests.$identityName"
+        get() = "payment_requests.$currentIdentity"
 
     /**
      * Get all requests (newest first)
      */
     fun listRequests(): List<PaymentRequest> {
-        if (requestsCache != null) {
-            return requestsCache!!
-        }
+        val identity = currentIdentity
+        requestsCache[identity]?.let { return it }
 
         return try {
             val data = keychain.retrieve(requestsKey) ?: return emptyList()
             val json = String(data)
             val requests = Json.decodeFromString<List<PaymentRequest>>(json)
                 .sortedByDescending { it.createdAt }
-            requestsCache = requests
+            requestsCache[identity] = requests
             requests
         } catch (e: Exception) {
             Logger.error("PaymentRequestStorage: Failed to load requests", e, context = TAG)
@@ -199,7 +204,9 @@ class PaymentRequestStorage @Inject constructor(
      * Clear all requests
      */
     suspend fun clearAll() {
+        val identity = currentIdentity
         persistRequests(emptyList())
+        requestsCache.remove(identity)
     }
 
     // MARK: - Statistics
@@ -232,10 +239,11 @@ class PaymentRequestStorage @Inject constructor(
     // MARK: - Private
 
     private suspend fun persistRequests(requests: List<PaymentRequest>) {
+        val identity = currentIdentity
         try {
             val json = Json.encodeToString(requests)
             keychain.store(requestsKey, json.toByteArray())
-            requestsCache = requests
+            requestsCache[identity] = requests
         } catch (e: Exception) {
             Logger.error("PaymentRequestStorage: Failed to persist requests", e, context = TAG)
             throw PaykitStorageException.SaveFailed(requestsKey)

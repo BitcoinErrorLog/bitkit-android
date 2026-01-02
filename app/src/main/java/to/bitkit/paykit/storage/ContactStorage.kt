@@ -3,38 +3,43 @@ package to.bitkit.paykit.storage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.Contact
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Manages persistent storage of contacts
+ * Manages persistent storage of contacts.
+ *
+ * Storage is scoped by the current identity pubkey.
  */
 @Singleton
 class ContactStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: KeyManager,
 ) {
     companion object {
         private const val TAG = "ContactStorage"
     }
 
-    private var contactsCache: List<Contact>? = null
-    private val identityName: String = "default"
+    private var contactsCache: MutableMap<String, List<Contact>> = mutableMapOf()
+
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val contactsKey: String
-        get() = "contacts.$identityName"
+        get() = "contacts.$currentIdentity"
 
     fun listContacts(): List<Contact> {
-        if (contactsCache != null) {
-            return contactsCache!!
-        }
+        val identity = currentIdentity
+        contactsCache[identity]?.let { return it }
 
         return try {
             val data = keychain.retrieve(contactsKey) ?: return emptyList()
             val json = String(data)
             val contacts = Json.decodeFromString<List<Contact>>(json)
-            contactsCache = contacts
+            contactsCache[identity] = contacts
             contacts
         } catch (e: Exception) {
             Logger.error("ContactStorage: Failed to load contacts", e, context = TAG)
@@ -82,7 +87,9 @@ class ContactStorage @Inject constructor(
     }
 
     suspend fun clearAll() {
+        val identity = currentIdentity
         persistContacts(emptyList())
+        contactsCache.remove(identity)
     }
 
     suspend fun importContacts(newContacts: List<Contact>) {
@@ -101,10 +108,11 @@ class ContactStorage @Inject constructor(
     }
 
     private suspend fun persistContacts(contacts: List<Contact>) {
+        val identity = currentIdentity
         try {
             val json = Json.encodeToString(contacts)
             keychain.store(contactsKey, json.toByteArray())
-            contactsCache = contacts
+            contactsCache[identity] = contacts
         } catch (e: Exception) {
             Logger.error("ContactStorage: Failed to persist contacts", e, context = TAG)
             throw PaykitStorageException.SaveFailed(contactsKey)

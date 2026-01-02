@@ -1822,7 +1822,7 @@ class AppViewModel @Inject constructor(
         val paymentRequestService = PaymentRequestService(
             paykitClient = paykitClient,
             autopayEvaluator = autoPayViewModel.asAutopayEvaluator(),
-            paymentRequestStorage = PaymentRequestStorage(keychainStorage),
+            paymentRequestStorage = PaymentRequestStorage(keychainStorage, keyManager),
             directoryService = directoryService,
             paykitManager = paykitManager,
         )

@@ -5,6 +5,7 @@ import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
@@ -15,12 +16,15 @@ import kotlin.test.assertTrue
 class SubscriptionStorageTest : BaseUnitTest() {
 
     private lateinit var keychain: PaykitKeychainStorage
+    private lateinit var keyManager: KeyManager
     private lateinit var storage: SubscriptionStorage
 
     @Before
     fun setup() {
         keychain = mock()
-        storage = SubscriptionStorage(keychain)
+        keyManager = mock()
+        whenever(keyManager.getCurrentPublicKeyZ32()).thenReturn("pk:test_identity")
+        storage = SubscriptionStorage(keychain, keyManager)
     }
 
     @Test

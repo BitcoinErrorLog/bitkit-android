@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.PrivateEndpointOffer
 import to.bitkit.utils.Logger
 import javax.inject.Inject
@@ -11,10 +12,13 @@ import javax.inject.Singleton
 
 /**
  * Manages persistent storage of private payment endpoints using Keychain.
+ *
+ * Storage is scoped by the current identity pubkey.
  */
 @Singleton
 class PrivateEndpointStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: KeyManager,
 ) {
     companion object {
         private const val TAG = "PrivateEndpointStorage"
@@ -23,14 +27,16 @@ class PrivateEndpointStorage @Inject constructor(
     @Serializable
     private data class StoredEndpoint(
         val methodId: String,
-        val endpoint: String
+        val endpoint: String,
     )
 
-    private var endpointsCache: Map<String, List<PrivateEndpointOffer>>? = null
-    private val identityName: String = "default"
+    private var endpointsCache: MutableMap<String, Map<String, List<PrivateEndpointOffer>>> = mutableMapOf()
+
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val endpointsKey: String
-        get() = "private_endpoints.$identityName"
+        get() = "private_endpoints.$currentIdentity"
 
     /**
      * Get all private endpoints for a peer
@@ -101,7 +107,9 @@ class PrivateEndpointStorage @Inject constructor(
      * Clear all endpoints
      */
     suspend fun clearAll() {
+        val identity = currentIdentity
         persistAllEndpoints(emptyMap())
+        endpointsCache.remove(identity)
     }
 
     /**
@@ -114,9 +122,8 @@ class PrivateEndpointStorage @Inject constructor(
     // MARK: - Private
 
     private fun loadAllEndpoints(): Map<String, List<PrivateEndpointOffer>> {
-        if (endpointsCache != null) {
-            return endpointsCache!!
-        }
+        val identity = currentIdentity
+        endpointsCache[identity]?.let { return it }
 
         return try {
             val data = keychain.retrieve(endpointsKey) ?: return emptyMap()
@@ -130,12 +137,12 @@ class PrivateEndpointStorage @Inject constructor(
                 storedList.map { stored ->
                     PrivateEndpointOffer(
                         methodId = stored.methodId,
-                        endpoint = stored.endpoint
+                        endpoint = stored.endpoint,
                     )
                 }
             }
 
-            endpointsCache = endpoints
+            endpointsCache[identity] = endpoints
             endpoints
         } catch (e: Exception) {
             Logger.error("PrivateEndpointStorage: Failed to load endpoints", e, context = TAG)
@@ -144,20 +151,21 @@ class PrivateEndpointStorage @Inject constructor(
     }
 
     private suspend fun persistAllEndpoints(endpoints: Map<String, List<PrivateEndpointOffer>>) {
+        val identity = currentIdentity
         try {
             // Convert PrivateEndpointOffer to StoredEndpoint for serialization
             val stored = endpoints.mapValues { (_, endpointList) ->
                 endpointList.map { endpoint ->
                     StoredEndpoint(
                         methodId = endpoint.methodId,
-                        endpoint = endpoint.endpoint
+                        endpoint = endpoint.endpoint,
                     )
                 }
             }
 
             val json = Json.encodeToString(stored)
             keychain.store(endpointsKey, json.toByteArray())
-            endpointsCache = endpoints
+            endpointsCache[identity] = endpoints
         } catch (e: Exception) {
             Logger.error("PrivateEndpointStorage: Failed to persist endpoints", e, context = TAG)
             throw PaykitStorageException.SaveFailed(endpointsKey)

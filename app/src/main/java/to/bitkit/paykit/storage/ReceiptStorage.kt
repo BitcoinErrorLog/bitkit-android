@@ -3,6 +3,7 @@ package to.bitkit.paykit.storage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.PaymentDirection
 import to.bitkit.paykit.models.PaymentStatus
 import to.bitkit.paykit.models.Receipt
@@ -11,34 +12,38 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Manages persistent storage of payment receipts
+ * Manages persistent storage of payment receipts.
+ *
+ * Storage is scoped by the current identity pubkey.
  */
 @Singleton
 class ReceiptStorage @Inject constructor(
-    private val keychain: PaykitKeychainStorage
+    private val keychain: PaykitKeychainStorage,
+    private val keyManager: KeyManager,
 ) {
     companion object {
         private const val TAG = "ReceiptStorage"
         private const val MAX_RECEIPTS_TO_KEEP = 500
     }
 
-    private var receiptsCache: List<Receipt>? = null
-    private val identityName: String = "default"
+    private var receiptsCache: MutableMap<String, List<Receipt>> = mutableMapOf()
+
+    private val currentIdentity: String
+        get() = keyManager.getCurrentPublicKeyZ32() ?: "default"
 
     private val receiptsKey: String
-        get() = "receipts.$identityName"
+        get() = "receipts.$currentIdentity"
 
     fun listReceipts(): List<Receipt> {
-        if (receiptsCache != null) {
-            return receiptsCache!!
-        }
+        val identity = currentIdentity
+        receiptsCache[identity]?.let { return it }
 
         return try {
             val data = keychain.retrieve(receiptsKey) ?: return emptyList()
             val json = String(data)
             val receipts = Json.decodeFromString<List<Receipt>>(json)
             val sorted = receipts.sortedByDescending { it.createdAt }
-            receiptsCache = sorted
+            receiptsCache[identity] = sorted
             sorted
         } catch (e: Exception) {
             Logger.error("ReceiptStorage: Failed to load receipts", e, context = TAG)
@@ -105,7 +110,9 @@ class ReceiptStorage @Inject constructor(
     }
 
     suspend fun clearAll() {
+        val identity = currentIdentity
         persistReceipts(emptyList())
+        receiptsCache.remove(identity)
     }
 
     fun totalSent(): Long {
@@ -129,10 +136,11 @@ class ReceiptStorage @Inject constructor(
     }
 
     private suspend fun persistReceipts(receipts: List<Receipt>) {
+        val identity = currentIdentity
         try {
             val json = Json.encodeToString(receipts)
             keychain.store(receiptsKey, json.toByteArray())
-            receiptsCache = receipts
+            receiptsCache[identity] = receipts
         } catch (e: Exception) {
             Logger.error("ReceiptStorage: Failed to persist receipts", e, context = TAG)
             throw PaykitStorageException.SaveFailed(receiptsKey)
