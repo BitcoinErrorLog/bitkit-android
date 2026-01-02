@@ -88,44 +88,19 @@ class PubkyRingBridgeTest {
 
     // MARK: - Manual Session Import Tests
 
+    @Suppress("DEPRECATION")
     @Test
-    fun `importSession creates valid session`() {
+    fun `importSession throws deprecated exception`() {
         val pubkey = "z6mktest1234567890"
         val secret = "test_secret_12345"
 
-        val session = bridge.importSession(pubkey, secret)
+        val exception = runCatching {
+            bridge.importSession(pubkey, secret)
+        }.exceptionOrNull()
 
-        assertEquals(pubkey, session.pubkey)
-        assertEquals(secret, session.sessionSecret)
-        assertTrue(session.capabilities.isEmpty())
-    }
-
-    @Test
-    fun `imported session is cached`() {
-        val pubkey = "z6mktest1234567890"
-        val secret = "test_secret_12345"
-
-        val imported = bridge.importSession(pubkey, secret)
-        val cached = bridge.getCachedSession(pubkey)
-
-        assertNotNull(cached)
-        assertEquals(imported.pubkey, cached.pubkey)
-        assertEquals(imported.sessionSecret, cached.sessionSecret)
-    }
-
-    @Test
-    fun `importSession with capabilities`() {
-        val pubkey = "z6mktest1234567890"
-        val secret = "test_secret_12345"
-        val capabilities = listOf("read", "write", "admin")
-
-        val session = bridge.importSession(pubkey, secret, capabilities)
-
-        assertEquals(capabilities, session.capabilities)
-        assertTrue(session.hasCapability("read"))
-        assertTrue(session.hasCapability("write"))
-        assertTrue(session.hasCapability("admin"))
-        assertFalse(session.hasCapability("delete"))
+        assertNotNull(exception)
+        assertTrue(exception is PubkyRingException.Custom)
+        assertTrue(exception.message?.contains("deprecated") == true)
     }
 
     // MARK: - Authentication Status Tests
@@ -171,7 +146,7 @@ class PubkyRingBridgeTest {
     }
 
     @Test
-    fun `handleSessionCallback caches session`() {
+    fun `handleSessionCallback is deprecated and does not cache session`() {
         val pubkey = "z6mktest1234567890"
         val secret = "test_secret_12345"
 
@@ -182,40 +157,18 @@ class PubkyRingBridgeTest {
         whenever(mockUri.getQueryParameter("session_secret")).thenReturn(secret)
         whenever(mockUri.getQueryParameter("capabilities")).thenReturn(null)
 
-        bridge.handleCallback(mockUri)
+        val result = bridge.handleCallback(mockUri)
 
+        assertTrue(result)
         val cached = bridge.getCachedSession(pubkey)
-        assertNotNull(cached)
-        assertEquals(pubkey, cached.pubkey)
-    }
-
-    @Test
-    fun `handleSessionCallback parses capabilities`() {
-        val pubkey = "z6mktest1234567890"
-        val secret = "test_secret_12345"
-
-        val mockUri: Uri = mock()
-        whenever(mockUri.scheme).thenReturn("bitkit")
-        whenever(mockUri.host).thenReturn("paykit-session")
-        whenever(mockUri.getQueryParameter("pubky")).thenReturn(pubkey)
-        whenever(mockUri.getQueryParameter("session_secret")).thenReturn(secret)
-        whenever(mockUri.getQueryParameter("capabilities")).thenReturn("read,write,admin")
-
-        bridge.handleCallback(mockUri)
-
-        val cached = bridge.getCachedSession(pubkey)
-        assertEquals(listOf("read", "write", "admin"), cached?.capabilities)
+        assertNull(cached)
     }
 
     // MARK: - Cache Management Tests
 
     @Test
     fun `clearCache removes all sessions`() {
-        bridge.importSession("pubkey1", "secret1")
-        bridge.importSession("pubkey2", "secret2")
-
         bridge.clearCache()
-
         assertNull(bridge.getCachedSession("pubkey1"))
         assertNull(bridge.getCachedSession("pubkey2"))
     }
@@ -328,7 +281,9 @@ class PubkyRingBridgeTest {
     }
 
     @Test
-    fun `handleCrossDeviceSessionCallback succeeds with matching request ID`() {
+    fun `handleCrossDeviceSessionCallback is disabled for security and returns false`() {
+        // SECURITY: Cross-device session callback with plaintext secrets is DISABLED.
+        // Use secure pubkyauth:// flow instead. See ENCRYPTED_RELAY_PROTOCOL.md
         val expectedRequestId = "test-request-id"
         bridge.setPendingCrossDeviceRequestIdForTest(expectedRequestId)
 
@@ -345,10 +300,11 @@ class PubkyRingBridgeTest {
 
         val handled = bridge.handleCallback(mockUri)
 
-        assertTrue(handled)
+        // Plaintext cross-device callback is rejected for security
+        assertFalse(handled)
+        // Session should NOT be cached
         val cached = bridge.getCachedSession(pubkey)
-        assertNotNull(cached)
-        assertEquals(pubkey, cached.pubkey)
+        assertNull(cached)
     }
 
     // MARK: - Paykit Setup Callback Tests
@@ -478,12 +434,11 @@ class PubkyRingBridgeTest {
     }
 
     @Test
-    fun `exportBackup contains cached sessions`() {
-        bridge.importSession("backuptest1", "secret1")
-        bridge.importSession("backuptest2", "secret2")
+    fun `exportBackup returns empty sessions when none cached`() {
+        bridge.clearCache()
 
         val backup = bridge.exportBackup()
 
-        assertEquals(2, backup.sessions.size)
+        assertEquals(0, backup.sessions.size)
     }
 }

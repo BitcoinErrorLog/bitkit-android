@@ -336,12 +336,13 @@ object HomeserverResolver {
                 var result: HomeserverURL? = null
                 
                 resolver.rawQuery(
-                    null,
-                    dnsName,
-                    android.net.DnsResolver.TYPE_TXT,
+                    null, // Network
+                    dnsName, // Domain name
+                    1, // DNS class IN
+                    16, // DNS TXT record type
                     android.net.DnsResolver.FLAG_EMPTY,
                     java.util.concurrent.Executors.newSingleThreadExecutor(),
-                    null,
+                    null, // CancellationSignal
                     object : android.net.DnsResolver.Callback<ByteArray> {
                         override fun onAnswer(answer: ByteArray, rcode: Int) {
                             result = parseTxtRecord(answer)

@@ -59,17 +59,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import to.bitkit.R
 import java.util.Date
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.PubkyProfile
+import to.bitkit.paykit.services.PubkyProfileLink
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
-import to.bitkit.paykit.services.SDKPubkyProfile
-import to.bitkit.paykit.services.SDKProfileLink
 import to.bitkit.paykit.storage.PaykitKeychainStorage
+import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.data.SettingsStore
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
@@ -648,6 +647,7 @@ class CreateProfileViewModel @Inject constructor(
         private const val KEY_PUBLIC = "pubky.identity.public"
         private const val KEY_SESSION_SECRET = "pubky.session.secret"
         private const val KEY_DEVICE_ID = "pubky.paykit.deviceId"  // Device ID for noise key derivation
+        private const val KEY_HOMESERVER_URL = "pubky.homeserver.url"  // Homeserver URL for the session
         private const val KEY_PROFILE_NAME = "profile.name"
         private const val KEY_PROFILE_BIO = "profile.bio"
         private const val KEY_PROFILE_AVATAR_URL = "profile.avatar_url"
@@ -656,8 +656,7 @@ class CreateProfileViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CreateProfileUiState())
     val uiState: StateFlow<CreateProfileUiState> = _uiState.asStateFlow()
 
-    private var originalProfile: SDKPubkyProfile? = null
-    private val json = Json { ignoreUnknownKeys = true }
+    private var originalProfile: PubkyProfile? = null
 
     init {
         checkIdentityAndLoadProfile()
@@ -686,6 +685,9 @@ class CreateProfileViewModel @Inject constructor(
             if (sessionSecret != null) {
                 try {
                     pubkySDKService.importSession(storedPubkey, sessionSecret)
+                    // Restore homeserver URL if stored, otherwise use default
+                    val homeserverUrl = keychainStorage.getString(KEY_HOMESERVER_URL)
+                        ?.let { HomeserverURL(it) }
                     // Configure DirectoryService for authenticated writes
                     directoryService.configureWithPubkySession(
                         PubkySession(
@@ -693,7 +695,8 @@ class CreateProfileViewModel @Inject constructor(
                             sessionSecret = sessionSecret,
                             capabilities = listOf("read", "write"),
                             createdAt = Date(),
-                        )
+                        ),
+                        homeserverUrl,
                     )
                     Logger.debug("Session restored for ${storedPubkey.take(12)}...", context = TAG)
                 } catch (e: Exception) {
@@ -722,7 +725,16 @@ class CreateProfileViewModel @Inject constructor(
 
     private suspend fun loadProfile(pubkey: String) {
         try {
-            val profile = pubkySDKService.fetchProfile(pubkey)
+            val sdkProfile = pubkySDKService.fetchProfile(pubkey)
+            // Convert SDK profile to PubkyProfile for consistency with DirectoryService
+            val profile = PubkyProfile(
+                name = sdkProfile.name,
+                bio = sdkProfile.bio,
+                image = sdkProfile.image,
+                links = sdkProfile.links?.map { link ->
+                    PubkyProfileLink(title = link.title, url = link.url)
+                },
+            )
             originalProfile = profile
             _uiState.update {
                 it.copy(
@@ -762,8 +774,12 @@ class CreateProfileViewModel @Inject constructor(
                 // Import the session into PubkySDK using the session token
                 pubkySDKService.importSession(setupResult.session.pubkey, setupResult.session.sessionSecret)
                 
+                // Store the homeserver URL (use default if not provided by Ring)
+                val homeserverUrl = "https://homeserver.pubky.app"
+                keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl)
+                
                 // Configure DirectoryService for authenticated writes to homeserver
-                directoryService.configureWithPubkySession(setupResult.session)
+                directoryService.configureWithPubkySession(setupResult.session, HomeserverURL(homeserverUrl))
                 
                 // Store pubkey, session secret, and device ID so we can restore everything on app restart
                 keychainStorage.setString(KEY_PUBLIC, setupResult.session.pubkey)
@@ -976,26 +992,19 @@ class CreateProfileViewModel @Inject constructor(
                 }
             }
 
-            val profile = SDKPubkyProfile(
+            val profile = PubkyProfile(
                 name = state.name.trim().takeIf { it.isNotEmpty() },
                 bio = state.bio.trim().takeIf { it.isNotEmpty() },
                 image = null,
                 links = state.links
                     .filter { it.title.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
-                    .map { SDKProfileLink(it.title.trim(), it.url.trim()) }
-                    .takeIf { it.isNotEmpty() }
+                    .map { PubkyProfileLink(it.title.trim(), it.url.trim()) }
+                    .takeIf { it.isNotEmpty() },
             )
 
             try {
-                // Publish profile to homeserver using PubkySDKService's active session
-                val profileJson = json.encodeToString(profile)
-                val profileUrl = "pubky://${state.pubkyId}/pub/pubky.app/profile.json"
-                
-                // Get the active session's secret key
-                val session = pubkySDKService.activeSession()
-                    ?: throw Exception("No active session")
-                
-                pubkySDKService.putData(profileUrl, profileJson, session.sessionSecret)
+                // Publish profile to homeserver using DirectoryService (HTTP + session cookies)
+                directoryService.publishProfile(profile)
 
                 originalProfile = profile
                 
@@ -1036,6 +1045,7 @@ class CreateProfileViewModel @Inject constructor(
             runCatching { keychainStorage.delete(KEY_SECRET) }
             runCatching { keychainStorage.delete(KEY_SESSION_SECRET) }
             runCatching { keychainStorage.delete(KEY_DEVICE_ID) }
+            runCatching { keychainStorage.delete(KEY_HOMESERVER_URL) }
 
             // Clear cached session and noise keys from PubkyRingBridge
             val currentPubkey = _uiState.value.pubkyId

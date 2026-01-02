@@ -33,7 +33,7 @@ fun PaykitAutoPayScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Auto-Pay Settings",
+            titleText = "Auto-Pay Settings", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

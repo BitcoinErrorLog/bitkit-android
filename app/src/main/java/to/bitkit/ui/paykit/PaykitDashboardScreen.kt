@@ -89,7 +89,7 @@ fun PaykitDashboardScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Paykit Dashboard",
+            titleText = "Paykit Dashboard", // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
         )
 
@@ -176,14 +176,14 @@ private fun StatsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Total Sent",
+                title = "Total Sent", // TODO: Localize via Transifex
                 value = formatSats(totalSent),
                 icon = Icons.Default.ArrowUpward,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Total Received",
+                title = "Total Received", // TODO: Localize via Transifex
                 value = formatSats(totalReceived),
                 icon = Icons.Default.ArrowDownward,
                 color = MaterialTheme.colorScheme.primary,
@@ -196,14 +196,14 @@ private fun StatsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Contacts",
+                title = "Contacts", // TODO: Localize via Transifex
                 value = contactCount.toString(),
                 icon = Icons.Default.People,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Pending",
+                title = "Pending", // TODO: Localize via Transifex
                 value = pendingCount.toString(),
                 icon = Icons.Default.Schedule,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -228,7 +228,7 @@ private fun QuickAccessSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Auto-Pay",
+                title = "Auto-Pay", // TODO: Localize via Transifex
                 subtitle = if (autoPayEnabled) "ON" else "OFF",
                 icon = Icons.Default.Repeat,
                 color = Colors.Brand,
@@ -236,7 +236,7 @@ private fun QuickAccessSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Subscriptions",
+                title = "Subscriptions", // TODO: Localize via Transifex
                 subtitle = if (activeSubscriptions > 0) "$activeSubscriptions active" else "Manage",
                 icon = Icons.Default.CalendarToday,
                 color = MaterialTheme.colorScheme.primary,
@@ -264,7 +264,7 @@ private fun PaymentsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Payment Requests",
+                title = "Payment Requests", // TODO: Localize via Transifex
                 subtitle = if (pendingRequests > 0) "$pendingRequests pending" else "View all",
                 icon = Icons.Default.Notifications,
                 color = MaterialTheme.colorScheme.primary,
@@ -272,8 +272,8 @@ private fun PaymentsSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Noise Payment",
-                subtitle = "Private transfers",
+                title = "Noise Payment", // TODO: Localize via Transifex
+                subtitle = "Private transfers", // TODO: Localize via Transifex
                 icon = Icons.Default.Waves,
                 color = MaterialTheme.colorScheme.secondary,
                 onClick = onNavigateToNoisePayment,
@@ -286,7 +286,7 @@ private fun PaymentsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Contacts",
+                title = "Contacts", // TODO: Localize via Transifex
                 subtitle = if (contactCount > 0) "$contactCount saved" else "Manage",
                 icon = Icons.Default.Person,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -294,8 +294,8 @@ private fun PaymentsSection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Discover",
-                subtitle = "Find contacts",
+                title = "Discover", // TODO: Localize via Transifex
+                subtitle = "Find contacts", // TODO: Localize via Transifex
                 icon = Icons.Default.Search,
                 color = Colors.Green,
                 onClick = onNavigateToContactDiscovery,
@@ -321,7 +321,7 @@ private fun IdentitySection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Endpoints",
+                title = "Endpoints", // TODO: Localize via Transifex
                 subtitle = if (publishedMethodsCount > 0) "$publishedMethodsCount published" else "Setup",
                 icon = Icons.Default.Link,
                 color = MaterialTheme.colorScheme.secondary,
@@ -329,8 +329,8 @@ private fun IdentitySection(
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Key Rotation",
-                subtitle = "Security",
+                title = "Key Rotation", // TODO: Localize via Transifex
+                subtitle = "Security", // TODO: Localize via Transifex
                 icon = Icons.Default.Key,
                 color = Colors.Yellow,
                 onClick = onNavigateToRotationSettings,

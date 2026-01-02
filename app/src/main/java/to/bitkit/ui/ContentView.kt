@@ -1686,7 +1686,14 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PaykitSubscriptions> {
         to.bitkit.ui.paykit.PaykitSubscriptionsScreen(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToSubscriptionDetail = { id -> /* TODO: Navigate to subscription detail */ }
+            onNavigateToSubscriptionDetail = { id -> navController.navigate(Routes.PaykitSubscriptionDetail(id)) },
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitSubscriptionDetail> { backStackEntry ->
+        val id = backStackEntry.toRoute<Routes.PaykitSubscriptionDetail>().id
+        to.bitkit.ui.paykit.SubscriptionDetailScreen(
+            subscriptionId = id,
+            onNavigateBack = { navController.popBackStack() },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitAutoPay> {
@@ -2069,6 +2076,9 @@ sealed interface Routes {
 
     @Serializable
     data object PaykitSubscriptions : Routes
+
+    @Serializable
+    data class PaykitSubscriptionDetail(val id: String) : Routes
 
     @Serializable
     data object PaykitAutoPay : Routes

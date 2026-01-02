@@ -92,16 +92,20 @@ class PushNotificationService @Inject constructor(
     }
 
     /**
-     * Discover push endpoint for a recipient from the Pubky directory
+     * Discover push endpoint for a recipient.
+     *
+     * SECURITY NOTE: Push tokens are NOT stored in public `/pub/` paths.
+     * Use [PushRelayService] instead - it stores tokens server-side and
+     * provides authenticated wake notifications with rate limiting.
+     *
+     * This method is a stub for legacy compatibility and always returns null.
+     * New code should use [PushRelayService.wake] for push notifications.
      */
-    private suspend fun discoverPushEndpoint(recipientPubkey: String): PushEndpoint? {
-        // Fetch from /pub/paykit.app/v0/push/{pubkey}
-        // This would be stored by the recipient when they register for push notifications
-
-        // For now, return null as this requires the full directory integration
-        // In production, this would call directoryService.fetchPushEndpoint()
-        return null
-    }
+    @Deprecated(
+        "Use PushRelayService.wake() for authenticated push notifications",
+        ReplaceWith("pushRelayService.wake(recipientPubkey, WakeType.NOISE_CONNECT)")
+    )
+    private suspend fun discoverPushEndpoint(recipientPubkey: String): PushEndpoint? = null
 
     /**
      * Send push notification via APNs for iOS recipients
@@ -172,34 +176,33 @@ class PushNotificationService @Inject constructor(
     }
 
     /**
-     * Publish our push endpoint to the Pubky directory.
-     * This allows other users to discover how to wake our device.
+     * Publish our push endpoint.
      *
-     * @param noiseHost Host for our Noise server
-     * @param noisePort Port for our Noise server
-     * @param noisePubkey Our Noise public key
+     * SECURITY NOTE: Push tokens must NOT be stored in public `/pub/` paths.
+     * Use [PushRelayService.register] instead - it stores tokens server-side
+     * and provides authenticated wake notifications with rate limiting.
+     *
+     * This method is deprecated and does nothing. Use [PushRelayService] for push registration.
+     *
+     * @param noiseHost Host for our Noise server (ignored)
+     * @param noisePort Port for our Noise server (ignored)
+     * @param noisePubkey Our Noise public key (ignored)
      */
+    @Deprecated(
+        "Use PushRelayService.register() for secure push token registration. " +
+            "Publishing push tokens to public paths enables DoS attacks.",
+        ReplaceWith("pushRelayService.register(token, capabilities)")
+    )
     suspend fun publishOurPushEndpoint(
         noiseHost: String,
         noisePort: Int,
-        noisePubkey: String
+        noisePubkey: String,
     ) {
-        val token = localDeviceToken ?: throw PushError.InvalidConfiguration
-
-        // Build endpoint data
-        val endpoint = PushEndpoint(
-            pubkey = "", // Will be filled by directory service with our pubkey
-            deviceToken = token,
-            platform = Platform.ANDROID,
-            noiseHost = noiseHost,
-            noisePort = noisePort,
-            noisePubkey = noisePubkey
+        Logger.warn(
+            "DEPRECATED: publishOurPushEndpoint called. Use PushRelayService.register() instead.",
+            context = TAG,
         )
-
-        // In production, this would store the endpoint in the Pubky directory:
-        // directoryService.publishPushEndpoint(endpoint)
-
-        Logger.info("PushNotificationService: Published push endpoint to directory", context = TAG)
+        // No-op: Never publish push tokens to public paths
     }
 }
 

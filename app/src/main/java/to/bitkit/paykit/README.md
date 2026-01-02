@@ -120,7 +120,7 @@ class PaymentViewModel @Inject constructor(
 }
 ```
 
-> **Note:** `PaykitPaymentService.getInstance()` is deprecated. Use dependency injection instead.
+> **Note:** Use Hilt dependency injection to obtain `PaykitPaymentService`. See "Dependency Injection" section below.
 
 ### Observing Payment State
 
@@ -227,32 +227,30 @@ class PaymentViewModel @Inject constructor(
 ) : ViewModel()
 ```
 
-### Migration from getInstance() to DI
+### Dependency Injection
 
-The following `getInstance()` methods are deprecated:
+All Paykit services use Hilt dependency injection. Direct instantiation via `getInstance()` 
+has been removed - use `@Inject` annotations instead.
 
-| Class | Deprecated Method | Replacement |
-|-------|------------------|-------------|
-| `PaykitPaymentService` | `getInstance()` | `@Inject constructor(paymentService: PaykitPaymentService)` |
-| `SpendingLimitManager` | `getInstance()` | `@Inject constructor(manager: SpendingLimitManager)` |
-| `PaykitReceiptStore` | `getInstance(context)` | `@Inject constructor(store: PaykitReceiptStore)` |
-| `NoiseKeyCache` | `getInstance()` | `@Inject constructor(cache: NoiseKeyCache)` |
-| `PubkyRingBridge` | `getInstance()` | `@Inject constructor(bridge: PubkyRingBridge)` |
-| `PaykitManager` | `getInstance()` | `@Inject constructor(manager: PaykitManager)` |
+| Class | How to Obtain |
+|-------|---------------|
+| `PaykitPaymentService` | `@Inject constructor(paymentService: PaykitPaymentService)` |
+| `SpendingLimitManager` | `@Inject constructor(manager: SpendingLimitManager)` |
+| `PaykitReceiptStore` | `@Inject constructor(store: PaykitReceiptStore)` |
+| `NoiseKeyCache` | `@Inject constructor(cache: NoiseKeyCache)` |
+| `PubkyRingBridge` | `@Inject constructor(bridge: PubkyRingBridge)` |
+| `PaykitManager` | `@Inject constructor(manager: PaykitManager)` |
 
-**Before (deprecated):**
-```kotlin
-val service = PaykitPaymentService.getInstance()
-val result = service.pay(...)
-```
-
-**After (recommended):**
+**Usage:**
 ```kotlin
 @Inject constructor(private val paymentService: PaykitPaymentService)
 
 // Usage
 val result = paymentService.pay(...)
 ```
+
+> **Note:** For non-DI contexts (e.g., legacy `object` declarations), use 
+> `PaykitManager.getSharedInstance()` which returns the singleton if initialized.
 
 ## Testing
 

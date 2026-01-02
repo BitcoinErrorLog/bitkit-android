@@ -38,7 +38,7 @@ fun PaykitReceiptsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Receipts",
+            titleText = "Receipts", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

@@ -46,7 +46,9 @@ class PubkyRingAuthViewModel @Inject constructor(
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val session = pubkyRingBridge.requestSession(context)
+                // Use the new secure handoff flow (paykit-connect)
+                val setupResult = pubkyRingBridge.requestPaykitSetup(context)
+                val session = setupResult.session
                 // Configure DirectoryService for authenticated writes to homeserver
                 directoryService.configureWithPubkySession(session)
                 onSuccess(session)
@@ -92,6 +94,7 @@ class PubkyRingAuthViewModel @Inject constructor(
         }
     }
 
+    @Suppress("DEPRECATION")
     fun handleAuthUrl(url: String, onSuccess: (PubkySession) -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -109,6 +112,7 @@ class PubkyRingAuthViewModel @Inject constructor(
         }
     }
 
+    @Suppress("DEPRECATION")
     fun processManualInput(
         pubkey: String,
         sessionSecret: String,

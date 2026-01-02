@@ -26,13 +26,15 @@ object PaykitIntegrationHelper {
      *
      * Call this during app startup after the wallet is ready.
      *
-     * @param paykitManager The PaykitManager instance
      * @param lightningRepo The LightningRepo instance for payment operations
      * @throws PaykitException if setup fails
      */
-    suspend fun setup(paykitManager: PaykitManager, lightningRepo: LightningRepo) {
-        paykitManager.initialize()
-        paykitManager.registerExecutors(lightningRepo)
+    suspend fun setup(lightningRepo: LightningRepo) {
+        val manager = PaykitManager.getSharedInstance()
+            ?: throw PaykitException.NotInitialized
+
+        manager.initialize()
+        manager.registerExecutors(lightningRepo)
 
         Logger.info("Paykit integration setup complete", context = TAG)
     }
@@ -40,18 +42,16 @@ object PaykitIntegrationHelper {
     /**
      * Set up Paykit asynchronously.
      *
-     * @param paykitManager The PaykitManager instance
      * @param lightningRepo The LightningRepo instance
      * @param onComplete Callback with success/failure result
      */
     fun setupAsync(
-        paykitManager: PaykitManager,
         lightningRepo: LightningRepo,
         onComplete: (Result<Unit>) -> Unit = {},
     ) {
         scope.launch {
             try {
-                setup(paykitManager, lightningRepo)
+                setup(lightningRepo)
                 onComplete(Result.success(Unit))
             } catch (e: Exception) {
                 Logger.error("Paykit setup failed", e, context = TAG)
@@ -63,19 +63,24 @@ object PaykitIntegrationHelper {
     /**
      * Check if Paykit is ready for use.
      */
-    fun isReady(paykitManager: PaykitManager): Boolean =
-        paykitManager.isInitialized && paykitManager.hasExecutors
+    val isReady: Boolean
+        get() {
+            val manager = PaykitManager.getSharedInstance() ?: return false
+            return manager.isInitialized && manager.hasExecutors
+        }
 
     /**
      * Get the current network configuration.
      */
-    fun networkInfo(paykitManager: PaykitManager): Pair<BitcoinNetworkConfig, LightningNetworkConfig> =
-        paykitManager.bitcoinNetwork to paykitManager.lightningNetwork
+    val networkInfo: Pair<BitcoinNetworkConfig, LightningNetworkConfig>?
+        get() {
+            val manager = PaykitManager.getSharedInstance() ?: return null
+            return manager.bitcoinNetwork to manager.lightningNetwork
+        }
 
     /**
      * Execute a Lightning payment via Paykit.
      *
-     * @param paykitManager The PaykitManager instance
      * @param lightningRepo The LightningRepo instance
      * @param invoice BOLT11 invoice
      * @param amountSats Amount in satoshis (for zero-amount invoices)
@@ -83,12 +88,11 @@ object PaykitIntegrationHelper {
      * @throws PaykitException on failure
      */
     suspend fun payLightning(
-        paykitManager: PaykitManager,
         lightningRepo: LightningRepo,
         invoice: String,
         amountSats: ULong?,
     ): LightningPaymentResultFfi {
-        if (!isReady(paykitManager)) {
+        if (!isReady) {
             throw PaykitException.NotInitialized
         }
 
@@ -105,7 +109,6 @@ object PaykitIntegrationHelper {
     /**
      * Execute an onchain payment via Paykit.
      *
-     * @param paykitManager The PaykitManager instance
      * @param lightningRepo The LightningRepo instance
      * @param address Bitcoin address
      * @param amountSats Amount in satoshis
@@ -114,13 +117,12 @@ object PaykitIntegrationHelper {
      * @throws PaykitException on failure
      */
     suspend fun payOnchain(
-        paykitManager: PaykitManager,
         lightningRepo: LightningRepo,
         address: String,
         amountSats: ULong,
         feeRate: Double?,
     ): BitcoinTxResultFfi {
-        if (!isReady(paykitManager)) {
+        if (!isReady) {
             throw PaykitException.NotInitialized
         }
 
@@ -138,8 +140,8 @@ object PaykitIntegrationHelper {
      *
      * Call this during logout or wallet reset.
      */
-    fun reset(paykitManager: PaykitManager) {
-        paykitManager.reset()
+    fun reset() {
+        PaykitManager.getSharedInstance()?.reset()
         Logger.info("Paykit integration reset", context = TAG)
     }
 }

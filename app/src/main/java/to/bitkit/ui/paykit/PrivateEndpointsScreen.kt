@@ -28,7 +28,7 @@ fun PrivateEndpointsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Private Endpoints",
+            titleText = "Private Endpoints", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

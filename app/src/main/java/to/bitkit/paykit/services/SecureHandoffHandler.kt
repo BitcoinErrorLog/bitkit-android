@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.utils.Logger
 import java.util.Date
 import javax.inject.Inject
@@ -15,25 +16,57 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Handles secure handoff payload fetching and processing for cross-device authentication.
+ * 
+ * Secure handoff v2: Payloads are encrypted using Paykit Sealed Blob v1 format.
+ * Bitkit generates an ephemeral X25519 keypair, Ring encrypts to that key,
+ * and Bitkit decrypts using the stored ephemeral secret.
  */
 @Singleton
 class SecureHandoffHandler @Inject constructor(
     private val noiseKeyCache: NoiseKeyCache,
     private val pubkyStorageAdapter: PubkyStorageAdapter,
+    private val keychainStorage: PaykitKeychainStorage,
 ) {
     companion object {
         private const val TAG = "SecureHandoffHandler"
+        private const val EPHEMERAL_KEY_KEY = "paykit.ephemeral_handoff_key"
     }
 
     private val json = Json { ignoreUnknownKeys = true }
+    
+    /**
+     * Store ephemeral secret key for handoff decryption.
+     * Called before initiating the Ring request.
+     */
+    fun storeEphemeralKey(secretKeyHex: String) {
+        keychainStorage.setStringSync(EPHEMERAL_KEY_KEY, secretKeyHex)
+        Logger.debug("Stored ephemeral handoff key", context = TAG)
+    }
+    
+    private fun getEphemeralKey(): String? = keychainStorage.getString(EPHEMERAL_KEY_KEY)
+    
+    private fun clearEphemeralKey() {
+        keychainStorage.deleteSync(EPHEMERAL_KEY_KEY)
+        Logger.debug("Cleared ephemeral handoff key", context = TAG)
+    }
 
     suspend fun fetchAndProcessPayload(
         pubkey: String,
         requestId: String,
         scope: CoroutineScope,
         onSessionPersisted: suspend (PubkySession) -> Unit,
+        ephemeralSecretKey: String? = null,
     ): PaykitSetupResult = withContext(Dispatchers.IO) {
-        val payload = fetchHandoffPayload(pubkey, requestId)
+        // Get ephemeral key (from parameter or stored)
+        val secretKey = ephemeralSecretKey ?: getEphemeralKey()
+        
+        val payload = fetchHandoffPayload(pubkey, requestId, secretKey)
+        
+        // Clear ephemeral key now that we've decrypted
+        if (ephemeralSecretKey == null) {
+            clearEphemeralKey()
+        }
+        
         validatePayload(payload)
         val result = buildSetupResultFromPayload(payload)
         cacheAndPersistResult(result, payload.deviceId, scope, onSessionPersisted)
@@ -41,7 +74,11 @@ class SecureHandoffHandler @Inject constructor(
         result
     }
 
-    private suspend fun fetchHandoffPayload(pubkey: String, requestId: String): SecureHandoffPayload {
+    private suspend fun fetchHandoffPayload(
+        pubkey: String,
+        requestId: String,
+        ephemeralSecretKey: String?,
+    ): SecureHandoffPayload {
         val handoffUri = "pubky://$pubkey/pub/paykit.app/v0/handoff/$requestId"
         Logger.info("Fetching secure handoff payload from ${handoffUri.take(50)}...", context = TAG)
 
@@ -49,9 +86,59 @@ class SecureHandoffHandler @Inject constructor(
         if (result[0] == "error") {
             throw PubkyRingException.InvalidCallback
         }
-
-        return json.decodeFromString<SecureHandoffPayload>(result[1])
+        
+        val payloadJson = result[1]
+        
+        // SECURITY: Require encrypted sealed blob - no plaintext fallback
+        if (!com.pubky.noise.isSealedBlob(payloadJson)) {
+            Logger.error("Handoff payload is not an encrypted sealed blob - rejecting", context = TAG)
+            throw PubkyRingException.InvalidCallback
+        }
+        
+        Logger.debug("Detected encrypted sealed blob envelope", context = TAG)
+        return decryptHandoffEnvelope(payloadJson, pubkey, requestId, ephemeralSecretKey)
     }
+    
+    private fun decryptHandoffEnvelope(
+        envelopeJson: String,
+        pubkey: String,
+        requestId: String,
+        ephemeralSecretKey: String?,
+    ): SecureHandoffPayload {
+        if (ephemeralSecretKey == null) {
+            Logger.error("Ephemeral key required for decryption but not found", context = TAG)
+            throw PubkyRingException.MissingEphemeralKey
+        }
+
+        // Build AAD following Paykit v0 protocol: paykit:v0:handoff:{pubkey}:{path}:{requestId}
+        val storagePath = "/pub/paykit.app/v0/handoff/$requestId"
+        val aad = "paykit:v0:handoff:$pubkey:$storagePath:$requestId"
+
+        try {
+            // Convert secret key from hex to ByteArray
+            val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
+
+            // Decrypt using pubky-noise sealed blob
+            val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(
+                secretKeyBytes,
+                envelopeJson,
+                aad,
+            )
+
+            // Decode decrypted JSON
+            val plaintextJson = plaintextBytes.toString(Charsets.UTF_8)
+            val payload = json.decodeFromString<SecureHandoffPayload>(plaintextJson)
+            Logger.info("Successfully decrypted handoff payload v${payload.version}", context = TAG)
+            return payload
+        } catch (e: Exception) {
+            Logger.error("Sealed blob decryption failed: ${e.message}", e, context = TAG)
+            throw PubkyRingException.DecryptionFailed(e.message ?: "Unknown error")
+        }
+    }
+    
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun hexStringToByteArray(hex: String): ByteArray =
+        hex.hexToByteArray()
 
     private fun validatePayload(payload: SecureHandoffPayload) {
         if (System.currentTimeMillis() > payload.expiresAt) {
@@ -85,13 +172,17 @@ class SecureHandoffHandler @Inject constructor(
             }
         }
 
-        Logger.info("Secure handoff payload received for ${payload.pubky.take(12)}...", context = TAG)
+        Logger.info(
+            "Secure handoff payload received for ${payload.pubky.take(12)}..., noiseSeed=${payload.noiseSeed != null}",
+            context = TAG,
+        )
 
         return PaykitSetupResult(
             session = session,
             deviceId = payload.deviceId,
             noiseKeypair0 = keypair0,
             noiseKeypair1 = keypair1,
+            noiseSeed = payload.noiseSeed,
         )
     }
 
@@ -109,6 +200,29 @@ class SecureHandoffHandler @Inject constructor(
         result.noiseKeypair1?.let { keypair ->
             persistKeypair(keypair, deviceId, 1u)
         }
+        
+        // Persist noise seed for future epoch derivation
+        result.noiseSeed?.let { seed ->
+            persistNoiseSeed(seed, deviceId)
+        }
+    }
+    
+    private fun persistNoiseSeed(noiseSeed: String, deviceId: String) {
+        try {
+            val key = "paykit.noise_seed.$deviceId"
+            keychainStorage.setStringSync(key, noiseSeed)
+            Logger.debug("Persisted noise seed for device ${deviceId.take(8)}...", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to persist noise seed: ${e.message}", e, context = TAG)
+        }
+    }
+    
+    /**
+     * Get stored noise seed for a device
+     */
+    fun getNoiseSeed(deviceId: String): String? {
+        val key = "paykit.noise_seed.$deviceId"
+        return keychainStorage.getString(key)
     }
 
     private fun persistKeypair(keypair: NoiseKeypair, deviceId: String, epoch: UInt) {
@@ -161,6 +275,9 @@ data class SecureHandoffPayload(
     val expiresAt: Long,
     @SerialName("noise_keypairs")
     val noiseKeypairs: List<NoiseKeypairPayload>,
+    /** Noise seed for local epoch derivation (so Bitkit doesn't need to re-call Ring) */
+    @SerialName("noise_seed")
+    val noiseSeed: String? = null,
 )
 
 @Serializable

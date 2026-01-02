@@ -19,6 +19,7 @@ object PaykitFeatureFlags {
     private const val LIGHTNING_ENABLED_KEY = "paykit_lightning_enabled"
     private const val ONCHAIN_ENABLED_KEY = "paykit_onchain_enabled"
     private const val RECEIPT_STORAGE_ENABLED_KEY = "paykit_receipt_storage_enabled"
+    private const val DRY_RUN_KEY = "paykit_dry_run"
 
     private var prefs: SharedPreferences? = null
 
@@ -53,6 +54,42 @@ object PaykitFeatureFlags {
         get() = prefs?.getBoolean(RECEIPT_STORAGE_ENABLED_KEY, true) ?: true
         set(value) = prefs?.edit()?.putBoolean(RECEIPT_STORAGE_ENABLED_KEY, value)?.apply() ?: Unit
 
+    /**
+     * Whether dry-run mode is enabled.
+     *
+     * When enabled, the full subscription/autopay evaluation and notification flows
+     * will execute, but actual payment execution is skipped. This is useful for
+     * local testing and verification without sending real payments.
+     *
+     * Defaults to true for safety - payments are blocked unless explicitly disabled.
+     */
+    var isDryRunEnabled: Boolean
+        get() = prefs?.getBoolean(DRY_RUN_KEY, true) ?: true
+        set(value) {
+            prefs?.edit()?.putBoolean(DRY_RUN_KEY, value)?.apply()
+            if (value) {
+                Logger.info("Dry-run mode enabled - payments will be simulated", context = TAG)
+            } else {
+                Logger.warn("Dry-run mode disabled - real payments will execute!", context = TAG)
+            }
+        }
+
+    /**
+     * Check if payment execution is allowed.
+     * Returns false if dry-run is enabled or if required feature flags are disabled.
+     */
+    fun canExecutePayment(): Boolean {
+        if (isDryRunEnabled) {
+            Logger.debug("Payment blocked: dry-run mode enabled", context = TAG)
+            return false
+        }
+        if (!isEnabled) {
+            Logger.debug("Payment blocked: Paykit disabled", context = TAG)
+            return false
+        }
+        return true
+    }
+
     // MARK: - Remote Config
 
     /**
@@ -66,6 +103,7 @@ object PaykitFeatureFlags {
         (config["paykit_lightning_enabled"] as? Boolean)?.let { isLightningEnabled = it }
         (config["paykit_onchain_enabled"] as? Boolean)?.let { isOnchainEnabled = it }
         (config["paykit_receipt_storage_enabled"] as? Boolean)?.let { isReceiptStorageEnabled = it }
+        (config["paykit_dry_run"] as? Boolean)?.let { isDryRunEnabled = it }
     }
 
     // MARK: - Defaults
@@ -79,6 +117,7 @@ object PaykitFeatureFlags {
                     .putBoolean(LIGHTNING_ENABLED_KEY, true)
                     .putBoolean(ONCHAIN_ENABLED_KEY, true)
                     .putBoolean(RECEIPT_STORAGE_ENABLED_KEY, true)
+                    .putBoolean(DRY_RUN_KEY, true) // Dry-run enabled by default for safety
                     .apply()
             }
         }

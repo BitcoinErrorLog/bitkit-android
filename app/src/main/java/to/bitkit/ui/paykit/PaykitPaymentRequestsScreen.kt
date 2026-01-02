@@ -30,7 +30,7 @@ fun PaykitPaymentRequestsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Payment Requests",
+            titleText = "Payment Requests", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

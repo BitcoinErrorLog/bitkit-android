@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import to.bitkit.paykit.protocol.PaykitV0Protocol
 import to.bitkit.utils.Logger
 import java.net.HttpURLConnection
 import java.net.URL
@@ -91,6 +92,14 @@ class PubkyRingBridge @Inject constructor(
         const val CALLBACK_PATH_CROSS_DEVICE_SESSION = "paykit-cross-session"
         const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
         const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result"  // Ed25519 signature result
+
+        // Helper: convert ByteArray to hex string
+        fun byteArrayToHexString(bytes: ByteArray): String =
+            bytes.joinToString("") { "%02x".format(it) }
+
+        // Helper: convert hex string to ByteArray
+        fun hexStringToByteArray(hex: String): ByteArray =
+            hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 
     // Coroutine scope for fire-and-forget persistence operations
@@ -112,8 +121,9 @@ class PubkyRingBridge @Inject constructor(
     private var pendingKeypairContinuation: Continuation<NoiseKeypair>? = null
     private var pendingPaykitSetupContinuation: Continuation<PaykitSetupResult>? = null
 
-    // Pending cross-device request ID
+    // Pending cross-device request ID and ephemeral key
     private var pendingCrossDeviceRequestId: String? = null
+    private var pendingCrossDeviceEphemeralSk: ByteArray? = null
 
     // Cached sessions by pubkey
     private val sessionCache = mutableMapOf<String, PubkySession>()
@@ -243,6 +253,16 @@ class PubkyRingBridge @Inject constructor(
      * - Gets everything in a single user interaction
      * - Ensures noise keys are available even if Ring is later unavailable
      * - Includes both epoch 0 and epoch 1 keypairs for key rotation
+     * - Uses encrypted handoff (ephemeralPk) to prevent plaintext secrets on homeserver
+     *
+     * Flow:
+     * 1. Bitkit generates ephemeral X25519 keypair
+     * 2. Bitkit stores ephemeral secret key temporarily
+     * 3. Bitkit sends ephemeralPk to Ring
+     * 4. Ring encrypts payload to ephemeralPk using Sealed Blob v1
+     * 5. Ring stores encrypted envelope on homeserver
+     * 6. Bitkit fetches and decrypts using ephemeral secret key
+     * 7. Bitkit zeroizes ephemeral secret key
      *
      * @param context Android context
      * @return PaykitSetupResult containing session and noise keypairs
@@ -255,11 +275,22 @@ class PubkyRingBridge @Inject constructor(
         }
 
         val actualDeviceId = deviceId
+        
+        // Generate ephemeral X25519 keypair for this handoff
+        val ephemeralKeypair = com.pubky.noise.x25519GenerateKeypair()
+        val ephemeralPkHex = ephemeralKeypair.publicKey.joinToString("") { byte -> "%02x".format(byte) }
+        val ephemeralSkHex = ephemeralKeypair.secretKey.joinToString("") { byte -> "%02x".format(byte) }
+        
+        // Store ephemeral secret key for decryption when callback arrives
+        secureHandoffHandler.storeEphemeralKey(ephemeralSkHex)
+        
+        Logger.debug("Generated ephemeral keypair for handoff, pk=${ephemeralPkHex.take(16)}...", context = TAG)
+        
         val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_PAYKIT_SETUP"
         val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
-        val requestUrl = "$PUBKY_RING_SCHEME://paykit-connect?deviceId=$actualDeviceId&callback=$encodedCallback"
+        val requestUrl = "$PUBKY_RING_SCHEME://paykit-connect?deviceId=$actualDeviceId&callback=$encodedCallback&ephemeralPk=$ephemeralPkHex"
 
-        Logger.info("Requesting Paykit setup from Pubky Ring", context = TAG)
+        Logger.info("Requesting Paykit setup from Pubky Ring with encrypted handoff", context = TAG)
 
         pendingPaykitSetupContinuation = continuation
 
@@ -279,24 +310,19 @@ class PubkyRingBridge @Inject constructor(
     }
 
     /**
-     * Request a noise keypair derivation from Pubky-ring
+     * Request a noise keypair for the given epoch.
      *
-     * @param context Android context
-     * @param deviceId Device identifier for key derivation
-     * @param epoch Epoch for key rotation
-     * @return X25519 keypair for Noise protocol
-     * @throws PubkyRingException if request fails
-     */
-    /**
-     * Request a noise keypair derivation from Pubky-ring.
-     * 
-     * First checks NoiseKeyCache, then requests from Pubky-ring if not found.
-     * 
+     * Priority order:
+     * 1. Memory cache
+     * 2. Persistent cache (NoiseKeyCache) - if secret key stored, derive public key locally
+     * 3. Local derivation using noise_seed (avoids Ring roundtrip)
+     * 4. Fallback: Request from Pubky-ring (legacy, requires Ring app)
+     *
      * @param context Android context for launching intents
      * @param deviceIdOverride Override device ID (uses stored ID if null)
      * @param epoch Epoch for key rotation
      * @return X25519 keypair for Noise protocol
-     * @throws PubkyRingException if request fails
+     * @throws PubkyRingException if request fails and no local derivation possible
      */
     suspend fun requestNoiseKeypair(
         context: Context,
@@ -305,32 +331,52 @@ class PubkyRingBridge @Inject constructor(
     ): NoiseKeypair {
         val actualDeviceId = deviceIdOverride ?: deviceId
         val cacheKey = "$actualDeviceId:$epoch"
-        
-        // Check memory cache first
+
+        // 1. Check memory cache first
         keypairCache[cacheKey]?.let { cached ->
             Logger.debug("Noise keypair cache hit for $cacheKey", context = TAG)
             return cached
         }
-        
-        // Check persistent cache (NoiseKeyCache)
+
+        // 2. Check persistent cache (NoiseKeyCache) - derive public key if we have secret
         try {
-            val cachedKey = noiseKeyCache.getKey(actualDeviceId, epoch.toUInt())
-            if (cachedKey != null) {
-                Logger.debug("Noise keypair found in persistent cache for $cacheKey", context = TAG)
-                // We have the secret key, but to reconstruct the full keypair we'd need the public key
-                // For now, proceed to request from Pubky-ring for the full keypair
+            val secretKeyBytes = noiseKeyCache.getKey(actualDeviceId, epoch.toUInt())
+            if (secretKeyBytes != null) {
+                // Derive public key from secret key locally
+                val publicKeyBytes = com.pubky.noise.publicKeyFromSecret(secretKeyBytes)
+                val keypair = NoiseKeypair(
+                    secretKey = byteArrayToHexString(secretKeyBytes),
+                    publicKey = byteArrayToHexString(publicKeyBytes),
+                    deviceId = actualDeviceId,
+                    epoch = epoch,
+                )
+                keypairCache[cacheKey] = keypair
+                Logger.debug("Noise keypair reconstructed from persistent cache for $cacheKey", context = TAG)
+                return keypair
             }
         } catch (e: Exception) {
-            Logger.warn("Error checking NoiseKeyCache: ${e.message}", e, context = TAG)
+            Logger.warn("Error checking NoiseKeyCache or deriving public key: ${e.message}", e, context = TAG)
         }
-        
-        // Request from Pubky-ring
-        return suspendCancellableCoroutine { continuation ->
-            if (!isPubkyRingInstalled(context)) {
-                continuation.resumeWithException(PubkyRingException.AppNotInstalled)
-                return@suspendCancellableCoroutine
-            }
 
+        // 3. Try local derivation using noise_seed (avoids Ring roundtrip)
+        val localKeypair = deriveKeypairLocally(actualDeviceId, epoch)
+        if (localKeypair != null) {
+            keypairCache[cacheKey] = localKeypair
+            // Persist for future use
+            val secretKeyBytes = hexStringToByteArray(localKeypair.secretKey)
+            noiseKeyCache.setKey(secretKeyBytes, actualDeviceId, epoch.toUInt())
+            Logger.info("Noise keypair derived locally for epoch $epoch", context = TAG)
+            return localKeypair
+        }
+
+        // 4. Fallback: Request from Pubky-ring (legacy support)
+        if (!isPubkyRingInstalled(context)) {
+            throw PubkyRingException.AppNotInstalled
+        }
+
+        Logger.info("Requesting noise keypair from Ring for epoch $epoch (no local seed available)", context = TAG)
+
+        return suspendCancellableCoroutine { continuation ->
             val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_KEYPAIR"
             val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
             val requestUrl = "$PUBKY_RING_SCHEME://derive-keypair?deviceId=$actualDeviceId&epoch=$epoch&callback=$encodedCallback"
@@ -354,6 +400,46 @@ class PubkyRingBridge @Inject constructor(
     }
 
     /**
+     * Derive a noise keypair locally using the stored noise_seed
+     *
+     * This avoids calling Ring for future epoch derivations.
+     *
+     * @param deviceId Device identifier for key derivation
+     * @param epoch Epoch for key rotation
+     * @return X25519 keypair if noise_seed is available, null otherwise
+     */
+    private fun deriveKeypairLocally(deviceId: String, epoch: ULong): NoiseKeypair? {
+        // Get the stored noise_seed for this device
+        val noiseSeed = secureHandoffHandler.getNoiseSeed(deviceId) ?: return null
+        val seedBytes = hexStringToByteArray(noiseSeed)
+        if (seedBytes.size < 32) return null
+
+        val deviceIdBytes = deviceId.toByteArray(Charsets.UTF_8)
+
+        return try {
+            // Derive secret key using pubky-noise FFI
+            val secretKeyBytes = com.pubky.noise.deriveDeviceKey(
+                seedBytes,
+                deviceIdBytes,
+                epoch.toUInt(),
+            )
+
+            // Derive public key from secret key
+            val publicKeyBytes = com.pubky.noise.publicKeyFromSecret(secretKeyBytes)
+
+            NoiseKeypair(
+                secretKey = byteArrayToHexString(secretKeyBytes),
+                publicKey = byteArrayToHexString(publicKeyBytes),
+                deviceId = deviceId,
+                epoch = epoch,
+            )
+        } catch (e: Exception) {
+            Logger.warn("Failed to derive keypair locally: ${e.message}", e, context = TAG)
+            null
+        }
+    }
+
+    /**
      * Get cached session for a pubkey
      */
     fun getCachedSession(pubkey: String): PubkySession? = sessionCache[pubkey]
@@ -365,6 +451,7 @@ class PubkyRingBridge @Inject constructor(
         sessionCache.clear()
         keypairCache.clear()
         pendingCrossDeviceRequestId = null
+        pendingCrossDeviceEphemeralSk = null
     }
 
     /**
@@ -496,7 +583,10 @@ class PubkyRingBridge @Inject constructor(
     // MARK: - Cross-Device Authentication
 
     /**
-     * Generate a cross-device session request that can be shared as a link or QR
+     * Generate a cross-device session request that can be shared as a link or QR.
+     *
+     * SECURITY: Generates an ephemeral X25519 keypair and includes the public key
+     * in the URL. The relay response must be encrypted to this key (Sealed Blob v1).
      *
      * @return CrossDeviceRequest with URL, QR code bitmap, and request ID
      */
@@ -504,8 +594,13 @@ class PubkyRingBridge @Inject constructor(
         val requestId = UUID.randomUUID().toString().lowercase()
         pendingCrossDeviceRequestId = requestId
 
+        // Generate ephemeral X25519 keypair for secure relay response
+        val ephemeralKeypair = com.pubky.noise.x25519GenerateKeypair()
+        pendingCrossDeviceEphemeralSk = ephemeralKeypair.secretKey
+        val ephemeralPkHex = byteArrayToHexString(ephemeralKeypair.publicKey)
+
         // Build the URL for cross-device auth (construct manually for testability)
-        val url = buildCrossDeviceUrl(requestId)
+        val url = buildCrossDeviceUrl(requestId, ephemeralPkHex)
         val qrBitmap = generateQRCode(url)
 
         return CrossDeviceRequest(
@@ -518,18 +613,28 @@ class PubkyRingBridge @Inject constructor(
 
     /**
      * Build cross-device auth URL (visible for testing)
+     *
+     * @param ephemeralPk Optional ephemeral public key for secure relay response (hex encoded)
      */
-    internal fun buildCrossDeviceUrl(requestId: String): String {
+    internal fun buildCrossDeviceUrl(requestId: String, ephemeralPk: String? = null): String {
         val encodedRequestId = URLEncoder.encode(requestId, "UTF-8")
         val encodedCallback = URLEncoder.encode(BITKIT_SCHEME, "UTF-8")
         val encodedAppName = URLEncoder.encode("Bitkit", "UTF-8")
         val encodedRelay = URLEncoder.encode(Companion.getRelayUrl(), "UTF-8")
 
-        return "$CROSS_DEVICE_WEB_URL?request_id=$encodedRequestId&callback_scheme=$encodedCallback&app_name=$encodedAppName&relay_url=$encodedRelay"
+        val baseUrl = "$CROSS_DEVICE_WEB_URL?request_id=$encodedRequestId&callback_scheme=$encodedCallback&app_name=$encodedAppName&relay_url=$encodedRelay"
+        return if (ephemeralPk != null) {
+            "$baseUrl&ephemeralPk=$ephemeralPk"
+        } else {
+            baseUrl
+        }
     }
 
     /**
-     * Poll for a cross-device session response
+     * Poll for a cross-device session response.
+     *
+     * SECURITY: The relay response must be a Sealed Blob v1 encrypted to our ephemeral key.
+     * Plaintext responses are rejected.
      *
      * @param requestId The request ID from generateCrossDeviceRequest()
      * @param timeoutMs Maximum time to wait in milliseconds (default 5 minutes)
@@ -542,81 +647,83 @@ class PubkyRingBridge @Inject constructor(
         val startTime = System.currentTimeMillis()
         val pollIntervalMs = 2000L
 
-        while (System.currentTimeMillis() - startTime < timeoutMs) {
-            // Check if session arrived via direct callback
-            sessionCache.values.firstOrNull()?.let { session ->
-                if (pendingCrossDeviceRequestId == null) {
-                    return@withContext session
+        try {
+            while (System.currentTimeMillis() - startTime < timeoutMs) {
+                // Check if session arrived via direct callback
+                sessionCache.values.firstOrNull()?.let { session ->
+                    if (pendingCrossDeviceRequestId == null) {
+                        return@withContext session
+                    }
                 }
+
+                // Poll relay for session
+                try {
+                    val session = pollRelayForSession(requestId)
+                    if (session != null) {
+                        sessionCache[session.pubkey] = session
+                        pendingCrossDeviceRequestId = null
+                        pendingCrossDeviceEphemeralSk = null
+                        return@withContext session
+                    }
+                } catch (e: Exception) {
+                    Logger.debug("Relay poll failed: ${e.message}", context = TAG)
+                }
+
+                delay(pollIntervalMs)
             }
 
-            // Poll relay for session
-            try {
-                val session = pollRelayForSession(requestId)
-                if (session != null) {
-                    sessionCache[session.pubkey] = session
-                    pendingCrossDeviceRequestId = null
-                    return@withContext session
-                }
-            } catch (e: Exception) {
-                Logger.debug("Relay poll failed: ${e.message}", context = TAG)
-            }
-
-            delay(pollIntervalMs)
+            throw PubkyRingException.Timeout
+        } finally {
+            // Clean up ephemeral key on exit
+            pendingCrossDeviceRequestId = null
+            pendingCrossDeviceEphemeralSk = null
         }
-
-        pendingCrossDeviceRequestId = null
-        throw PubkyRingException.Timeout
     }
 
     /**
-     * Handle an authentication URL from a scanned QR code or pasted link
+     * DEPRECATED: Handle an authentication URL from a scanned QR code or pasted link
      *
-     * Parses URLs in the format:
-     * - pubky://session?pubkey=...&session_secret=...
-     * - pubkyring://session?pubkey=...&session_secret=...
-     * - bitkit://paykit-session?pubkey=...&session_secret=...
+     * This function is deprecated for security reasons. It accepted plaintext session
+     * secrets in URLs, which exposes secrets in system logs, URL history, etc.
      *
-     * @param url The URL to parse
-     * @return PubkySession if successful
-     * @throws PubkyRingException if URL is invalid
+     * Use the secure handoff flow via `requestPaykitSetup()` instead.
+     *
+     * @throws PubkyRingException.Custom always
      */
+    @Deprecated(
+        message = "handleAuthUrl is deprecated for security reasons. Use requestPaykitSetup() instead.",
+        level = DeprecationLevel.WARNING,
+    )
     fun handleAuthUrl(url: String): PubkySession {
-        val uri = Uri.parse(url)
-        
-        // Check if it's a callback URL with session data
-        val pubkey = uri.getQueryParameter("pubkey") ?: uri.getQueryParameter("pk")
-        val sessionSecret = uri.getQueryParameter("session_secret") ?: uri.getQueryParameter("ss")
-        
-        if (pubkey != null && sessionSecret != null) {
-            val capabilities = uri.getQueryParameter("capabilities")
-                ?.split(",")
-                ?.filter { it.isNotEmpty() }
-                ?: emptyList()
-            
-            return importSession(pubkey, sessionSecret, capabilities)
-        }
-        
-        throw PubkyRingException.InvalidCallback
+        Logger.warn(
+            "DEPRECATED: handleAuthUrl called with potentially plaintext secrets. This is no longer supported.",
+            context = TAG,
+        )
+        throw PubkyRingException.Custom(
+            "handleAuthUrl is deprecated for security reasons. Use requestPaykitSetup() instead.",
+        )
     }
 
     /**
-     * Import a session manually (for offline/manual cross-device flow)
+     * DEPRECATED: Import a session manually (for offline/manual cross-device flow)
      *
-     * @param pubkey The z-base32 encoded public key
-     * @param sessionSecret The session secret from Pubky-ring
-     * @param capabilities Optional list of capabilities
-     * @return Imported PubkySession
+     * This function is deprecated for security reasons. Sessions should only be
+     * received via the encrypted secure handoff flow.
+     *
+     * @throws PubkyRingException.Custom always
      */
+    @Deprecated(
+        message = "importSession is deprecated for security reasons. Use requestPaykitSetup() instead.",
+        level = DeprecationLevel.WARNING,
+    )
     fun importSession(pubkey: String, sessionSecret: String, capabilities: List<String> = emptyList()): PubkySession {
-        val session = PubkySession(
-            pubkey = pubkey,
-            sessionSecret = sessionSecret,
-            capabilities = capabilities,
-            createdAt = Date(),
+        Logger.warn(
+            "DEPRECATED: importSession called with plaintext session_secret. This is no longer supported.",
+            context = TAG,
         )
-        sessionCache[pubkey] = session
-        return session
+        throw PubkyRingException.Custom(
+            "importSession is deprecated for security reasons. Use requestPaykitSetup() instead.",
+        )
     }
 
     /**
@@ -654,6 +761,12 @@ class PubkyRingBridge @Inject constructor(
 
     // Private cross-device helpers
 
+    /**
+     * Poll the relay for a session response.
+     *
+     * SECURITY: Expects a Sealed Blob v1 encrypted response when ephemeralSk is available.
+     * Plaintext responses are REJECTED for security.
+     */
     private fun pollRelayForSession(requestId: String): PubkySession? {
         val relayUrl = Companion.getRelayUrl()
         val url = URL("$relayUrl/$requestId")
@@ -668,7 +781,7 @@ class PubkyRingBridge @Inject constructor(
                 404 -> null // Session not yet available
                 200 -> {
                     val response = connection.inputStream.bufferedReader().readText()
-                    parseSessionFromJson(response)
+                    parseRelayResponse(response, requestId)
                 }
                 else -> null
             }
@@ -676,6 +789,38 @@ class PubkyRingBridge @Inject constructor(
             null
         } finally {
             connection.disconnect()
+        }
+    }
+
+    /**
+     * Parse a relay response, decrypting if it's a sealed blob.
+     *
+     * SECURITY: Plaintext responses are REJECTED if we have an ephemeral key.
+     */
+    private fun parseRelayResponse(response: String, requestId: String): PubkySession? {
+        val ephemeralSk = pendingCrossDeviceEphemeralSk
+
+        // Check if it's an encrypted sealed blob
+        if (com.pubky.noise.isSealedBlob(response)) {
+            if (ephemeralSk == null) {
+                Logger.error("SECURITY: Received sealed blob but no ephemeral key available", context = TAG)
+                return null
+            }
+
+            return try {
+                // AAD format for cross-device relay
+                val aad = PaykitV0Protocol.relaySessionAad(requestId)
+                val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(ephemeralSk, response, aad)
+                val plaintextJson = String(plaintextBytes)
+                parseSessionFromJson(plaintextJson)
+            } catch (e: Exception) {
+                Logger.error("Failed to decrypt relay response", e, context = TAG)
+                null
+            }
+        } else {
+            // Plaintext response - REJECT for security
+            Logger.error("SECURITY: Cross-device relay returned plaintext (insecure). Use encrypted relay.", context = TAG)
+            return null
         }
     }
 
@@ -739,77 +884,49 @@ class PubkyRingBridge @Inject constructor(
         }
     }
 
+    /**
+     * DEPRECATED: Legacy session callback that received plaintext session_secret in URL.
+     *
+     * This callback path is no longer supported for security reasons.
+     * Secrets in callback URLs are exposed in system logs, URL history, and to URL handlers.
+     *
+     * Use the secure handoff flow via `paykit-setup` callback instead, which:
+     * - Stores encrypted session data on homeserver
+     * - Only returns a reference for secure decryption
+     */
     private fun handleSessionCallback(uri: Uri): Boolean {
-        val pubkey = uri.getQueryParameter("pubky")
-        val sessionSecret = uri.getQueryParameter("session_secret")
-
-        if (pubkey == null || sessionSecret == null) {
-            pendingSessionContinuation?.resumeWithException(PubkyRingException.MissingParameters)
-            pendingSessionContinuation = null
-            return true
-        }
-
-        val capabilities = uri.getQueryParameter("capabilities")
-            ?.split(",")
-            ?.filter { it.isNotEmpty() }
-            ?: emptyList()
-
-        val session = PubkySession(
-            pubkey = pubkey,
-            sessionSecret = sessionSecret,
-            capabilities = capabilities,
-            createdAt = Date()
+        Logger.warn(
+            "DEPRECATED: Received legacy session callback with plaintext secret. This flow is no longer supported.",
+            context = TAG,
         )
 
-        // Cache the session
-        sessionCache[pubkey] = session
-        
-        // Persist to keychain (fire-and-forget)
-        scope.launch {
-            persistSession(session)
-        }
-
-        pendingSessionContinuation?.resume(session)
+        val error = PubkyRingException.Custom(
+            "Legacy session callback is deprecated for security reasons. " +
+                "Please update Ring app to use secure paykit-connect handoff.",
+        )
+        pendingSessionContinuation?.resumeWithException(error)
         pendingSessionContinuation = null
 
         return true
     }
 
+    /**
+     * DEPRECATED: Legacy keypair callback that received plaintext secret_key in URL.
+     *
+     * This callback path is no longer supported for security reasons.
+     * Use local epoch derivation with noise_seed from secure handoff instead.
+     */
     private fun handleKeypairCallback(uri: Uri): Boolean {
-        val keypairResult = callbackParser.parseKeypairCallback(uri)
-        if (keypairResult is PubkyRingCallbackParser.CallbackResult.Error) {
-            pendingKeypairContinuation?.resumeWithException(keypairResult.exception)
-            pendingKeypairContinuation = null
-            return true
-        }
-
-        val keypairData = (keypairResult as PubkyRingCallbackParser.CallbackResult.Success).data
-        val publicKey = keypairData.publicKey
-        val secretKey = keypairData.secretKey
-        val deviceId = keypairData.deviceId
-        val epoch = keypairData.epoch
-
-        val keypair = NoiseKeypair(
-            publicKey = publicKey,
-            secretKey = secretKey,
-            deviceId = deviceId,
-            epoch = epoch,
+        Logger.warn(
+            "DEPRECATED: Received legacy keypair callback with plaintext secret. This flow is no longer supported.",
+            context = TAG,
         )
 
-        // Cache the keypair in memory
-        val cacheKey = "$deviceId:$epoch"
-        keypairCache[cacheKey] = keypair
-        
-        // Persist secret key to NoiseKeyCache (memory first, keychain persists async)
-        try {
-            val secretKeyData = secretKey.toByteArray(Charsets.UTF_8)
-            noiseKeyCache.setKeySync(secretKeyData, deviceId, epoch.toUInt())
-            Logger.debug("Stored noise keypair in NoiseKeyCache for $cacheKey", context = TAG)
-        } catch (e: Exception) {
-            Logger.warn("Failed to store noise keypair: ${e.message}", e, context = TAG)
-        }
-
-        pendingKeypairContinuation?.resume(keypair)
+        val error = PubkyRingException.Custom(
+            "Legacy keypair callback is deprecated for security reasons. " +
+                "Use local epoch derivation with noise_seed from secure handoff.",
+        )
+        pendingKeypairContinuation?.resumeWithException(error)
         pendingKeypairContinuation = null
 
         return true
@@ -990,43 +1107,30 @@ class PubkyRingBridge @Inject constructor(
         return true
     }
 
+    /**
+     * DISABLED: Cross-device session callback with plaintext session_secret.
+     *
+     * SECURITY: This flow is DISABLED because it exposes secrets in callback URLs.
+     * Secrets in URLs are logged by system URL handlers, appear in app history,
+     * and can be captured by malicious URL handlers.
+     *
+     * For cross-device authentication, use the secure pubkyauth:// flow which:
+     * - Encrypts the AuthToken with a shared client_secret (exchanged via QR)
+     * - Only transmits encrypted blobs to the relay
+     * - Never exposes secrets in callback URLs
+     *
+     * See docs/ENCRYPTED_RELAY_PROTOCOL.md for details.
+     */
     private fun handleCrossDeviceSessionCallback(uri: Uri): Boolean {
-        // Verify request ID matches
-        val requestId = uri.getQueryParameter("request_id")
-        if (requestId != null && requestId != pendingCrossDeviceRequestId) {
-            Logger.warn("Cross-device request ID mismatch", context = TAG)
-            return false
-        }
-
-        val pubkey = uri.getQueryParameter("pubky")
-        val sessionSecret = uri.getQueryParameter("session_secret")
-
-        if (pubkey == null || sessionSecret == null) {
-            return false
-        }
-
-        val capabilities = uri.getQueryParameter("capabilities")
-            ?.split(",")
-            ?.filter { it.isNotEmpty() }
-            ?: emptyList()
-
-        val session = PubkySession(
-            pubkey = pubkey,
-            sessionSecret = sessionSecret,
-            capabilities = capabilities,
-            createdAt = Date(),
+        Logger.error(
+            "SECURITY: Plaintext cross-device session callback REJECTED. " +
+                "Use secure pubkyauth:// flow instead. See ENCRYPTED_RELAY_PROTOCOL.md",
+            context = TAG,
         )
-
-        // Cache the session
-        sessionCache[pubkey] = session
-        pendingCrossDeviceRequestId = null
         
-        // Persist to keychain for cross-device sessions too (fire-and-forget)
-        scope.launch {
-            persistSession(session)
-        }
-
-        return true
+        // Always reject plaintext secrets in callback URLs
+        pendingCrossDeviceRequestId = null
+        return false
     }
     
     // MARK: - Session Persistence
@@ -1207,6 +1311,22 @@ data class BackupNoiseKey(
 )
 
 /**
+ * Custom serializer for java.util.Date as epoch milliseconds
+ */
+object DateAsLongSerializer : kotlinx.serialization.KSerializer<Date> {
+    override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor(
+        "Date",
+        kotlinx.serialization.descriptors.PrimitiveKind.LONG,
+    )
+
+    override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: Date) =
+        encoder.encodeLong(value.time)
+
+    override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder): Date =
+        Date(decoder.decodeLong())
+}
+
+/**
  * Session data returned from Pubky-ring
  */
 @kotlinx.serialization.Serializable
@@ -1214,16 +1334,16 @@ data class PubkySession(
     val pubkey: String,
     val sessionSecret: String,
     val capabilities: List<String>,
-    @kotlinx.serialization.Contextual
+    @kotlinx.serialization.Serializable(with = DateAsLongSerializer::class)
     val createdAt: Date,
-    @kotlinx.serialization.Contextual
+    @kotlinx.serialization.Serializable(with = DateAsLongSerializer::class)
     val expiresAt: Date? = null,
 ) {
     /**
      * Check if session has a specific capability
      */
     fun hasCapability(capability: String): Boolean = capabilities.contains(capability)
-    
+
     /**
      * Check if session is expired
      */
@@ -1254,6 +1374,8 @@ data class PaykitSetupResult(
     val noiseKeypair0: NoiseKeypair?,
     /** X25519 keypair for epoch 1 (for rotation) */
     val noiseKeypair1: NoiseKeypair?,
+    /** Noise seed for local epoch derivation (so Bitkit doesn't need to re-call Ring) */
+    val noiseSeed: String? = null,
 ) {
     /** Check if noise keys are available */
     val hasNoiseKeys: Boolean get() = noiseKeypair0 != null
@@ -1271,6 +1393,9 @@ sealed class PubkyRingException(message: String) : Exception(message) {
     object Cancelled : PubkyRingException("Request was cancelled")
     object SignatureFailed : PubkyRingException("Failed to generate signature")
     data class CrossDeviceFailed(val reason: String) : PubkyRingException("Cross-device authentication failed: $reason")
+    object MissingEphemeralKey : PubkyRingException("Ephemeral key not found - cannot decrypt handoff")
+    data class DecryptionFailed(val reason: String) : PubkyRingException("Decryption failed: $reason")
+    data class Custom(val reason: String) : PubkyRingException(reason)
 
     /**
      * User-friendly message for UI display
@@ -1284,6 +1409,9 @@ sealed class PubkyRingException(message: String) : Exception(message) {
             is Cancelled -> "Authentication was cancelled."
             is SignatureFailed -> "Failed to sign the message. Please try again."
             is CrossDeviceFailed -> "Cross-device authentication failed. Please try again."
+            is MissingEphemeralKey -> "Session setup failed. Please update Bitkit and try again."
+            is DecryptionFailed -> "Failed to decrypt session data. Please try again."
+            is Custom -> reason
         }
 }
 

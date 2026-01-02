@@ -76,7 +76,7 @@ private fun ProfileEditContent(
 ) {
     ScreenColumn {
         AppTopBar(
-            titleText = "Edit Profile",
+            titleText = "Edit Profile", // TODO: Localize via Transifex
             onBackClick = onBackClick,
             actions = {
                 if (uiState.hasChanges && !uiState.isSaving) {

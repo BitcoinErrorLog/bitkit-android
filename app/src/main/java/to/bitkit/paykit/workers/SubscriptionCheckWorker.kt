@@ -23,6 +23,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.withTimeout
 import to.bitkit.R
+import to.bitkit.paykit.PaykitFeatureFlags
 import to.bitkit.paykit.PaykitIntegrationHelper
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.services.AutoPayEvaluatorService
@@ -276,6 +277,17 @@ class SubscriptionCheckWorker @AssistedInject constructor(
      * Execute the actual payment for a subscription.
      */
     private suspend fun executePayment(subscription: Subscription) {
+        // Check dry-run gate - if enabled, skip actual payment but log the evaluation
+        if (!PaykitFeatureFlags.canExecutePayment()) {
+            Logger.info(
+                "DRY-RUN: Payment would execute for subscription ${subscription.id} " +
+                    "(${subscription.amountSats} sats to ${subscription.providerPubkey})",
+                context = TAG
+            )
+            sendDryRunNotification(subscription)
+            return
+        }
+
         // Initialize Paykit if needed
         runCatching {
             PaykitIntegrationHelper.setup(lightningRepo)
@@ -315,6 +327,18 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             Logger.error("Payment failed: $errorMessage", context = TAG)
             sendPaymentFailedNotification(subscription, errorMessage)
         }
+    }
+
+    private fun sendDryRunNotification(subscription: Subscription) {
+        val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Subscription Dry-Run")
+            .setContentText("${subscription.providerName}: ₿ ${subscription.amountSats} (simulated)")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setAutoCancel(true)
+            .build()
+
+        showNotification(NOTIFICATION_ID_BASE + subscription.id.hashCode() + 1000, notification)
     }
 
     /**

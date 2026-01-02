@@ -37,7 +37,7 @@ fun NoisePaymentScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Noise Payment",
+            titleText = "Noise Payment", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

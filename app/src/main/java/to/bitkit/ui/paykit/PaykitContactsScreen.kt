@@ -35,7 +35,7 @@ fun PaykitContactsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Contacts",
+            titleText = "Contacts", // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
             actions = {
                 IconButton(onClick = onNavigateToContactDiscovery) {

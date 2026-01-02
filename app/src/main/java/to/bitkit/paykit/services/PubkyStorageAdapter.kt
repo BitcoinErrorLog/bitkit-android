@@ -103,47 +103,6 @@ class PubkyStorageAdapter @Inject constructor(
         return result.entries
     }
 
-    /**
-     * Store data in Pubky storage using authenticated transport
-     */
-    suspend fun store(path: String, data: ByteArray, transport: AuthenticatedTransportFfi) {
-        // For now, use shared OkHttpClient since transport is an FFI wrapper
-        val content = String(data)
-        val urlString = "https://homeserver.pubky.app$path"
-
-        val mediaType = "application/json".toMediaType()
-        val requestBody = content.toRequestBody(mediaType)
-
-        val request = Request.Builder()
-            .url(urlString)
-            .put(requestBody)
-            .header("Content-Type", "application/json")
-            .build()
-
-        val response = httpClient.newCall(request).execute()
-        if (response.code !in 200..299) {
-            throw PubkyStorageException("Failed to store: HTTP ${response.code}")
-        }
-        Logger.debug("Stored data to Pubky: $path", context = TAG)
-    }
-
-    /**
-     * Delete from Pubky storage using authenticated transport
-     */
-    suspend fun delete(path: String, transport: AuthenticatedTransportFfi) {
-        val urlString = "https://homeserver.pubky.app$path"
-
-        val request = Request.Builder()
-            .url(urlString)
-            .delete()
-            .build()
-
-        val response = httpClient.newCall(request).execute()
-        if (response.code !in 200..299 && response.code != 404) {
-            throw PubkyStorageException("Failed to delete: HTTP ${response.code}")
-        }
-        Logger.debug("Deleted from Pubky: $path", context = TAG)
-    }
 }
 
 /**
@@ -338,10 +297,8 @@ class PubkyAuthenticatedStorageAdapter(
         val urlString = buildTransportUrl(path)
         val cookieValue = buildSessionCookie()
 
+        // SECURITY: Never log session cookies, secrets, or request content
         Logger.debug("PUT request to: $urlString", context = TAG)
-        Logger.debug("Cookie name length: ${ownerPubkey.length}, secret length: ${sessionSecret.length}", context = TAG)
-        Logger.debug("Cookie full: $cookieValue", context = TAG)
-        Logger.debug("Content: ${content.take(100)}", context = TAG)
 
         val mediaType = "application/json".toMediaType()
         val requestBody = content.toRequestBody(mediaType)
@@ -356,7 +313,6 @@ class PubkyAuthenticatedStorageAdapter(
         // Add pubky-host header when using central homeserver URL
         if (needsPubkyHostHeader()) {
             requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
-            Logger.debug("pubky-host: $ownerPubkey", context = TAG)
         }
 
         val request = requestBuilder.build()

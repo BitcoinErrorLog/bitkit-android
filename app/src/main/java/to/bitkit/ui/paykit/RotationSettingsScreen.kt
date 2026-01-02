@@ -26,7 +26,7 @@ fun RotationSettingsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Rotation Settings",
+            titleText = "Rotation Settings", // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 

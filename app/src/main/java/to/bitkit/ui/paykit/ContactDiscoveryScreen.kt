@@ -76,7 +76,7 @@ fun ContactDiscoveryScreen(
             modifier = Modifier.padding(paddingValues),
         ) {
             AppTopBar(
-                titleText = "Discover Contacts",
+                titleText = "Discover Contacts", // TODO: Localize via Transifex
                 onBackClick = onNavigateBack,
                 actions = {
                     IconButton(

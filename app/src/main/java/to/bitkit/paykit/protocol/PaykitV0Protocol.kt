@@ -268,6 +268,17 @@ object PaykitV0Protocol {
     }
 
     /**
+     * Build AAD for a cross-device relay session payload.
+     *
+     * Format: `paykit:v0:relay:session:{request_id}`
+     *
+     * @param requestId Unique identifier for this relay session request
+     * @return The AAD string to use with Sealed Blob v1 encryption
+     */
+    fun relaySessionAad(requestId: String): String =
+        "$AAD_PREFIX:relay:session:$requestId"
+
+    /**
      * Build AAD from explicit path and ID.
      *
      * Format: `paykit:v0:{purpose}:{path}:{id}`
