@@ -112,12 +112,16 @@ object PaykitFeatureFlags {
     private fun setDefaults() {
         prefs?.let { p ->
             if (!p.contains(ENABLED_KEY)) {
+                // Dry-run is enabled by default only in debug builds.
+                // In release builds, real payments execute immediately.
+                val dryRunDefault = to.bitkit.BuildConfig.DEBUG
+
                 p.edit()
                     .putBoolean(ENABLED_KEY, false) // Disabled by default until ready
                     .putBoolean(LIGHTNING_ENABLED_KEY, true)
                     .putBoolean(ONCHAIN_ENABLED_KEY, true)
                     .putBoolean(RECEIPT_STORAGE_ENABLED_KEY, true)
-                    .putBoolean(DRY_RUN_KEY, true) // Dry-run enabled by default for safety
+                    .putBoolean(DRY_RUN_KEY, dryRunDefault)
                     .apply()
             }
         }

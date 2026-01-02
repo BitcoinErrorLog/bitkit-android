@@ -343,12 +343,24 @@ class SubscriptionCheckWorker @AssistedInject constructor(
 
     /**
      * Schedule notifications for upcoming subscription payments.
+     * Notifications are throttled to once per subscription per billing period.
      */
     private fun scheduleUpcomingNotifications() {
         val upcomingSubscriptions = getUpcomingSubscriptions(withinHours = 24)
+        val prefs = appContext.getSharedPreferences("subscription_notifications", Context.MODE_PRIVATE)
 
         for (subscription in upcomingSubscriptions) {
+            val nextDue = subscription.nextPaymentAt ?: continue
+            val notificationKey = "notified_${subscription.id}_${nextDue}"
+
+            // Check if we've already notified for this billing cycle
+            if (prefs.getBoolean(notificationKey, false)) {
+                continue
+            }
+
+            // Send notification and mark as notified
             sendUpcomingPaymentNotification(subscription)
+            prefs.edit().putBoolean(notificationKey, true).apply()
         }
     }
 
