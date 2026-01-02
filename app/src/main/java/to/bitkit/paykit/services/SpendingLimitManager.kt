@@ -19,24 +19,6 @@ class SpendingLimitManager @Inject constructor() {
 
     companion object {
         private const val TAG = "SpendingLimitManager"
-
-        @Volatile
-        private var instance: SpendingLimitManager? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject SpendingLimitManager"))
-        fun getInstance(): SpendingLimitManager {
-            return instance ?: synchronized(this) {
-                instance ?: throw IllegalStateException("SpendingLimitManager not initialized. Use dependency injection.")
-            }
-        }
-
-        internal fun setInstance(manager: SpendingLimitManager) {
-            instance = manager
-        }
-    }
-
-    init {
-        setInstance(this)
     }
 
     @Volatile

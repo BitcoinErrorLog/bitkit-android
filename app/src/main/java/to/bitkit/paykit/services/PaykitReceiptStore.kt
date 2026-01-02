@@ -42,20 +42,6 @@ class PaykitReceiptStore @Inject constructor(
         private const val PREFS_NAME = "paykit_receipts"
         private const val RECEIPTS_KEY = "receipts"
         private const val MAX_RECEIPTS = 1000 // Prevent unbounded growth
-
-        @Volatile
-        private var instance: PaykitReceiptStore? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitReceiptStore"))
-        fun getInstance(context: Context): PaykitReceiptStore {
-            return instance ?: synchronized(this) {
-                instance ?: throw IllegalStateException("PaykitReceiptStore not initialized. Use dependency injection.")
-            }
-        }
-
-        internal fun setInstance(store: PaykitReceiptStore) {
-            instance = store
-        }
     }
 
     private val cache = ConcurrentHashMap<String, PaykitReceipt>()
@@ -67,8 +53,6 @@ class PaykitReceiptStore @Inject constructor(
     private var isLoaded = false
 
     init {
-        setInstance(this)
-        
         try {
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)

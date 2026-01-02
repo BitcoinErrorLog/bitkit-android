@@ -35,22 +35,20 @@ class PaykitManager @Inject constructor(
 
     companion object {
         private const val TAG = "PaykitManager"
-
+        
         @Volatile
         private var instance: PaykitManager? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitManager"))
-        fun getInstance(): PaykitManager {
-            return instance ?: throw IllegalStateException("PaykitManager not initialized. Use dependency injection.")
-        }
         
-        internal fun setInstance(manager: PaykitManager) {
-            instance = manager
-        }
+        /**
+         * Get the shared instance for non-DI contexts (e.g., objects).
+         * Prefer Hilt injection where possible.
+         */
+        internal fun getSharedInstance(): PaykitManager? = instance
     }
     
     init {
-        setInstance(this)
+        // Store reference for non-DI access
+        instance = this
     }
 
     private var client: PaykitClient? = null

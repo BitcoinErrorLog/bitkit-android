@@ -47,24 +47,6 @@ class PaykitPaymentService @Inject constructor(
 
     companion object {
         private const val TAG = "PaykitPaymentService"
-
-        @Volatile
-        private var instance: PaykitPaymentService? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PaykitPaymentService"))
-        fun getInstance(): PaykitPaymentService {
-            return instance ?: synchronized(this) {
-                instance ?: throw IllegalStateException("PaykitPaymentService not initialized. Use dependency injection.")
-            }
-        }
-
-        internal fun setInstance(service: PaykitPaymentService) {
-            instance = service
-        }
-    }
-
-    init {
-        setInstance(this)
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -146,7 +128,7 @@ class PaykitPaymentService @Inject constructor(
         feeRate: Double? = null,
         peerPubkey: String? = null,
     ): PaykitPaymentResult {
-        if (!PaykitIntegrationHelper.isReady) {
+        if (!paykitManager.isInitialized || !paykitManager.hasExecutors) {
             return PaykitPaymentResult(
                 success = false,
                 receipt = createFailedReceipt(recipient, amountSats ?: 0uL, PaykitReceiptType.LIGHTNING),
@@ -268,9 +250,16 @@ class PaykitPaymentService @Inject constructor(
                 metadataJson = null,
             )
 
+            // Determine receipt type based on selected method
+            val receiptType = when {
+                selectedMethod.methodId.contains("onchain", ignoreCase = true) ||
+                selectedMethod.methodId.contains("bitcoin", ignoreCase = true) -> PaykitReceiptType.ONCHAIN
+                else -> PaykitReceiptType.LIGHTNING
+            }
+
             val receipt = PaykitReceipt(
                 id = UUID.randomUUID().toString(),
-                type = PaykitReceiptType.LIGHTNING,
+                type = receiptType,
                 recipient = pubkey,
                 amountSats = amount,
                 feeSats = 0uL,
@@ -316,6 +305,7 @@ class PaykitPaymentService @Inject constructor(
             .removePrefix("paykit:")
             .removePrefix("pip:")
             .trim()
+    }
 
     /**
      * Execute a payment with atomic spending limit enforcement.
@@ -372,7 +362,7 @@ class PaykitPaymentService @Inject constructor(
         val startTime = System.currentTimeMillis()
 
         return try {
-            val lightningResult = PaykitIntegrationHelper.payLightning(lightningRepo, invoice, amountSats)
+            val lightningResult = PaykitIntegrationHelper.payLightning(paykitManager, lightningRepo, invoice, amountSats)
 
             val receipt = PaykitReceipt(
                 id = UUID.randomUUID().toString(),
@@ -435,7 +425,7 @@ class PaykitPaymentService @Inject constructor(
         val startTime = System.currentTimeMillis()
 
         return try {
-            val txResult = PaykitIntegrationHelper.payOnchain(lightningRepo, address, amountSats, feeRate)
+            val txResult = PaykitIntegrationHelper.payOnchain(paykitManager, lightningRepo, address, amountSats, feeRate)
 
             val receipt = PaykitReceipt(
                 id = UUID.randomUUID().toString(),

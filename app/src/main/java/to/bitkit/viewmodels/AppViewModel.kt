@@ -1823,7 +1823,8 @@ class AppViewModel @Inject constructor(
             paykitClient = paykitClient,
             autopayEvaluator = autoPayViewModel.asAutopayEvaluator(),
             paymentRequestStorage = PaymentRequestStorage(keychainStorage),
-            directoryService = directoryService
+            directoryService = directoryService,
+            paykitManager = paykitManager,
         )
 
         // Handle the payment request

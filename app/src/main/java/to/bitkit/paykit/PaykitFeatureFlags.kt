@@ -95,7 +95,7 @@ object PaykitFeatureFlags {
         Logger.warn("Paykit emergency rollback triggered", context = TAG)
 
         // Reset manager state
-        PaykitManager.getInstance().reset()
+        PaykitManager.getSharedInstance()?.reset()
     }
 }
 

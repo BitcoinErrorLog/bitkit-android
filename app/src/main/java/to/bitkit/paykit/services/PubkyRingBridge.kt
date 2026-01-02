@@ -91,22 +91,6 @@ class PubkyRingBridge @Inject constructor(
         const val CALLBACK_PATH_CROSS_DEVICE_SESSION = "paykit-cross-session"
         const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
         const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result"  // Ed25519 signature result
-
-        @Volatile
-        private var instance: PubkyRingBridge? = null
-
-        @Deprecated("Use dependency injection instead", ReplaceWith("Inject PubkyRingBridge"))
-        fun getInstance(): PubkyRingBridge {
-            return instance ?: throw IllegalStateException("PubkyRingBridge not initialized. Use dependency injection.")
-        }
-        
-        internal fun setInstance(bridge: PubkyRingBridge) {
-            instance = bridge
-        }
-    }
-    
-    init {
-        setInstance(this)
     }
 
     // Coroutine scope for fire-and-forget persistence operations
