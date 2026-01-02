@@ -111,7 +111,9 @@ adb shell am broadcast -a android.intent.action.RUN \
 1. Navigate to **Subscriptions → Proposals**
 2. Find an incoming proposal
 3. Tap **Decline**
-4. The proposal is removed from the list and deleted from the directory
+4. The proposal is hidden from your list
+
+**Note**: In the v0 provider-storage model, subscribers cannot delete proposals from the provider's storage. Decline is a local-only operation that marks the proposal as "seen/declined" so it no longer appears in your inbox.
 
 ## Verifying Directory Operations
 
