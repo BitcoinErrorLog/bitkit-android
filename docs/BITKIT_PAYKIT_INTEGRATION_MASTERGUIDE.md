@@ -1337,8 +1337,14 @@ Reference implementations:
 
 #### 8.2.1 Publishing a payment request (sender flow)
 
-Where it is implemented (iOS): `DirectoryService.publishPaymentRequest(_:)` stores at:
-- `/pub/paykit.app/v0/requests/<requestId>` on the sender’s Pubky storage.
+Where it is implemented:
+- iOS: `DirectoryService.publishPaymentRequest(_:)`
+- Android: `DirectoryService.publishPaymentRequest(...)`
+
+Storage path (on the **sender's** Pubky storage):
+- `/pub/paykit.app/v0/requests/{recipient_scope}/{requestId}`
+
+Where `{recipient_scope}` = `hex(sha256(normalize(recipient_pubkey_z32)))`.
 
 End-to-end steps:
 
@@ -1349,8 +1355,10 @@ End-to-end steps:
    - Preferred: `PubkyRingBridge.requestPaykitSetup()` (session + noise keys)
 3. Import/restore the session into the Pubky SDK layer.
 4. Configure `DirectoryService` with the session.
-5. Publish the request JSON to `/pub/paykit.app/v0/requests/<requestId>`.
-6. Generate a receiver deep link:
+5. Compute `recipient_scope` from the recipient's pubkey.
+6. Encrypt request JSON with Sealed Blob v1 (recipient's Noise public key).
+7. Publish the envelope to `/pub/paykit.app/v0/requests/{recipient_scope}/{requestId}`.
+8. Generate a receiver deep link:
    - `bitkit://payment-request?requestId=<requestId>&from=<senderPubkey>`
 
 #### 8.2.2 Receiving + processing a payment request deep link (receiver flow)

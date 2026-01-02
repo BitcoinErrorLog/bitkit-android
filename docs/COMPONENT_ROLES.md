@@ -170,11 +170,15 @@ User taps "Connect with Pubky-ring"
 
 ### Paykit Data (paykit.app namespace)
 
-| Path | Purpose | Auth Required |
-|------|---------|---------------|
-| `/pub/paykit.app/v0/endpoints/{method}.json` | Payment endpoint | Write: Yes, Read: No |
-| `/pub/paykit.app/v0/requests/{requestId}` | Payment request | Write: Yes, Read: No |
-| `/pub/paykit.app/v0/subscriptions/{id}` | Subscription data | Write: Yes, Read: No |
+| Path | Purpose | Storage Location | Auth Required |
+|------|---------|------------------|---------------|
+| `/pub/paykit.app/v0/{method}.json` | Payment endpoint | Payee's storage | Write: Yes, Read: No |
+| `/pub/paykit.app/v0/noise` | Noise endpoint | Payee's storage | Write: Yes, Read: No |
+| `/pub/paykit.app/v0/requests/{recipient_scope}/{requestId}` | Payment request | Sender's storage | Write: Yes, Read: No |
+| `/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}` | Subscription proposal | Provider's storage | Write: Yes, Read: No |
+| `/pub/paykit.app/v0/handoff/{requestId}` | Secure handoff | Ring user's storage | Write: Yes, Read: No |
+
+**Note**: `{recipient_scope}` and `{subscriber_scope}` are SHA-256 hashes of the normalized pubkey (not the raw pubkey).
 
 ---
 

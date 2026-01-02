@@ -58,7 +58,9 @@ adb shell am broadcast -a android.intent.action.RUN \
 **Expected Result:**
 - Toast shows "Proposal sent successfully"
 - The proposal is published to the Pubky directory at:
-  `/pub/paykit.app/v0/subscriptions/proposals/{recipientPubkey}/{proposalId}`
+  `/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}`
+
+  Where `{subscriber_scope}` = `hex(sha256(normalize(subscriber_pubkey_z32)))`.
 
 ### Scenario 2: Discover and Accept Proposal
 
@@ -76,7 +78,7 @@ adb shell am broadcast -a android.intent.action.RUN \
 
 **Expected Result:**
 - Subscription appears in "My Subscriptions" tab
-- Proposal is removed from Proposals tab
+- Proposal is hidden from Proposals tab (local-only; not deleted from provider storage)
 - If autopay enabled: AutoPayRule is created
 
 ### Scenario 3: Manage Subscription
@@ -113,17 +115,24 @@ adb shell am broadcast -a android.intent.action.RUN \
 
 ## Verifying Directory Operations
 
-Use the Pubky homeserver API to verify proposals are correctly stored:
+Use the Pubky homeserver API to verify proposals are correctly stored.
+
+**Important**: Proposals are stored on the **provider's** storage (the sender of the proposal), not the subscriber's.
 
 ```bash
-# List proposals for a recipient
-curl "https://homeserver.pubky.app/pub/paykit.app/v0/subscriptions/proposals/{recipientPubkey}/" \
-  -H "pubky-host: {recipientPubkey}"
+# Compute subscriber_scope (in practice, use the same hashing as the app):
+# subscriber_scope = hex(sha256(normalize(subscriber_pubkey_z32)))
+
+# List proposals addressed to a subscriber (query provider's storage)
+curl "https://homeserver.pubky.app/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/" \
+  -H "pubky-host: {providerPubkey}"
 
 # Fetch a specific proposal
-curl "https://homeserver.pubky.app/pub/paykit.app/v0/subscriptions/proposals/{recipientPubkey}/{proposalId}" \
-  -H "pubky-host: {recipientPubkey}"
+curl "https://homeserver.pubky.app/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}" \
+  -H "pubky-host: {providerPubkey}"
 ```
+
+**Note**: Proposals are encrypted with Sealed Blob v1. The response will be an encrypted envelope JSON.
 
 ## Troubleshooting
 
