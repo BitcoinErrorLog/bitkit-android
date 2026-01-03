@@ -64,6 +64,21 @@ class PushNotificationService @Inject constructor(
     }
 
     /**
+     * Discover a peer's push endpoint from the directory.
+     * Currently returns null as push endpoint discovery is not yet implemented.
+     *
+     * @param recipientPubkey The public key of the recipient
+     * @return The push endpoint if found, null otherwise
+     */
+    @Suppress("UnusedParameter")
+    private suspend fun discoverPushEndpoint(recipientPubkey: String): PushEndpoint? {
+        // TODO: Implement push endpoint discovery via directory service
+        // For now, return null to indicate endpoint not found
+        Logger.debug("PushNotificationService: discoverPushEndpoint not yet implemented", context = TAG)
+        return null
+    }
+
+    /**
      * Send a wake notification to a peer before attempting Noise connection.
      * This wakes the recipient's device to start their Noise server.
      *
@@ -90,22 +105,6 @@ class PushNotificationService @Inject constructor(
 
         Logger.info("PushNotificationService: Sent wake notification to ${recipientPubkey.take(12)}...", context = TAG)
     }
-
-    /**
-     * Discover push endpoint for a recipient.
-     *
-     * SECURITY NOTE: Push tokens are NOT stored in public `/pub/` paths.
-     * Use [PushRelayService] instead - it stores tokens server-side and
-     * provides authenticated wake notifications with rate limiting.
-     *
-     * This method is a stub for legacy compatibility and always returns null.
-     * New code should use [PushRelayService.wake] for push notifications.
-     */
-    @Deprecated(
-        "Use PushRelayService.wake() for authenticated push notifications",
-        ReplaceWith("pushRelayService.wake(recipientPubkey, WakeType.NOISE_CONNECT)")
-    )
-    private suspend fun discoverPushEndpoint(recipientPubkey: String): PushEndpoint? = null
 
     /**
      * Send push notification via APNs for iOS recipients
@@ -173,36 +172,6 @@ class PushNotificationService @Inject constructor(
         // 3. Backend handles FCM response
 
         Logger.info("PushNotificationService: Would send FCM notification to token ${endpoint.deviceToken.take(16)}...", context = TAG)
-    }
-
-    /**
-     * Publish our push endpoint.
-     *
-     * SECURITY NOTE: Push tokens must NOT be stored in public `/pub/` paths.
-     * Use [PushRelayService.register] instead - it stores tokens server-side
-     * and provides authenticated wake notifications with rate limiting.
-     *
-     * This method is deprecated and does nothing. Use [PushRelayService] for push registration.
-     *
-     * @param noiseHost Host for our Noise server (ignored)
-     * @param noisePort Port for our Noise server (ignored)
-     * @param noisePubkey Our Noise public key (ignored)
-     */
-    @Deprecated(
-        "Use PushRelayService.register() for secure push token registration. " +
-            "Publishing push tokens to public paths enables DoS attacks.",
-        ReplaceWith("pushRelayService.register(token, capabilities)")
-    )
-    suspend fun publishOurPushEndpoint(
-        noiseHost: String,
-        noisePort: Int,
-        noisePubkey: String,
-    ) {
-        Logger.warn(
-            "DEPRECATED: publishOurPushEndpoint called. Use PushRelayService.register() instead.",
-            context = TAG,
-        )
-        // No-op: Never publish push tokens to public paths
     }
 }
 

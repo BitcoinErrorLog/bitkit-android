@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.services.AuthMethod
 import to.bitkit.paykit.services.CrossDeviceRequest
 import to.bitkit.paykit.services.DirectoryService
@@ -24,6 +25,7 @@ class PubkyRingAuthViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val pubkyRingBridge: PubkyRingBridge,
     private val directoryService: DirectoryService,
+    private val paykitManager: PaykitManager,
 ) : ViewModel() {
 
     val isPubkyRingInstalled: Boolean = pubkyRingBridge.isPubkyRingInstalled(context)
@@ -51,6 +53,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 val session = setupResult.session
                 // Configure DirectoryService for authenticated writes to homeserver
                 directoryService.configureWithPubkySession(session)
+                // Update PaykitManager with owner pubkey for polling and other operations
+                paykitManager.setOwnerPubkey(session.pubkey)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -85,6 +89,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 val session = pubkyRingBridge.pollForCrossDeviceSession(request.requestId)
                 // Configure DirectoryService for authenticated writes to homeserver
                 directoryService.configureWithPubkySession(session)
+                // Update PaykitManager with owner pubkey for polling and other operations
+                paykitManager.setOwnerPubkey(session.pubkey)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -103,6 +109,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 val session = pubkyRingBridge.handleAuthUrl(url)
                 // Configure DirectoryService for authenticated writes to homeserver
                 directoryService.configureWithPubkySession(session)
+                // Update PaykitManager with owner pubkey for polling and other operations
+                paykitManager.setOwnerPubkey(session.pubkey)
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message

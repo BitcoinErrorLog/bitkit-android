@@ -496,41 +496,6 @@ removeNoiseEndpoint(transport)
     }
 
     /**
-     * Discover pending payment requests from the directory.
-     *
-     * DEPRECATED: This method lists our own storage which is the wrong model.
-     * Use [discoverPendingRequestsFromPeer] to poll each known contact's storage.
-     *
-     * For backwards compatibility, this method will still work if requests are
-     * addressed to our raw pubkey (legacy format).
-     */
-    @Deprecated("Use discoverPendingRequestsFromPeer to poll known contacts")
-    suspend fun discoverPendingRequests(ownerPubkey: String): List<to.bitkit.paykit.workers.DiscoveredRequest> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
-        val scope = PaykitV0Protocol.recipientScope(ownerPubkey)
-        val requestsPath = "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/$scope/"
-
-        return try {
-            val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, ownerPubkey)
-
-            requestFiles.mapNotNull { requestId ->
-                try {
-                    val requestPath = "$requestsPath$requestId"
-                    val envelopeBytes = pubkyStorage.retrieve(requestPath, adapter, ownerPubkey)
-                    val envelopeJson = envelopeBytes?.let { String(it) }
-                    decryptAndParsePaymentRequest(requestId, envelopeJson, ownerPubkey)
-                } catch (e: Exception) {
-                    Logger.error("Failed to parse request $requestId", e, context = TAG)
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            Logger.error("Failed to discover pending requests for $ownerPubkey", e, context = TAG)
-            emptyList()
-        }
-    }
-
-    /**
      * Discover subscription proposals from a peer's storage.
      *
      * In the v0 provider-storage model, subscribers poll known providers and list
@@ -565,42 +530,6 @@ removeNoiseEndpoint(transport)
             }
         } catch (e: Exception) {
             Logger.error("Failed to discover proposals from $peerPubkey", e, context = TAG)
-            emptyList()
-        }
-    }
-
-    /**
-     * Discover subscription proposals from the directory.
-     *
-     * DEPRECATED: This method uses the wrong storage model.
-     * Use [discoverSubscriptionProposalsFromPeer] to poll each known provider's storage.
-     */
-    @Deprecated("Use discoverSubscriptionProposalsFromPeer to poll known providers")
-    suspend fun discoverSubscriptionProposals(
-        ownerPubkey: String,
-    ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
-        val scope = PaykitV0Protocol.subscriberScope(ownerPubkey)
-        val proposalsPath =
-            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.SUBSCRIPTION_PROPOSALS_SUBPATH}/$scope/"
-
-        return try {
-            val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, ownerPubkey)
-
-            proposalFiles.mapNotNull { proposalId ->
-                try {
-                    val proposalPath = "$proposalsPath$proposalId"
-                    val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, ownerPubkey)
-                    val envelopeJson = envelopeBytes?.let { String(it) }
-                    // NOTE: This deprecated method cannot verify provider binding since we don't know who we're polling
-                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, ownerPubkey, expectedProviderPubkey = null)
-                } catch (e: Exception) {
-                    Logger.error("Failed to parse proposal $proposalId", e, context = TAG)
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            Logger.error("Failed to discover subscription proposals for $ownerPubkey", e, context = TAG)
             emptyList()
         }
     }

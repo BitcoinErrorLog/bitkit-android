@@ -85,11 +85,8 @@ class PubkyRingBridge @Inject constructor(
         }
 
         // Callback paths
-        const val CALLBACK_PATH_SESSION = "paykit-session"
-        const val CALLBACK_PATH_KEYPAIR = "paykit-keypair"
         const val CALLBACK_PATH_PROFILE = "paykit-profile"
         const val CALLBACK_PATH_FOLLOWS = "paykit-follows"
-        const val CALLBACK_PATH_CROSS_DEVICE_SESSION = "paykit-cross-session"
         const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
         const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result"  // Ed25519 signature result
 
@@ -110,15 +107,11 @@ class PubkyRingBridge @Inject constructor(
      */
     fun cleanup() {
         scope.cancel("PubkyRingBridge cleanup")
-        pendingSessionContinuation = null
-        pendingKeypairContinuation = null
         pendingPaykitSetupContinuation = null
         Logger.debug("PubkyRingBridge cleaned up", context = TAG)
     }
 
     // Pending continuations for async requests
-    private var pendingSessionContinuation: Continuation<PubkySession>? = null
-    private var pendingKeypairContinuation: Continuation<NoiseKeypair>? = null
     private var pendingPaykitSetupContinuation: Continuation<PaykitSetupResult>? = null
 
     // Pending cross-device request ID and ephemeral key
@@ -219,31 +212,10 @@ class PubkyRingBridge @Inject constructor(
      * @return PubkySession with pubkey, session secret, and capabilities
      * @throws PubkyRingException if request fails or app not installed
      */
-    suspend fun requestSession(context: Context): PubkySession = suspendCancellableCoroutine { continuation ->
-        if (!isPubkyRingInstalled(context)) {
-            continuation.resumeWithException(PubkyRingException.AppNotInstalled)
-            return@suspendCancellableCoroutine
-        }
-
-        val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_SESSION"
-        val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
-        val requestUrl = "$PUBKY_RING_SCHEME://session?callback=$encodedCallback"
-
-        pendingSessionContinuation = continuation
-
-        continuation.invokeOnCancellation {
-            pendingSessionContinuation = null
-        }
-
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Logger.error("Failed to open Pubky-ring", e, context = TAG)
-            pendingSessionContinuation = null
-            continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
-        }
+    suspend fun requestSession(context: Context): PubkySession {
+        // Delegate to requestPaykitSetup which is the secure flow
+        val result = requestPaykitSetup(context)
+        return result.session
     }
 
     /**
@@ -369,34 +341,12 @@ class PubkyRingBridge @Inject constructor(
             return localKeypair
         }
 
-        // 4. Fallback: Request from Pubky-ring (legacy support)
-        if (!isPubkyRingInstalled(context)) {
-            throw PubkyRingException.AppNotInstalled
-        }
-
-        Logger.info("Requesting noise keypair from Ring for epoch $epoch (no local seed available)", context = TAG)
-
-        return suspendCancellableCoroutine { continuation ->
-            val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_KEYPAIR"
-            val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
-            val requestUrl = "$PUBKY_RING_SCHEME://derive-keypair?deviceId=$actualDeviceId&epoch=$epoch&callback=$encodedCallback"
-
-            pendingKeypairContinuation = continuation
-
-            continuation.invokeOnCancellation {
-                pendingKeypairContinuation = null
-            }
-
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl))
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Logger.error("Failed to open Pubky-ring for keypair", e, context = TAG)
-                pendingKeypairContinuation = null
-                continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
-            }
-        }
+        // 4. No noise_seed available - require secure handoff
+        // The derive-keypair Ring action has been removed for security (exposed secrets in URLs).
+        // Users must re-authenticate using paykit-connect to get a noise_seed.
+        throw PubkyRingException.Custom(
+            "No noise_seed available for local derivation. Please reconnect to Pubky Ring to refresh your session.",
+        )
     }
 
     /**
@@ -443,6 +393,43 @@ class PubkyRingBridge @Inject constructor(
      * Get cached session for a pubkey
      */
     fun getCachedSession(pubkey: String): PubkySession? = sessionCache[pubkey]
+
+    /**
+     * Handle an auth URL callback (deprecated - use requestPaykitSetup instead)
+     *
+     * This method is kept for backward compatibility but always throws an exception
+     * as the legacy URL-based auth flow has been deprecated for security reasons.
+     */
+    @Deprecated("Use requestPaykitSetup instead. Legacy URL-based auth is insecure.")
+    @Suppress("UnusedParameter")
+    fun handleAuthUrl(url: String): PubkySession {
+        throw PubkyRingException.Custom(
+            "Legacy URL-based authentication is deprecated. Please use the secure Paykit setup flow."
+        )
+    }
+
+    /**
+     * Import a session from pubkey and secret (deprecated - use requestPaykitSetup instead)
+     *
+     * This method creates a session from manually provided credentials.
+     * Use with caution - prefer the secure handoff flow.
+     */
+    @Deprecated("Use requestPaykitSetup instead for secure session handling.")
+    fun importSession(pubkey: String, sessionSecret: String): PubkySession {
+        val session = PubkySession(
+            pubkey = pubkey,
+            sessionSecret = sessionSecret,
+            capabilities = emptyList(),
+            createdAt = java.util.Date(),
+        )
+        sessionCache[pubkey] = session
+        // Persist asynchronously
+        scope.launch {
+            persistSession(session)
+        }
+        Logger.info("Imported session for ${pubkey.take(12)}...", context = TAG)
+        return session
+    }
 
     /**
      * Clear all cached data
@@ -681,52 +668,6 @@ class PubkyRingBridge @Inject constructor(
     }
 
     /**
-     * DEPRECATED: Handle an authentication URL from a scanned QR code or pasted link
-     *
-     * This function is deprecated for security reasons. It accepted plaintext session
-     * secrets in URLs, which exposes secrets in system logs, URL history, etc.
-     *
-     * Use the secure handoff flow via `requestPaykitSetup()` instead.
-     *
-     * @throws PubkyRingException.Custom always
-     */
-    @Deprecated(
-        message = "handleAuthUrl is deprecated for security reasons. Use requestPaykitSetup() instead.",
-        level = DeprecationLevel.WARNING,
-    )
-    fun handleAuthUrl(url: String): PubkySession {
-        Logger.warn(
-            "DEPRECATED: handleAuthUrl called with potentially plaintext secrets. This is no longer supported.",
-            context = TAG,
-        )
-        throw PubkyRingException.Custom(
-            "handleAuthUrl is deprecated for security reasons. Use requestPaykitSetup() instead.",
-        )
-    }
-
-    /**
-     * DEPRECATED: Import a session manually (for offline/manual cross-device flow)
-     *
-     * This function is deprecated for security reasons. Sessions should only be
-     * received via the encrypted secure handoff flow.
-     *
-     * @throws PubkyRingException.Custom always
-     */
-    @Deprecated(
-        message = "importSession is deprecated for security reasons. Use requestPaykitSetup() instead.",
-        level = DeprecationLevel.WARNING,
-    )
-    fun importSession(pubkey: String, sessionSecret: String, capabilities: List<String> = emptyList()): PubkySession {
-        Logger.warn(
-            "DEPRECATED: importSession called with plaintext session_secret. This is no longer supported.",
-            context = TAG,
-        )
-        throw PubkyRingException.Custom(
-            "importSession is deprecated for security reasons. Use requestPaykitSetup() instead.",
-        )
-    }
-
-    /**
      * Generate a shareable link for cross-device auth
      */
     fun generateShareableLink(): String {
@@ -873,63 +814,12 @@ class PubkyRingBridge @Inject constructor(
         if (uri.scheme != BITKIT_SCHEME) return false
 
         return when (uri.host) {
-            CALLBACK_PATH_SESSION -> handleSessionCallback(uri)
-            CALLBACK_PATH_KEYPAIR -> handleKeypairCallback(uri)
             CALLBACK_PATH_PROFILE -> handleProfileCallback(uri)
             CALLBACK_PATH_FOLLOWS -> handleFollowsCallback(uri)
-            CALLBACK_PATH_CROSS_DEVICE_SESSION -> handleCrossDeviceSessionCallback(uri)
             CALLBACK_PATH_PAYKIT_SETUP -> handlePaykitSetupCallback(uri)
             CALLBACK_PATH_SIGNATURE_RESULT -> handleSignatureCallback(uri)
             else -> false
         }
-    }
-
-    /**
-     * DEPRECATED: Legacy session callback that received plaintext session_secret in URL.
-     *
-     * This callback path is no longer supported for security reasons.
-     * Secrets in callback URLs are exposed in system logs, URL history, and to URL handlers.
-     *
-     * Use the secure handoff flow via `paykit-setup` callback instead, which:
-     * - Stores encrypted session data on homeserver
-     * - Only returns a reference for secure decryption
-     */
-    private fun handleSessionCallback(uri: Uri): Boolean {
-        Logger.warn(
-            "DEPRECATED: Received legacy session callback with plaintext secret. This flow is no longer supported.",
-            context = TAG,
-        )
-
-        val error = PubkyRingException.Custom(
-            "Legacy session callback is deprecated for security reasons. " +
-                "Please update Ring app to use secure paykit-connect handoff.",
-        )
-        pendingSessionContinuation?.resumeWithException(error)
-        pendingSessionContinuation = null
-
-        return true
-    }
-
-    /**
-     * DEPRECATED: Legacy keypair callback that received plaintext secret_key in URL.
-     *
-     * This callback path is no longer supported for security reasons.
-     * Use local epoch derivation with noise_seed from secure handoff instead.
-     */
-    private fun handleKeypairCallback(uri: Uri): Boolean {
-        Logger.warn(
-            "DEPRECATED: Received legacy keypair callback with plaintext secret. This flow is no longer supported.",
-            context = TAG,
-        )
-
-        val error = PubkyRingException.Custom(
-            "Legacy keypair callback is deprecated for security reasons. " +
-                "Use local epoch derivation with noise_seed from secure handoff.",
-        )
-        pendingKeypairContinuation?.resumeWithException(error)
-        pendingKeypairContinuation = null
-
-        return true
     }
 
     private fun handlePaykitSetupCallback(uri: Uri): Boolean {

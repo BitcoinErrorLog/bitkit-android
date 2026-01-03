@@ -94,9 +94,36 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
     @Test
     fun `loadActivity starts observation of activity changes`() = test {
-        val initialActivity = createTestActivity(ACTIVITY_ID, confirmed = false)
-        val updatedActivity = createTestActivity(ACTIVITY_ID, confirmed = true)
-        val activitiesChangedFlow = MutableStateFlow(System.currentTimeMillis())
+        val timestamp = System.currentTimeMillis() / 1000
+        val initialActivity = Activity.Onchain(
+            v1 = OnchainActivity.create(
+                id = ACTIVITY_ID,
+                txType = PaymentType.RECEIVED,
+                txId = "tx-$ACTIVITY_ID",
+                value = 100000UL,
+                fee = 500UL,
+                feeRate = 8UL,
+                address = "bc1...",
+                confirmed = false,
+                timestamp = timestamp.toULong(),
+                confirmTimestamp = null,
+            )
+        )
+        val updatedActivity = Activity.Onchain(
+            v1 = OnchainActivity.create(
+                id = ACTIVITY_ID,
+                txType = PaymentType.RECEIVED,
+                txId = "tx-$ACTIVITY_ID",
+                value = 100000UL,
+                fee = 500UL,
+                feeRate = 8UL,
+                address = "bc1...",
+                confirmed = true,
+                timestamp = timestamp.toULong(),
+                confirmTimestamp = timestamp.toULong(),
+            )
+        )
+        val activitiesChangedFlow = MutableStateFlow(1L)
 
         whenever(activityRepo.activitiesChanged).thenReturn(activitiesChangedFlow)
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.success(initialActivity))
@@ -113,7 +140,7 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
         // Simulate activity update
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.success(updatedActivity))
-        activitiesChangedFlow.value = System.currentTimeMillis()
+        activitiesChangedFlow.value = 2L  // Use a distinctly different value
         advanceUntilIdle()
 
         // Verify ViewModel reflects updated activity

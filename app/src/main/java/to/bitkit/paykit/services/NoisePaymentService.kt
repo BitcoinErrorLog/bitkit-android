@@ -404,10 +404,12 @@ class NoisePaymentService @Inject constructor(
      * an incoming Noise connection.
      * 
      * @param port Port to listen on
+     * @param externalHost Optional external host address for publishing endpoint (for relay/NAT traversal)
      * @param onRequest Callback invoked when a payment request is received
      */
     suspend fun startBackgroundServer(
         port: Int,
+        externalHost: String? = null,
         onRequest: (NoisePaymentRequest) -> Unit
     ) = withContext(Dispatchers.IO) {
         if (isServerRunning) {
@@ -424,6 +426,11 @@ class NoisePaymentService @Inject constructor(
 
             Logger.info("Noise server started on port $port", context = TAG)
 
+            // Update Noise endpoint on homeserver with actual host/port
+            // This allows other clients to discover how to connect for real-time Noise payments
+            // Note: For mobile, externalHost should be provided by a relay/NAT traversal service
+            updateNoiseEndpointOnServer(port, externalHost)
+
             // Accept a single connection (push-wake mode)
             val clientSocket = serverSocket?.accept()
             if (clientSocket != null) {
@@ -438,6 +445,46 @@ class NoisePaymentService @Inject constructor(
         } finally {
             stopBackgroundServer()
         }
+    }
+
+    /**
+     * Update Noise endpoint on homeserver with current server address.
+     * Best-effort: failures are logged but don't stop the server.
+     */
+    private suspend fun updateNoiseEndpointOnServer(port: Int, externalHost: String?) {
+        try {
+            val keypair = keyManager.getCachedNoiseKeypair() ?: run {
+                Logger.warn("Cannot update Noise endpoint: no keypair cached", context = TAG)
+                return
+            }
+
+            // Use provided host, or fall back to local IP for testing
+            val host = externalHost ?: getLocalIpAddress() ?: "localhost"
+
+            directoryService.publishNoiseEndpoint(
+                host = host,
+                port = port,
+                noisePubkey = keypair.publicKeyHex,
+                metadata = null,
+            )
+            Logger.info("Updated Noise endpoint to $host:$port", context = TAG)
+        } catch (e: Exception) {
+            // Log but don't fail - server is already running
+            Logger.warn("Failed to update Noise endpoint: ${e.message}", context = TAG)
+        }
+    }
+
+    /**
+     * Get local IP address for testing purposes.
+     * In production, use a relay service for NAT traversal.
+     */
+    private fun getLocalIpAddress(): String? = try {
+        java.net.NetworkInterface.getNetworkInterfaces()?.asSequence()
+            ?.flatMap { it.inetAddresses.asSequence() }
+            ?.firstOrNull { !it.isLoopbackAddress && it is java.net.Inet4Address }
+            ?.hostAddress
+    } catch (e: Exception) {
+        null
     }
 
     /**

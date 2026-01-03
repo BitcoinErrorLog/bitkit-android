@@ -70,6 +70,15 @@ class PaykitManager @Inject constructor(
         private set
 
     /**
+     * Update owner pubkey after a successful session setup.
+     * Called by ViewModels after completing Paykit Connect flow.
+     */
+    fun setOwnerPubkey(pubkey: String) {
+        ownerPubkey = pubkey
+        Logger.info("Owner pubkey updated: ${pubkey.take(12)}...", context = TAG)
+    }
+
+    /**
      * Payment service instance for executing payments.
      */
     var paymentService: PaykitPaymentService? = null
@@ -108,7 +117,8 @@ class PaykitManager @Inject constructor(
         // Configure DirectoryService with first available session for authenticated writes
         pubkyRingBridge.getCachedSessions().firstOrNull()?.let { session ->
             directoryService.configureWithPubkySession(session)
-            Logger.info("DirectoryService configured with restored session", context = TAG)
+            ownerPubkey = session.pubkey
+            Logger.info("DirectoryService configured with restored session for ${session.pubkey.take(12)}...", context = TAG)
         }
 
         // Schedule background workers for session refresh and polling
@@ -174,6 +184,8 @@ class PaykitManager @Inject constructor(
             val session = pubkyRingBridge.requestSession(context)
             // Configure DirectoryService for authenticated writes to homeserver
             directoryService.configureWithPubkySession(session)
+            ownerPubkey = session.pubkey
+            Logger.info("Session obtained and ownerPubkey set: ${session.pubkey.take(12)}...", context = TAG)
             return session
         }
         throw PaykitException.PubkyRingNotInstalled

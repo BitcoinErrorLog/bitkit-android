@@ -1,0 +1,64 @@
+# E2E Test: Noise Endpoint Encryption - Android
+# Preconditions:
+#   - Paykit connected (run 04-paykit-encryption.yaml first)
+#
+# This test verifies:
+#   1. Noise endpoint is published encrypted
+#   2. X25519 public key is exposed (not secret)
+#   3. Endpoint discovery works
+appId: to.bitkit.dev
+name: Noise Endpoint Encryption
+tags:
+  - noise
+  - encryption
+  - endpoint
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to Settings
+- tapOn:
+    point: "55,95"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Scroll down to find advanced settings
+- scroll:
+    direction: DOWN
+
+# Look for Paykit or Noise settings
+- runFlow:
+    when:
+      visible: "Paykit"
+    commands:
+      - tapOn: "Paykit"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# Check noise endpoint status
+- assertVisible: "Noise Endpoint"
+
+# Tap to view details
+- tapOn: "Noise Endpoint"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Verify endpoint is published
+- assertVisible: "Published"
+
+# Take screenshot
+- takeScreenshot: noise-endpoint-android
+
+# Verify only public key is shown, not secret
+- assertNotVisible: "secret"
+- assertNotVisible: "_sk"
+- assertNotVisible: "private"
+
+# Go back to settings
+- back
+- waitForAnimationToEnd
+

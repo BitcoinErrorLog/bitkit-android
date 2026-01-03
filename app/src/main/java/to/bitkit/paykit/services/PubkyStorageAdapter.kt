@@ -297,8 +297,10 @@ class PubkyAuthenticatedStorageAdapter(
         val urlString = buildTransportUrl(path)
         val cookieValue = buildSessionCookie()
 
-        // SECURITY: Never log session cookies, secrets, or request content
+        // Log request details (SECURITY: Never log secrets or full content)
         Logger.debug("PUT request to: $urlString", context = TAG)
+        Logger.debug("Request headers: pubky-host=${if (needsPubkyHostHeader()) ownerPubkey.take(12) + "..." else "N/A"}", context = TAG)
+        Logger.debug("Content-Length: ${content.length} bytes", context = TAG)
 
         val mediaType = "application/json".toMediaType()
         val requestBody = content.toRequestBody(mediaType)
@@ -320,23 +322,64 @@ class PubkyAuthenticatedStorageAdapter(
         return try {
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string()
+            val responseCode = response.code
 
-            Logger.debug("Response code: ${response.code}, body: ${responseBody?.take(200)}", context = TAG)
+            // Enhanced diagnostic logging for debugging auth issues
+            Logger.debug("Response code: $responseCode", context = TAG)
+            if (responseCode !in 200..299) {
+                // Log response headers for auth debugging (skip sensitive headers)
+                val relevantHeaders = listOfNotNull(
+                    response.header("WWW-Authenticate")?.let { "WWW-Authenticate: $it" },
+                    response.header("X-Error")?.let { "X-Error: $it" },
+                    response.header("X-Request-Id")?.let { "X-Request-Id: $it" },
+                )
+                if (relevantHeaders.isNotEmpty()) {
+                    Logger.debug("Response headers: ${relevantHeaders.joinToString(", ")}", context = TAG)
+                }
+                Logger.debug("Response body: ${responseBody?.take(500)}", context = TAG)
+            }
 
-            if (response.code in 200..299) {
-                StorageOperationResult(success = true, error = null)
-            } else {
-                StorageOperationResult(success = false, error = "HTTP ${response.code}: $responseBody")
+            when (responseCode) {
+                in 200..299 -> {
+                    Logger.debug("PUT succeeded for path: $path", context = TAG)
+                    StorageOperationResult(success = true, error = null)
+                }
+                401 -> {
+                    Logger.error("PUT failed: Unauthorized (401) - session cookie may be invalid or expired", context = TAG)
+                    StorageOperationResult(
+                        success = false,
+                        error = "Unauthorized: Session expired or invalid. Please reconnect to Pubky Ring."
+                    )
+                }
+                403 -> {
+                    Logger.error("PUT failed: Forbidden (403) - no write permission for path: $path", context = TAG)
+                    StorageOperationResult(
+                        success = false,
+                        error = "Forbidden: No write permission. Check pubky-host header and session capabilities."
+                    )
+                }
+                404 -> {
+                    Logger.error("PUT failed: Not Found (404) - homeserver endpoint not found", context = TAG)
+                    StorageOperationResult(success = false, error = "Not Found: Homeserver endpoint unavailable.")
+                }
+                else -> {
+                    Logger.error("PUT failed: HTTP $responseCode - $responseBody", context = TAG)
+                    StorageOperationResult(success = false, error = "HTTP $responseCode: $responseBody")
+                }
             }
         } catch (e: IOException) {
+            Logger.error("PUT network error: ${e.message}", e, context = TAG)
             StorageOperationResult(success = false, error = "Network error: ${e.message}")
         } catch (e: Exception) {
+            Logger.error("PUT unexpected error: ${e.message}", e, context = TAG)
             StorageOperationResult(success = false, error = "Error: ${e.message}")
         }
     }
 
     override fun get(path: String): StorageGetResult {
         val urlString = buildTransportUrl(path)
+
+        Logger.debug("GET request to: $urlString", context = TAG)
 
         var requestBuilder = Request.Builder()
             .url(urlString)
@@ -352,18 +395,37 @@ class PubkyAuthenticatedStorageAdapter(
 
         return try {
             val response = client.newCall(request).execute()
+            val responseCode = response.code
 
-            when {
-                response.code == 404 -> StorageGetResult(success = true, content = null, error = null)
-                response.code in 200..299 -> {
+            when (responseCode) {
+                404 -> {
+                    Logger.debug("GET returned 404 (not found) for path: $path", context = TAG)
+                    StorageGetResult(success = true, content = null, error = null)
+                }
+                in 200..299 -> {
                     val body = response.body?.string()
+                    Logger.debug("GET succeeded for path: $path (${body?.length ?: 0} bytes)", context = TAG)
                     StorageGetResult(success = true, content = body, error = null)
                 }
-                else -> StorageGetResult(success = false, content = null, error = "HTTP ${response.code}")
+                401 -> {
+                    Logger.error("GET failed: Unauthorized (401) for path: $path", context = TAG)
+                    StorageGetResult(success = false, content = null, error = "Unauthorized: Session expired or invalid.")
+                }
+                403 -> {
+                    Logger.error("GET failed: Forbidden (403) for path: $path", context = TAG)
+                    StorageGetResult(success = false, content = null, error = "Forbidden: No read permission.")
+                }
+                else -> {
+                    val body = response.body?.string()
+                    Logger.error("GET failed: HTTP $responseCode for path: $path - $body", context = TAG)
+                    StorageGetResult(success = false, content = null, error = "HTTP $responseCode")
+                }
             }
         } catch (e: IOException) {
+            Logger.error("GET network error: ${e.message}", e, context = TAG)
             StorageGetResult(success = false, content = null, error = "Network error: ${e.message}")
         } catch (e: Exception) {
+            Logger.error("GET unexpected error: ${e.message}", e, context = TAG)
             StorageGetResult(success = false, content = null, error = "Error: ${e.message}")
         }
     }

@@ -1,0 +1,87 @@
+# E2E Test: Cross-Device Relay Encryption - Android
+# This test verifies cross-device authentication via relay
+# The relay payload must be encrypted using Sealed Blob v1
+#
+# Preconditions:
+#   - Bitkit Android app installed (fresh state)
+#   - HTTP relay accessible
+appId: to.bitkit.dev
+name: Cross-Device Relay Encryption
+tags:
+  - cross-device
+  - relay
+  - encryption
+---
+# Start with clean state
+- clearState
+
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Skip onboarding if present
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+      - waitForAnimationToEnd
+
+# Handle wallet creation if needed
+- runFlow:
+    when:
+      visible: "Create Wallet"
+    commands:
+      - tapOn: "Create Wallet"
+      - waitForAnimationToEnd:
+          timeout: 30000
+
+# Navigate to profile/connect area
+- tapOn:
+    point: "55,95"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Tap "Connect with Pubky Ring"
+- tapOn: "Connect with Pubky Ring"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Select QR Code / Cross-device option
+- runFlow:
+    when:
+      visible: "QR Code"
+    commands:
+      - tapOn: "QR Code"
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# Verify QR is displayed
+- assertVisible:
+    id: "QRCode"
+
+# Take screenshot of QR code
+- takeScreenshot: cross-device-qr-android
+
+# Verify expiration countdown
+- assertVisible: "expires"
+
+# The QR content should be an encrypted relay URL
+# Verification that the payload is encrypted is done by the orchestrator
+
+# Verify copy/share options
+- runFlow:
+    when:
+      visible: "Copy"
+    commands:
+      - assertVisible: "Copy"
+
+- runFlow:
+    when:
+      visible: "Share"
+    commands:
+      - assertVisible: "Share"
+

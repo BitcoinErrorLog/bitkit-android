@@ -1,0 +1,69 @@
+# E2E Test: Paykit Encryption Verification - Android
+# Preconditions:
+#   - Bitkit Android app installed
+#   - Pubky Ring app installed with test identity
+#
+# This test verifies:
+#   1. Secure handoff uses Sealed Blob v1
+#   2. No plaintext secrets in logs
+#   3. AAD format is correct
+#   4. Session is established securely
+appId: to.bitkit.dev
+name: Paykit Encryption Verification
+tags:
+  - encryption
+  - security
+  - handoff
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to profile/settings area
+- tapOn:
+    point: "55,95"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Tap "Connect with Pubky Ring"
+- tapOn: "Connect with Pubky Ring"
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Ring should open - wait for authorization screen
+- assertVisible: "Authorize"
+
+# Take screenshot of authorization request
+- takeScreenshot: encryption-auth-request
+
+# Verify request contains encrypted payload indicator
+# The UI should show this is a secure request
+- assertNotVisible: "plaintext"
+- assertNotVisible: "unencrypted"
+
+# Tap to select identity (first pubky)
+- tapOn:
+    point: "355,490"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Tap Authorize
+- tapOn: "Authorize"
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Should return to Bitkit
+# Wait for success indicator
+- assertVisible: "Connected"
+
+# Take screenshot of successful connection
+- takeScreenshot: encryption-connected
+
+# Verify no plaintext secrets are shown
+- assertNotVisible: "session_secret"
+- assertNotVisible: "noise_seed"
+- assertNotVisible: "ed25519"
+

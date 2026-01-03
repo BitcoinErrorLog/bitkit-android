@@ -90,17 +90,20 @@ class PubkyRingBridgeTest {
 
     @Suppress("DEPRECATION")
     @Test
-    fun `importSession throws deprecated exception`() {
+    fun `importSession creates session and caches it`() {
         val pubkey = "z6mktest1234567890"
         val secret = "test_secret_12345"
 
-        val exception = runCatching {
-            bridge.importSession(pubkey, secret)
-        }.exceptionOrNull()
+        val session = bridge.importSession(pubkey, secret)
 
-        assertNotNull(exception)
-        assertTrue(exception is PubkyRingException.Custom)
-        assertTrue(exception.message?.contains("deprecated") == true)
+        assertNotNull(session)
+        assertEquals(pubkey, session.pubkey)
+        assertEquals(secret, session.sessionSecret)
+
+        // Session should be cached
+        val cached = bridge.getCachedSession(pubkey)
+        assertNotNull(cached)
+        assertEquals(pubkey, cached.pubkey)
     }
 
     // MARK: - Authentication Status Tests
@@ -146,7 +149,8 @@ class PubkyRingBridgeTest {
     }
 
     @Test
-    fun `handleSessionCallback is deprecated and does not cache session`() {
+    fun `handleSessionCallback is not handled and returns false`() {
+        // Legacy paykit-session path is no longer handled
         val pubkey = "z6mktest1234567890"
         val secret = "test_secret_12345"
 
@@ -159,7 +163,9 @@ class PubkyRingBridgeTest {
 
         val result = bridge.handleCallback(mockUri)
 
-        assertTrue(result)
+        // paykit-session is no longer a valid callback path
+        assertFalse(result)
+        // Session should NOT be cached
         val cached = bridge.getCachedSession(pubkey)
         assertNull(cached)
     }

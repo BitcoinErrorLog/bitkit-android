@@ -1,0 +1,84 @@
+# E2E Test: Payment Request Encryption - Android
+# This test verifies payment requests are encrypted using Sealed Blob v1
+#
+# Preconditions:
+#   - Bitkit connected to Paykit (run 04-paykit-encryption.yaml first)
+#   - Has at least one contact/follow
+appId: to.bitkit.dev
+name: Payment Request Encryption
+tags:
+  - payment
+  - encryption
+  - request
+---
+# Launch Bitkit
+- launchApp
+
+# Wait for app to load
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Navigate to contacts/payments
+- tapOn:
+    id: "menu"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- tapOn: "Contacts"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Select a contact to send payment request
+- runFlow:
+    when:
+      visible: "Test Contact"
+    commands:
+      - tapOn: "Test Contact"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# Tap "Request Payment"
+- runFlow:
+    when:
+      visible: "Request Payment"
+    commands:
+      - tapOn: "Request Payment"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+      # Enter amount
+      - inputText: "1000"
+      
+      # Enter memo
+      - tapOn:
+          id: "memo"
+      - inputText: "E2E Encryption Test"
+      
+      # Create request
+      - tapOn: "Create"
+      - waitForAnimationToEnd:
+          timeout: 10000
+      
+      # Verify request was created
+      - assertVisible: "Request sent"
+      
+      # Take screenshot
+      - takeScreenshot: payment-request-sent
+
+# Verify the request is stored encrypted
+# This is validated by the orchestrator by checking homeserver storage
+
+# Navigate to pending requests
+- back
+- waitForAnimationToEnd
+
+- tapOn: "Pending"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Verify request appears in list
+- assertVisible: "E2E Encryption Test"
+
+# Take screenshot of pending requests
+- takeScreenshot: pending-requests-android
+
