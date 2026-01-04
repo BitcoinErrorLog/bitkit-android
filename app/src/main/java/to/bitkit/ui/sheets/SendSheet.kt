@@ -34,6 +34,7 @@ import to.bitkit.ui.screens.wallets.send.SendFeeViewModel
 import to.bitkit.ui.screens.wallets.send.SendPinCheckScreen
 import to.bitkit.ui.screens.wallets.send.SendQuickPayScreen
 import to.bitkit.ui.screens.wallets.send.SendRecipientScreen
+import to.bitkit.ui.paykit.ContactPickerSheet
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawConfirmScreen
 import to.bitkit.ui.screens.wallets.withdraw.WithdrawErrorScreen
 import to.bitkit.ui.settings.support.SupportScreen
@@ -98,7 +99,17 @@ fun SendSheet(
         ) {
             composableWithDefaultTransitions<SendRoute.Recipient> {
                 SendRecipientScreen(
-                    onEvent = { appViewModel.setSendEvent(it) }
+                    onEvent = { appViewModel.setSendEvent(it) },
+                    onClickContact = { navController.navigate(SendRoute.ContactPicker) },
+                )
+            }
+            composableWithDefaultTransitions<SendRoute.ContactPicker> {
+                ContactPickerSheet(
+                    onBack = { navController.popBackStack() },
+                    onContactSelected = { contact ->
+                        navController.popBackStack()
+                        appViewModel.onContactSelected(contact)
+                    },
                 )
             }
             composableWithDefaultTransitions<SendRoute.Address> {
@@ -291,6 +302,9 @@ fun SendSheet(
 sealed interface SendRoute {
     @Serializable
     data object Recipient : SendRoute
+
+    @Serializable
+    data object ContactPicker : SendRoute
 
     @Serializable
     data object Address : SendRoute

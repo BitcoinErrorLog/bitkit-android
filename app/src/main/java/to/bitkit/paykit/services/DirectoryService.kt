@@ -149,6 +149,7 @@ class DirectoryService @Inject constructor(
      */
     fun configureWithPubkySession(session: PubkySession, homeserver: HomeserverURL? = null) {
         homeserverURL = homeserver ?: HomeserverDefaults.defaultHomeserverURL
+        ownerPubkey = session.pubkey
 
         // Configure authenticated transport and adapter
         val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, session.pubkey, homeserverURL)
@@ -160,6 +161,35 @@ class DirectoryService @Inject constructor(
         unauthenticatedTransport = UnauthenticatedTransportFfi.fromCallback(unauthAdapter)
 
         Logger.info("Configured DirectoryService with Pubky session for ${session.pubkey}", context = TAG)
+    }
+
+    /** Owner pubkey for the current session, cached for profile operations */
+    private var ownerPubkey: String? = null
+
+    /** Cached profile for the current session */
+    private var cachedProfile: PubkyProfile? = null
+
+    /**
+     * Prefetch and cache the user's profile after session establishment.
+     * This enables instant profile loading in the UI.
+     */
+    suspend fun prefetchProfile() {
+        val pubkey = ownerPubkey ?: return
+        runCatching {
+            cachedProfile = fetchProfile(pubkey)
+            Logger.debug("Prefetched profile for $pubkey", context = TAG)
+        }.onFailure { e ->
+            Logger.debug("Could not prefetch profile: ${e.message}", context = TAG)
+        }
+    }
+
+    /**
+     * Get the cached profile if available, otherwise fetch it.
+     */
+    suspend fun getOrFetchProfile(): PubkyProfile? {
+        val pubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32() ?: return null
+        cachedProfile?.let { return it }
+        return fetchProfile(pubkey).also { cachedProfile = it }
     }
 
     /**

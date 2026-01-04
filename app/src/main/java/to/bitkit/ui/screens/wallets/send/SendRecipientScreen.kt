@@ -86,6 +86,7 @@ import androidx.camera.core.Preview as CameraPreview
 @Composable
 fun SendRecipientScreen(
     onEvent: (SendEvent) -> Unit,
+    onClickContact: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val app = appViewModel
@@ -259,9 +260,7 @@ fun SendRecipientScreen(
                 galleryLauncher.launch("image/*")
             }
         },
-        onClickContact = {
-            app?.toast(Exception("Coming soon: Contact"))
-        },
+        onClickContact = onClickContact,
         onClickPaste = { onEvent(SendEvent.Paste) },
         onClickManual = { onEvent(SendEvent.EnterManually) },
         cameraPermissionGranted = cameraPermissionState.status.isGranted,

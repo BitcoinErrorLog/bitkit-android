@@ -683,6 +683,19 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    fun onContactSelected(contact: to.bitkit.paykit.models.Contact) {
+        hideSheet()
+        viewModelScope.launch {
+            delay(TRANSITION_SCREEN_MS)
+            mainScreenEffect(
+                MainScreenEffect.Navigate(
+                    route = Routes.PaykitNoisePayment(recipientPubkey = contact.publicKeyZ32),
+                    navOptions = navOptions { },
+                ),
+            )
+        }
+    }
+
     private suspend fun handleScan(result: String) = withContext(bgDispatcher) {
         // always reset state on new scan
         resetSendState()

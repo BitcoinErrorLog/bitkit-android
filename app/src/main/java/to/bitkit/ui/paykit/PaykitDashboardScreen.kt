@@ -98,7 +98,7 @@ fun PaykitDashboardScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Colors.Brand)
             }
         } else {
             LazyColumn(
@@ -179,14 +179,14 @@ private fun StatsSection(
                 title = "Total Sent", // TODO: Localize via Transifex
                 value = formatSats(totalSent),
                 icon = Icons.Default.ArrowUpward,
-                color = MaterialTheme.colorScheme.error,
+                color = Colors.Red,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
                 title = "Total Received", // TODO: Localize via Transifex
                 value = formatSats(totalReceived),
                 icon = Icons.Default.ArrowDownward,
-                color = MaterialTheme.colorScheme.primary,
+                color = Colors.Green,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -199,14 +199,14 @@ private fun StatsSection(
                 title = "Contacts", // TODO: Localize via Transifex
                 value = contactCount.toString(),
                 icon = Icons.Default.People,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Colors.Blue,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
                 title = "Pending", // TODO: Localize via Transifex
                 value = pendingCount.toString(),
                 icon = Icons.Default.Schedule,
-                color = MaterialTheme.colorScheme.tertiary,
+                color = Colors.Yellow,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -239,7 +239,7 @@ private fun QuickAccessSection(
                 title = "Subscriptions", // TODO: Localize via Transifex
                 subtitle = if (activeSubscriptions > 0) "$activeSubscriptions active" else "Manage",
                 icon = Icons.Default.CalendarToday,
-                color = MaterialTheme.colorScheme.primary,
+                color = Colors.Purple,
                 onClick = onNavigateToSubscriptions,
                 modifier = Modifier.weight(1f),
             )
@@ -267,7 +267,7 @@ private fun PaymentsSection(
                 title = "Payment Requests", // TODO: Localize via Transifex
                 subtitle = if (pendingRequests > 0) "$pendingRequests pending" else "View all",
                 icon = Icons.Default.Notifications,
-                color = MaterialTheme.colorScheme.primary,
+                color = Colors.Yellow,
                 onClick = onNavigateToPaymentRequests,
                 modifier = Modifier.weight(1f),
             )
@@ -275,7 +275,7 @@ private fun PaymentsSection(
                 title = "Noise Payment", // TODO: Localize via Transifex
                 subtitle = "Private transfers", // TODO: Localize via Transifex
                 icon = Icons.Default.Waves,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Colors.Blue,
                 onClick = onNavigateToNoisePayment,
                 modifier = Modifier.weight(1f),
             )
@@ -289,7 +289,7 @@ private fun PaymentsSection(
                 title = "Contacts", // TODO: Localize via Transifex
                 subtitle = if (contactCount > 0) "$contactCount saved" else "Manage",
                 icon = Icons.Default.Person,
-                color = MaterialTheme.colorScheme.tertiary,
+                color = Colors.Purple,
                 onClick = onNavigateToContacts,
                 modifier = Modifier.weight(1f),
             )
@@ -324,7 +324,7 @@ private fun IdentitySection(
                 title = "Endpoints", // TODO: Localize via Transifex
                 subtitle = if (publishedMethodsCount > 0) "$publishedMethodsCount published" else "Setup",
                 icon = Icons.Default.Link,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Colors.Blue,
                 onClick = onNavigateToPrivateEndpoints,
                 modifier = Modifier.weight(1f),
             )

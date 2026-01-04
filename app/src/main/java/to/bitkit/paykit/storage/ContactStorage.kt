@@ -92,10 +92,21 @@ class ContactStorage @Inject constructor(
         contactsCache.remove(identity)
     }
 
+    /**
+     * Import contacts with upsert semantics: update existing, insert new, preserve local-only fields.
+     */
     suspend fun importContacts(newContacts: List<Contact>) {
         val contacts = listContacts().toMutableList()
         for (newContact in newContacts) {
-            if (!contacts.any { it.id == newContact.id }) {
+            val index = contacts.indexOfFirst { it.id == newContact.id }
+            if (index >= 0) {
+                // Upsert: update existing, preserving local-only fields (payment history)
+                val existing = contacts[index]
+                contacts[index] = newContact.copy(
+                    lastPaymentAt = existing.lastPaymentAt,
+                    paymentCount = existing.paymentCount,
+                )
+            } else {
                 contacts.add(newContact)
             }
         }

@@ -1,6 +1,11 @@
 package to.bitkit.ui.paykit
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -8,21 +13,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +59,13 @@ fun ProfileEditScreen(
     viewModel: ProfileEditViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.updateImageUri(it, context) }
+    }
 
     ProfileEditContent(
         uiState = uiState,
@@ -59,6 +77,12 @@ fun ProfileEditScreen(
         onUpdateLinkTitle = viewModel::updateLinkTitle,
         onUpdateLinkUrl = viewModel::updateLinkUrl,
         onSave = viewModel::saveProfile,
+        onRefresh = viewModel::refreshProfile,
+        onPickPhoto = {
+            photoPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
     )
 }
 
@@ -73,12 +97,21 @@ private fun ProfileEditContent(
     onUpdateLinkTitle: (Int, String) -> Unit,
     onUpdateLinkUrl: (Int, String) -> Unit,
     onSave: () -> Unit,
+    onRefresh: () -> Unit = {},
+    onPickPhoto: () -> Unit = {},
 ) {
     ScreenColumn {
         AppTopBar(
             titleText = "Edit Profile", // TODO: Localize via Transifex
             onBackClick = onBackClick,
             actions = {
+                IconButton(onClick = onRefresh, enabled = !uiState.isLoading) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = if (uiState.isLoading) Colors.White32 else Colors.White,
+                    )
+                }
                 if (uiState.hasChanges && !uiState.isSaving) {
                     TextButton(onClick = onSave) {
                         Text("Save", color = Colors.Brand)
@@ -116,29 +149,83 @@ private fun ProfileEditContent(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
+                                    .size(100.dp)
                                     .clip(CircleShape)
-                                    .background(Colors.Brand.copy(alpha = 0.2f)),
+                                    .background(Colors.Brand.copy(alpha = 0.2f))
+                                    .clickable { onPickPhoto() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (uiState.name.isNotEmpty()) {
-                                    Text(
-                                        text = uiState.name.take(1).uppercase(),
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = Colors.Brand
-                                    )
-                                } else {
+                                when {
+                                    uiState.localImageUri != null -> {
+                                        // Display selected local image
+                                        val context = LocalContext.current
+                                        val bitmap = remember(uiState.localImageUri) {
+                                            runCatching {
+                                                context.contentResolver.openInputStream(uiState.localImageUri)?.use {
+                                                    BitmapFactory.decodeStream(it)
+                                                }
+                                            }.getOrNull()
+                                        }
+                                        if (bitmap != null) {
+                                            androidx.compose.foundation.Image(
+                                                bitmap = bitmap.asImageBitmap(),
+                                                contentDescription = "Profile photo",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
+                                    }
+                                    uiState.imageUrl != null -> {
+                                        // Show indicator that there's a remote image
+                                        // (Note: Full remote image display requires image loading library)
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = Colors.Brand,
+                                                modifier = Modifier.size(48.dp),
+                                            )
+                                        }
+                                    }
+                                    uiState.name.isNotEmpty() -> {
+                                        Text(
+                                            text = uiState.name.take(1).uppercase(),
+                                            style = MaterialTheme.typography.headlineLarge,
+                                            color = Colors.Brand,
+                                        )
+                                    }
+                                    else -> {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = Colors.Brand,
+                                            modifier = Modifier.size(48.dp),
+                                        )
+                                    }
+                                }
+                                // Camera overlay
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Colors.Brand),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = Colors.Brand,
-                                        modifier = Modifier.size(40.dp)
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Change photo",
+                                        tint = Colors.White,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap to change avatar",
+                                text = "Tap to change photo",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Colors.White64
                             )
@@ -346,20 +433,25 @@ private fun ProfileEditContent(
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Colors.Brand,
-                            disabledContainerColor = Colors.Gray6
+                            disabledContainerColor = Colors.Gray6,
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     ) {
                         if (uiState.isSaving) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 color = Colors.White,
-                                strokeWidth = 2.dp
+                                strokeWidth = 2.dp,
                             )
                         } else {
-                            Text("Publish to Pubky")
+                            Text("Publish Profile")
                         }
                     }
+                }
+
+                // Disconnect button
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -384,9 +476,9 @@ class ProfileEditViewModel @Inject constructor(
         loadProfile()
     }
 
-    private fun loadProfile() {
+    private fun loadProfile(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val pubkey = keyManager.getCurrentPublicKeyZ32()
             if (pubkey == null) {
@@ -395,7 +487,12 @@ class ProfileEditViewModel @Inject constructor(
             }
 
             try {
-                val profile = directoryService.fetchProfile(pubkey)
+                // If force refresh, fetch directly from network; otherwise use cache
+                val profile = if (forceRefresh) {
+                    directoryService.fetchProfile(pubkey)
+                } else {
+                    directoryService.getOrFetchProfile()
+                }
                 if (profile != null) {
                     originalProfile = profile
                     _uiState.update {
@@ -403,9 +500,11 @@ class ProfileEditViewModel @Inject constructor(
                             isLoading = false,
                             name = profile.name ?: "",
                             bio = profile.bio ?: "",
+                            imageUrl = profile.image,
                             links = profile.links?.map { link ->
                                 EditableLinkState(title = link.title, url = link.url)
-                            } ?: emptyList()
+                            } ?: emptyList(),
+                            hasChanges = false,
                         )
                     }
                 } else {
@@ -433,11 +532,15 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
+    fun refreshProfile() {
+        loadProfile(forceRefresh = true)
+    }
+
     fun updateName(name: String) {
         _uiState.update {
             it.copy(
                 name = name,
-                hasChanges = checkHasChanges(name, it.bio, it.links)
+                hasChanges = checkHasChanges(name, it.bio, it.imageUrl, it.links)
             )
         }
     }
@@ -446,7 +549,18 @@ class ProfileEditViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 bio = bio,
-                hasChanges = checkHasChanges(it.name, bio, it.links)
+                hasChanges = checkHasChanges(it.name, bio, it.imageUrl, it.links)
+            )
+        }
+    }
+
+    fun updateImageUri(uri: Uri, context: android.content.Context) {
+        // Store the local URI for preview display
+        // Note: For production, you'd upload this to a server and store the returned URL
+        _uiState.update {
+            it.copy(
+                localImageUri = uri,
+                hasChanges = true,
             )
         }
     }
@@ -456,7 +570,7 @@ class ProfileEditViewModel @Inject constructor(
             val newLinks = it.links + EditableLinkState("", "")
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
             )
         }
     }
@@ -466,7 +580,7 @@ class ProfileEditViewModel @Inject constructor(
             val newLinks = it.links.toMutableList().apply { removeAt(index) }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
             )
         }
     }
@@ -479,7 +593,7 @@ class ProfileEditViewModel @Inject constructor(
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
             )
         }
     }
@@ -492,7 +606,7 @@ class ProfileEditViewModel @Inject constructor(
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
             )
         }
     }
@@ -505,7 +619,7 @@ class ProfileEditViewModel @Inject constructor(
             val profile = PubkyProfile(
                 name = state.name.takeIf { it.isNotEmpty() },
                 bio = state.bio.takeIf { it.isNotEmpty() },
-                image = null,
+                image = state.imageUrl,
                 links = state.links
                     .filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
                     .map { PubkyProfileLink(it.title, it.url) }
@@ -550,15 +664,18 @@ class ProfileEditViewModel @Inject constructor(
     private fun checkHasChanges(
         name: String,
         bio: String,
+        imageUrl: String?,
         links: List<EditableLinkState>,
     ): Boolean {
-        val original = originalProfile ?: return name.isNotEmpty() || bio.isNotEmpty() || links.isNotEmpty()
+        val original = originalProfile
+            ?: return name.isNotEmpty() || bio.isNotEmpty() || imageUrl != null || links.isNotEmpty()
 
         val validLinks = links.filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
         val originalLinks = original.links ?: emptyList()
 
         return name != (original.name ?: "") ||
             bio != (original.bio ?: "") ||
+            imageUrl != original.image ||
             validLinks.size != originalLinks.size
     }
 }
@@ -568,6 +685,8 @@ data class ProfileEditUiState(
     val isSaving: Boolean = false,
     val name: String = "",
     val bio: String = "",
+    val imageUrl: String? = null,
+    val localImageUri: Uri? = null,
     val links: List<EditableLinkState> = emptyList(),
     val hasChanges: Boolean = false,
     val errorMessage: String? = null,
@@ -587,6 +706,7 @@ private fun Preview() {
             uiState = ProfileEditUiState(
                 name = "John",
                 bio = "Bitcoin enthusiast",
+                imageUrl = null,
                 links = listOf(
                     EditableLinkState("Twitter", "https://twitter.com/john"),
                     EditableLinkState("Website", "https://john.dev"),
@@ -601,6 +721,8 @@ private fun Preview() {
             onUpdateLinkTitle = { _, _ -> },
             onUpdateLinkUrl = { _, _ -> },
             onSave = {},
+            onRefresh = {},
+            onPickPhoto = {},
         )
     }
 }

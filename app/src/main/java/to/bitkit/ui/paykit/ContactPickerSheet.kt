@@ -10,15 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,18 +36,17 @@ import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.BodyS
 import to.bitkit.ui.components.HorizontalSpacer
 import to.bitkit.ui.components.SearchInput
-import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
-import to.bitkit.ui.scaffold.AppTopBar
-import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.components.Title
 import to.bitkit.ui.shared.modifiers.clickableAlpha
+import to.bitkit.ui.shared.modifiers.sheetHeight
+import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.Colors
 
 @Composable
-fun PaykitContactsScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToContactDiscovery: () -> Unit = {},
-    onNavigateToContactDetail: (String) -> Unit = {},
+fun ContactPickerSheet(
+    onBack: () -> Unit,
+    onContactSelected: (Contact) -> Unit,
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
@@ -58,39 +57,40 @@ fun PaykitContactsScreen(
         viewModel.loadContacts()
     }
 
-    ScreenColumn {
-        AppTopBar(
-            titleText = "Contacts",
-            onBackClick = onNavigateBack,
-            actions = {
-                IconButton(onClick = { viewModel.loadContacts() }) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = Colors.White,
-                    )
-                }
-                IconButton(onClick = onNavigateToContactDiscovery) {
-                    Icon(
-                        imageVector = Icons.Default.PersonAdd,
-                        contentDescription = "Add Contact",
-                        tint = Colors.Brand,
-                    )
-                }
-            },
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sheetHeight()
+            .gradientBackground(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_x),
+                    contentDescription = "Back",
+                    tint = Colors.White,
+                )
+            }
+            Title(text = "Select Contact")
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 16.dp),
         ) {
             SearchInput(
                 value = searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
                 placeholder = "Search contacts...",
             )
+
+            VerticalSpacer(16.dp)
 
             if (isLoading) {
                 Box(
@@ -120,11 +120,6 @@ fun PaykitContactsScreen(
                             text = "Add people you follow on Pubky",
                             color = Colors.White32,
                         )
-                        VerticalSpacer(24.dp)
-                        SecondaryButton(
-                            text = "Add Follow",
-                            onClick = onNavigateToContactDiscovery,
-                        )
                     }
                 }
             } else {
@@ -132,9 +127,9 @@ fun PaykitContactsScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(contacts) { contact ->
-                        ContactRow(
+                        ContactPickerRow(
                             contact = contact,
-                            onClick = { onNavigateToContactDetail(contact.id) },
+                            onClick = { onContactSelected(contact) },
                         )
                     }
                 }
@@ -144,7 +139,7 @@ fun PaykitContactsScreen(
 }
 
 @Composable
-private fun ContactRow(
+private fun ContactPickerRow(
     contact: Contact,
     onClick: () -> Unit,
 ) {
@@ -156,6 +151,7 @@ private fun ContactRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Avatar circle
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -179,17 +175,11 @@ private fun ContactRow(
                 text = contact.abbreviatedKey,
                 color = Colors.White64,
             )
-            if (contact.paymentCount > 0) {
-                BodyS(
-                    text = "${contact.paymentCount} payments",
-                    color = Colors.Green,
-                )
-            }
         }
 
         if (contact.paymentCount > 0) {
             Icon(
-                painter = painterResource(R.drawable.ic_checkmark),
+                imageVector = Icons.Default.Payment,
                 contentDescription = null,
                 tint = Colors.Green,
                 modifier = Modifier.size(20.dp),
@@ -197,3 +187,4 @@ private fun ContactRow(
         }
     }
 }
+

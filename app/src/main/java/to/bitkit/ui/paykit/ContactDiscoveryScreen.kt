@@ -1,5 +1,6 @@
 package to.bitkit.ui.paykit
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,26 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,15 +31,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import to.bitkit.R
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DiscoveredContact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BodyMSB
+import to.bitkit.ui.components.BodyS
+import to.bitkit.ui.components.HorizontalSpacer
+import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.components.Title
+import to.bitkit.ui.components.VerticalSpacer
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun ContactDiscoveryScreen(
@@ -69,14 +76,10 @@ fun ContactDiscoveryScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier.padding(paddingValues),
-        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        ScreenColumn {
             AppTopBar(
-                titleText = "Discover Contacts", // TODO: Localize via Transifex
+                titleText = "Add Follow",
                 onBackClick = onNavigateBack,
                 actions = {
                     IconButton(
@@ -86,6 +89,7 @@ fun ContactDiscoveryScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
+                            tint = if (isLoading) Colors.White32 else Colors.White,
                         )
                     }
                 },
@@ -97,62 +101,52 @@ fun ContactDiscoveryScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Colors.Gray6, RoundedCornerShape(12.dp))
+                        .padding(16.dp),
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Title(text = "Discover from Pubky")
-                        Text(
-                            text = "Find contacts from your Pubky follows directory. Contacts with published payment endpoints will appear here.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        Title(text = "Enter Pubkey")
+                        BodyS(
+                            text = "Paste a Pubky ID to follow someone directly",
+                            color = Colors.White64,
                         )
-                    }
-                }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Title(text = "Add Follow by Pubkey")
                         OutlinedTextField(
                             value = pubkeyToFollow,
                             onValueChange = { pubkeyToFollow = it },
-                            label = { Text("Enter pubkey (z-base-32)") },
+                            placeholder = { Text("Pubkey (z-base-32)") },
                             singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedContainerColor = Colors.Gray5,
+                                focusedContainerColor = Colors.Gray5,
+                                unfocusedBorderColor = Colors.Gray5,
+                                focusedBorderColor = Colors.Brand,
+                            ),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("PubkeyInput"),
                         )
-                        Button(
+                        PrimaryButton(
+                            text = "Add Follow",
+                            enabled = pubkeyToFollow.isNotBlank() && !isLoading,
                             onClick = {
                                 if (pubkeyToFollow.isNotBlank()) {
                                     viewModel.followContact(pubkeyToFollow.trim())
                                     pubkeyToFollow = ""
-                                    viewModel.discoverContacts()
                                 }
                             },
-                            enabled = pubkeyToFollow.isNotBlank() && !isLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("AddFollowButton"),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PersonAdd,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 8.dp),
-                            )
-                            Text("Add Follow")
-                        }
+                            modifier = Modifier.testTag("AddFollowButton"),
+                        )
                     }
+                }
+
+                if (discoveredContacts.isNotEmpty()) {
+                    Title(text = "Your Follows")
                 }
 
                 if (isLoading) {
@@ -160,7 +154,7 @@ fun ContactDiscoveryScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = Colors.Brand)
                     }
                 } else if (discoveredContacts.isEmpty()) {
                     Box(
@@ -169,18 +163,25 @@ fun ContactDiscoveryScreen(
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
-                                text = "No contacts discovered",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Icon(
+                                painter = painterResource(R.drawable.ic_users),
+                                contentDescription = null,
+                                tint = Colors.White32,
+                                modifier = Modifier.size(48.dp),
+                            )
+                            VerticalSpacer(16.dp)
+                            BodyM(text = "No follows yet", color = Colors.White64)
+                            VerticalSpacer(8.dp)
+                            BodyS(
+                                text = "Enter a pubkey above to add your first follow",
+                                color = Colors.White32,
                             )
                         }
                     }
                 } else {
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         items(discoveredContacts) { discovered ->
                             DiscoveredContactRow(
@@ -190,7 +191,7 @@ fun ContactDiscoveryScreen(
                                         Contact.create(
                                             publicKeyZ32 = discovered.pubkey,
                                             name = discovered.name ?: "",
-                                        )
+                                        ),
                                     )
                                 },
                                 onFollow = { viewModel.followContact(discovered.pubkey) },
@@ -201,76 +202,76 @@ fun ContactDiscoveryScreen(
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 
 @Composable
-fun DiscoveredContactRow(
+private fun DiscoveredContactRow(
     discovered: DiscoveredContact,
     onAdd: () -> Unit,
     onFollow: () -> Unit,
     onUnfollow: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Colors.Gray6, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .size(40.dp)
+                .background(Colors.Brand24, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = discovered.name ?: (discovered.pubkey.take(16) + "..."),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = discovered.pubkey,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (discovered.hasPaymentMethods) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Payment,
-                            contentDescription = "Has payment methods",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = discovered.supportedMethods.joinToString(", "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            Row {
-                IconButton(onClick = onFollow) {
+            BodyMSB(
+                text = (discovered.name?.take(1) ?: discovered.pubkey.take(1)).uppercase(),
+                color = Colors.Brand,
+            )
+        }
+
+        HorizontalSpacer(12.dp)
+
+        Column(modifier = Modifier.weight(1f)) {
+            BodyMSB(
+                text = discovered.name ?: discovered.pubkey.take(16) + "...",
+                color = Colors.White,
+            )
+            BodyS(
+                text = discovered.pubkey.take(8) + "..." + discovered.pubkey.takeLast(8),
+                color = Colors.White64,
+            )
+            if (discovered.hasPaymentMethods) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Icon(
-                        imageVector = Icons.Default.PersonAdd,
-                        contentDescription = "Follow",
+                        painter = painterResource(R.drawable.ic_lightning),
+                        contentDescription = null,
+                        tint = Colors.Yellow,
+                        modifier = Modifier.size(14.dp),
                     )
-                }
-                IconButton(onClick = onUnfollow) {
-                    Icon(
-                        imageVector = Icons.Default.PersonRemove,
-                        contentDescription = "Unfollow",
-                    )
-                }
-                IconButton(onClick = onAdd) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Contact",
+                    BodyS(
+                        text = discovered.supportedMethods.joinToString(", "),
+                        color = Colors.Yellow,
                     )
                 }
             }
+        }
+
+        IconButton(onClick = onUnfollow) {
+            Icon(
+                imageVector = Icons.Default.PersonRemove,
+                contentDescription = "Unfollow",
+                tint = Colors.Red,
+            )
         }
     }
 }

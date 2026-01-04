@@ -1662,7 +1662,15 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
         to.bitkit.ui.paykit.PaykitContactsScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToContactDiscovery = { navController.navigate(Routes.PaykitContactDiscovery) },
-            onNavigateToContactDetail = { id -> /* TODO: Navigate to contact detail */ }
+            onNavigateToContactDetail = { id -> navController.navigate(Routes.PaykitContactDetail(id)) },
+        )
+    }
+    composableWithDefaultTransitions<Routes.PaykitContactDetail> { backStackEntry ->
+        val id = backStackEntry.toRoute<Routes.PaykitContactDetail>().id
+        to.bitkit.ui.paykit.ContactDetailScreen(
+            contactId = id,
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToNoisePayment = { pubkey -> navController.navigate(Routes.PaykitNoisePayment(pubkey)) },
         )
     }
     composableWithDefaultTransitions<Routes.PaykitContactDiscovery> {
@@ -1711,9 +1719,11 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
             onNavigateBack = { navController.popBackStack() }
         )
     }
-    composableWithDefaultTransitions<Routes.PaykitNoisePayment> {
+    composableWithDefaultTransitions<Routes.PaykitNoisePayment> { backStackEntry ->
+        val route = backStackEntry.toRoute<Routes.PaykitNoisePayment>()
         to.bitkit.ui.paykit.NoisePaymentScreen(
-            onNavigateBack = { navController.popBackStack() }
+            onNavigateBack = { navController.popBackStack() },
+            prefillRecipient = route.recipientPubkey,
         )
     }
     composableWithDefaultTransitions<Routes.PaykitPrivateEndpoints> {
@@ -2069,6 +2079,9 @@ sealed interface Routes {
     data object PaykitContactDiscovery : Routes
 
     @Serializable
+    data class PaykitContactDetail(val id: String) : Routes
+
+    @Serializable
     data object PaykitReceipts : Routes
 
     @Serializable
@@ -2090,7 +2103,7 @@ sealed interface Routes {
     data object PaykitPaymentRequests : Routes
 
     @Serializable
-    data object PaykitNoisePayment : Routes
+    data class PaykitNoisePayment(val recipientPubkey: String? = null) : Routes
 
     @Serializable
     data object PaykitPrivateEndpoints : Routes

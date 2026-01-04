@@ -19,10 +19,11 @@ import to.bitkit.ui.scaffold.ScreenColumn
 @Composable
 fun NoisePaymentScreen(
     onNavigateBack: () -> Unit,
-    viewModel: NoisePaymentViewModel = hiltViewModel()
+    prefillRecipient: String? = null,
+    viewModel: NoisePaymentViewModel = hiltViewModel(),
 ) {
     var mode by remember { mutableStateOf(PaymentMode.SEND) }
-    var recipientPubkey by remember { mutableStateOf("") }
+    var recipientPubkey by remember { mutableStateOf(prefillRecipient ?: "") }
     var amount by remember { mutableStateOf("") }
     var methodId by remember { mutableStateOf("lightning") }
     var description by remember { mutableStateOf("") }

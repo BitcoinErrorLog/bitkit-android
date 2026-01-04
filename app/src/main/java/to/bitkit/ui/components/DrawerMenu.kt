@@ -169,8 +169,11 @@ private fun Menu(
         DrawerItem(
             label = stringResource(R.string.wallet__drawer__profile),
             iconRes = R.drawable.ic_user_square,
-            onClick = null, // TODO IMPLEMENT PROFILE
-            modifier = Modifier.testTag("DrawerProfile")
+            onClick = {
+                rootNavController.navigateIfNotCurrent(Routes.PaykitProfileEdit)
+                scope.launch { drawerState.close() }
+            },
+            modifier = Modifier.testTag("DrawerProfile"),
         )
 
         DrawerItem(

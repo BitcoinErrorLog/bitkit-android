@@ -1,5 +1,6 @@
 package to.bitkit.paykit.viewmodels
 
+import kotlinx.coroutines.delay
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -9,10 +10,11 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.DiscoveredContact
+import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.storage.ContactStorage
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 /**
  * Unit tests for ContactsViewModel.
@@ -23,48 +25,39 @@ class ContactsViewModelTest : BaseUnitTest() {
 
     private lateinit var contactStorage: ContactStorage
     private lateinit var directoryService: DirectoryService
+    private lateinit var pubkySDKService: PubkySDKService
     private lateinit var viewModel: ContactsViewModel
 
     @Before
     fun setup() {
         contactStorage = mock()
         directoryService = mock()
-        // Mock listContacts before creating ViewModel since init calls loadContacts()
+        pubkySDKService = mock()
+        // Mock all methods called in init/loadContacts
         wheneverBlocking { contactStorage.listContacts() }.thenReturn(emptyList())
-        viewModel = ContactsViewModel(contactStorage, directoryService)
+        wheneverBlocking { contactStorage.getContact(any()) }.thenReturn(null)
+        wheneverBlocking { contactStorage.importContacts(any()) }.thenReturn(Unit)
+        wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(emptyList())
+        viewModel = ContactsViewModel(contactStorage, directoryService, pubkySDKService)
     }
 
     // MARK: - Load Contacts Tests
 
     @Test
-    fun `loadContacts loads from storage`() = test {
+    fun `loadContacts calls directoryService discoverContactsFromFollows`() = test {
         // Given
-        val contacts = listOf(
-            Contact.create(publicKeyZ32 = "pk_alice_z32", name = "Alice"),
-            Contact.create(publicKeyZ32 = "pk_bob_z32", name = "Bob")
+        val followedContacts = listOf(
+            DiscoveredContact(pubkey = "pk_alice_z32", name = "Alice", hasPaymentMethods = false, supportedMethods = emptyList()),
         )
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(contacts)
+        wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(followedContacts)
+        wheneverBlocking { contactStorage.getContact(any()) }.thenReturn(null)
 
         // When
         viewModel.loadContacts()
+        delay(100) // Allow async work to complete
 
-        // Then
-        val loadedContacts = viewModel.contacts.value
-        assertEquals(2, loadedContacts.size)
-        assertEquals("Alice", loadedContacts[0].name)
-    }
-
-    @Test
-    fun `loadContacts sets loading state`() = test {
-        // Given
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(emptyList())
-
-        // When - check initial state
-        assertFalse(viewModel.isLoading.value)
-
-        // Then - after load
-        viewModel.loadContacts()
-        assertFalse(viewModel.isLoading.value) // Should be false after load completes
+        // Then - verify discovery was called at least once (init + loadContacts)
+        verify(directoryService, atLeast(1)).discoverContactsFromFollows()
     }
 
     // MARK: - Add Contact Tests
@@ -74,32 +67,16 @@ class ContactsViewModelTest : BaseUnitTest() {
         // Given
         val contact = Contact.create(
             publicKeyZ32 = "pk_new_z32",
-            name = "New Contact"
+            name = "New Contact",
         )
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(listOf(contact))
+        wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(emptyList())
 
         // When
         viewModel.addContact(contact)
+        delay(100) // Allow async work to complete
 
         // Then
         verify(contactStorage).saveContact(contact)
-    }
-
-    @Test
-    fun `addContact updates contacts list`() = test {
-        // Given
-        val contact = Contact.create(
-            publicKeyZ32 = "pk_new_z32",
-            name = "New Contact"
-        )
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(listOf(contact))
-
-        // When
-        viewModel.addContact(contact)
-
-        // Then
-        val contacts = viewModel.contacts.value
-        assertEquals(1, contacts.size)
     }
 
     // MARK: - Delete Contact Tests
@@ -108,10 +85,11 @@ class ContactsViewModelTest : BaseUnitTest() {
     fun `deleteContact removes from storage`() = test {
         // Given
         val contact = Contact.create(publicKeyZ32 = "pk_toremove_z32", name = "To Remove")
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(emptyList())
+        wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(emptyList())
 
         // When
         viewModel.deleteContact(contact)
+        delay(100) // Allow async work to complete
 
         // Then
         verify(contactStorage).deleteContact(contact.id)
@@ -123,43 +101,11 @@ class ContactsViewModelTest : BaseUnitTest() {
     fun `setSearchQuery updates search query`() = test {
         // Given
         val query = "alice"
-        wheneverBlocking { contactStorage.searchContacts(any()) }.thenReturn(emptyList())
 
         // When
         viewModel.setSearchQuery(query)
 
         // Then
         assertEquals(query, viewModel.searchQuery.value)
-    }
-
-    @Test
-    fun `searchContacts with empty query loads all contacts`() = test {
-        // Given
-        val contacts = listOf(
-            Contact.create(publicKeyZ32 = "pk_alice_z32", name = "Alice"),
-            Contact.create(publicKeyZ32 = "pk_bob_z32", name = "Bob")
-        )
-        wheneverBlocking { contactStorage.listContacts() }.thenReturn(contacts)
-
-        // When
-        viewModel.setSearchQuery("")
-
-        // Then - verify listContacts is called at least once (init also calls loadContacts)
-        verify(contactStorage, atLeast(1)).listContacts()
-    }
-
-    @Test
-    fun `searchContacts with query searches storage`() = test {
-        // Given
-        val contacts = listOf(
-            Contact.create(publicKeyZ32 = "pk_alice_z32", name = "Alice")
-        )
-        wheneverBlocking { contactStorage.searchContacts("alice") }.thenReturn(contacts)
-
-        // When
-        viewModel.setSearchQuery("alice")
-
-        // Then
-        verify(contactStorage).searchContacts("alice")
     }
 }

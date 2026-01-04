@@ -55,6 +55,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 directoryService.configureWithPubkySession(session)
                 // Update PaykitManager with owner pubkey for polling and other operations
                 paykitManager.setOwnerPubkey(session.pubkey)
+                // Prefetch profile for instant loading in UI
+                directoryService.prefetchProfile()
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -81,7 +83,7 @@ class PubkyRingAuthViewModel @Inject constructor(
 
     fun startPollingForSession(onSuccess: (PubkySession) -> Unit) {
         val request = _crossDeviceRequest.value ?: return
-        
+
         viewModelScope.launch {
             _isPolling.value = true
             _errorMessage.value = null
@@ -91,6 +93,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 directoryService.configureWithPubkySession(session)
                 // Update PaykitManager with owner pubkey for polling and other operations
                 paykitManager.setOwnerPubkey(session.pubkey)
+                // Prefetch profile for instant loading in UI
+                directoryService.prefetchProfile()
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -111,6 +115,8 @@ class PubkyRingAuthViewModel @Inject constructor(
                 directoryService.configureWithPubkySession(session)
                 // Update PaykitManager with owner pubkey for polling and other operations
                 paykitManager.setOwnerPubkey(session.pubkey)
+                // Prefetch profile for instant loading in UI
+                directoryService.prefetchProfile()
                 onSuccess(session)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
