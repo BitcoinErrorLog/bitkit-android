@@ -197,7 +197,10 @@ class DirectoryService @Inject constructor(
     val isConfigured: Boolean get() = authenticatedTransport != null
 
     /**
-     * Discover noise endpoint for a recipient
+     * Discover noise endpoint for a recipient.
+     * 
+     * First tries the FFI-based discovery, then falls back to direct HTTP fetch
+     * (which works better in Android emulators that can't resolve pkarr DNS).
      */
     suspend fun discoverNoiseEndpoint(recipientPubkey: String): NoiseEndpointInfo? {
         val transport = unauthenticatedTransport ?: run {
@@ -208,13 +211,67 @@ class DirectoryService @Inject constructor(
             }
         }
 
-        return try {
-discoverNoiseEndpoint(transport, recipientPubkey)
+        // Try FFI-based discovery first
+        val ffiResult = try {
+            discoverNoiseEndpoint(transport, recipientPubkey)
         } catch (e: Exception) {
-            Logger.error("Failed to discover Noise endpoint for $recipientPubkey", e, context = TAG)
+            Logger.warn("FFI discover Noise endpoint failed for $recipientPubkey: ${e.message}, trying direct HTTP", context = TAG)
             null
         }
+
+        if (ffiResult != null) {
+            return ffiResult
+        }
+
+        // Fallback: fetch via direct HTTP using our Kotlin adapter
+        return discoverNoiseEndpointViaHttp(recipientPubkey)
     }
+
+    /**
+     * Fallback: Discover Noise endpoint via direct HTTP request.
+     * This works in Android emulators where pkarr DNS resolution fails.
+     * Uses withContext(Dispatchers.IO) to run the blocking HTTP call off the main thread.
+     */
+    private suspend fun discoverNoiseEndpointViaHttp(recipientPubkey: String): NoiseEndpointInfo? =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // Ensure we use the default homeserver if not configured
+            val effectiveHomeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
+            val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserverURL)
+            val noisePath = PaykitV0Protocol.noiseEndpointPath()
+            Logger.debug("Fetching Noise endpoint via HTTP: ${effectiveHomeserverURL.value}$noisePath for $recipientPubkey", context = TAG)
+
+            try {
+                val result = adapter.get(recipientPubkey, noisePath)
+                if (!result.success || result.content == null) {
+                    Logger.debug("No Noise endpoint found for $recipientPubkey via HTTP", context = TAG)
+                    return@withContext null
+                }
+
+                // Parse the JSON response
+                val json = org.json.JSONObject(result.content!!)
+                val host = json.optString("host") ?: ""
+                val port = json.optInt("port", 0)
+                val pubkey = json.optString("pubkey") ?: ""
+                val metadata: String? = if (json.has("metadata")) json.optString("metadata") else null
+
+                if (pubkey.isEmpty()) {
+                    Logger.warn("Noise endpoint for $recipientPubkey has no pubkey", context = TAG)
+                    return@withContext null
+                }
+
+                Logger.debug("Discovered Noise endpoint for $recipientPubkey via HTTP: $host:$port", context = TAG)
+                NoiseEndpointInfo(
+                    recipientPubkey = recipientPubkey,
+                    host = host,
+                    port = port.toUShort(),
+                    serverNoisePubkey = pubkey,
+                    metadata = metadata,
+                )
+            } catch (e: Exception) {
+                Logger.error("Failed to discover Noise endpoint via HTTP for $recipientPubkey", e, context = TAG)
+                null
+            }
+        }
 
     /**
      * Publish our noise endpoint to the directory
@@ -551,7 +608,7 @@ removeNoiseEndpoint(transport)
     suspend fun publishSubscriptionProposal(
         proposal: to.bitkit.paykit.models.SubscriptionProposal,
         subscriberPubkey: String,
-    ) {
+    ) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
@@ -855,9 +912,10 @@ removeNoiseEndpoint(transport)
     }
 
     /**
-     * Publish profile to Pubky directory
+     * Publish profile to Pubky directory.
+     * Uses withContext(Dispatchers.IO) to run the blocking HTTP call off the main thread.
      */
-    suspend fun publishProfile(profile: PubkyProfile) {
+    suspend fun publishProfile(profile: PubkyProfile) = withContext(Dispatchers.IO) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured

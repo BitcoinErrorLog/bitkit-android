@@ -13,6 +13,7 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
@@ -29,6 +30,7 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
     private lateinit var directoryService: DirectoryService
     private lateinit var autoPayStorage: AutoPayStorage
     private lateinit var keyManager: KeyManager
+    private lateinit var pubkyRingBridge: PubkyRingBridge
     private lateinit var viewModel: SubscriptionsViewModel
 
     @Before
@@ -38,6 +40,7 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
         directoryService = mock()
         autoPayStorage = mock()
         keyManager = mock()
+        pubkyRingBridge = mock()
 
         whenever(subscriptionStorage.listSubscriptions()).thenReturn(emptyList())
         whenever(keyManager.getCurrentPublicKeyZ32()).thenReturn("pk:owner")
@@ -49,6 +52,7 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
             directoryService,
             autoPayStorage,
             keyManager,
+            pubkyRingBridge,
         )
     }
 

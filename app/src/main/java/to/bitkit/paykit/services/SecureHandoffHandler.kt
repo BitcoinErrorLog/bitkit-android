@@ -73,15 +73,9 @@ class SecureHandoffHandler @Inject constructor(
         cacheAndPersistResult(result, payload.deviceId, scope, onSessionPersisted)
         schedulePayloadDeletion(result.session, requestId, scope)
         
-        // Verify Ring published the Noise endpoint (non-blocking diagnostic)
+        // Verify Ring published the Noise endpoint, or publish it ourselves as fallback
         scope.launch {
-            val noisePublished = verifyNoiseEndpointPublished(pubkey)
-            if (!noisePublished) {
-                Logger.warn(
-                    "Noise endpoint was not published by Ring - encrypted payment channels may not work",
-                    context = TAG,
-                )
-            }
+            ensureNoiseEndpointPublished(pubkey, result.noiseKeypair0?.publicKey, payload.deviceId)
         }
         
         result
@@ -275,6 +269,65 @@ class SecureHandoffHandler @Inject constructor(
         }
     }
     
+    /**
+     * Ensure the Noise endpoint is published for discoverability.
+     * 
+     * First verifies if Ring already published it. If not, publishes it ourselves
+     * using the keypair and session we received during handoff.
+     *
+     * @param pubkey The user's pubkey in z32 format
+     * @param noisePubkeyHex The X25519 Noise public key (hex encoded) from epoch 0
+     * @param deviceId The device ID used for this connection
+     */
+    suspend fun ensureNoiseEndpointPublished(
+        pubkey: String,
+        noisePubkeyHex: String?,
+        deviceId: String,
+    ) = withContext(Dispatchers.IO) {
+        try {
+            Logger.debug("Verifying Noise endpoint for ${pubkey.take(12)}...", context = TAG)
+            
+            // Check if endpoint already exists and is valid
+            val endpoint = directoryServiceProvider.get().discoverNoiseEndpoint(pubkey)
+            if (endpoint != null && endpoint.host != "pending") {
+                Logger.info(
+                    "Noise endpoint already published for ${pubkey.take(12)}...: host=${endpoint.host}, port=${endpoint.port}",
+                    context = TAG,
+                )
+                return@withContext
+            }
+            
+            // Endpoint missing or has placeholder values - publish it ourselves
+            if (noisePubkeyHex == null) {
+                Logger.warn("Cannot publish Noise endpoint: no keypair available", context = TAG)
+                return@withContext
+            }
+            
+            Logger.info("Ring did not publish Noise endpoint - publishing as fallback", context = TAG)
+            
+            // Publish with "pending" host/port - will be updated when Noise server starts
+            val directoryService = directoryServiceProvider.get()
+            if (!directoryService.isConfigured) {
+                if (!directoryService.tryRestoreFromKeychain()) {
+                    Logger.warn("Cannot publish Noise endpoint: DirectoryService not configured", context = TAG)
+                    return@withContext
+                }
+            }
+            
+            directoryService.publishNoiseEndpoint(
+                host = "pending",
+                port = 0,
+                noisePubkey = noisePubkeyHex,
+                metadata = """{"provisioned_by":"bitkit-fallback","device_id":"$deviceId"}""",
+            )
+            Logger.info("Published Noise endpoint for ${pubkey.take(12)}... as fallback", context = TAG)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.warn("Error ensuring Noise endpoint: ${e.message}", e, context = TAG)
+        }
+    }
+
     /**
      * Verify that Ring published the Noise endpoint during handoff.
      * 

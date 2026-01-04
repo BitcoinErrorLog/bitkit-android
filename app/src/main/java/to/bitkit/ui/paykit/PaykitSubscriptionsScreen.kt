@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,10 @@ fun PaykitSubscriptionsScreen(
             titleText = "Subscriptions", // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
             actions = {
-                IconButton(onClick = { showCreateDialog = true }) {
+                IconButton(
+                    onClick = { showCreateDialog = true },
+                    modifier = Modifier.testTag("subscriptions_create_button"),
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Create Subscription")
                 }
             },
@@ -76,6 +80,7 @@ fun PaykitSubscriptionsScreen(
                         }
                     }
                 },
+                modifier = Modifier.testTag("subscriptions_tab_proposals"),
             )
         }
 
@@ -188,7 +193,9 @@ fun SubscriptionRow(
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("subscription_row_${subscription.id}"),
         shape = RoundedCornerShape(8.dp),
     ) {
         Column(
@@ -244,7 +251,12 @@ private fun ProposalRow(
 ) {
     var showAcceptDialog by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("proposal_row_${proposal.subscriptionId}"),
+        shape = RoundedCornerShape(8.dp),
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -273,7 +285,9 @@ private fun ProposalRow(
                 OutlinedButton(
                     onClick = onDecline,
                     enabled = !isDeclining && !isAccepting,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("proposal_decline_${proposal.subscriptionId}"),
                 ) {
                     if (isDeclining) CircularProgressIndicator(Modifier.size(16.dp))
                     else Text("Decline")
@@ -281,7 +295,9 @@ private fun ProposalRow(
                 Button(
                     onClick = { showAcceptDialog = true },
                     enabled = !isAccepting && !isDeclining,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("proposal_accept_${proposal.subscriptionId}"),
                 ) {
                     if (isAccepting) CircularProgressIndicator(Modifier.size(16.dp))
                     else Text("Accept")
@@ -372,7 +388,7 @@ private fun CreateSubscriptionDialog(
 
     LaunchedEffect(error) {
         if (error != null) {
-            kotlinx.coroutines.delay(3000)
+            kotlinx.coroutines.delay(10_000) // Keep error visible longer for debugging
             onClearError()
         }
     }
@@ -389,7 +405,9 @@ private fun CreateSubscriptionDialog(
                     placeholder = { Text("Enter or paste pubkey") },
                     singleLine = true,
                     enabled = !isSending,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("create_sub_recipient"),
                 )
 
                 OutlinedTextField(
@@ -398,7 +416,9 @@ private fun CreateSubscriptionDialog(
                     label = { Text("Amount (sats)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     enabled = !isSending,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("create_sub_amount"),
                 )
 
                 Text("Frequency", style = MaterialTheme.typography.bodySmall)
@@ -463,6 +483,7 @@ private fun CreateSubscriptionDialog(
                     )
                 },
                 enabled = !isSending && recipientPubkey.isNotBlank() && amountSats.toLongOrNull() != null,
+                modifier = Modifier.testTag("create_sub_send"),
             ) {
                 if (isSending) {
                     CircularProgressIndicator(Modifier.size(16.dp))

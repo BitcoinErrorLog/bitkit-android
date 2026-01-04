@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.KeyManager
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.models.Subscription
@@ -31,6 +32,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val directoryService: DirectoryService,
     private val autoPayStorage: AutoPayStorage,
     private val keyManager: KeyManager,
+    private val pubkyRingBridge: PubkyRingBridge,
 ) : ViewModel() {
     companion object {
         private const val TAG = "SubscriptionsViewModel"
@@ -49,6 +51,10 @@ class SubscriptionsViewModel @Inject constructor(
     val showingAddSubscription: StateFlow<Boolean> = _showingAddSubscription.asStateFlow()
 
     init {
+        // Ensure any cached session's pubkey is synced to KeyManager
+        viewModelScope.launch {
+            pubkyRingBridge.ensureIdentitySynced()
+        }
         loadSubscriptions()
         loadIncomingProposals()
     }

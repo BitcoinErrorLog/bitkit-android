@@ -29,6 +29,7 @@ class PubkyRingBridgeTest {
     private lateinit var mockPubkyStorageAdapter: PubkyStorageAdapter
     private lateinit var mockCallbackParser: PubkyRingCallbackParser
     private lateinit var mockSecureHandoffHandler: SecureHandoffHandler
+    private lateinit var mockKeyManager: to.bitkit.paykit.KeyManager
 
     @Before
     fun setUp() {
@@ -37,6 +38,7 @@ class PubkyRingBridgeTest {
         mockPubkyStorageAdapter = mock()
         mockCallbackParser = PubkyRingCallbackParser()
         mockSecureHandoffHandler = mock()
+        mockKeyManager = mock()
         whenever(mockKeychainStorage.getString(org.mockito.kotlin.any())).thenReturn(null)
         bridge = PubkyRingBridge(
             mockKeychainStorage,
@@ -44,6 +46,7 @@ class PubkyRingBridgeTest {
             mockPubkyStorageAdapter,
             mockCallbackParser,
             mockSecureHandoffHandler,
+            mockKeyManager,
         )
         bridge.clearCache()
         mockContext = mock()

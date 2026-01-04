@@ -62,6 +62,7 @@ class PubkyRingBridge @Inject constructor(
     private val pubkyStorageAdapter: PubkyStorageAdapter,
     private val callbackParser: PubkyRingCallbackParser,
     private val secureHandoffHandler: SecureHandoffHandler,
+    private val keyManager: to.bitkit.paykit.KeyManager,
 ) {
 
     companion object {
@@ -648,6 +649,7 @@ class PubkyRingBridge @Inject constructor(
                     val session = pollRelayForSession(requestId)
                     if (session != null) {
                         sessionCache[session.pubkey] = session
+                        persistSession(session)
                         pendingCrossDeviceRequestId = null
                         pendingCrossDeviceEphemeralSk = null
                         return@withContext session
@@ -1032,6 +1034,11 @@ class PubkyRingBridge @Inject constructor(
         try {
             val json = kotlinx.serialization.json.Json.encodeToString(PubkySession.serializer(), session)
             keychainStorage.setString("pubky.session.${session.pubkey}", json)
+            // Also store in DirectoryService format so tryRestoreFromKeychain works
+            keychainStorage.setString("pubky.identity.public", session.pubkey)
+            keychainStorage.setString("pubky.session.secret", session.sessionSecret)
+            // Also update KeyManager with the identity's public key for subscription operations
+            keyManager.storePublicKey(session.pubkey)
             Logger.debug("Persisted session for ${session.pubkey.take(12)}...", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to persist session", e, context = TAG)
@@ -1049,7 +1056,15 @@ class PubkyRingBridge @Inject constructor(
                 val json = keychainStorage.getString(key) ?: continue
                 val session = kotlinx.serialization.json.Json.decodeFromString<PubkySession>(json)
                 sessionCache[session.pubkey] = session
+                // Update KeyManager with identity pubkey (ensures subscriptions work after app restart)
+                keyManager.storePublicKey(session.pubkey)
+                // Also store in DirectoryService format so tryRestoreFromKeychain works
+                keychainStorage.setString("pubky.identity.public", session.pubkey)
+                keychainStorage.setString("pubky.session.secret", session.sessionSecret)
                 Logger.info("Restored session for ${session.pubkey.take(12)}...", context = TAG)
+                
+                // Verify Noise endpoint is published (fallback publish if Ring didn't)
+                verifyOrPublishNoiseEndpoint(session.pubkey)
             } catch (e: Exception) {
                 Logger.error("Failed to restore session from $key", e, context = TAG)
             }
@@ -1058,6 +1073,48 @@ class PubkyRingBridge @Inject constructor(
         Logger.info("Restored ${sessionCache.size} sessions from keychain", context = TAG)
     }
     
+    /**
+     * Verify that Noise endpoint is published for a pubkey, publishing it if not.
+     * This is needed when Ring fails to publish during handoff.
+     */
+    private suspend fun verifyOrPublishNoiseEndpoint(pubkey: String) {
+        try {
+            // Get cached keypair from KeyManager (uses epoch 0 by default)
+            val keypair = keyManager.getCachedNoiseKeypair()
+            if (keypair != null) {
+                secureHandoffHandler.ensureNoiseEndpointPublished(
+                    pubkey = pubkey,
+                    noisePubkeyHex = keypair.publicKeyHex,
+                    deviceId = keypair.deviceId,
+                )
+            } else {
+                // Just verify - can't publish without keypair
+                val isPublished = secureHandoffHandler.verifyNoiseEndpointPublished(pubkey)
+                if (!isPublished) {
+                    Logger.warn("Cannot publish Noise endpoint: no keypair cached for ${pubkey.take(12)}...", context = TAG)
+                }
+            }
+        } catch (e: Exception) {
+            Logger.warn("Error checking Noise endpoint for ${pubkey.take(12)}...: ${e.message}", context = TAG)
+        }
+    }
+    
+    /**
+     * Ensure any cached session's pubkey is stored in KeyManager.
+     * Call this if sessions exist in memory but weren't properly persisted.
+     */
+    suspend fun ensureIdentitySynced() {
+        for (session in sessionCache.values) {
+            keyManager.storePublicKey(session.pubkey)
+            // Also persist the session if not already persisted
+            val existingJson = keychainStorage.getString("pubky.session.${session.pubkey}")
+            if (existingJson == null) {
+                persistSession(session)
+                Logger.info("Synced session for ${session.pubkey.take(12)}...", context = TAG)
+            }
+        }
+    }
+
     /**
      * Get all cached sessions
      */
