@@ -2,6 +2,7 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,6 @@ import to.bitkit.paykit.services.NoisePaymentResponse
 import to.bitkit.paykit.services.NoisePaymentService
 import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.repositories.LightningRepo
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 /**
@@ -128,7 +128,6 @@ class NoisePaymentViewModel @Inject constructor(
 
                 // Clear the request
                 _paymentRequest.value = null
-
             } catch (e: Exception) {
                 _errorMessage.value = "Payment failed: ${e.message}"
             } finally {

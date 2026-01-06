@@ -45,7 +45,7 @@ class NoiseKeyCache @Inject constructor(
 
         return null
     }
-    
+
     /**
      * Get a cached key from memory only (non-suspend, for callbacks)
      */
@@ -77,7 +77,7 @@ class NoiseKeyCache @Inject constructor(
         // Cleanup old epochs if needed
         cleanupOldEpochs(deviceId, epoch)
     }
-    
+
     /**
      * Store a key in memory cache only (non-suspend, for callbacks)
      * Call persistKey() later to persist to keychain
@@ -89,7 +89,7 @@ class NoiseKeyCache @Inject constructor(
         }
         Logger.debug("Stored key in memory cache: $key", context = TAG)
     }
-    
+
     /**
      * Persist a key from memory cache to keychain (suspend)
      */
@@ -98,7 +98,7 @@ class NoiseKeyCache @Inject constructor(
         val keyData = synchronized(memoryCache) {
             memoryCache[key]
         } ?: return
-        
+
         try {
             keychain.store(key, keyData)
             Logger.debug("Persisted key to keychain: $key", context = TAG)

@@ -24,7 +24,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-
 class ActivityDetailViewModelTest : BaseUnitTest() {
     private lateinit var sut: ActivityDetailViewModel
 
@@ -140,7 +139,7 @@ class ActivityDetailViewModelTest : BaseUnitTest() {
 
         // Simulate activity update
         whenever(activityRepo.getActivity(ACTIVITY_ID)).thenReturn(Result.success(updatedActivity))
-        activitiesChangedFlow.value = 2L  // Use a distinctly different value
+        activitiesChangedFlow.value = 2L // Use a distinctly different value
         advanceUntilIdle()
 
         // Verify ViewModel reflects updated activity

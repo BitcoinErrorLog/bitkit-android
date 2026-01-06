@@ -329,7 +329,7 @@ class PaykitPaymentService @Inject constructor(
             // Determine receipt type based on successful method
             val receiptType = when {
                 successResult.methodId.contains("onchain", ignoreCase = true) ||
-                successResult.methodId.contains("bitcoin", ignoreCase = true) -> PaykitReceiptType.ONCHAIN
+                    successResult.methodId.contains("bitcoin", ignoreCase = true) -> PaykitReceiptType.ONCHAIN
                 else -> PaykitReceiptType.LIGHTNING
             }
 
@@ -353,7 +353,10 @@ class PaykitPaymentService @Inject constructor(
             // Log fallback attempts if any
             if (attemptedMethods.size > 1) {
                 val attemptSummary = attemptedMethods.joinToString(" → ")
-                Logger.info("Paykit payment succeeded after ${attemptedMethods.size} attempts: $attemptSummary", context = TAG)
+                Logger.info(
+                    "Paykit payment succeeded after ${attemptedMethods.size} attempts: $attemptSummary",
+                    context = TAG
+                )
             } else {
                 Logger.info("Paykit URI payment succeeded: ${successResult.executionId}", context = TAG)
             }

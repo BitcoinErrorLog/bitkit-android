@@ -1,18 +1,17 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import uniffi.paykit_mobile.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.protocol.PaykitV0Protocol
 import to.bitkit.paykit.storage.PaykitKeychainStorage
-import to.bitkit.paykit.types.HomeserverURL
-import to.bitkit.paykit.types.HomeserverResolver
 import to.bitkit.paykit.types.HomeserverDefaults
+import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.paykit.types.OwnerPubkey
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -135,7 +134,11 @@ class DirectoryService @Inject constructor(
      * @param ownerPubkey The owner's public key
      * @param homeserverURL The homeserver URL (defaults to resolved default homeserver)
      */
-    fun configureAuthenticatedTransport(sessionId: String, ownerPubkey: OwnerPubkey, homeserverURL: HomeserverURL? = null) {
+    fun configureAuthenticatedTransport(
+        sessionId: String,
+        ownerPubkey: OwnerPubkey,
+        homeserverURL: HomeserverURL? = null
+    ) {
         this.homeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
         val adapter = pubkyStorage.createAuthenticatedAdapter(sessionId, ownerPubkey.value, this.homeserverURL)
         authenticatedAdapter = adapter
@@ -153,7 +156,7 @@ class DirectoryService @Inject constructor(
 
         // Configure authenticated transport and adapter
         val adapter = pubkyStorage.createAuthenticatedAdapter(session.sessionSecret, session.pubkey, homeserverURL)
-        authenticatedAdapter = adapter  // Save adapter for direct put/delete operations
+        authenticatedAdapter = adapter // Save adapter for direct put/delete operations
         authenticatedTransport = AuthenticatedTransportFfi.fromCallback(adapter, session.pubkey)
 
         // Also configure unauthenticated transport
@@ -228,7 +231,7 @@ class DirectoryService @Inject constructor(
 
     /**
      * Discover noise endpoint for a recipient.
-     * 
+     *
      * First tries the FFI-based discovery, then falls back to direct HTTP fetch
      * (which works better in Android emulators that can't resolve pkarr DNS).
      */
@@ -245,7 +248,10 @@ class DirectoryService @Inject constructor(
         val ffiResult = try {
             discoverNoiseEndpoint(transport, recipientPubkey)
         } catch (e: Exception) {
-            Logger.warn("FFI discover Noise endpoint failed for $recipientPubkey: ${e.message}, trying direct HTTP", context = TAG)
+            Logger.warn(
+                "FFI discover Noise endpoint failed for $recipientPubkey: ${e.message}, trying direct HTTP",
+                context = TAG
+            )
             null
         }
 
@@ -268,7 +274,10 @@ class DirectoryService @Inject constructor(
             val effectiveHomeserverURL = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
             val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserverURL)
             val noisePath = PaykitV0Protocol.noiseEndpointPath()
-            Logger.debug("Fetching Noise endpoint via HTTP: ${effectiveHomeserverURL.value}$noisePath for $recipientPubkey", context = TAG)
+            Logger.debug(
+                "Fetching Noise endpoint via HTTP: ${effectiveHomeserverURL.value}$noisePath for $recipientPubkey",
+                context = TAG
+            )
 
             try {
                 val result = adapter.get(recipientPubkey, noisePath)
@@ -315,7 +324,7 @@ class DirectoryService @Inject constructor(
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
+            publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
             Logger.info("Published Noise endpoint: $host:$port", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to publish Noise endpoint", e, context = TAG)
@@ -330,7 +339,7 @@ publishNoiseEndpoint(transport, host, port.toUShort(), noisePubkey, metadata)
         val transport = authenticatedTransport ?: throw DirectoryError.NotConfigured
 
         try {
-removeNoiseEndpoint(transport)
+            removeNoiseEndpoint(transport)
             Logger.info("Removed Noise endpoint", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to remove Noise endpoint", e, context = TAG)
@@ -471,7 +480,7 @@ removeNoiseEndpoint(transport)
     ): to.bitkit.paykit.models.PaymentRequest? {
         // Use canonical v0 path (scope-based)
         val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
-        
+
         // Use the proper pubky:// URI which uses DHT/Pkarr resolution
         val pubkyUri = "pubky://$senderPubkey$path"
         Logger.debug("Fetching payment request from: $pubkyUri", context = TAG)
@@ -480,36 +489,40 @@ removeNoiseEndpoint(transport)
             val envelopeBytes = pubkySDKService.getData(pubkyUri)
             if (envelopeBytes != null) {
                 val envelopeJson = String(envelopeBytes)
-                
+
                 // Check if this is an encrypted sealed blob
                 if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
                     Logger.error("Payment request is not encrypted (sealed blob required)", context = TAG)
                     return null
                 }
-                
-                // Get our Noise secret key for decryption
-                val noiseKeypair = keyManager.getCachedNoiseKeypair()
-                if (noiseKeypair == null) {
-                    Logger.error("No Noise keypair available for decryption", context = TAG)
+
+                // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
+                val noiseKeypair = try {
+                    pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
+                } catch (e: Exception) {
+                    Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
                     return null
                 }
-                
-                val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKeyHex)
+
+                val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
                 val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, requestId)
-                
+
                 val plaintextBytes = try {
                     com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
                 } catch (e: Exception) {
                     Logger.error("Failed to decrypt payment request $requestId", e, context = TAG)
                     return null
                 }
-                
+
                 val requestJson = String(plaintextBytes)
                 val request = kotlinx.serialization.json.Json.decodeFromString(
                     to.bitkit.paykit.models.PaymentRequest.serializer(),
                     requestJson
                 )
-                Logger.info("Successfully fetched payment request $requestId from ${senderPubkey.take(12)}...", context = TAG)
+                Logger.info(
+                    "Successfully fetched payment request $requestId from ${senderPubkey.take(12)}...",
+                    context = TAG
+                )
                 request
             } else {
                 Logger.debug("Payment request $requestId not found at ${senderPubkey.take(12)}...", context = TAG)
@@ -542,6 +555,99 @@ removeNoiseEndpoint(transport)
             throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
         Logger.info("Removed payment request: $requestId", context = TAG)
+    }
+
+    /**
+     * Delete a subscription proposal from OUR storage (as provider).
+     *
+     * Used when the provider wants to cancel a pending proposal they sent.
+     *
+     * @param proposalId The proposal ID to delete
+     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     */
+    suspend fun deleteSubscriptionProposal(proposalId: String, subscriberPubkey: String) {
+        // Auto-restore from keychain if not configured
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val path = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+
+        val result = adapter.delete(path)
+        if (!result.success) {
+            Logger.error("Failed to delete subscription proposal $proposalId: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.info("Deleted subscription proposal: $proposalId for subscriber ${subscriberPubkey.take(12)}...", context = TAG)
+    }
+
+    /**
+     * List all proposal IDs on the homeserver for a given subscriber.
+     *
+     * Used to compare with locally tracked proposals and find orphaned ones.
+     *
+     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     * @return List of proposal IDs found on the homeserver
+     */
+    suspend fun listProposalsOnHomeserver(subscriberPubkey: String): List<String> {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val myPubkey = keyManager.getCurrentPublicKeyZ32() ?: throw DirectoryError.NotConfigured
+
+        val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
+        val subscriberScope = PaykitV0Protocol.subscriberScope(subscriberPubkey)
+        val proposalsPath =
+            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.SUBSCRIPTION_PROPOSALS_SUBPATH}/$subscriberScope/"
+
+        return try {
+            val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, myPubkey)
+            Logger.info(
+                "Found ${proposalFiles.size} proposals on homeserver for subscriber ${subscriberPubkey.take(12)}...",
+                context = TAG,
+            )
+            proposalFiles
+        } catch (e: Exception) {
+            Logger.debug(
+                "No proposals directory found for subscriber ${subscriberPubkey.take(12)}...",
+                context = TAG,
+            )
+            emptyList()
+        }
+    }
+
+    /**
+     * Delete multiple subscription proposals in batch.
+     *
+     * Used to clean up orphaned proposals that exist on homeserver but aren't tracked locally.
+     *
+     * @param proposalIds List of proposal IDs to delete
+     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     * @return Number of successfully deleted proposals
+     */
+    suspend fun deleteProposalsBatch(proposalIds: List<String>, subscriberPubkey: String): Int {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+
+        var deletedCount = 0
+        for (proposalId in proposalIds) {
+            try {
+                val path = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+                val result = adapter.delete(path)
+                if (result.success) {
+                    deletedCount++
+                    Logger.info(
+                        "Deleted orphaned proposal: $proposalId for subscriber ${subscriberPubkey.take(12)}...",
+                        context = TAG,
+                    )
+                } else {
+                    Logger.error(
+                        "Failed to delete orphaned proposal $proposalId: ${result.error}",
+                        context = TAG,
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.error("Failed to delete orphaned proposal $proposalId", e, context = TAG)
+            }
+        }
+        return deletedCount
     }
 
     /**
@@ -595,13 +701,22 @@ removeNoiseEndpoint(transport)
     suspend fun discoverSubscriptionProposalsFromPeer(
         peerPubkey: String,
         myPubkey: String,
-    ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
+    ): List<to.bitkit.paykit.workers.DiscoveredSubscriptionProposal> = kotlinx.coroutines.withContext(
+        kotlinx.coroutines.Dispatchers.IO
+    ) {
+        val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
         val myScope = PaykitV0Protocol.subscriberScope(myPubkey)
         val proposalsPath =
             "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.SUBSCRIPTION_PROPOSALS_SUBPATH}/$myScope/"
+        Logger.debug(
+            "discoverSubscriptionProposalsFromPeer: myScope=$myScope, path=$proposalsPath, peer=${peerPubkey.take(
+                12
+            )}..., homeserver=${effectiveHomeserver.value}",
+            context = TAG
+        )
 
-        return try {
+        try {
             val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, peerPubkey)
 
             proposalFiles.mapNotNull { proposalId ->
@@ -755,7 +870,7 @@ removeNoiseEndpoint(transport)
      * @param recipientPubkey Our pubkey (used for canonical AAD computation)
      * @return The parsed request or null if decryption/parsing fails
      */
-    private fun decryptAndParsePaymentRequest(
+    private suspend fun decryptAndParsePaymentRequest(
         requestId: String,
         envelopeJson: String?,
         recipientPubkey: String,
@@ -768,14 +883,15 @@ removeNoiseEndpoint(transport)
             return null
         }
 
-        // Get our Noise secret key for decryption
-        val noiseKeypair = keyManager.getCachedNoiseKeypair()
-        if (noiseKeypair == null) {
-            Logger.error("No Noise keypair available for decryption", context = TAG)
+        // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
+        val noiseKeypair = try {
+            pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
+        } catch (e: Exception) {
+            Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
             return null
         }
 
-        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKeyHex)
+        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
         val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, requestId)
 
         return try {
@@ -806,7 +922,7 @@ removeNoiseEndpoint(transport)
      * @param expectedProviderPubkey If provided, verifies that provider_pubkey in the proposal matches this value
      * @return The parsed proposal or null if decryption/parsing/validation fails
      */
-    private fun decryptAndParseSubscriptionProposal(
+    private suspend fun decryptAndParseSubscriptionProposal(
         proposalId: String,
         envelopeJson: String?,
         subscriberPubkey: String,
@@ -820,15 +936,20 @@ removeNoiseEndpoint(transport)
             return null
         }
 
-        // Get our Noise secret key for decryption
-        val noiseKeypair = keyManager.getCachedNoiseKeypair()
-        if (noiseKeypair == null) {
-            Logger.error("No Noise keypair available for decryption", context = TAG)
+        // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
+        val noiseKeypair = try {
+            pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
+        } catch (e: Exception) {
+            Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
             return null
         }
 
-        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKeyHex)
+        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
         val aad = PaykitV0Protocol.subscriptionProposalAad(subscriberPubkey, proposalId)
+        Logger.debug(
+            "Decryption attempt for $proposalId: sk.len=${noiseKeypair.secretKey.length}, bytes.len=${myNoiseSk.size}, myNoisePk=${noiseKeypair.publicKey}",
+            context = TAG
+        )
 
         return try {
             val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
@@ -884,7 +1005,7 @@ removeNoiseEndpoint(transport)
         } catch (e: Exception) {
             Logger.debug("PubkySDKService profile fetch failed: ${e.message}", context = TAG)
         }
-        
+
         // Try PubkyRingBridge if Pubky-ring is installed and context is provided
         if (context != null && pubkyRingBridge.isPubkyRingInstalled(context)) {
             try {
@@ -978,6 +1099,36 @@ removeNoiseEndpoint(transport)
     }
 
     /**
+     * Upload binary blob data to homeserver (for images, etc.)
+     */
+    suspend fun uploadBlob(path: String, data: ByteArray, contentType: String) = withContext(Dispatchers.IO) {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+
+        val result = adapter.putData(path, data, contentType)
+        if (!result.success) {
+            Logger.error("Failed to upload blob: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.debug("Uploaded blob to $path (${data.size} bytes)", context = TAG)
+    }
+
+    /**
+     * Upload file metadata JSON to homeserver
+     */
+    suspend fun uploadFileMetadata(path: String, jsonContent: String) = withContext(Dispatchers.IO) {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+
+        val result = adapter.put(path, jsonContent)
+        if (!result.success) {
+            Logger.error("Failed to upload file metadata: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.debug("Uploaded file metadata to $path", context = TAG)
+    }
+
+    /**
      * Publish profile to Pubky directory with verification.
      * After publishing, performs a best-effort read to confirm the profile was written.
      *
@@ -1020,7 +1171,7 @@ removeNoiseEndpoint(transport)
         } catch (e: Exception) {
             Logger.debug("PubkySDKService follows fetch failed: ${e.message}", context = TAG)
         }
-        
+
         // Try PubkyRingBridge if Pubky-ring is installed and context is provided
         if (context != null && pubkyRingBridge.isPubkyRingInstalled(context)) {
             try {

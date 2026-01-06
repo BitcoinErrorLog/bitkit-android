@@ -12,11 +12,11 @@ import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.AutoPayStorage
+import to.bitkit.paykit.storage.ProposalStatus
+import to.bitkit.paykit.storage.StoredProposal
 import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.viewmodels.SubscriptionsViewModel
-import to.bitkit.paykit.storage.ProposalStatus
-import to.bitkit.paykit.storage.StoredProposal
 import to.bitkit.paykit.workers.DiscoveredSubscriptionProposal
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertTrue
@@ -183,12 +183,14 @@ class FullSubscriptionE2EFlowTest : BaseUnitTest() {
         )
 
         // Verify subscription was created in storage
-        verify(subscriptionStorageB).saveSubscription(argThat { subscription ->
-            subscription.providerPubkey == identityA &&
-                subscription.amountSats == 1000L &&
-                subscription.frequency == "weekly" &&
-                subscription.isActive
-        })
+        verify(subscriptionStorageB).saveSubscription(
+            argThat { subscription ->
+                subscription.providerPubkey == identityA &&
+                    subscription.amountSats == 1000L &&
+                    subscription.frequency == "weekly" &&
+                    subscription.isActive
+            }
+        )
 
         println("   ✅ Subscription created in B's storage")
         println("   ✅ Provider: $identityA")

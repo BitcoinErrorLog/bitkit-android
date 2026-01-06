@@ -25,7 +25,7 @@ class SessionRefreshWorker @AssistedInject constructor(
     companion object {
         private const val TAG = "SessionRefreshWorker"
         private const val WORK_NAME = "session_refresh_work"
-        
+
         /**
          * Schedule periodic session refresh checks
          */
@@ -68,4 +68,3 @@ class SessionRefreshWorker @AssistedInject constructor(
         }
     }
 }
-

@@ -41,7 +41,10 @@ object FlexibleTimestampSerializer : KSerializer<Long> {
 
 @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 object NullableFlexibleTimestampSerializer : KSerializer<Long?> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("NullableFlexibleTimestamp", PrimitiveKind.LONG)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(
+        "NullableFlexibleTimestamp",
+        PrimitiveKind.LONG
+    )
 
     override fun serialize(encoder: Encoder, value: Long?) {
         if (value != null) encoder.encodeLong(value) else encoder.encodeNull()
@@ -67,17 +70,29 @@ object NullableFlexibleTimestampSerializer : KSerializer<Long?> {
  */
 @Serializable
 enum class PaymentRequestStatus {
-    @SerialName("Pending") PENDING,
-    @SerialName("Accepted") ACCEPTED,
-    @SerialName("Declined") DECLINED,
-    @SerialName("Expired") EXPIRED,
-    @SerialName("Paid") PAID
+    @SerialName("Pending")
+    PENDING,
+
+    @SerialName("Accepted")
+    ACCEPTED,
+
+    @SerialName("Declined")
+    DECLINED,
+
+    @SerialName("Expired")
+    EXPIRED,
+
+    @SerialName("Paid")
+    PAID
 }
 
 @Serializable
 enum class RequestDirection {
-    @SerialName("incoming") INCOMING,
-    @SerialName("outgoing") OUTGOING
+    @SerialName("incoming")
+    INCOMING,
+
+    @SerialName("outgoing")
+    OUTGOING
 }
 
 @Serializable

@@ -3,8 +3,6 @@ package to.bitkit.paykit.services
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -139,7 +137,10 @@ class PushNotificationService @Inject constructor(
         // 2. Backend authenticates with APNs using auth key
         // 3. Backend sends HTTP/2 request to APNs
 
-        Logger.info("PushNotificationService: Would send APNs notification to token ${endpoint.deviceToken.take(16)}...", context = TAG)
+        Logger.info(
+            "PushNotificationService: Would send APNs notification to token ${endpoint.deviceToken.take(16)}...",
+            context = TAG
+        )
     }
 
     /**
@@ -171,7 +172,9 @@ class PushNotificationService @Inject constructor(
         // 2. Backend sends to FCM using server key or service account
         // 3. Backend handles FCM response
 
-        Logger.info("PushNotificationService: Would send FCM notification to token ${endpoint.deviceToken.take(16)}...", context = TAG)
+        Logger.info(
+            "PushNotificationService: Would send FCM notification to token ${endpoint.deviceToken.take(16)}...",
+            context = TAG
+        )
     }
 }
-

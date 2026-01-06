@@ -9,7 +9,6 @@ import org.mockito.kotlin.whenever
 import to.bitkit.paykit.models.SubscriptionProposal
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyRingBridge
-import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.storage.AutoPayStorage
 import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage

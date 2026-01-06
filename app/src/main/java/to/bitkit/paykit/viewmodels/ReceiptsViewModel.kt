@@ -2,6 +2,7 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,7 +10,6 @@ import kotlinx.coroutines.launch
 import to.bitkit.paykit.models.PaymentDirection
 import to.bitkit.paykit.models.PaymentStatus
 import to.bitkit.paykit.models.Receipt
-import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.paykit.storage.ReceiptStorage
 import javax.inject.Inject
 

@@ -1,7 +1,6 @@
 package to.bitkit.paykit.services
 
 import android.content.Context
-import uniffi.paykit_mobile.*
 import com.pubky.noise.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +14,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
@@ -159,17 +159,17 @@ class NoisePaymentService @Inject constructor(
      */
     suspend fun checkKeyRotation(forceRotation: Boolean = false): Boolean {
         val currentEpoch = keyManager.getCurrentEpoch()
-        
+
         // Only rotate from epoch 0 to epoch 1
         if (currentEpoch != 0u) {
             return false
         }
-        
+
         // Check if we have epoch 1 keypair available
         if (keyManager.getCachedNoiseKeypair(1u) == null) {
             return false
         }
-        
+
         // For now, rotation is manual via forceRotation parameter
         // In production, this would check time-based thresholds or external signals
         if (forceRotation) {
@@ -177,7 +177,7 @@ class NoisePaymentService @Inject constructor(
             Logger.info("Rotated to epoch 1 keypair", context = TAG)
             return true
         }
-        
+
         return false
     }
 
@@ -402,7 +402,7 @@ class NoisePaymentService @Inject constructor(
      * Start a background Noise server to receive incoming payment requests.
      * This is called when the app is woken by a push notification indicating
      * an incoming Noise connection.
-     * 
+     *
      * @param port Port to listen on
      * @param externalHost Optional external host address for publishing endpoint (for relay/NAT traversal)
      * @param onRequest Callback invoked when a payment request is received
@@ -436,7 +436,6 @@ class NoisePaymentService @Inject constructor(
             if (clientSocket != null) {
                 handleServerConnection(clientSocket)
             }
-
         } catch (e: java.net.SocketTimeoutException) {
             Logger.info("Server timeout - no incoming connection", context = TAG)
         } catch (e: Exception) {
@@ -564,7 +563,6 @@ class NoisePaymentService @Inject constructor(
             onRequestCallback?.invoke(request)
 
             Logger.info("Successfully received payment request: ${request.receiptId}", context = TAG)
-
         } catch (e: Exception) {
             Logger.error("Error handling server connection", e, context = TAG)
             throw e

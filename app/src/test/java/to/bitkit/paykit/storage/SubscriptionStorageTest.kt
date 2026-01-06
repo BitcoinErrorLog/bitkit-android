@@ -133,4 +133,3 @@ class SubscriptionStorageTest : BaseUnitTest() {
         assertTrue(updated.nextPaymentAt!! > updated.lastPaymentAt!!)
     }
 }
-

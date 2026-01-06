@@ -70,4 +70,3 @@ data class PaymentRequestsUiState(
     val requests: List<PaymentRequest> = emptyList(),
     val isLoading: Boolean = false,
 )
-

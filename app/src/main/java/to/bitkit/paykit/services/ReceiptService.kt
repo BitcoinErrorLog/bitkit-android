@@ -3,18 +3,18 @@ package to.bitkit.paykit.services
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import to.bitkit.paykit.models.Receipt
 import to.bitkit.paykit.models.PaymentStatus
+import to.bitkit.paykit.models.Receipt
 import to.bitkit.paykit.storage.PaykitKeychainStorage
-import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.paykit.storage.PaykitStorageException
+import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Service to manage receipts and their association with payment requests.
- * 
+ *
  * This service provides:
  * - Receipt storage and retrieval
  * - Cross-referencing between receipts and payment requests
@@ -82,17 +82,17 @@ class ReceiptService @Inject constructor(
      */
     fun getRequestForReceipt(receiptId: String): to.bitkit.paykit.models.PaymentRequest? {
         val receipt = getReceipt(receiptId) ?: return null
-        
+
         // Try by requestId first
         receipt.requestId?.let { requestId ->
             paymentRequestStorage.getRequest(requestId)?.let { return it }
         }
-        
+
         // Fall back to invoice number lookup
         receipt.invoiceNumber?.let { invoiceNumber ->
             paymentRequestStorage.getRequestByInvoiceNumber(invoiceNumber)?.let { return it }
         }
-        
+
         return null
     }
 
@@ -141,13 +141,13 @@ class ReceiptService @Inject constructor(
             requestId = requestId,
             invoiceNumber = paymentRequestStorage.getRequest(requestId)?.invoiceNumber
         )
-        
+
         // Add the receipt
         addReceipt(linkedReceipt)
-        
+
         // Update the request to link to this receipt
         paymentRequestStorage.fulfillRequest(requestId, linkedReceipt.id)
-        
+
         Logger.info("ReceiptService: Created receipt ${linkedReceipt.id} for request $requestId", context = TAG)
         return linkedReceipt
     }
@@ -160,21 +160,21 @@ class ReceiptService @Inject constructor(
         receipt: Receipt
     ): Receipt {
         val request = paymentRequestStorage.getRequestByInvoiceNumber(invoiceNumber)
-        
+
         // Create receipt with invoice number linkage
         val linkedReceipt = receipt.copy(
             requestId = request?.id,
             invoiceNumber = invoiceNumber
         )
-        
+
         // Add the receipt
         addReceipt(linkedReceipt)
-        
+
         // Update the request if found
         request?.let {
             paymentRequestStorage.fulfillRequest(it.id, linkedReceipt.id)
         }
-        
+
         Logger.info("ReceiptService: Created receipt ${linkedReceipt.id} for invoice $invoiceNumber", context = TAG)
         return linkedReceipt
     }
@@ -183,21 +183,21 @@ class ReceiptService @Inject constructor(
      * Link an existing receipt to a request
      */
     suspend fun linkReceiptToRequest(receiptId: String, requestId: String) {
-        val receipt = getReceipt(receiptId) 
+        val receipt = getReceipt(receiptId)
             ?: throw PaykitStorageException.LoadFailed(receiptId)
         val request = paymentRequestStorage.getRequest(requestId)
             ?: throw PaykitStorageException.LoadFailed(requestId)
-        
+
         // Update receipt with request linkage
         val linkedReceipt = receipt.copy(
             requestId = requestId,
             invoiceNumber = request.invoiceNumber
         )
         updateReceipt(linkedReceipt)
-        
+
         // Update request with receipt linkage
         paymentRequestStorage.fulfillRequest(requestId, receiptId)
-        
+
         Logger.info("ReceiptService: Linked receipt $receiptId to request $requestId", context = TAG)
     }
 
@@ -207,7 +207,7 @@ class ReceiptService @Inject constructor(
     suspend fun completeReceipt(receiptId: String, txId: String? = null) {
         val receipt = getReceipt(receiptId)
             ?: throw PaykitStorageException.LoadFailed(receiptId)
-        
+
         val completedReceipt = receipt.complete(txId)
         updateReceipt(completedReceipt)
         Logger.info("ReceiptService: Completed receipt $receiptId", context = TAG)
@@ -219,7 +219,7 @@ class ReceiptService @Inject constructor(
     suspend fun failReceipt(receiptId: String) {
         val receipt = getReceipt(receiptId)
             ?: throw PaykitStorageException.LoadFailed(receiptId)
-        
+
         val failedReceipt = receipt.fail()
         updateReceipt(failedReceipt)
         Logger.info("ReceiptService: Failed receipt $receiptId", context = TAG)
@@ -261,4 +261,3 @@ class ReceiptService @Inject constructor(
         }
     }
 }
-

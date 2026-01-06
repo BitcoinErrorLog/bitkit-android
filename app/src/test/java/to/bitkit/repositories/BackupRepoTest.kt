@@ -167,6 +167,4 @@ class BackupRepoTest : BaseUnitTest() {
         val result = sut.performFullRestoreFromLatestBackup()
         assertTrue(result.isSuccess)
     }
-
 }
-

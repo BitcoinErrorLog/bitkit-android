@@ -63,4 +63,3 @@ data class SubscriptionProposal(
         methodId = methodId,
     )
 }
-

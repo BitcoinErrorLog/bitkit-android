@@ -1,9 +1,6 @@
 package to.bitkit.paykit
 
 import android.content.Context
-import uniffi.paykit_mobile.BitcoinNetworkFfi
-import uniffi.paykit_mobile.LightningNetworkFfi
-import uniffi.paykit_mobile.PaykitClient
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.lightningdevkit.ldknode.Network
@@ -19,6 +16,9 @@ import to.bitkit.paykit.services.SessionRefreshWorker
 import to.bitkit.paykit.workers.PaykitPollingWorker
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.BitcoinNetworkFfi
+import uniffi.paykit_mobile.LightningNetworkFfi
+import uniffi.paykit_mobile.PaykitClient
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,17 +35,17 @@ class PaykitManager @Inject constructor(
 
     companion object {
         private const val TAG = "PaykitManager"
-        
+
         @Volatile
         private var instance: PaykitManager? = null
-        
+
         /**
          * Get the shared instance for non-DI contexts (e.g., objects).
          * Prefer Hilt injection where possible.
          */
         internal fun getSharedInstance(): PaykitManager? = instance
     }
-    
+
     init {
         // Store reference for non-DI access
         instance = this
@@ -118,7 +118,10 @@ class PaykitManager @Inject constructor(
         pubkyRingBridge.getCachedSessions().firstOrNull()?.let { session ->
             directoryService.configureWithPubkySession(session)
             ownerPubkey = session.pubkey
-            Logger.info("DirectoryService configured with restored session for ${session.pubkey.take(12)}...", context = TAG)
+            Logger.info(
+                "DirectoryService configured with restored session for ${session.pubkey.take(12)}...",
+                context = TAG
+            )
         }
 
         // Schedule background workers for session refresh and polling

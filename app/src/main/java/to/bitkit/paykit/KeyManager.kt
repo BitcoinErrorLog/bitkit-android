@@ -2,7 +2,6 @@ package to.bitkit.paykit
 
 import android.content.Context
 import android.os.Build
-import uniffi.paykit_mobile.X25519Keypair
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,12 +11,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.X25519Keypair
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Manages device identity and X25519 noise keys for Paykit
- * 
+ *
  * SECURITY: Ed25519 master keys are owned exclusively by Pubky Ring.
  * Bitkit only stores:
  * - Public key (z-base32) for identification

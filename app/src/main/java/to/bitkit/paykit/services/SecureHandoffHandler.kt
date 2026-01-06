@@ -16,7 +16,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Handles secure handoff payload fetching and processing for cross-device authentication.
- * 
+ *
  * Secure handoff v2: Payloads are encrypted using Paykit Sealed Blob v1 format.
  * Bitkit generates an ephemeral X25519 keypair, Ring encrypts to that key,
  * and Bitkit decrypts using the stored ephemeral secret.
@@ -34,7 +34,7 @@ class SecureHandoffHandler @Inject constructor(
     }
 
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     /**
      * Store ephemeral secret key for handoff decryption.
      * Called before initiating the Ring request.
@@ -43,9 +43,9 @@ class SecureHandoffHandler @Inject constructor(
         keychainStorage.setStringSync(EPHEMERAL_KEY_KEY, secretKeyHex)
         Logger.debug("Stored ephemeral handoff key", context = TAG)
     }
-    
+
     private fun getEphemeralKey(): String? = keychainStorage.getString(EPHEMERAL_KEY_KEY)
-    
+
     private fun clearEphemeralKey() {
         keychainStorage.deleteSync(EPHEMERAL_KEY_KEY)
         Logger.debug("Cleared ephemeral handoff key", context = TAG)
@@ -60,24 +60,24 @@ class SecureHandoffHandler @Inject constructor(
     ): PaykitSetupResult = withContext(Dispatchers.IO) {
         // Get ephemeral key (from parameter or stored)
         val secretKey = ephemeralSecretKey ?: getEphemeralKey()
-        
+
         val payload = fetchHandoffPayload(pubkey, requestId, secretKey)
-        
+
         // Clear ephemeral key now that we've decrypted
         if (ephemeralSecretKey == null) {
             clearEphemeralKey()
         }
-        
+
         validatePayload(payload)
         val result = buildSetupResultFromPayload(payload)
         cacheAndPersistResult(result, payload.deviceId, scope, onSessionPersisted)
         schedulePayloadDeletion(result.session, requestId, scope)
-        
+
         // Verify Ring published the Noise endpoint, or publish it ourselves as fallback
         scope.launch {
             ensureNoiseEndpointPublished(pubkey, result.noiseKeypair0?.publicKey, payload.deviceId)
         }
-        
+
         result
     }
 
@@ -93,22 +93,27 @@ class SecureHandoffHandler @Inject constructor(
         if (result[0] == "error") {
             throw PubkyRingException.InvalidCallback
         }
-        
+
         val payloadJson = result[1]
-        
+
         // DEBUG: Log the first 200 chars of payload to diagnose format issues
         Logger.debug("Payload received (${payloadJson.length} chars): ${payloadJson.take(200)}", context = TAG)
-        
+
         // SECURITY: Require encrypted sealed blob - no plaintext fallback
         if (!com.pubky.noise.isSealedBlob(payloadJson)) {
-            Logger.error("Handoff payload is not an encrypted sealed blob - rejecting. Contains 'v':1 = ${payloadJson.contains("\"v\":1")} or 'v': 1 = ${payloadJson.contains("\"v\": 1")}", context = TAG)
+            Logger.error(
+                "Handoff payload is not an encrypted sealed blob - rejecting. Contains 'v':1 = ${payloadJson.contains(
+                    "\"v\":1"
+                )} or 'v': 1 = ${payloadJson.contains("\"v\": 1")}",
+                context = TAG
+            )
             throw PubkyRingException.InvalidCallback
         }
-        
+
         Logger.debug("Detected encrypted sealed blob envelope", context = TAG)
         return decryptHandoffEnvelope(payloadJson, pubkey, requestId, ephemeralSecretKey)
     }
-    
+
     private fun decryptHandoffEnvelope(
         envelopeJson: String,
         pubkey: String,
@@ -145,7 +150,7 @@ class SecureHandoffHandler @Inject constructor(
             throw PubkyRingException.DecryptionFailed(e.message ?: "Unknown error")
         }
     }
-    
+
     @OptIn(ExperimentalStdlibApi::class)
     private fun hexStringToByteArray(hex: String): ByteArray =
         hex.hexToByteArray()
@@ -210,13 +215,13 @@ class SecureHandoffHandler @Inject constructor(
         result.noiseKeypair1?.let { keypair ->
             persistKeypair(keypair, deviceId, 1u)
         }
-        
+
         // Persist noise seed for future epoch derivation
         result.noiseSeed?.let { seed ->
             persistNoiseSeed(seed, deviceId)
         }
     }
-    
+
     private fun persistNoiseSeed(noiseSeed: String, deviceId: String) {
         try {
             val key = "paykit.noise_seed.$deviceId"
@@ -226,7 +231,7 @@ class SecureHandoffHandler @Inject constructor(
             Logger.warn("Failed to persist noise seed: ${e.message}", e, context = TAG)
         }
     }
-    
+
     /**
      * Get stored noise seed for a device
      */
@@ -237,8 +242,11 @@ class SecureHandoffHandler @Inject constructor(
 
     private fun persistKeypair(keypair: NoiseKeypair, deviceId: String, epoch: UInt) {
         try {
-            val secretKeyData = keypair.secretKey.toByteArray(Charsets.UTF_8)
+            // keypair.secretKey is a hex string (64 chars for 32-byte X25519 key)
+            // Decode hex to actual key bytes before storing
+            val secretKeyData = keypair.secretKey.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
             noiseKeyCache.setKeySync(secretKeyData, deviceId, epoch)
+            Logger.debug("Stored noise keypair for epoch $epoch (${secretKeyData.size} bytes)", context = TAG)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -268,10 +276,10 @@ class SecureHandoffHandler @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Ensure the Noise endpoint is published for discoverability.
-     * 
+     *
      * First verifies if Ring already published it. If not, publishes it ourselves
      * using the keypair and session we received during handoff.
      *
@@ -286,25 +294,27 @@ class SecureHandoffHandler @Inject constructor(
     ) = withContext(Dispatchers.IO) {
         try {
             Logger.debug("Verifying Noise endpoint for ${pubkey.take(12)}...", context = TAG)
-            
+
             // Check if endpoint already exists and is valid
             val endpoint = directoryServiceProvider.get().discoverNoiseEndpoint(pubkey)
             if (endpoint != null && endpoint.host != "pending") {
                 Logger.info(
-                    "Noise endpoint already published for ${pubkey.take(12)}...: host=${endpoint.host}, port=${endpoint.port}",
+                    "Noise endpoint already published for ${pubkey.take(
+                        12
+                    )}...: host=${endpoint.host}, port=${endpoint.port}",
                     context = TAG,
                 )
                 return@withContext
             }
-            
+
             // Endpoint missing or has placeholder values - publish it ourselves
             if (noisePubkeyHex == null) {
                 Logger.warn("Cannot publish Noise endpoint: no keypair available", context = TAG)
                 return@withContext
             }
-            
+
             Logger.info("Ring did not publish Noise endpoint - publishing as fallback", context = TAG)
-            
+
             // Publish with "pending" host/port - will be updated when Noise server starts
             val directoryService = directoryServiceProvider.get()
             if (!directoryService.isConfigured) {
@@ -313,7 +323,7 @@ class SecureHandoffHandler @Inject constructor(
                     return@withContext
                 }
             }
-            
+
             directoryService.publishNoiseEndpoint(
                 host = "pending",
                 port = 0,
@@ -330,7 +340,7 @@ class SecureHandoffHandler @Inject constructor(
 
     /**
      * Verify that Ring published the Noise endpoint during handoff.
-     * 
+     *
      * Ring v2 publishes the Noise endpoint using SDK put() which signs with Ed25519.
      * This verification uses DirectoryService.discoverNoiseEndpoint() to actually parse
      * the endpoint with the same logic that Bitkit will use later, ensuring schema compatibility.
@@ -341,7 +351,7 @@ class SecureHandoffHandler @Inject constructor(
     suspend fun verifyNoiseEndpointPublished(pubkey: String): Boolean = withContext(Dispatchers.IO) {
         try {
             Logger.debug("Verifying Noise endpoint via DirectoryService for ${pubkey.take(12)}...", context = TAG)
-            
+
             // Use DirectoryService to parse the endpoint - validates schema matches PaykitMobile FFI
             val endpoint = directoryServiceProvider.get().discoverNoiseEndpoint(pubkey)
             if (endpoint != null) {
@@ -351,9 +361,11 @@ class SecureHandoffHandler @Inject constructor(
                 )
                 return@withContext true
             }
-            
+
             Logger.warn(
-                "Noise endpoint not found or invalid schema for ${pubkey.take(12)}... - Ring may not have published it correctly",
+                "Noise endpoint not found or invalid schema for ${pubkey.take(
+                    12
+                )}... - Ring may not have published it correctly",
                 context = TAG,
             )
             false
@@ -394,4 +406,3 @@ data class NoiseKeypairPayload(
     @SerialName("secret_key")
     val secretKey: String,
 )
-

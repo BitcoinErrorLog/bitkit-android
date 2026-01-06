@@ -36,4 +36,3 @@ object PaykitHttpModule {
             .build()
     }
 }
-

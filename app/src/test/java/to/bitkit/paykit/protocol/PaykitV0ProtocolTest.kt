@@ -238,4 +238,3 @@ class PaykitV0ProtocolTest {
         assertTrue(aad1 != aad2)
     }
 }
-

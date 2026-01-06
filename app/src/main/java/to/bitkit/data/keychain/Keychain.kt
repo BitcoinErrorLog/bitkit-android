@@ -102,7 +102,9 @@ class Keychain @Inject constructor(
                 if (key.endsWith(suffix)) {
                     val cleanKey = key.removeSuffix(suffix)
                     if (cleanKey.startsWith(prefix)) cleanKey else null
-                } else null
+                } else {
+                    null
+                }
             }
     }
 

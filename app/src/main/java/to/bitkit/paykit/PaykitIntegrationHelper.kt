@@ -1,7 +1,5 @@
 package to.bitkit.paykit
 
-import uniffi.paykit_mobile.BitcoinTxResultFfi
-import uniffi.paykit_mobile.LightningPaymentResultFfi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -10,6 +8,8 @@ import to.bitkit.paykit.executors.BitkitBitcoinExecutor
 import to.bitkit.paykit.executors.BitkitLightningExecutor
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.BitcoinTxResultFfi
+import uniffi.paykit_mobile.LightningPaymentResultFfi
 
 /**
  * Helper object for setting up and managing Paykit integration.

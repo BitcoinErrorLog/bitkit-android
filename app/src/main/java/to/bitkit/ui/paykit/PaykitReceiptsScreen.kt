@@ -9,12 +9,12 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import to.bitkit.paykit.models.PaymentDirection
 import to.bitkit.paykit.models.PaymentStatus
 import to.bitkit.paykit.models.Receipt
@@ -34,7 +34,6 @@ fun PaykitReceiptsScreen(
     val selectedStatus by viewModel.selectedStatus.collectAsStateWithLifecycle()
     val selectedDirection by viewModel.selectedDirection.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-
 
     ScreenColumn {
         AppTopBar(

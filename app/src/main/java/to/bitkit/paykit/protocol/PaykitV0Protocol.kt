@@ -290,4 +290,3 @@ object PaykitV0Protocol {
     fun buildAad(purpose: String, path: String, id: String): String =
         "$AAD_PREFIX:$purpose:$path:$id"
 }
-

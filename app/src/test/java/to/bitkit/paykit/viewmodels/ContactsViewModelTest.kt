@@ -47,7 +47,12 @@ class ContactsViewModelTest : BaseUnitTest() {
     fun `loadContacts calls directoryService discoverContactsFromFollows`() = test {
         // Given
         val followedContacts = listOf(
-            DiscoveredContact(pubkey = "pk_alice_z32", name = "Alice", hasPaymentMethods = false, supportedMethods = emptyList()),
+            DiscoveredContact(
+                pubkey = "pk_alice_z32",
+                name = "Alice",
+                hasPaymentMethods = false,
+                supportedMethods = emptyList()
+            ),
         )
         wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(followedContacts)
         wheneverBlocking { contactStorage.getContact(any()) }.thenReturn(null)

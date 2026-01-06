@@ -4,7 +4,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.paykit.models.AutoPaySettings

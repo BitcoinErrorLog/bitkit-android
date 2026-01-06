@@ -1,5 +1,6 @@
 package to.bitkit.ui.paykit
 
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -21,19 +22,18 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import androidx.compose.ui.graphics.asImageBitmap
-import android.graphics.BitmapFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,10 +41,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.KeyManager
+import to.bitkit.paykit.services.DirectoryError
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.ImageUploadService
 import to.bitkit.paykit.services.PubkyProfile
 import to.bitkit.paykit.services.PubkyProfileLink
-import to.bitkit.paykit.services.DirectoryError
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
@@ -462,6 +463,7 @@ private fun ProfileEditContent(
 class ProfileEditViewModel @Inject constructor(
     private val directoryService: DirectoryService,
     private val keyManager: KeyManager,
+    private val imageUploadService: ImageUploadService,
 ) : ViewModel() {
     companion object {
         private const val TAG = "ProfileEditViewModel"
@@ -616,23 +618,37 @@ class ProfileEditViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
 
             val state = _uiState.value
-            val profile = PubkyProfile(
-                name = state.name.takeIf { it.isNotEmpty() },
-                bio = state.bio.takeIf { it.isNotEmpty() },
-                image = state.imageUrl,
-                links = state.links
-                    .filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
-                    .map { PubkyProfileLink(it.title, it.url) }
-                    .takeIf { it.isNotEmpty() },
-            )
 
             try {
+                // Upload image if user selected a new one
+                var imageUrl = state.imageUrl
+                state.localImageUri?.let { uri ->
+                    val result = imageUploadService.uploadProfileImage(uri)
+                    result.onSuccess { url ->
+                        imageUrl = url
+                    }.onFailure { e ->
+                        throw e
+                    }
+                }
+
+                val profile = PubkyProfile(
+                    name = state.name.takeIf { it.isNotEmpty() },
+                    bio = state.bio.takeIf { it.isNotEmpty() },
+                    image = imageUrl,
+                    links = state.links
+                        .filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
+                        .map { PubkyProfileLink(it.title, it.url) }
+                        .takeIf { it.isNotEmpty() },
+                )
+
                 directoryService.publishProfile(profile)
                 originalProfile = profile
                 _uiState.update {
                     it.copy(
                         isSaving = false,
                         hasChanges = false,
+                        imageUrl = imageUrl,
+                        localImageUri = null, // Clear local image since it's now on server
                         successMessage = "Profile published successfully!"
                     )
                 }

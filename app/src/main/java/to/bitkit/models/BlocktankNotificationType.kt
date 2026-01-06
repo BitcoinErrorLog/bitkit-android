@@ -16,7 +16,7 @@ enum class BlocktankNotificationType {
     paykitSubscriptionDue,
     paykitAutoPayExecuted,
     paykitSubscriptionFailed,
-    
+
     /** Incoming Noise protocol request - wake app to start Noise server */
     paykitNoiseRequest;
 

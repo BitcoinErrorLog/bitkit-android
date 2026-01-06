@@ -2,6 +2,7 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,6 @@ import to.bitkit.paykit.services.AutoPayEvaluatorService
 import to.bitkit.paykit.services.AutopayEvaluationResult
 import to.bitkit.paykit.services.IAutopayEvaluator
 import to.bitkit.paykit.storage.AutoPayStorage
-import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
@@ -48,10 +48,10 @@ class AutoPayViewModel @Inject constructor(
             _settings.value = autoPayStorage.getSettings()
             _peerLimits.value = autoPayStorage.getPeerLimits()
             _rules.value = autoPayStorage.getRules()
-            
+
             // Keep evaluator service in sync
             autoPayEvaluatorService.loadSettings()
-            
+
             _isLoading.value = false
         }
     }

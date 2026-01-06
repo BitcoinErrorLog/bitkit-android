@@ -273,9 +273,9 @@ class SettingsViewModel @Inject constructor(
 
     val profilePubkyId = settingsStore.data.map { it.profilePubkyId }
         .asStateFlow(initialValue = "")
-    
-    val displayName = settingsStore.data.map { 
-        it.profileName.ifEmpty { "Your Name" } 
+
+    val displayName = settingsStore.data.map {
+        it.profileName.ifEmpty { "Your Name" }
     }.asStateFlow(initialValue = "Your Name")
 
     fun updateProfile(name: String, bio: String, avatarUrl: String, pubkyId: String) {

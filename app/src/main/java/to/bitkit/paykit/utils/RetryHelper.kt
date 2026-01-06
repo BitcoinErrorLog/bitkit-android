@@ -133,4 +133,3 @@ fun Throwable.userFriendlyMessage(): String {
         else -> message ?: "An error occurred. Please try again."
     }
 }
-

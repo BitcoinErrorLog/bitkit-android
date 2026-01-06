@@ -102,7 +102,6 @@ class PubkyStorageAdapter @Inject constructor(
         }
         return result.entries
     }
-
 }
 
 /**
@@ -159,6 +158,7 @@ class PubkyUnauthenticatedStorageAdapter(
         } else {
             "https://_pubky.$ownerPubkey$prefix?shallow=true"
         }
+        android.util.Log.d("PubkyStorageAdapter", "LIST URL: $urlString, owner: ${ownerPubkey.take(12)}...")
 
         var requestBuilder = Request.Builder()
             .url(urlString)
@@ -173,11 +173,13 @@ class PubkyUnauthenticatedStorageAdapter(
 
         return try {
             val response = client.newCall(request).execute()
+            android.util.Log.d("PubkyStorageAdapter", "LIST response code: ${response.code}")
 
             when {
                 response.code == 404 -> StorageListResult(success = true, entries = emptyList(), error = null)
                 response.code in 200..299 -> {
                     val body = response.body?.string()
+                    android.util.Log.d("PubkyStorageAdapter", "LIST body (first 200): ${body?.take(200)}")
                     if (body.isNullOrEmpty()) {
                         StorageListResult(success = true, entries = emptyList(), error = null)
                     } else {
@@ -221,8 +223,10 @@ class PubkyUnauthenticatedStorageAdapter(
                 else -> StorageListResult(success = false, entries = emptyList(), error = "HTTP ${response.code}")
             }
         } catch (e: IOException) {
+            android.util.Log.e("PubkyStorageAdapter", "LIST IOException: ${e.message}", e)
             StorageListResult(success = false, entries = emptyList(), error = "Network error: ${e.message}")
         } catch (e: Exception) {
+            android.util.Log.e("PubkyStorageAdapter", "LIST Exception: ${e.javaClass.name}: ${e.message}", e)
             StorageListResult(success = false, entries = emptyList(), error = "Error: ${e.message}")
         }
     }
@@ -236,7 +240,7 @@ class PubkyUnauthenticatedStorageAdapter(
 class PubkyAuthenticatedStorageAdapter(
     private val baseClient: OkHttpClient,
     private val sessionSecret: String,
-    private val ownerPubkey: String,
+    val ownerPubkey: String,
     private val homeserverURL: HomeserverURL? = null,
 ) : PubkyAuthenticatedStorageCallback {
     companion object {
@@ -299,7 +303,10 @@ class PubkyAuthenticatedStorageAdapter(
 
         // Log request details (SECURITY: Never log secrets or full content)
         Logger.debug("PUT request to: $urlString", context = TAG)
-        Logger.debug("Request headers: pubky-host=${if (needsPubkyHostHeader()) ownerPubkey.take(12) + "..." else "N/A"}", context = TAG)
+        Logger.debug(
+            "Request headers: pubky-host=${if (needsPubkyHostHeader()) ownerPubkey.take(12) + "..." else "N/A"}",
+            context = TAG
+        )
         Logger.debug("Content-Length: ${content.length} bytes", context = TAG)
 
         val mediaType = "application/json".toMediaType()
@@ -345,7 +352,10 @@ class PubkyAuthenticatedStorageAdapter(
                     StorageOperationResult(success = true, error = null)
                 }
                 401 -> {
-                    Logger.error("PUT failed: Unauthorized (401) - session cookie may be invalid or expired", context = TAG)
+                    Logger.error(
+                        "PUT failed: Unauthorized (401) - session cookie may be invalid or expired",
+                        context = TAG
+                    )
                     StorageOperationResult(
                         success = false,
                         error = "Unauthorized: Session expired or invalid. Please reconnect to Pubky Ring."
@@ -372,6 +382,62 @@ class PubkyAuthenticatedStorageAdapter(
             StorageOperationResult(success = false, error = "Network error: ${e.message}")
         } catch (e: Exception) {
             Logger.error("PUT unexpected error: ${e.message}", e, context = TAG)
+            StorageOperationResult(success = false, error = "Error: ${e.message}")
+        }
+    }
+
+    /**
+     * PUT binary data (for blob uploads like images)
+     */
+    fun putData(path: String, data: ByteArray, contentType: String): StorageOperationResult {
+        val urlString = buildTransportUrl(path)
+        val cookieValue = buildSessionCookie()
+
+        Logger.debug("PUT binary data to: $urlString (${data.size} bytes)", context = TAG)
+
+        val mediaType = contentType.toMediaType()
+        val requestBody = data.toRequestBody(mediaType)
+
+        var requestBuilder = Request.Builder()
+            .url(urlString)
+            .put(requestBody)
+            .header("Content-Type", contentType)
+            .header("Cookie", cookieValue)
+
+        if (needsPubkyHostHeader()) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
+
+        return try {
+            val response = client.newCall(request).execute()
+            val responseCode = response.code
+
+            when (responseCode) {
+                in 200..299 -> {
+                    Logger.debug("PUT binary succeeded for path: $path", context = TAG)
+                    StorageOperationResult(success = true, error = null)
+                }
+                401 -> {
+                    Logger.error("PUT binary failed: Unauthorized (401)", context = TAG)
+                    StorageOperationResult(success = false, error = "Unauthorized: Session expired.")
+                }
+                403 -> {
+                    Logger.error("PUT binary failed: Forbidden (403)", context = TAG)
+                    StorageOperationResult(success = false, error = "Forbidden: No write permission.")
+                }
+                else -> {
+                    val responseBody = response.body?.string()
+                    Logger.error("PUT binary failed: HTTP $responseCode - $responseBody", context = TAG)
+                    StorageOperationResult(success = false, error = "HTTP $responseCode: $responseBody")
+                }
+            }
+        } catch (e: IOException) {
+            Logger.error("PUT binary network error: ${e.message}", e, context = TAG)
+            StorageOperationResult(success = false, error = "Network error: ${e.message}")
+        } catch (e: Exception) {
+            Logger.error("PUT binary unexpected error: ${e.message}", e, context = TAG)
             StorageOperationResult(success = false, error = "Error: ${e.message}")
         }
     }
@@ -409,7 +475,11 @@ class PubkyAuthenticatedStorageAdapter(
                 }
                 401 -> {
                     Logger.error("GET failed: Unauthorized (401) for path: $path", context = TAG)
-                    StorageGetResult(success = false, content = null, error = "Unauthorized: Session expired or invalid.")
+                    StorageGetResult(
+                        success = false,
+                        content = null,
+                        error = "Unauthorized: Session expired or invalid."
+                    )
                 }
                 403 -> {
                     Logger.error("GET failed: Forbidden (403) for path: $path", context = TAG)

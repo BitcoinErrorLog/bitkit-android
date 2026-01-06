@@ -97,11 +97,13 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
 
         viewModel.acceptProposal(proposal, enableAutopay = false)
 
-        verify(subscriptionStorage).saveSubscription(argThat { subscription ->
-            subscription.providerPubkey == "pk:provider" &&
-                subscription.amountSats == 5000L &&
-                subscription.frequency == "monthly"
-        })
+        verify(subscriptionStorage).saveSubscription(
+            argThat { subscription ->
+                subscription.providerPubkey == "pk:provider" &&
+                    subscription.amountSats == 5000L &&
+                    subscription.frequency == "monthly"
+            }
+        )
     }
 
     @Test
@@ -121,15 +123,19 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
 
         viewModel.acceptProposal(proposal, enableAutopay = true, autopayLimitSats = 10000)
 
-        verify(autoPayStorage).saveRule(argThat { rule ->
-            rule.peerPubkey == "pk:provider" &&
-                rule.isEnabled &&
-                rule.maxAmountSats == 10000L
-        })
-        verify(autoPayStorage).savePeerLimit(argThat { limit ->
-            limit.peerPubkey == "pk:provider" &&
-                limit.limitSats == 10000L
-        })
+        verify(autoPayStorage).saveRule(
+            argThat { rule ->
+                rule.peerPubkey == "pk:provider" &&
+                    rule.isEnabled &&
+                    rule.maxAmountSats == 10000L
+            }
+        )
+        verify(autoPayStorage).savePeerLimit(
+            argThat { limit ->
+                limit.peerPubkey == "pk:provider" &&
+                    limit.limitSats == 10000L
+            }
+        )
     }
 
     @Test
@@ -193,4 +199,3 @@ class SubscriptionsViewModelTest : BaseUnitTest() {
         assertFalse(state.isSending)
     }
 }
-

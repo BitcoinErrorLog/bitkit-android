@@ -28,10 +28,12 @@ class SubscriptionProposalStorage @Inject constructor(
     private var proposalsCache: MutableMap<String, List<StoredProposal>>? = null
     private var seenIdsCache: MutableMap<String, Set<String>>? = null
     private var declinedIdsCache: MutableMap<String, Set<String>>? = null
+    private var sentProposalsCache: MutableMap<String, List<SentProposal>>? = null
 
     private fun proposalsKey(identityPubkey: String) = "proposals.$identityPubkey"
     private fun seenIdsKey(identityPubkey: String) = "proposals.seen.$identityPubkey"
     private fun declinedIdsKey(identityPubkey: String) = "proposals.declined.$identityPubkey"
+    private fun sentProposalsKey(identityPubkey: String) = "proposals.sent.$identityPubkey"
 
     /**
      * List all stored proposals for the given identity.
@@ -142,9 +144,113 @@ class SubscriptionProposalStorage @Inject constructor(
         keychain.delete(proposalsKey(identityPubkey))
         keychain.delete(seenIdsKey(identityPubkey))
         keychain.delete(declinedIdsKey(identityPubkey))
+        keychain.delete(sentProposalsKey(identityPubkey))
         proposalsCache?.remove(identityPubkey)
         seenIdsCache?.remove(identityPubkey)
         declinedIdsCache?.remove(identityPubkey)
+        sentProposalsCache?.remove(identityPubkey)
+    }
+
+    /**
+     * Invalidate all in-memory caches to ensure fresh reads from storage.
+     */
+    fun invalidateCache() {
+        proposalsCache = null
+        seenIdsCache = null
+        declinedIdsCache = null
+        sentProposalsCache = null
+    }
+
+    /**
+     * Save a sent (outgoing) proposal for tracking.
+     */
+    suspend fun saveSentProposal(
+        identityPubkey: String,
+        proposalId: String,
+        recipientPubkey: String,
+        amountSats: Long,
+        frequency: String,
+        description: String?,
+    ) {
+        val proposals = listSentProposals(identityPubkey).toMutableList()
+        if (proposals.any { it.id == proposalId }) return
+
+        proposals.add(
+            SentProposal(
+                id = proposalId,
+                recipientPubkey = recipientPubkey,
+                amountSats = amountSats,
+                frequency = frequency,
+                description = description,
+                sentAt = System.currentTimeMillis(),
+                status = SentProposalStatus.PENDING,
+            ),
+        )
+        persistSentProposals(identityPubkey, proposals)
+    }
+
+    /**
+     * List all sent proposals for the given identity.
+     */
+    fun listSentProposals(identityPubkey: String): List<SentProposal> {
+        if (sentProposalsCache?.containsKey(identityPubkey) == true) {
+            return sentProposalsCache!![identityPubkey]!!
+        }
+
+        return try {
+            val data = keychain.retrieve(sentProposalsKey(identityPubkey)) ?: return emptyList()
+            val json = String(data)
+            val proposals = Json.decodeFromString<List<SentProposal>>(json)
+            if (sentProposalsCache == null) sentProposalsCache = mutableMapOf()
+            sentProposalsCache!![identityPubkey] = proposals
+            proposals
+        } catch (e: Exception) {
+            Logger.error("Failed to load sent proposals", e, context = TAG)
+            emptyList()
+        }
+    }
+
+    /**
+     * Mark a sent proposal as accepted (subscriber accepted).
+     */
+    suspend fun markSentAccepted(identityPubkey: String, proposalId: String) {
+        val proposals = listSentProposals(identityPubkey).toMutableList()
+        val index = proposals.indexOfFirst { it.id == proposalId }
+        if (index >= 0) {
+            proposals[index] = proposals[index].copy(status = SentProposalStatus.ACCEPTED)
+            persistSentProposals(identityPubkey, proposals)
+        }
+    }
+
+    /**
+     * Delete a sent proposal from local storage.
+     */
+    suspend fun deleteSentProposal(identityPubkey: String, proposalId: String) {
+        val proposals = listSentProposals(identityPubkey).toMutableList()
+        proposals.removeAll { it.id == proposalId }
+        persistSentProposals(identityPubkey, proposals)
+        Logger.debug("Deleted sent proposal: $proposalId", context = TAG)
+    }
+
+    /**
+     * Mark a received proposal as seen (for dismissing).
+     */
+    suspend fun markAsSeen(identityPubkey: String, proposalId: String) {
+        val seenIds = getSeenIds(identityPubkey).toMutableSet()
+        seenIds.add(proposalId)
+        persistSeenIds(identityPubkey, seenIds)
+    }
+
+    private suspend fun persistSentProposals(identityPubkey: String, proposals: List<SentProposal>) {
+        try {
+            val json = Json.encodeToString(proposals)
+            keychain.store(sentProposalsKey(identityPubkey), json.toByteArray())
+            if (sentProposalsCache == null) sentProposalsCache = mutableMapOf()
+            sentProposalsCache!![identityPubkey] = proposals
+        } catch (e: Exception) {
+            Logger.error("Failed to persist sent proposals", e, context = TAG)
+            throw PaykitStorageException.SaveFailed(sentProposalsKey(identityPubkey))
+        }
     }
 
     private fun getSeenIds(identityPubkey: String): Set<String> {
@@ -239,3 +345,23 @@ enum class ProposalStatus {
     DECLINED,
 }
 
+/**
+ * A sent (outgoing) subscription proposal for tracking.
+ */
+@Serializable
+data class SentProposal(
+    val id: String,
+    val recipientPubkey: String,
+    val amountSats: Long,
+    val frequency: String,
+    val description: String?,
+    val sentAt: Long,
+    val status: SentProposalStatus,
+)
+
+@Serializable
+enum class SentProposalStatus {
+    PENDING,
+    ACCEPTED,
+    EXPIRED,
+}

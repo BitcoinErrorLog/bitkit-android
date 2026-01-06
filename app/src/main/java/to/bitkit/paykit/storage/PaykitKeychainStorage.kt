@@ -21,8 +21,10 @@ class PaykitKeychainStorage @Inject constructor(
     suspend fun store(key: String, data: ByteArray) {
         try {
             val fullKey = "$SERVICE_PREFIX$key"
-            keychain.upsertString(fullKey, String(data))
-            Logger.debug("Stored Paykit keychain item: $key", context = TAG)
+            // Encode binary data as hex to preserve byte values through string storage
+            val hexString = data.joinToString("") { "%02x".format(it) }
+            keychain.upsertString(fullKey, hexString)
+            Logger.debug("Stored Paykit keychain item: $key (${data.size} bytes)", context = TAG)
         } catch (e: Exception) {
             Logger.error("Failed to store Paykit keychain item: $key", e, context = TAG)
             throw PaykitStorageException.SaveFailed(key)
@@ -32,9 +34,11 @@ class PaykitKeychainStorage @Inject constructor(
     fun retrieve(key: String): ByteArray? {
         return try {
             val fullKey = "$SERVICE_PREFIX$key"
-            keychain.loadString(fullKey)?.toByteArray()
+            val hexString = keychain.loadString(fullKey) ?: return null
+            // Decode hex string back to bytes
+            hexString.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
         } catch (e: Exception) {
-            Logger.debug("Paykit keychain item not found: $key", context = TAG)
+            Logger.debug("Paykit keychain item not found or invalid: $key", context = TAG)
             null
         }
     }

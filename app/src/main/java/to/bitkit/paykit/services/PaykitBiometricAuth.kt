@@ -98,10 +98,16 @@ class PaykitBiometricAuth @Inject constructor(
         if (activity == null) {
             val shouldAllowPayment = allowWithoutPrompt || !requireBiometricForPayment
             if (shouldAllowPayment) {
-                Logger.warn("No FragmentActivity available - allowing payment (allowWithoutPrompt=$allowWithoutPrompt)", context = TAG)
+                Logger.warn(
+                    "No FragmentActivity available - allowing payment (allowWithoutPrompt=$allowWithoutPrompt)",
+                    context = TAG
+                )
                 return Result.success(Unit)
             } else {
-                Logger.warn("No FragmentActivity available - blocking payment (requireBiometricForPayment=true)", context = TAG)
+                Logger.warn(
+                    "No FragmentActivity available - blocking payment (requireBiometricForPayment=true)",
+                    context = TAG
+                )
                 return Result.failure(BiometricAuthError.Failed("Authentication required but UI unavailable"))
             }
         }
@@ -213,4 +219,3 @@ sealed class BiometricAuthError(message: String) : Exception(message) {
     object LockedOut : BiometricAuthError("Biometric authentication locked out")
     class Failed(message: String) : BiometricAuthError(message)
 }
-

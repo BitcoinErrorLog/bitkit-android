@@ -60,7 +60,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.R
-import java.util.Date
+import to.bitkit.data.SettingsStore
+import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyProfile
 import to.bitkit.paykit.services.PubkyProfileLink
@@ -69,13 +70,13 @@ import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
 import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.paykit.types.HomeserverURL
-import to.bitkit.data.SettingsStore
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
+import java.util.Date
 import javax.inject.Inject
 
 @Composable
@@ -188,7 +189,7 @@ private fun NoIdentityContent(
     onConnectPubkyRing: () -> Unit,
     onCreateNewIdentity: () -> Unit,
 ) {
-        Column(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(32.dp),
@@ -639,6 +640,7 @@ class CreateProfileViewModel @Inject constructor(
     private val keychainStorage: PaykitKeychainStorage,
     private val settingsStore: SettingsStore,
     private val directoryService: DirectoryService,
+    private val keyManager: KeyManager,
 ) : ViewModel() {
 
     companion object {
@@ -646,8 +648,8 @@ class CreateProfileViewModel @Inject constructor(
         private const val KEY_SECRET = "pubky.identity.secret"
         private const val KEY_PUBLIC = "pubky.identity.public"
         private const val KEY_SESSION_SECRET = "pubky.session.secret"
-        private const val KEY_DEVICE_ID = "pubky.paykit.deviceId"  // Device ID for noise key derivation
-        private const val KEY_HOMESERVER_URL = "pubky.homeserver.url"  // Homeserver URL for the session
+        private const val KEY_DEVICE_ID = "pubky.paykit.deviceId" // Device ID for noise key derivation
+        private const val KEY_HOMESERVER_URL = "pubky.homeserver.url" // Homeserver URL for the session
         private const val KEY_PROFILE_NAME = "profile.name"
         private const val KEY_PROFILE_BIO = "profile.bio"
         private const val KEY_PROFILE_AVATAR_URL = "profile.avatar_url"
@@ -752,6 +754,27 @@ class CreateProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Trigger discovery of subscription proposals from known peers after connecting to Pubky Ring.
+     */
+    private suspend fun triggerProposalDiscovery() {
+        Logger.info("Triggering proposal discovery after Pubky connect", context = TAG)
+        runCatching {
+            val myPubkey = keyManager.getCurrentPublicKeyZ32() ?: return
+            val follows = directoryService.fetchFollows()
+            Logger.debug("Found ${follows.size} follows to poll for proposals", context = TAG)
+
+            for (peerPubkey in follows) {
+                val proposals = directoryService.discoverSubscriptionProposalsFromPeer(peerPubkey, myPubkey)
+                if (proposals.isNotEmpty()) {
+                    Logger.info("Discovered ${proposals.size} proposals from $peerPubkey", context = TAG)
+                }
+            }
+        }.onFailure { e ->
+            Logger.error("Failed to discover proposals", e, context = TAG)
+        }
+    }
+
     fun connectPubkyRing(context: Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isConnecting = true, errorMessage = null) }
@@ -770,29 +793,29 @@ class CreateProfileViewModel @Inject constructor(
                 // Request complete Paykit setup from Pubky Ring (session + noise keys in one request)
                 // This ensures we have everything we need even if Ring becomes unavailable later
                 val setupResult = pubkyRingBridge.requestPaykitSetup(context)
-                
+
                 // Import the session into PubkySDK using the session token
                 pubkySDKService.importSession(setupResult.session.pubkey, setupResult.session.sessionSecret)
-                
+
                 // Store the homeserver URL (use default if not provided by Ring)
                 val homeserverUrl = "https://homeserver.pubky.app"
                 keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl)
-                
+
                 // Configure DirectoryService for authenticated writes to homeserver
                 directoryService.configureWithPubkySession(setupResult.session, HomeserverURL(homeserverUrl))
-                
+
                 // Store pubkey, session secret, and device ID so we can restore everything on app restart
                 keychainStorage.setString(KEY_PUBLIC, setupResult.session.pubkey)
                 keychainStorage.setString(KEY_SESSION_SECRET, setupResult.session.sessionSecret)
                 keychainStorage.setString(KEY_DEVICE_ID, setupResult.deviceId)
-                
+
                 // Log noise key status
                 if (setupResult.hasNoiseKeys) {
                     Logger.info("Received noise keypairs for Paykit (epoch 0 & 1)", context = TAG)
                 } else {
                     Logger.warn("No noise keypairs received - Paykit P2P features may be limited", context = TAG)
                 }
-                
+
                 _uiState.update {
                     it.copy(
                         isConnecting = false,
@@ -800,12 +823,17 @@ class CreateProfileViewModel @Inject constructor(
                         pubkyId = setupResult.session.pubkey
                     )
                 }
-                
+
                 // Load the profile
                 loadProfile(setupResult.session.pubkey)
-                
-                Logger.info("Successfully connected to Pubky Ring: ${setupResult.session.pubkey.take(16)}...", context = TAG)
 
+                // Trigger proposal discovery now that we have crypto keys
+                triggerProposalDiscovery()
+
+                Logger.info(
+                    "Successfully connected to Pubky Ring: ${setupResult.session.pubkey.take(16)}...",
+                    context = TAG
+                )
             } catch (e: Exception) {
                 Logger.error("Failed to connect to Pubky Ring", e, context = TAG)
                 _uiState.update {
@@ -854,7 +882,6 @@ class CreateProfileViewModel @Inject constructor(
                 }
 
                 Logger.info("Created new Pubky identity: ${publicKey.take(16)}...", context = TAG)
-
             } catch (e: Exception) {
                 Logger.error("Failed to create identity", e, context = TAG)
                 _uiState.update {
@@ -952,7 +979,7 @@ class CreateProfileViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
 
             val state = _uiState.value
-            
+
             // Check if we have an identity (pubkey)
             if (state.pubkyId.isEmpty()) {
                 _uiState.update {
@@ -1007,7 +1034,7 @@ class CreateProfileViewModel @Inject constructor(
                 directoryService.publishProfile(profile)
 
                 originalProfile = profile
-                
+
                 // Save to SettingsStore for home screen display
                 settingsStore.update { settings ->
                     settings.copy(
@@ -1017,7 +1044,7 @@ class CreateProfileViewModel @Inject constructor(
                         profilePubkyId = state.pubkyId
                     )
                 }
-                
+
                 _uiState.update {
                     it.copy(
                         isSaving = false,
@@ -1052,7 +1079,7 @@ class CreateProfileViewModel @Inject constructor(
             if (currentPubkey.isNotEmpty()) {
                 pubkyRingBridge.clearSession(currentPubkey)
             }
-            pubkyRingBridge.clearCache()  // Clear noise keypair cache as well
+            pubkyRingBridge.clearCache() // Clear noise keypair cache as well
 
             // Clear profile from SettingsStore
             settingsStore.update { settings ->

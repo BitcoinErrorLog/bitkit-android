@@ -36,7 +36,6 @@ import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.utils.Logger
-import java.util.Date
 import java.util.concurrent.TimeUnit
 
 /**
@@ -97,11 +96,11 @@ class PaykitPollingWorker @AssistedInject constructor(
                 pollingRequest,
             )
             Logger.info("Scheduled periodic polling worker", context = TAG)
-            
+
             // Verify scheduling
             verifyWorkerScheduled(context)
         }
-        
+
         /**
          * Verify that the worker is actually scheduled
          */
@@ -204,7 +203,10 @@ class PaykitPollingWorker @AssistedInject constructor(
                 val paymentRequests = directoryService.discoverPendingRequestsFromPeer(peerPubkey, ownerPubkey)
                 requests.addAll(paymentRequests)
             }.onFailure { error ->
-                Logger.debug("Failed to discover requests from peer ${peerPubkey.take(12)}: ${error.message}", context = TAG)
+                Logger.debug(
+                    "Failed to discover requests from peer ${peerPubkey.take(12)}: ${error.message}",
+                    context = TAG
+                )
             }
 
             // Discover subscription proposals from peer's storage
@@ -224,7 +226,10 @@ class PaykitPollingWorker @AssistedInject constructor(
                     )
                 }
             }.onFailure { error ->
-                Logger.debug("Failed to discover proposals from peer ${peerPubkey.take(12)}: ${error.message}", context = TAG)
+                Logger.debug(
+                    "Failed to discover proposals from peer ${peerPubkey.take(12)}: ${error.message}",
+                    context = TAG
+                )
             }
         }
 

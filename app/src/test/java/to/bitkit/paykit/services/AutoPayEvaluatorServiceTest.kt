@@ -196,4 +196,3 @@ class AutoPayEvaluatorServiceTest : BaseUnitTest() {
         assertIs<AutopayEvaluationResult.Approved>(result)
     }
 }
-

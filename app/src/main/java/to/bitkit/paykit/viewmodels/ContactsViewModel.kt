@@ -2,6 +2,7 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,6 @@ import to.bitkit.paykit.services.DiscoveredContact
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.storage.ContactStorage
 import to.bitkit.utils.Logger
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 /**
@@ -66,7 +66,7 @@ class ContactsViewModel @Inject constructor(
                 val follows = withContext(Dispatchers.IO) {
                     directoryService.discoverContactsFromFollows()
                 }
-                
+
                 // Convert discovered contacts to Contact model and merge with local data
                 val followContacts = follows.map { discovered ->
                     val existing = contactStorage.getContact(discovered.pubkey)
@@ -80,13 +80,13 @@ class ContactsViewModel @Inject constructor(
                         paymentCount = existing?.paymentCount ?: 0,
                     )
                 }
-                
+
                 // Persist synced contacts locally for offline access
                 contactStorage.importContacts(followContacts)
-                
+
                 // Store unfiltered list for searching
                 allContacts = followContacts
-                
+
                 _contacts.value = if (_searchQuery.value.isEmpty()) {
                     followContacts
                 } else {
@@ -95,10 +95,10 @@ class ContactsViewModel @Inject constructor(
                             contact.publicKeyZ32.contains(_searchQuery.value, ignoreCase = true)
                     }
                 }
-                
+
                 // Also update discovered contacts for the discovery screen
                 _discoveredContacts.value = follows
-                
+
                 Logger.debug("Loaded ${followContacts.size} contacts from Pubky follows", context = TAG)
             }.onFailure { e ->
                 Logger.error("Failed to load contacts from follows", e, context = TAG)
@@ -133,7 +133,7 @@ class ContactsViewModel @Inject constructor(
             }.onFailure { e ->
                 _errorMessage.update { "Failed to add contact: ${e.message}" }
             }
-            
+
             // Then create Pubky follow in background
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -167,7 +167,7 @@ class ContactsViewModel @Inject constructor(
             }.onFailure { e ->
                 _errorMessage.update { "Failed to delete contact: ${e.message}" }
             }
-            
+
             // Then remove Pubky follow in background
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -213,10 +213,10 @@ class ContactsViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     // 1. Add follow to Pubky homeserver
                     directoryService.addFollow(pubkey)
-                    
+
                     // 2. Fetch profile for the followed user
                     val profile = runCatching { pubkySDKService.fetchProfile(pubkey) }.getOrNull()
-                    
+
                     // 3. Add to local contacts
                     val contact = Contact(
                         id = pubkey,
@@ -228,7 +228,7 @@ class ContactsViewModel @Inject constructor(
                         paymentCount = 0,
                     )
                     contactStorage.saveContact(contact)
-                    
+
                     Logger.info("Followed and added contact: $pubkey", context = TAG)
                 }
                 // 4. Refresh contacts list

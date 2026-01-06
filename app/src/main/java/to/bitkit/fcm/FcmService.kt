@@ -83,7 +83,7 @@ class FcmService : FirebaseMessagingService() {
             handleNoiseRequest()
             return
         }
-        
+
         val work = OneTimeWorkRequestBuilder<WakeNodeWorker>()
             .setInputData(
                 workDataOf(
@@ -96,19 +96,19 @@ class FcmService : FirebaseMessagingService() {
             .beginWith(work)
             .enqueue()
     }
-    
+
     /**
      * Handle incoming Noise protocol request by starting NoiseServerWorker
      */
     private fun handleNoiseRequest() {
         Logger.debug("Handling incoming Noise request notification", context = TAG)
-        
+
         // Extract Noise-specific data from payload
         val fromPubkey = notificationPayload?.get("from_pubkey")?.toString()?.removeSurrounding("\"")
         val endpointHost = notificationPayload?.get("endpoint_host")?.toString()?.removeSurrounding("\"")
         val endpointPort = notificationPayload?.get("endpoint_port")?.toString()?.removeSurrounding("\"")?.toIntOrNull() ?: 9000
         val noisePubkey = notificationPayload?.get("noise_pubkey")?.toString()?.removeSurrounding("\"")
-        
+
         val work = OneTimeWorkRequestBuilder<NoiseServerWorker>()
             .setInputData(
                 workDataOf(
@@ -119,10 +119,10 @@ class FcmService : FirebaseMessagingService() {
                 )
             )
             .build()
-        
+
         WorkManager.getInstance(this)
             .enqueue(work)
-        
+
         Logger.info("Scheduled NoiseServerWorker for incoming request from ${fromPubkey?.take(12)}...", context = TAG)
     }
 

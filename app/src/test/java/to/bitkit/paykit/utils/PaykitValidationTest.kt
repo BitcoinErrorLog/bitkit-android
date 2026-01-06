@@ -1,10 +1,10 @@
 package to.bitkit.paykit.utils
 
 import org.junit.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for PaykitValidation utilities.
@@ -50,8 +50,12 @@ class PaykitValidationTest {
 
     @Test
     fun `isValidHexPubkey returns true for valid 64-char hex`() {
-        assertTrue(PaykitValidation.isValidHexPubkey("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"))
-        assertTrue(PaykitValidation.isValidHexPubkey("ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789"))
+        assertTrue(
+            PaykitValidation.isValidHexPubkey("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+        )
+        assertTrue(
+            PaykitValidation.isValidHexPubkey("ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789")
+        )
     }
 
     @Test
@@ -86,7 +90,9 @@ class PaykitValidationTest {
     fun `isValidBitcoinAddress returns true for valid addresses`() {
         assertTrue(PaykitValidation.isValidBitcoinAddress("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa")) // Legacy
         assertTrue(PaykitValidation.isValidBitcoinAddress("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy")) // P2SH
-        assertTrue(PaykitValidation.isValidBitcoinAddress("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")) // Native SegWit
+        assertTrue(
+            PaykitValidation.isValidBitcoinAddress("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")
+        ) // Native SegWit
         assertTrue(PaykitValidation.isValidBitcoinAddress("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx")) // Testnet
         assertTrue(PaykitValidation.isValidBitcoinAddress("bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080")) // Regtest
     }
@@ -139,4 +145,3 @@ class PaykitValidationTest {
         assertFalse(PaykitValidation.isValidSatoshiAmount(0uL))
     }
 }
-

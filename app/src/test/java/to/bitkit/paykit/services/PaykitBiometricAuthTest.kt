@@ -65,4 +65,3 @@ class PaykitBiometricAuthTest {
         assertEquals("failed: Custom error", result)
     }
 }
-

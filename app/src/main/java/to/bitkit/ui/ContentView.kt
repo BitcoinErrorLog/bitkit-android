@@ -1739,7 +1739,7 @@ private fun NavGraphBuilder.paykit(navController: NavHostController) {
     composableWithDefaultTransitions<Routes.PubkyRingAuth> { backstackEntry ->
         // Check for scanned QR code result
         val scannedQrCode = backstackEntry.savedStateHandle.get<String>("scanned_qr_code")
-        
+
         to.bitkit.paykit.ui.PubkyRingAuthScreen(
             onNavigateBack = { navController.popBackStack() },
             onSessionReceived = { session ->

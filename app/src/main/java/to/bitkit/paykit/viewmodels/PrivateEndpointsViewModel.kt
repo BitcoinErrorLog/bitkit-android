@@ -46,4 +46,3 @@ data class PrivateEndpointsUiState(
     val peers: List<String> = emptyList(),
     val isLoading: Boolean = false,
 )
-

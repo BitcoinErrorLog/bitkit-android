@@ -73,4 +73,3 @@ data class RotationSettingsUiState(
     val settings: RotationSettings? = null,
     val isLoading: Boolean = false,
 )
-

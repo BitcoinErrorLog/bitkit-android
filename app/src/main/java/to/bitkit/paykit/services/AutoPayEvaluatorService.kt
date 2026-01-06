@@ -69,4 +69,3 @@ class AutoPayEvaluatorService @Inject constructor(
         return AutopayEvaluationResult.NeedsApproval
     }
 }
-

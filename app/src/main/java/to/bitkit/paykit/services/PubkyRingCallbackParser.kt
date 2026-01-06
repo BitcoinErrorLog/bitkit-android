@@ -1,7 +1,6 @@
 package to.bitkit.paykit.services
 
 import android.net.Uri
-import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -136,4 +135,3 @@ class PubkyRingCallbackParser @Inject constructor() {
         return followsJson.split(",").filter { it.isNotEmpty() }
     }
 }
-

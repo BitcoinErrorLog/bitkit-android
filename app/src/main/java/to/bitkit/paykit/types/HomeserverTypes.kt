@@ -18,13 +18,13 @@ package to.bitkit.paykit.types
  */
 @JvmInline
 value class HomeserverPubkey(private val rawValue: String) {
-    
+
     /**
      * The normalized z32-encoded pubkey string (without pk: prefix)
      */
     val value: String
         get() = if (rawValue.startsWith("pk:")) rawValue.drop(3) else rawValue
-    
+
     /**
      * Validate the pubkey format
      */
@@ -36,13 +36,13 @@ value class HomeserverPubkey(private val rawValue: String) {
                 c in "ybndrfg8ejkmcpqxot1uwisza345h769"
             }
         }
-    
+
     /**
      * Returns the pubkey with pk: prefix
      */
     val withPrefix: String
         get() = "pk:$value"
-    
+
     override fun toString(): String = "HomeserverPubkey(${value.take(12)}...)"
 }
 
@@ -56,7 +56,7 @@ value class HomeserverPubkey(private val rawValue: String) {
  */
 @JvmInline
 value class HomeserverURL(private val rawValue: String) {
-    
+
     /**
      * The normalized HTTPS URL string (with https://, no trailing slash)
      */
@@ -71,7 +71,7 @@ value class HomeserverURL(private val rawValue: String) {
             }
             return normalized
         }
-    
+
     /**
      * Validate the URL format
      */
@@ -82,7 +82,7 @@ value class HomeserverURL(private val rawValue: String) {
         } catch (e: Exception) {
             false
         }
-    
+
     /**
      * Construct a full URL for a pubky path
      *
@@ -93,7 +93,7 @@ value class HomeserverURL(private val rawValue: String) {
     fun urlForPath(ownerPubkey: String, path: String): String {
         return "$value/$ownerPubkey$path"
     }
-    
+
     override fun toString(): String = "HomeserverURL($value)"
 }
 
@@ -105,7 +105,7 @@ value class HomeserverURL(private val rawValue: String) {
  */
 @JvmInline
 value class SessionSecret(val hexValue: String) {
-    
+
     /**
      * Validate the secret format
      */
@@ -114,18 +114,21 @@ value class SessionSecret(val hexValue: String) {
             // Session secrets are typically 32 bytes = 64 hex chars
             return hexValue.length >= 32 && hexValue.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
         }
-    
+
     /**
      * Get the raw bytes
      */
     val bytes: ByteArray?
         get() = try {
-            if (hexValue.length % 2 != 0) null
-            else hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            if (hexValue.length % 2 != 0) {
+                null
+            } else {
+                hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            }
         } catch (e: Exception) {
             null
         }
-    
+
     /**
      * Redacted description for logging
      */
@@ -143,13 +146,13 @@ value class SessionSecret(val hexValue: String) {
  */
 @JvmInline
 value class OwnerPubkey(private val rawValue: String) {
-    
+
     /**
      * The normalized z32-encoded pubkey string (without pk: prefix)
      */
     val value: String
         get() = if (rawValue.startsWith("pk:")) rawValue.drop(3) else rawValue
-    
+
     /**
      * Validate the pubkey format
      */
@@ -160,13 +163,13 @@ value class OwnerPubkey(private val rawValue: String) {
                 c in "ybndrfg8ejkmcpqxot1uwisza345h769"
             }
         }
-    
+
     /**
      * Returns the pubkey with pk: prefix
      */
     val withPrefix: String
         get() = "pk:$value"
-    
+
     override fun toString(): String = "OwnerPubkey(${value.take(12)}...)"
 }
 
@@ -174,13 +177,13 @@ value class OwnerPubkey(private val rawValue: String) {
  * PubkyConfig extension with typed defaults
  */
 object HomeserverDefaults {
-    
+
     /**
      * The default homeserver URL (resolved from pubkey)
      */
     val defaultHomeserverURL: HomeserverURL
         get() = HomeserverURL("https://homeserver.pubky.app")
-    
+
     /**
      * The default homeserver pubkey
      */
@@ -202,37 +205,37 @@ object PubkyConfig {
  * This prevents hardcoded URLs scattered throughout the codebase.
  */
 object HomeserverResolver {
-    
+
     /**
      * Override for testing/development
      */
     var overrideURL: HomeserverURL? = null
-    
+
     /**
      * Cache of resolved URLs with expiry
      */
     private val cache = mutableMapOf<HomeserverPubkey, Pair<HomeserverURL, Long>>()
-    
+
     /**
      * Known homeserver mappings (pubkey → URL)
      */
     private val knownHomeservers = mutableMapOf<String, String>()
-    
+
     init {
         loadDefaultMappings()
     }
-    
+
     /**
      * Load default homeserver mappings
      */
     private fun loadDefaultMappings() {
         // Production homeserver (Synonym mainnet)
         knownHomeservers["8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty"] = "https://homeserver.pubky.app"
-        
+
         // Staging homeserver (Synonym staging)
         knownHomeservers["ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"] = "https://staging.homeserver.pubky.app"
     }
-    
+
     /**
      * Add a custom homeserver mapping
      */
@@ -240,7 +243,7 @@ object HomeserverResolver {
         knownHomeservers[pubkey.value] = url.value
         cache.remove(pubkey)
     }
-    
+
     /**
      * Resolve a homeserver pubkey to its URL.
      *
@@ -256,30 +259,30 @@ object HomeserverResolver {
     fun resolve(pubkey: HomeserverPubkey): HomeserverURL {
         // 1. Check for override (testing/development)
         overrideURL?.let { return it }
-        
+
         // 2. Check cache
         val now = System.currentTimeMillis()
         cache[pubkey]?.let { (url, expires) ->
             if (now < expires) return url
         }
-        
+
         // 3. Check known mappings
         knownHomeservers[pubkey.value]?.let { urlString ->
             val url = HomeserverURL(urlString)
             cache[pubkey] = url to (now + 3600 * 1000)
             return url
         }
-        
+
         // 4. Fall back to default
         // Note: DNS resolution is available via resolveWithDNS() for async contexts
         val defaultURL = HomeserverDefaults.defaultHomeserverURL
         cache[pubkey] = defaultURL to (now + 3600 * 1000)
         return defaultURL
     }
-    
+
     /**
      * Resolve a homeserver pubkey with DNS lookup fallback.
-     * 
+     *
      * This async version tries DNS TXT record lookup at _pubky.{pubkey}
      * before falling back to the default homeserver.
      *
@@ -289,36 +292,36 @@ object HomeserverResolver {
     suspend fun resolveWithDNS(pubkey: HomeserverPubkey): HomeserverURL {
         // 1. Check for override (testing/development)
         overrideURL?.let { return it }
-        
+
         // 2. Check cache
         val now = System.currentTimeMillis()
         cache[pubkey]?.let { (url, expires) ->
             if (now < expires) return url
         }
-        
+
         // 3. Check known mappings
         knownHomeservers[pubkey.value]?.let { urlString ->
             val url = HomeserverURL(urlString)
             cache[pubkey] = url to (now + 3600 * 1000)
             return url
         }
-        
+
         // 4. Try DNS-based resolution
         val dnsResolved = resolveViaDNS(pubkey.value)
         if (dnsResolved != null) {
             cache[pubkey] = dnsResolved to (now + 3600 * 1000)
             return dnsResolved
         }
-        
+
         // 5. Fall back to default
         val defaultURL = HomeserverDefaults.defaultHomeserverURL
         cache[pubkey] = defaultURL to (now + 3600 * 1000)
         return defaultURL
     }
-    
+
     /**
      * Resolve homeserver via DNS TXT record at _pubky.{pubkey}
-     * 
+     *
      * Requires API 29+. Returns null if DNS lookup fails or API not available.
      */
     @android.annotation.SuppressLint("NewApi")
@@ -326,15 +329,15 @@ object HomeserverResolver {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
             return null
         }
-        
+
         return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val dnsName = "_pubky.$pubkey"
-            
+
             try {
                 val resolver = android.net.DnsResolver.getInstance()
                 val latch = java.util.concurrent.CountDownLatch(1)
                 var result: HomeserverURL? = null
-                
+
                 resolver.rawQuery(
                     null, // Network
                     dnsName, // Domain name
@@ -353,7 +356,7 @@ object HomeserverResolver {
                         }
                     }
                 )
-                
+
                 latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
                 result
             } catch (e: Exception) {
@@ -361,7 +364,7 @@ object HomeserverResolver {
             }
         }
     }
-    
+
     /**
      * Parse DNS TXT record for homeserver URL.
      * Expected format: "hs=https://homeserver.example.com"
@@ -375,7 +378,7 @@ object HomeserverResolver {
             null
         }
     }
-    
+
     /**
      * Construct a full URL for accessing a user's data on a homeserver.
      *
@@ -388,7 +391,7 @@ object HomeserverResolver {
         val resolvedURL = resolve(homeserver ?: HomeserverDefaults.defaultHomeserverPubkey)
         return resolvedURL.urlForPath(owner.value, path)
     }
-    
+
     /**
      * The base URL for authenticated operations.
      *
@@ -400,7 +403,7 @@ object HomeserverResolver {
         // In production, this would be stored with the session
         return HomeserverDefaults.defaultHomeserverURL
     }
-    
+
     /**
      * Clear the resolution cache
      */
@@ -408,4 +411,3 @@ object HomeserverResolver {
         cache.clear()
     }
 }
-

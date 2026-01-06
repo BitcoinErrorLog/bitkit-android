@@ -27,13 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import to.bitkit.R
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
 import to.bitkit.ui.appViewModel
@@ -287,4 +285,3 @@ private fun formatTimestamp(timestamp: Long): String {
     val sdf = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault())
     return sdf.format(java.util.Date(timestamp))
 }
-

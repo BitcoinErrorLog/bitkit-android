@@ -1,6 +1,5 @@
 package to.bitkit.paykit.services
 
-import uniffi.paykit_mobile.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import to.bitkit.paykit.PaykitManager
@@ -8,6 +7,7 @@ import to.bitkit.paykit.models.PaymentRequest
 import to.bitkit.paykit.models.PaymentRequestStatus
 import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.*
 import javax.inject.Inject
 import javax.inject.Singleton
 

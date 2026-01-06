@@ -101,11 +101,11 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             )
 
             Logger.info("Scheduled subscription check worker", context = TAG)
-            
+
             // Verify scheduling
             verifyWorkerScheduled(context)
         }
-        
+
         /**
          * Verify that the worker is actually scheduled
          */
@@ -167,7 +167,7 @@ class SubscriptionCheckWorker @AssistedInject constructor(
             Result.success()
         } catch (e: Exception) {
             Logger.error("Subscription check failed", e, context = TAG)
-            
+
             // Implement exponential backoff retry logic
             val runAttempt = runAttemptCount
             when {
@@ -351,7 +351,7 @@ class SubscriptionCheckWorker @AssistedInject constructor(
 
         for (subscription in upcomingSubscriptions) {
             val nextDue = subscription.nextPaymentAt ?: continue
-            val notificationKey = "notified_${subscription.id}_${nextDue}"
+            val notificationKey = "notified_${subscription.id}_$nextDue"
 
             // Check if we've already notified for this billing cycle
             if (prefs.getBoolean(notificationKey, false)) {

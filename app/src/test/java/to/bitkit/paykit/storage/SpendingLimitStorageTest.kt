@@ -110,4 +110,3 @@ class SpendingLimitStorageTest {
         assertEquals(0L, result?.currentSpentSats)
     }
 }
-

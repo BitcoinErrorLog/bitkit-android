@@ -66,7 +66,7 @@ class PubkySDKService @Inject constructor(
     /**
      * Import a session from Pubky Ring
      * This is used when receiving a session from Pubky Ring via callback
-     * 
+     *
      * @param pubkey The z-base32 encoded public key (for verification)
      * @param sessionSecret The full session token from Pubky Ring (already in format: <pubkey>:<cookie>)
      */
@@ -74,7 +74,7 @@ class PubkySDKService @Inject constructor(
         // sessionSecret from Pubky Ring is already in the format <pubkey>:<cookie>
         // So we use it directly without modification
         val sessionToken = sessionSecret
-        
+
         // Use revalidateSession which accepts the token format
         val result = uniffi.pubkycore.revalidateSession(sessionToken)
         checkResult(result)
@@ -268,7 +268,11 @@ class PubkySDKService @Inject constructor(
                 try {
                     refreshSession(session.pubkey)
                 } catch (e: Exception) {
-                    Logger.error("Failed to refresh expiring session for ${session.pubkey.take(12)}...", e = e, context = TAG)
+                    Logger.error(
+                        "Failed to refresh expiring session for ${session.pubkey.take(12)}...",
+                        e = e,
+                        context = TAG
+                    )
                 }
             }
         }
@@ -595,8 +599,14 @@ data class PubkyCoreSession(
  * Date serializer for kotlinx.serialization
  */
 object DateSerializer : kotlinx.serialization.KSerializer<Date> {
-    override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor("Date", kotlinx.serialization.descriptors.PrimitiveKind.LONG)
-    override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: Date) = encoder.encodeLong(value.time)
+    override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor(
+        "Date",
+        kotlinx.serialization.descriptors.PrimitiveKind.LONG
+    )
+    override fun serialize(
+        encoder: kotlinx.serialization.encoding.Encoder,
+        value: Date
+    ) = encoder.encodeLong(value.time)
     override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder) = Date(decoder.decodeLong())
 }
 

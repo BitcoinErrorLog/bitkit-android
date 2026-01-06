@@ -117,4 +117,3 @@ object PaykitValidation {
         return sats <= 2_100_000_000_000_000uL
     }
 }
-

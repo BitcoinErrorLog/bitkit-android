@@ -2,15 +2,15 @@ package to.bitkit.paykit.services
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import uniffi.paykit_mobile.X25519Keypair
 import to.bitkit.paykit.KeyManager
 import to.bitkit.utils.Logger
+import uniffi.paykit_mobile.X25519Keypair
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Integration for X25519 keypair retrieval from Pubky Ring
- * 
+ *
  * SECURITY: All key derivation happens in Pubky Ring.
  * This class only retrieves cached keypairs that were received via Ring callbacks.
  * If no cached keypair is available, callers must request new keys from Ring.
@@ -28,7 +28,7 @@ class PubkyRingIntegration @Inject constructor(
 
     /**
      * Get cached X25519 keypair for the given epoch
-     * 
+     *
      * This retrieves a keypair that was previously received from Pubky Ring.
      * If no keypair is cached, the caller should request new keys via PubkyRingBridge.
      *
@@ -95,7 +95,7 @@ class PubkyRingIntegration @Inject constructor(
             // Cache miss - request new setup from Ring
             Logger.warn("Keypair cache miss for epoch $epoch, requesting from Ring", context = TAG)
             pubkyRingBridge.requestPaykitSetup(context)
-            
+
             // The bridge callback handler will have cached the result
             // Try retrieving again
             try {

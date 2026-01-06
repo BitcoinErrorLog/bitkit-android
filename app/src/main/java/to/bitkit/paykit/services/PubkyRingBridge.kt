@@ -78,7 +78,7 @@ class PubkyRingBridge @Inject constructor(
         // Cross-device authentication
         const val CROSS_DEVICE_WEB_URL = "https://pubky.app/auth"
         private const val DEFAULT_RELAY_URL = "https://relay.pubky.app/sessions"
-        
+
         fun getRelayUrl(): String {
             // Can be overridden via system property for testing: -DPUBKY_RELAY_URL=...
             // In production, this will use the default relay URL
@@ -88,8 +88,8 @@ class PubkyRingBridge @Inject constructor(
         // Callback paths
         const val CALLBACK_PATH_PROFILE = "paykit-profile"
         const val CALLBACK_PATH_FOLLOWS = "paykit-follows"
-        const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup"  // Combined session + noise keys
-        const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result"  // Ed25519 signature result
+        const val CALLBACK_PATH_PAYKIT_SETUP = "paykit-setup" // Combined session + noise keys
+        const val CALLBACK_PATH_SIGNATURE_RESULT = "signature-result" // Ed25519 signature result
 
         // Helper: convert ByteArray to hex string
         fun byteArrayToHexString(bytes: ByteArray): String =
@@ -121,10 +121,10 @@ class PubkyRingBridge @Inject constructor(
 
     // Cached sessions by pubkey
     private val sessionCache = mutableMapOf<String, PubkySession>()
-    
+
     // Device ID for noise key derivation
     private var _deviceId: String? = null
-    
+
     /**
      * Get consistent device ID for noise key derivations
      */
@@ -132,19 +132,19 @@ class PubkyRingBridge @Inject constructor(
         get() {
             return _deviceId ?: loadOrGenerateDeviceId().also { _deviceId = it }
         }
-    
+
     private fun loadOrGenerateDeviceId(): String {
         val key = "paykit.device_id"
-        
+
         // Try to load existing
         keychainStorage.getString(key)?.takeIf { it.isNotEmpty() }?.let { id ->
             Logger.debug("Loaded device ID: ${id.take(8)}...", context = TAG)
             return id
         }
-        
+
         // Generate new UUID
         val newId = UUID.randomUUID().toString().lowercase()
-        
+
         // Persist asynchronously (fire-and-forget, device ID is already in memory)
         scope.launch {
             try {
@@ -153,11 +153,11 @@ class PubkyRingBridge @Inject constructor(
                 Logger.error("Failed to persist device ID", e, context = TAG)
             }
         }
-        
+
         Logger.info("Generated new device ID: ${newId.take(8)}...", context = TAG)
         return newId
     }
-    
+
     /**
      * Reset device ID (for debugging/testing only)
      */
@@ -248,17 +248,17 @@ class PubkyRingBridge @Inject constructor(
         }
 
         val actualDeviceId = deviceId
-        
+
         // Generate ephemeral X25519 keypair for this handoff
         val ephemeralKeypair = com.pubky.noise.x25519GenerateKeypair()
         val ephemeralPkHex = ephemeralKeypair.publicKey.joinToString("") { byte -> "%02x".format(byte) }
         val ephemeralSkHex = ephemeralKeypair.secretKey.joinToString("") { byte -> "%02x".format(byte) }
-        
+
         // Store ephemeral secret key for decryption when callback arrives
         secureHandoffHandler.storeEphemeralKey(ephemeralSkHex)
-        
+
         Logger.debug("Generated ephemeral keypair for handoff, pk=${ephemeralPkHex.take(16)}...", context = TAG)
-        
+
         val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_PAYKIT_SETUP"
         val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
         val requestUrl = "$PUBKY_RING_SCHEME://paykit-connect?deviceId=$actualDeviceId&callback=$encodedCallback&ephemeralPk=$ephemeralPkHex"
@@ -450,13 +450,13 @@ class PubkyRingBridge @Inject constructor(
     }
 
     // MARK: - Profile & Follows Requests
-    
+
     // Pending profile request continuation
     private var pendingProfileContinuation: Continuation<PubkyProfile?>? = null
-    
+
     // Pending follows request continuation
     private var pendingFollowsContinuation: Continuation<List<String>>? = null
-    
+
     /**
      * Request a profile from Pubky-ring (which fetches from homeserver)
      *
@@ -465,7 +465,10 @@ class PubkyRingBridge @Inject constructor(
      * @return PubkyProfile if found, null otherwise
      * @throws PubkyRingException if request fails
      */
-    suspend fun requestProfile(context: Context, pubkey: String): PubkyProfile? = suspendCancellableCoroutine { continuation ->
+    suspend fun requestProfile(
+        context: Context,
+        pubkey: String
+    ): PubkyProfile? = suspendCancellableCoroutine { continuation ->
         if (!isPubkyRingInstalled(context)) {
             continuation.resumeWithException(PubkyRingException.AppNotInstalled)
             return@suspendCancellableCoroutine
@@ -491,7 +494,7 @@ class PubkyRingBridge @Inject constructor(
             continuation.resumeWithException(PubkyRingException.FailedToOpenApp(e.message))
         }
     }
-    
+
     /**
      * Request follows list from Pubky-ring (which fetches from homeserver)
      *
@@ -540,7 +543,10 @@ class PubkyRingBridge @Inject constructor(
      * @param message The message to sign (UTF-8 string)
      * @return Hex-encoded Ed25519 signature
      */
-    suspend fun requestSignature(context: Context, message: String): String = suspendCancellableCoroutine { continuation ->
+    suspend fun requestSignature(
+        context: Context,
+        message: String
+    ): String = suspendCancellableCoroutine { continuation ->
         if (!isPubkyRingInstalled(context)) {
             continuation.resumeWithException(PubkyRingException.AppNotInstalled)
             return@suspendCancellableCoroutine
@@ -762,7 +768,10 @@ class PubkyRingBridge @Inject constructor(
             }
         } else {
             // Plaintext response - REJECT for security
-            Logger.error("SECURITY: Cross-device relay returned plaintext (insecure). Use encrypted relay.", context = TAG)
+            Logger.error(
+                "SECURITY: Cross-device relay returned plaintext (insecure). Use encrypted relay.",
+                context = TAG
+            )
             return null
         }
     }
@@ -940,9 +949,11 @@ class PubkyRingBridge @Inject constructor(
 
     private fun persistKeypairQuietly(keypair: NoiseKeypair, deviceId: String, epoch: UInt) {
         try {
-            val secretKeyData = keypair.secretKey.toByteArray(Charsets.UTF_8)
+            // keypair.secretKey is a hex string (64 chars for 32-byte X25519 key)
+            // Decode hex to actual key bytes before storing
+            val secretKeyData = hexStringToByteArray(keypair.secretKey)
             noiseKeyCache.setKeySync(secretKeyData, deviceId, epoch)
-            Logger.debug("Stored noise keypair for epoch $epoch", context = TAG)
+            Logger.debug("Stored noise keypair for epoch $epoch (${secretKeyData.size} bytes)", context = TAG)
         } catch (e: Exception) {
             Logger.warn("Failed to store noise keypair epoch $epoch: ${e.message}", e, context = TAG)
         }
@@ -982,7 +993,7 @@ class PubkyRingBridge @Inject constructor(
             pendingSignatureContinuation = null
             return true
         }
-        
+
         // Get signature from response
         val signature = uri.getQueryParameter("signature")
         if (signature == null) {
@@ -990,12 +1001,12 @@ class PubkyRingBridge @Inject constructor(
             pendingSignatureContinuation = null
             return true
         }
-        
+
         Logger.debug("Received Ed25519 signature from Pubky-ring", context = TAG)
-        
+
         pendingSignatureContinuation?.resume(signature)
         pendingSignatureContinuation = null
-        
+
         return true
     }
 
@@ -1019,14 +1030,14 @@ class PubkyRingBridge @Inject constructor(
                 "Use secure pubkyauth:// flow instead. See ENCRYPTED_RELAY_PROTOCOL.md",
             context = TAG,
         )
-        
+
         // Always reject plaintext secrets in callback URLs
         pendingCrossDeviceRequestId = null
         return false
     }
-    
+
     // MARK: - Session Persistence
-    
+
     /**
      * Persist a session to keychain
      */
@@ -1044,13 +1055,13 @@ class PubkyRingBridge @Inject constructor(
             Logger.error("Failed to persist session", e, context = TAG)
         }
     }
-    
+
     /**
      * Restore all sessions from keychain on app launch
      */
     suspend fun restoreSessions() {
         val sessionKeys = keychainStorage.listKeys("pubky.session.")
-        
+
         for (key in sessionKeys) {
             try {
                 val json = keychainStorage.getString(key) ?: continue
@@ -1062,17 +1073,17 @@ class PubkyRingBridge @Inject constructor(
                 keychainStorage.setString("pubky.identity.public", session.pubkey)
                 keychainStorage.setString("pubky.session.secret", session.sessionSecret)
                 Logger.info("Restored session for ${session.pubkey.take(12)}...", context = TAG)
-                
+
                 // Verify Noise endpoint is published (fallback publish if Ring didn't)
                 verifyOrPublishNoiseEndpoint(session.pubkey)
             } catch (e: Exception) {
                 Logger.error("Failed to restore session from $key", e, context = TAG)
             }
         }
-        
+
         Logger.info("Restored ${sessionCache.size} sessions from keychain", context = TAG)
     }
-    
+
     /**
      * Verify that Noise endpoint is published for a pubkey, publishing it if not.
      * This is needed when Ring fails to publish during handoff.
@@ -1091,14 +1102,17 @@ class PubkyRingBridge @Inject constructor(
                 // Just verify - can't publish without keypair
                 val isPublished = secureHandoffHandler.verifyNoiseEndpointPublished(pubkey)
                 if (!isPublished) {
-                    Logger.warn("Cannot publish Noise endpoint: no keypair cached for ${pubkey.take(12)}...", context = TAG)
+                    Logger.warn(
+                        "Cannot publish Noise endpoint: no keypair cached for ${pubkey.take(12)}...",
+                        context = TAG
+                    )
                 }
             }
         } catch (e: Exception) {
             Logger.warn("Error checking Noise endpoint for ${pubkey.take(12)}...: ${e.message}", context = TAG)
         }
     }
-    
+
     /**
      * Ensure any cached session's pubkey is stored in KeyManager.
      * Call this if sessions exist in memory but weren't properly persisted.
@@ -1119,12 +1133,12 @@ class PubkyRingBridge @Inject constructor(
      * Get all cached sessions
      */
     fun getCachedSessions(): List<PubkySession> = sessionCache.values.toList()
-    
+
     /**
      * Get count of cached keypairs
      */
     fun getCachedKeypairCount(): Int = keypairCache.size
-    
+
     /**
      * Clear a specific session from cache and keychain
      */
@@ -1133,7 +1147,7 @@ class PubkyRingBridge @Inject constructor(
         keychainStorage.delete("pubky.session.$pubkey")
         Logger.info("Cleared session for ${pubkey.take(12)}...", context = TAG)
     }
-    
+
     /**
      * Clear all sessions from cache and keychain
      */
@@ -1144,7 +1158,7 @@ class PubkyRingBridge @Inject constructor(
         sessionCache.clear()
         Logger.info("Cleared all sessions", context = TAG)
     }
-    
+
     /**
      * Set a session directly (for manual or imported sessions)
      */
@@ -1155,9 +1169,9 @@ class PubkyRingBridge @Inject constructor(
             persistSession(session)
         }
     }
-    
+
     // MARK: - Backup & Restore
-    
+
     /**
      * Export all sessions and noise keys for backup
      *
@@ -1172,7 +1186,7 @@ class PubkyRingBridge @Inject constructor(
                 secretKey = keypair.secretKey,
             )
         }
-        
+
         val backup = BackupData(
             deviceId = deviceId,
             sessions = sessions,
@@ -1180,11 +1194,11 @@ class PubkyRingBridge @Inject constructor(
             exportedAt = Date(),
             version = 1,
         )
-        
+
         Logger.info("Exported backup with ${sessions.size} sessions and ${noiseKeys.size} noise keys", context = TAG)
         return backup
     }
-    
+
     /**
      * Export backup as JSON string
      */
@@ -1192,7 +1206,7 @@ class PubkyRingBridge @Inject constructor(
         val backup = exportBackup()
         return com.google.gson.Gson().toJson(backup)
     }
-    
+
     /**
      * Import backup data and restore sessions/keys
      *
@@ -1207,25 +1221,28 @@ class PubkyRingBridge @Inject constructor(
             _deviceId = backup.deviceId
             Logger.info("Restored device ID from backup", context = TAG)
         }
-        
+
         // Restore sessions
         for (session in backup.sessions) {
             sessionCache[session.pubkey] = session
             persistSession(session)
         }
-        
+
         // Restore noise keys
         for (noiseKey in backup.noiseKeys) {
             val cacheKey = "${noiseKey.deviceId}:${noiseKey.epoch}"
-            
+
             // Restore to keypair cache (we only have the secret key, not public)
             val secretKeyData = noiseKey.secretKey.toByteArray()
             noiseKeyCache.setKey(secretKeyData, noiseKey.deviceId, noiseKey.epoch.toUInt())
         }
-        
-        Logger.info("Imported backup with ${backup.sessions.size} sessions and ${backup.noiseKeys.size} noise keys", context = TAG)
+
+        Logger.info(
+            "Imported backup with ${backup.sessions.size} sessions and ${backup.noiseKeys.size} noise keys",
+            context = TAG
+        )
     }
-    
+
     /**
      * Import backup from JSON string
      */

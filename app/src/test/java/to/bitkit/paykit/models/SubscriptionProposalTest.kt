@@ -136,4 +136,3 @@ class SubscriptionProposalTest {
         assertEquals(expectedPath, actualPath)
     }
 }
-

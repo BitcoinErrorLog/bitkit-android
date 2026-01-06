@@ -164,7 +164,10 @@ class PaymentRequestStorage @Inject constructor(
             ?: throw PaykitStorageException.LoadFailed("invoiceNumber:$invoiceNumber")
         val updatedRequest = request.copy(status = PaymentRequestStatus.PAID, receiptId = receiptId)
         updateRequest(updatedRequest)
-        Logger.info("PaymentRequestStorage: Fulfilled request by invoice $invoiceNumber with receipt $receiptId", context = TAG)
+        Logger.info(
+            "PaymentRequestStorage: Fulfilled request by invoice $invoiceNumber with receipt $receiptId",
+            context = TAG
+        )
     }
 
     /**

@@ -2,23 +2,24 @@ package to.bitkit.paykit.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import to.bitkit.paykit.KeyManager
-import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.models.AutoPayRule
 import to.bitkit.paykit.models.PeerSpendingLimit
 import to.bitkit.paykit.models.Subscription
 import to.bitkit.paykit.models.SubscriptionProposal
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.AutoPayStorage
+import to.bitkit.paykit.storage.SentProposal
 import to.bitkit.paykit.storage.SubscriptionProposalStorage
 import to.bitkit.paykit.storage.SubscriptionStorage
 import to.bitkit.paykit.workers.DiscoveredSubscriptionProposal
-import dagger.hilt.android.lifecycle.HiltViewModel
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 
@@ -57,6 +58,7 @@ class SubscriptionsViewModel @Inject constructor(
         }
         loadSubscriptions()
         loadIncomingProposals()
+        loadSentProposals()
     }
 
     fun loadSubscriptions() {
@@ -150,12 +152,34 @@ class SubscriptionsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingProposals = true) }
             val ownerPubkey = keyManager.getCurrentPublicKeyZ32()
             if (ownerPubkey == null) {
+                Logger.info("loadIncomingProposals: No owner pubkey, skipping", context = TAG)
                 _uiState.update { it.copy(isLoadingProposals = false) }
                 return@launch
             }
+            // Invalidate cache to ensure fresh data
+            proposalStorage.invalidateCache()
+            Logger.info("loadIncomingProposals: Starting discovery for $ownerPubkey", context = TAG)
             runCatching {
-                // Load from persisted storage (polling worker handles discovery)
-                proposalStorage.pendingProposals(ownerPubkey).map { stored ->
+                // Discover proposals from peers (contacts/follows)
+                val discoveredProposals = mutableListOf<DiscoveredSubscriptionProposal>()
+                val peers = directoryService.fetchFollows()
+                Logger.info("loadIncomingProposals: Found ${peers.size} peers to poll", context = TAG)
+                for (peerPubkey in peers) {
+                    val proposals = directoryService.discoverSubscriptionProposalsFromPeer(peerPubkey, ownerPubkey)
+                    Logger.info(
+                        "loadIncomingProposals: Found ${proposals.size} proposals from ${peerPubkey.take(12)}...",
+                        context = TAG
+                    )
+                    discoveredProposals.addAll(proposals)
+                }
+
+                // Persist newly discovered proposals
+                for (proposal in discoveredProposals) {
+                    proposalStorage.saveProposal(ownerPubkey, proposal)
+                }
+
+                // Load all pending proposals (includes newly discovered + previously stored)
+                val allProposals = proposalStorage.pendingProposals(ownerPubkey).map { stored ->
                     DiscoveredSubscriptionProposal(
                         subscriptionId = stored.id,
                         providerPubkey = stored.providerPubkey,
@@ -165,6 +189,8 @@ class SubscriptionsViewModel @Inject constructor(
                         createdAt = stored.createdAt,
                     )
                 }
+                Logger.info("loadIncomingProposals: Total ${allProposals.size} pending proposals", context = TAG)
+                allProposals
             }.onSuccess { proposals ->
                 _uiState.update { it.copy(incomingProposals = proposals, isLoadingProposals = false) }
             }.onFailure { e ->
@@ -172,6 +198,98 @@ class SubscriptionsViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoadingProposals = false, error = e.message) }
             }
         }
+    }
+
+    fun loadSentProposals() {
+        viewModelScope.launch {
+            val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return@launch
+            val sentProposals = proposalStorage.listSentProposals(ownerPubkey)
+            _uiState.update { it.copy(sentProposals = sentProposals) }
+        }
+    }
+
+    /**
+     * Cancel a sent proposal (delete from homeserver and local storage).
+     */
+    fun cancelSentProposal(proposal: SentProposal) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingSentProposal = true, deleteSentProposalError = null) }
+            val ownerPubkey = keyManager.getCurrentPublicKeyZ32()
+            if (ownerPubkey == null) {
+                _uiState.update { it.copy(isDeletingSentProposal = false, deleteSentProposalError = "No identity") }
+                return@launch
+            }
+
+            runCatching {
+                // Delete from homeserver
+                directoryService.deleteSubscriptionProposal(proposal.id, proposal.recipientPubkey)
+                // Delete from local storage
+                proposalStorage.deleteSentProposal(ownerPubkey, proposal.id)
+            }.onSuccess {
+                Logger.info("Cancelled sent proposal: ${proposal.id}", context = TAG)
+                loadSentProposals()
+                _uiState.update { it.copy(isDeletingSentProposal = false) }
+            }.onFailure { e ->
+                Logger.error("Failed to cancel sent proposal", e, context = TAG)
+                _uiState.update { it.copy(isDeletingSentProposal = false, deleteSentProposalError = e.message) }
+            }
+        }
+    }
+
+    /**
+     * Dismiss a received proposal locally (remove from pending list).
+     */
+    fun dismissProposal(proposal: DiscoveredSubscriptionProposal) {
+        viewModelScope.launch {
+            val ownerPubkey = keyManager.getCurrentPublicKeyZ32() ?: return@launch
+            proposalStorage.markAsSeen(ownerPubkey, proposal.subscriptionId)
+            loadIncomingProposals()
+        }
+    }
+
+    /**
+     * Clean up orphaned proposals from the homeserver.
+     *
+     * Finds proposals on the homeserver that aren't tracked locally (from previous
+     * sessions or failed deletions) and removes them.
+     */
+    fun cleanupOrphanedProposals() {
+        viewModelScope.launch {
+            val ownerPubkey = keyManager.getCurrentPublicKeyZ32()
+            if (ownerPubkey == null) {
+                _uiState.update { it.copy(cleanupResult = "No identity configured") }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isCleaningUp = true, cleanupResult = null) }
+
+            runCatching {
+                val sentProposals = proposalStorage.listSentProposals(ownerPubkey)
+                val trackedIds = sentProposals.map { it.id }.toSet()
+                val recipientPubkeys = sentProposals.map { it.recipientPubkey }.toSet()
+
+                var totalDeleted = 0
+                for (recipientPubkey in recipientPubkeys) {
+                    val homeserverIds = directoryService.listProposalsOnHomeserver(recipientPubkey)
+                    val orphanedIds = homeserverIds.filter { it !in trackedIds }
+                    if (orphanedIds.isNotEmpty()) {
+                        totalDeleted += directoryService.deleteProposalsBatch(orphanedIds, recipientPubkey)
+                    }
+                }
+                totalDeleted
+            }.onSuccess { count ->
+                val message = if (count > 0) "Cleaned up $count orphaned proposals" else "No orphaned proposals found"
+                Logger.info(message, context = TAG)
+                _uiState.update { it.copy(isCleaningUp = false, cleanupResult = message) }
+            }.onFailure { e ->
+                Logger.error("Failed to cleanup orphaned proposals", e, context = TAG)
+                _uiState.update { it.copy(isCleaningUp = false, cleanupResult = "Failed: ${e.message}") }
+            }
+        }
+    }
+
+    fun clearCleanupResult() {
+        _uiState.update { it.copy(cleanupResult = null) }
     }
 
     fun sendSubscriptionProposal(
@@ -201,6 +319,16 @@ class SubscriptionsViewModel @Inject constructor(
             runCatching {
                 directoryService.publishSubscriptionProposal(proposal, recipientPubkey)
             }.onSuccess {
+                // Save sent proposal locally for tracking
+                proposalStorage.saveSentProposal(
+                    identityPubkey = providerPubkey,
+                    proposalId = proposal.id,
+                    recipientPubkey = recipientPubkey,
+                    amountSats = amountSats,
+                    frequency = frequency,
+                    description = description,
+                )
+                loadSentProposals()
                 _uiState.update { it.copy(isSending = false, sendSuccess = true) }
                 Logger.info("Sent subscription proposal to $recipientPubkey", context = TAG)
             }.onFailure { e ->
@@ -308,11 +436,16 @@ class SubscriptionsViewModel @Inject constructor(
 
 data class SubscriptionsUiState(
     val incomingProposals: List<DiscoveredSubscriptionProposal> = emptyList(),
+    val sentProposals: List<SentProposal> = emptyList(),
     val isLoadingProposals: Boolean = false,
     val isSending: Boolean = false,
     val isAccepting: Boolean = false,
     val isDeclining: Boolean = false,
+    val isDeletingSentProposal: Boolean = false,
+    val isCleaningUp: Boolean = false,
     val sendSuccess: Boolean = false,
     val acceptSuccess: Boolean = false,
     val error: String? = null,
+    val deleteSentProposalError: String? = null,
+    val cleanupResult: String? = null,
 )
