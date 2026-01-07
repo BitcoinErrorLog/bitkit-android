@@ -104,34 +104,26 @@ fun PaykitDashboardScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                // Stats Section
+                // Overview Section (stats with tappable contacts/subscriptions)
                 item {
-                    StatsSection(
+                    OverviewSection(
                         totalSent = totalSent,
                         totalReceived = totalReceived,
                         contactCount = contactCount,
-                        pendingCount = pendingCount,
-                    )
-                }
-
-                // Quick Access Section
-                item {
-                    QuickAccessSection(
-                        autoPayEnabled = autoPayEnabled,
                         activeSubscriptions = activeSubscriptions,
-                        onNavigateToAutoPay = onNavigateToAutoPay,
+                        onNavigateToContacts = onNavigateToContacts,
                         onNavigateToSubscriptions = onNavigateToSubscriptions,
                     )
                 }
 
-                // Payments Section
+                // Actions Section (consolidated)
                 item {
-                    PaymentsSection(
+                    ActionsSection(
+                        autoPayEnabled = autoPayEnabled,
                         pendingRequests = pendingRequests,
-                        contactCount = contactCount,
+                        onNavigateToAutoPay = onNavigateToAutoPay,
                         onNavigateToPaymentRequests = onNavigateToPaymentRequests,
                         onNavigateToNoisePayment = onNavigateToNoisePayment,
-                        onNavigateToContacts = onNavigateToContacts,
                         onNavigateToContactDiscovery = onNavigateToContactDiscovery,
                     )
                 }
@@ -160,11 +152,13 @@ fun PaykitDashboardScreen(
 }
 
 @Composable
-private fun StatsSection(
+private fun OverviewSection(
     totalSent: Long,
     totalReceived: Long,
     contactCount: Int,
-    pendingCount: Int,
+    activeSubscriptions: Int,
+    onNavigateToContacts: () -> Unit,
+    onNavigateToSubscriptions: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Title(text = "Overview")
@@ -174,14 +168,14 @@ private fun StatsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Total Sent", // TODO: Localize via Transifex
+                title = "Total Sent",
                 value = formatSats(totalSent),
                 icon = Icons.Default.ArrowUpward,
                 color = Colors.Red,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Total Received", // TODO: Localize via Transifex
+                title = "Total Received",
                 value = formatSats(totalReceived),
                 icon = Icons.Default.ArrowDownward,
                 color = Colors.Green,
@@ -193,49 +187,17 @@ private fun StatsSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            StatCard(
-                title = "Contacts", // TODO: Localize via Transifex
+            TappableStatCard(
+                title = "Contacts",
                 value = contactCount.toString(),
                 icon = Icons.Default.People,
                 color = Colors.Blue,
+                onClick = onNavigateToContacts,
                 modifier = Modifier.weight(1f),
             )
-            StatCard(
-                title = "Pending", // TODO: Localize via Transifex
-                value = pendingCount.toString(),
-                icon = Icons.Default.Schedule,
-                color = Colors.Yellow,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickAccessSection(
-    autoPayEnabled: Boolean,
-    activeSubscriptions: Int,
-    onNavigateToAutoPay: () -> Unit,
-    onNavigateToSubscriptions: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Title(text = "Quick Access")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            QuickAccessCard(
-                title = "Auto-Pay", // TODO: Localize via Transifex
-                subtitle = if (autoPayEnabled) "ON" else "OFF",
-                icon = Icons.Default.Repeat,
-                color = Colors.Brand,
-                onClick = onNavigateToAutoPay,
-                modifier = Modifier.weight(1f),
-            )
-            QuickAccessCard(
-                title = "Subscriptions", // TODO: Localize via Transifex
-                subtitle = if (activeSubscriptions > 0) "$activeSubscriptions active" else "Manage",
+            TappableStatCard(
+                title = "Subscriptions",
+                value = activeSubscriptions.toString(),
                 icon = Icons.Default.CalendarToday,
                 color = Colors.Purple,
                 onClick = onNavigateToSubscriptions,
@@ -246,35 +208,35 @@ private fun QuickAccessSection(
 }
 
 @Composable
-private fun PaymentsSection(
+private fun ActionsSection(
+    autoPayEnabled: Boolean,
     pendingRequests: Int,
-    contactCount: Int,
+    onNavigateToAutoPay: () -> Unit,
     onNavigateToPaymentRequests: () -> Unit,
     onNavigateToNoisePayment: () -> Unit,
-    onNavigateToContacts: () -> Unit,
     onNavigateToContactDiscovery: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Title(text = "Payments")
+        Title(text = "Actions")
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Payment Requests", // TODO: Localize via Transifex
+                title = "Auto-Pay",
+                subtitle = if (autoPayEnabled) "ON" else "OFF",
+                icon = Icons.Default.Repeat,
+                color = Colors.Brand,
+                onClick = onNavigateToAutoPay,
+                modifier = Modifier.weight(1f),
+            )
+            QuickAccessCard(
+                title = "Payment Requests",
                 subtitle = if (pendingRequests > 0) "$pendingRequests pending" else "View all",
                 icon = Icons.Default.Notifications,
                 color = Colors.Yellow,
                 onClick = onNavigateToPaymentRequests,
-                modifier = Modifier.weight(1f),
-            )
-            QuickAccessCard(
-                title = "Noise Payment", // TODO: Localize via Transifex
-                subtitle = "Private transfers", // TODO: Localize via Transifex
-                icon = Icons.Default.Waves,
-                color = Colors.Blue,
-                onClick = onNavigateToNoisePayment,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -284,16 +246,16 @@ private fun PaymentsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Contacts", // TODO: Localize via Transifex
-                subtitle = if (contactCount > 0) "$contactCount saved" else "Manage",
-                icon = Icons.Default.Person,
-                color = Colors.Purple,
-                onClick = onNavigateToContacts,
+                title = "Noise Payment",
+                subtitle = "Private transfers",
+                icon = Icons.Default.Waves,
+                color = Colors.Blue,
+                onClick = onNavigateToNoisePayment,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Discover", // TODO: Localize via Transifex
-                subtitle = "Find contacts", // TODO: Localize via Transifex
+                title = "Discover",
+                subtitle = "Find contacts",
                 icon = Icons.Default.Search,
                 color = Colors.Green,
                 onClick = onNavigateToContactDiscovery,
@@ -487,6 +449,56 @@ fun StatCard(
                 tint = color,
                 modifier = Modifier.size(24.dp),
             )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+fun TappableStatCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp),
+                )
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,

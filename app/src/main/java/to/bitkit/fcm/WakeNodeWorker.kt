@@ -1,6 +1,7 @@
 package to.bitkit.fcm
 
 import android.content.Context
+import android.net.Uri
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -59,6 +60,7 @@ class WakeNodeWorker @AssistedInject constructor(
     private val self = this
 
     private var bestAttemptContent: NotificationDetails? = null
+    private var bestAttemptDeepLink: Uri? = null
 
     private var notificationType: BlocktankNotificationType? = null
     private var notificationPayload: JsonObject? = null
@@ -253,6 +255,7 @@ class WakeNodeWorker @AssistedInject constructor(
         when (self.notificationType) {
             paykitPaymentRequest -> {
                 val requestId = (notificationPayload?.get("requestId") as? JsonPrimitive)?.contentOrNull
+                val fromPubkey = (notificationPayload?.get("from") as? JsonPrimitive)?.contentOrNull
                 if (requestId == null) {
                     Logger.error("Missing requestId for payment request")
                     return
@@ -266,6 +269,12 @@ class WakeNodeWorker @AssistedInject constructor(
                     title = appContext.getString(R.string.notification_payment_request_title),
                     body = appContext.getString(R.string.notification_payment_request_body),
                 )
+                // Set deep link for payment request detail (with from if available, else general requests screen)
+                self.bestAttemptDeepLink = if (fromPubkey != null) {
+                    Uri.parse("bitkit://payment-request?requestId=$requestId&from=$fromPubkey")
+                } else {
+                    Uri.parse("bitkit://payment-requests")
+                }
                 self.deliver()
             }
 
@@ -283,6 +292,7 @@ class WakeNodeWorker @AssistedInject constructor(
                     title = appContext.getString(R.string.notification_subscription_due_title),
                     body = appContext.getString(R.string.notification_subscription_due_body),
                 )
+                self.bestAttemptDeepLink = Uri.parse("bitkit://subscriptions")
                 self.deliver()
             }
 
@@ -299,6 +309,7 @@ class WakeNodeWorker @AssistedInject constructor(
                     title = appContext.getString(R.string.notification_autopay_executed_title),
                     body = "$BITCOIN_SYMBOL $amount ${appContext.getString(R.string.notification_sent)}",
                 )
+                self.bestAttemptDeepLink = Uri.parse("bitkit://payment-requests")
                 self.deliver()
             }
 
@@ -316,6 +327,7 @@ class WakeNodeWorker @AssistedInject constructor(
                     title = appContext.getString(R.string.notification_subscription_failed_title),
                     body = reason,
                 )
+                self.bestAttemptDeepLink = Uri.parse("bitkit://subscriptions")
                 self.deliver()
             }
 
@@ -329,7 +341,11 @@ class WakeNodeWorker @AssistedInject constructor(
         lightningRepo.stop()
 
         bestAttemptContent?.run {
-            appContext.pushNotification(title, body)
+            appContext.pushNotification(
+                title = title,
+                text = body,
+                deepLinkUri = bestAttemptDeepLink,
+            )
             Logger.info("Delivered notification")
         }
 

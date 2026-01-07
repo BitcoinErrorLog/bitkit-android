@@ -31,7 +31,6 @@ import to.bitkit.ui.scaffold.ScreenColumn
 fun PaykitSubscriptionsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSubscriptionDetail: (String) -> Unit = {},
-    onNavigateToContactPicker: (() -> Unit)? = null,
     viewModel: SubscriptionsViewModel = hiltViewModel(),
 ) {
     val subscriptions by viewModel.subscriptions.collectAsStateWithLifecycle()

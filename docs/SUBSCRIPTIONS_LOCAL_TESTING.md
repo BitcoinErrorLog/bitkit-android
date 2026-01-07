@@ -49,7 +49,10 @@ adb shell am broadcast -a android.intent.action.RUN \
 2. Tap **Subscriptions**
 3. Tap the **+** button to create a new subscription
 4. Fill in the form:
-   - **Recipient Pubkey**: Enter Device B's z32 pubkey
+   - **Recipient Pubkey**: Enter Device B's z32 pubkey manually, OR:
+     - Tap the **Contacts** button to open the contact picker
+     - Select a contact from your Pubky contacts list
+     - The recipient pubkey will be filled automatically
    - **Amount**: e.g., 1000 sats
    - **Frequency**: monthly/weekly/daily
    - **Description**: "Test subscription"
@@ -57,6 +60,7 @@ adb shell am broadcast -a android.intent.action.RUN \
 
 **Expected Result:**
 - Toast shows "Proposal sent successfully"
+- The proposal appears in your **Sent** tab (see Scenario 6 below)
 - The proposal is published to the Pubky directory at:
   `/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}`
 
@@ -115,6 +119,51 @@ adb shell am broadcast -a android.intent.action.RUN \
 
 **Note**: In the v0 provider-storage model, subscribers cannot delete proposals from the provider's storage. Decline is a local-only operation that marks the proposal as "seen/declined" so it no longer appears in your inbox.
 
+### Scenario 6: Manage Sent Proposals
+
+**Device A (Provider):**
+
+After sending a proposal, you can track its status and manage it:
+
+1. Navigate to **Paykit Dashboard → Subscriptions**
+2. Tap the **Sent** tab
+3. View all proposals you've sent:
+   - **Pending**: Waiting for recipient to accept/decline
+   - **Accepted**: Recipient accepted the subscription
+4. To cancel a pending proposal:
+   - Tap the **Cancel** button next to the proposal
+   - The proposal is deleted from the homeserver and removed from your local tracking
+
+**What's shown in the Sent tab:**
+- Recipient pubkey (truncated for display)
+- Amount and frequency
+- Sent timestamp
+- Current status (Pending/Accepted)
+
+### Scenario 7: Cleanup Orphaned Proposals
+
+If proposals become orphaned (exist on the homeserver but aren't tracked locally due to app reinstalls, failed deletions, or session issues), you can clean them up:
+
+**When to use Cleanup Orphaned:**
+- After reinstalling the app
+- If you notice stale proposals on the homeserver
+- After resolving session/sync issues
+
+**How to use:**
+
+1. Navigate to **Paykit Dashboard → Subscriptions → Sent** tab
+2. Scroll down and tap **Cleanup Orphaned Proposals**
+3. The app will:
+   - List all proposals on the homeserver for each recipient you've sent to
+   - Compare against locally tracked proposals
+   - Delete any proposals on the homeserver that aren't tracked locally
+4. A toast will show the result: "Cleaned up X orphaned proposals" or "No orphaned proposals found"
+
+**Technical details:**
+- Cleanup is scoped per-recipient to avoid false matches
+- Only deletes proposals you own (on your homeserver storage)
+- Safe to run multiple times (idempotent)
+
 ## Verifying Directory Operations
 
 Use the Pubky homeserver API to verify proposals are correctly stored.
@@ -162,10 +211,11 @@ curl "https://homeserver.pubky.app/pub/paykit.app/v0/subscriptions/proposals/{su
 
 ## Related Files
 
-- `PaykitSubscriptionsScreen.kt` - Main UI
+- `PaykitSubscriptionsScreen.kt` - Main UI (includes Sent tab and Cleanup Orphaned)
 - `SubscriptionDetailScreen.kt` - Detail view
-- `SubscriptionsViewModel.kt` - Business logic
-- `DirectoryService.kt` - Pubky directory operations
+- `SubscriptionsViewModel.kt` - Business logic (including cleanup orphaned proposals)
+- `DirectoryService.kt` - Pubky directory operations (including listProposalsOnHomeserver, deleteProposalsBatch)
+- `SubscriptionProposalStorage.kt` - Local proposal tracking (incoming and sent proposals)
 - `SubscriptionCheckWorker.kt` - Background due processing
 - `PaykitFeatureFlags.kt` - Dry-run gate
 - `AutoPayEvaluatorService.kt` - Autopay rule evaluation

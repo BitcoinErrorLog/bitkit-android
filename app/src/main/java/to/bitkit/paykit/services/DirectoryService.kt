@@ -455,7 +455,9 @@ class DirectoryService @Inject constructor(
             throw DirectoryError.EncryptionFailed("Encryption failed: ${e.message}")
         }
 
-        val result = adapter.put(path, encryptedEnvelope)
+        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            adapter.put(path, encryptedEnvelope)
+        }
         if (!result.success) {
             Logger.error("Failed to publish payment request ${request.id}: ${result.error}", context = TAG)
             throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
@@ -555,6 +557,99 @@ class DirectoryService @Inject constructor(
             throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
         Logger.info("Removed payment request: $requestId", context = TAG)
+    }
+
+    /**
+     * List all payment request IDs on the homeserver for a given recipient.
+     *
+     * Used to compare with locally tracked requests and find orphaned ones.
+     *
+     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     * @return List of request IDs found on the homeserver
+     */
+    suspend fun listRequestsOnHomeserver(recipientPubkey: String): List<String> {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val myPubkey = keyManager.getCurrentPublicKeyZ32() ?: throw DirectoryError.NotConfigured
+
+        val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
+        val recipientScope = PaykitV0Protocol.recipientScope(recipientPubkey)
+        val requestsPath =
+            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/$recipientScope/"
+
+        return try {
+            val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, myPubkey)
+            Logger.info(
+                "Found ${requestFiles.size} requests on homeserver for recipient ${recipientPubkey.take(12)}...",
+                context = TAG,
+            )
+            requestFiles
+        } catch (e: Exception) {
+            Logger.debug(
+                "No requests directory found for recipient ${recipientPubkey.take(12)}...",
+                context = TAG,
+            )
+            emptyList()
+        }
+    }
+
+    /**
+     * Delete a payment request from OUR storage (as sender).
+     *
+     * Used when the sender wants to cancel a pending request they sent.
+     *
+     * @param requestId The request ID to delete
+     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     */
+    suspend fun deletePaymentRequest(requestId: String, recipientPubkey: String) {
+        // Auto-restore from keychain if not configured
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+
+        val result = adapter.delete(path)
+        if (!result.success) {
+            Logger.error("Failed to delete payment request $requestId: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.info("Deleted payment request: $requestId for recipient ${recipientPubkey.take(12)}...", context = TAG)
+    }
+
+    /**
+     * Delete multiple payment requests in batch.
+     *
+     * Used to clean up orphaned requests that exist on homeserver but aren't tracked locally.
+     *
+     * @param requestIds List of request IDs to delete
+     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     * @return Number of successfully deleted requests
+     */
+    suspend fun deleteRequestsBatch(requestIds: List<String>, recipientPubkey: String): Int {
+        if (!isConfigured) tryRestoreFromKeychain()
+        val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+
+        var deletedCount = 0
+        for (requestId in requestIds) {
+            try {
+                val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+                val result = adapter.delete(path)
+                if (result.success) {
+                    deletedCount++
+                    Logger.info(
+                        "Deleted orphaned request: $requestId for recipient ${recipientPubkey.take(12)}...",
+                        context = TAG,
+                    )
+                } else {
+                    Logger.error(
+                        "Failed to delete orphaned request $requestId: ${result.error}",
+                        context = TAG,
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.error("Failed to delete orphaned request $requestId", e, context = TAG)
+            }
+        }
+        return deletedCount
     }
 
     /**
@@ -663,12 +758,14 @@ class DirectoryService @Inject constructor(
     suspend fun discoverPendingRequestsFromPeer(
         peerPubkey: String,
         myPubkey: String,
-    ): List<to.bitkit.paykit.workers.DiscoveredRequest> {
+    ): List<to.bitkit.paykit.workers.DiscoveredRequest> = kotlinx.coroutines.withContext(
+        kotlinx.coroutines.Dispatchers.IO
+    ) {
         val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
         val myScope = PaykitV0Protocol.recipientScope(myPubkey)
         val requestsPath = "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/$myScope/"
 
-        return try {
+        try {
             val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, peerPubkey)
 
             requestFiles.mapNotNull { requestId ->
@@ -894,6 +991,28 @@ class DirectoryService @Inject constructor(
         val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
         val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, requestId)
 
+        // Detailed logging for debugging decryption issues
+        Logger.info("Decrypting request $requestId:", context = TAG)
+        Logger.info("  - recipientPubkey: ${recipientPubkey.take(12)}...", context = TAG)
+        Logger.info("  - myNoisePk (first 16 hex): ${noiseKeypair.publicKey.take(32)}...", context = TAG)
+        Logger.info("  - epoch: 0", context = TAG)
+        Logger.info("  - AAD: $aad", context = TAG)
+
+        // Check if our local key matches the published endpoint (key sync issue detection)
+        val publishedEndpoint = try {
+            discoverNoiseEndpoint(recipientPubkey)
+        } catch (e: Exception) {
+            null
+        }
+        if (publishedEndpoint != null && publishedEndpoint.serverNoisePubkey != noiseKeypair.publicKey) {
+            Logger.error(
+                "KEY MISMATCH: Local key ${noiseKeypair.publicKey.take(16)}... != published ${publishedEndpoint.serverNoisePubkey.take(16)}...",
+                context = TAG,
+            )
+            Logger.error("Senders are encrypting with published key but we have a different local key!", context = TAG)
+            Logger.error("Please reconnect to Pubky Ring to fix key sync", context = TAG)
+        }
+
         return try {
             val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
             val plaintextJson = String(plaintextBytes)
@@ -902,10 +1021,10 @@ class DirectoryService @Inject constructor(
             to.bitkit.paykit.workers.DiscoveredRequest(
                 requestId = requestId,
                 type = to.bitkit.paykit.workers.RequestType.PaymentRequest,
-                fromPubkey = obj.optString("from_pubkey", ""),
-                amountSats = obj.optLong("amount_sats", 0),
+                fromPubkey = obj.optString("fromPubkey", ""),
+                amountSats = obj.optLong("amountSats", 0),
                 description = if (obj.has("description")) obj.getString("description") else null,
-                createdAt = obj.optLong("created_at", System.currentTimeMillis()),
+                createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
             )
         } catch (e: Exception) {
             Logger.error("Failed to decrypt/parse payment request $requestId", e, context = TAG)

@@ -9,7 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.models.Receipt
+import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.storage.*
 import javax.inject.Inject
@@ -26,6 +30,7 @@ class DashboardViewModel @Inject constructor(
     private val subscriptionStorage: SubscriptionStorage,
     private val paymentRequestStorage: PaymentRequestStorage,
     private val pubkyRingBridge: PubkyRingBridge,
+    private val directoryService: DirectoryService,
 ) : ViewModel() {
 
     private val _recentReceipts = MutableStateFlow<List<Receipt>>(emptyList())
@@ -79,7 +84,7 @@ class DashboardViewModel @Inject constructor(
             // Load recent receipts
             _recentReceipts.value = receiptStorage.recentReceipts(limit = 5)
 
-            // Load stats
+            // Load local stats first for immediate display
             _contactCount.value = contactStorage.listContacts().size
             _totalSent.value = receiptStorage.totalSent()
             _totalReceived.value = receiptStorage.totalReceived()
@@ -96,6 +101,26 @@ class DashboardViewModel @Inject constructor(
             _pendingRequests.value = paymentRequestStorage.pendingCount()
 
             _isLoading.value = false
+
+            // Sync contacts from Pubky follows in background
+            syncContactsFromFollows()
+        }
+    }
+
+    private suspend fun syncContactsFromFollows() = withContext(Dispatchers.IO) {
+        runCatching {
+            val discoveredContacts = directoryService.discoverContactsFromFollows()
+            for (discovered in discoveredContacts) {
+                if (contactStorage.getContact(discovered.pubkey) == null) {
+                    val newContact = Contact.create(
+                        publicKeyZ32 = discovered.pubkey,
+                        name = discovered.name ?: discovered.pubkey.take(12),
+                    )
+                    contactStorage.saveContact(newContact)
+                }
+            }
+            // Update count after sync
+            _contactCount.value = contactStorage.listContacts().size
         }
     }
 

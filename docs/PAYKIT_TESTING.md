@@ -23,6 +23,8 @@ Located in `app/src/test/java/to/bitkit/paykit/`
 - `SpendingLimitStorageTest.kt` - Spending limits
 - `AutoPayStorageTest.kt` - Auto-pay rules
 - `SubscriptionStorageTest.kt` - Subscription persistence
+- `SubscriptionsViewModelTest.kt` - Subscription proposal workflows
+- `PaymentRequestsViewModelTest.kt` - Payment request workflows (send/cancel/cleanup)
 
 ### 2. Instrumented Tests
 
@@ -118,6 +120,31 @@ The E2E test suite automatically creates a test wallet if needed. For manual tes
 - [ ] Verify request appears in list
 - [ ] Pay the request from another wallet
 - [ ] Verify payment receipt created
+
+### Sent Payment Requests (Outgoing)
+
+The sender-storage model means requests are stored on the **sender's** homeserver:
+
+- [ ] Navigate to Payment Requests → Sent tab
+- [ ] Create new request (specify recipient, amount, method)
+- [ ] Verify request appears in Sent list with status "Pending"
+- [ ] Cancel a sent request → verify removed from Sent tab
+- [ ] Cleanup orphaned requests → verify orphans (homeserver only) deleted
+
+**Orphan Cleanup Flow:**
+1. List all sent requests grouped by recipient
+2. For each recipient, list requests on homeserver
+3. Delete requests on homeserver not in local tracking
+4. Critical: only compare within same recipient scope (prevents cross-recipient false matches)
+
+### Notification Tap Routing
+
+When tapping Paykit notifications:
+
+- [ ] Tap manual approval notification → opens Payment Requests screen
+- [ ] Tap payment success notification → opens Payment Requests screen  
+- [ ] Tap subscription proposal notification → opens Subscriptions screen
+- [ ] Verify deep link format: `bitkit://payment-request?requestId=xxx&from=yyy`
 
 ### Subscription Flow
 

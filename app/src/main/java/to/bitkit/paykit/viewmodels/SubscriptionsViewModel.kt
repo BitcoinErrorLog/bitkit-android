@@ -265,11 +265,15 @@ class SubscriptionsViewModel @Inject constructor(
 
             runCatching {
                 val sentProposals = proposalStorage.listSentProposals(ownerPubkey)
-                val trackedIds = sentProposals.map { it.id }.toSet()
-                val recipientPubkeys = sentProposals.map { it.recipientPubkey }.toSet()
+
+                // Group tracked IDs by recipient to avoid cross-recipient false matches
+                val trackedIdsByRecipient = sentProposals.groupBy(
+                    keySelector = { it.recipientPubkey },
+                    valueTransform = { it.id },
+                ).mapValues { it.value.toSet() }
 
                 var totalDeleted = 0
-                for (recipientPubkey in recipientPubkeys) {
+                for ((recipientPubkey, trackedIds) in trackedIdsByRecipient) {
                     val homeserverIds = directoryService.listProposalsOnHomeserver(recipientPubkey)
                     val orphanedIds = homeserverIds.filter { it !in trackedIds }
                     if (orphanedIds.isNotEmpty()) {

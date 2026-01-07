@@ -1753,6 +1753,22 @@ class AppViewModel @Inject constructor(
             return@launch
         }
 
+        // Handle Paykit screen navigation deep links
+        if (uri.scheme == "bitkit") {
+            when (uri.host) {
+                "subscriptions" -> {
+                    delay(SCREEN_TRANSITION_DELAY_MS)
+                    mainScreenEffect(MainScreenEffect.Navigate(route = Routes.PaykitSubscriptions))
+                    return@launch
+                }
+                "payment-requests" -> {
+                    delay(SCREEN_TRANSITION_DELAY_MS)
+                    mainScreenEffect(MainScreenEffect.Navigate(route = Routes.PaykitPaymentRequests))
+                    return@launch
+                }
+            }
+        }
+
         if (!walletRepo.walletExists()) return@launch
 
         val data = uri.toString()

@@ -212,6 +212,105 @@ class PaymentRequestStorage @Inject constructor(
         requestsCache.remove(identity)
     }
 
+    // MARK: - Sent Request Tracking
+
+    private val sentRequestsKey: String
+        get() = "payment_requests.sent.$currentIdentity"
+
+    private var sentRequestsCache: MutableMap<String, List<SentPaymentRequest>> = mutableMapOf()
+
+    /**
+     * List all sent payment requests for tracking.
+     */
+    fun listSentRequests(): List<SentPaymentRequest> {
+        val identity = currentIdentity
+        sentRequestsCache[identity]?.let { return it }
+
+        return try {
+            val data = keychain.retrieve(sentRequestsKey) ?: return emptyList()
+            val json = String(data)
+            val requests = Json.decodeFromString<List<SentPaymentRequest>>(json)
+                .sortedByDescending { it.sentAt }
+            sentRequestsCache[identity] = requests
+            requests
+        } catch (e: Exception) {
+            Logger.error("PaymentRequestStorage: Failed to load sent requests", e, context = TAG)
+            emptyList()
+        }
+    }
+
+    /**
+     * Save a sent payment request for tracking.
+     */
+    suspend fun saveSentRequest(
+        requestId: String,
+        recipientPubkey: String,
+        amountSats: Long,
+        methodId: String,
+        description: String?,
+    ) {
+        val requests = listSentRequests().toMutableList()
+        if (requests.any { it.id == requestId }) return
+
+        requests.add(
+            0,
+            SentPaymentRequest(
+                id = requestId,
+                recipientPubkey = recipientPubkey,
+                amountSats = amountSats,
+                methodId = methodId,
+                description = description,
+                sentAt = System.currentTimeMillis(),
+                status = SentRequestStatus.PENDING,
+            ),
+        )
+        persistSentRequests(requests)
+    }
+
+    /**
+     * Delete a sent request from tracking.
+     */
+    suspend fun deleteSentRequest(requestId: String) {
+        val requests = listSentRequests().toMutableList()
+        requests.removeAll { it.id == requestId }
+        persistSentRequests(requests)
+        Logger.debug("Deleted sent request tracking: $requestId", context = TAG)
+    }
+
+    /**
+     * Mark a sent request as paid.
+     */
+    suspend fun markSentRequestPaid(requestId: String) {
+        val requests = listSentRequests().toMutableList()
+        val index = requests.indexOfFirst { it.id == requestId }
+        if (index >= 0) {
+            requests[index] = requests[index].copy(status = SentRequestStatus.PAID)
+            persistSentRequests(requests)
+        }
+    }
+
+    /**
+     * Get all sent requests grouped by recipient.
+     */
+    fun getSentRequestsByRecipient(): Map<String, Set<String>> {
+        return listSentRequests().groupBy(
+            keySelector = { it.recipientPubkey },
+            valueTransform = { it.id },
+        ).mapValues { it.value.toSet() }
+    }
+
+    private suspend fun persistSentRequests(requests: List<SentPaymentRequest>) {
+        val identity = currentIdentity
+        try {
+            val json = Json.encodeToString(requests)
+            keychain.store(sentRequestsKey, json.toByteArray())
+            sentRequestsCache[identity] = requests
+        } catch (e: Exception) {
+            Logger.error("PaymentRequestStorage: Failed to persist sent requests", e, context = TAG)
+            throw PaykitStorageException.SaveFailed(sentRequestsKey)
+        }
+    }
+
     // MARK: - Statistics
 
     /**
@@ -252,4 +351,25 @@ class PaymentRequestStorage @Inject constructor(
             throw PaykitStorageException.SaveFailed(requestsKey)
         }
     }
+}
+
+/**
+ * A sent (outgoing) payment request for tracking.
+ */
+@kotlinx.serialization.Serializable
+data class SentPaymentRequest(
+    val id: String,
+    val recipientPubkey: String,
+    val amountSats: Long,
+    val methodId: String,
+    val description: String?,
+    val sentAt: Long,
+    val status: SentRequestStatus,
+)
+
+@kotlinx.serialization.Serializable
+enum class SentRequestStatus {
+    PENDING,
+    PAID,
+    EXPIRED,
 }

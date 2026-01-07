@@ -6,10 +6,13 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_ONE_SHOT
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
@@ -58,6 +61,7 @@ internal fun Context.pushNotification(
     extras: Bundle? = null,
     bigText: String? = null,
     id: Int = Random.nextInt(),
+    deepLinkUri: Uri? = null,
 ): Int {
     Logger.debug("Push notification: $title, $text")
 
@@ -66,7 +70,11 @@ internal fun Context.pushNotification(
         requiresPermission(Manifest.permission.POST_NOTIFICATIONS)
 
     if (!requiresPermission) {
-        val builder = notificationBuilder(extras)
+        val builder = if (deepLinkUri != null) {
+            notificationBuilderWithDeepLink(deepLinkUri, id)
+        } else {
+            notificationBuilder(extras)
+        }
             .setContentTitle(title)
             .setContentText(text)
             .apply {
@@ -78,4 +86,26 @@ internal fun Context.pushNotification(
     }
 
     return id
+}
+
+/**
+ * Creates a notification builder with a deep link PendingIntent for proper navigation.
+ */
+internal fun Context.notificationBuilderWithDeepLink(
+    deepLinkUri: Uri,
+    requestCode: Int = 0,
+    channelId: String = CHANNEL_MAIN,
+): NotificationCompat.Builder {
+    val intent = Intent(Intent.ACTION_VIEW, deepLinkUri, this, MainActivity::class.java).apply {
+        flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
+    }
+    val flags = FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
+    val pendingIntent = PendingIntent.getActivity(this, requestCode, intent, flags)
+
+    return NotificationCompat.Builder(this, channelId)
+        .setSmallIcon(R.drawable.ic_launcher_fg_regtest)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+        .setContentIntent(pendingIntent)
+        .setAutoCancel(true)
 }

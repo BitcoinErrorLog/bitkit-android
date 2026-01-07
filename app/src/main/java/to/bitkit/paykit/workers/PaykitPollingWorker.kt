@@ -3,8 +3,11 @@ package to.bitkit.paykit.workers
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -35,6 +38,7 @@ import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.PaykitPaymentService
 import to.bitkit.paykit.storage.PaymentRequestStorage
 import to.bitkit.repositories.LightningRepo
+import to.bitkit.ui.MainActivity
 import to.bitkit.utils.Logger
 import java.util.concurrent.TimeUnit
 
@@ -391,6 +395,7 @@ class PaykitPollingWorker @AssistedInject constructor(
         }
 
         val notificationId = request.requestId.hashCode()
+        val pendingIntent = createPaymentRequestPendingIntent(request.requestId, request.fromPubkey)
         val builder = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(appContext.getString(R.string.notification_payment_request_title))
@@ -402,6 +407,7 @@ class PaykitPollingWorker @AssistedInject constructor(
                 ),
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         NotificationManagerCompat.from(appContext).notify(notificationId, builder.build())
@@ -418,6 +424,7 @@ class PaykitPollingWorker @AssistedInject constructor(
         }
 
         val notificationId = "success_${request.requestId}".hashCode()
+        val pendingIntent = createPaymentRequestPendingIntent(request.requestId, request.fromPubkey)
         val builder = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(appContext.getString(R.string.notification_autopay_executed_title))
@@ -429,6 +436,7 @@ class PaykitPollingWorker @AssistedInject constructor(
                 ),
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         NotificationManagerCompat.from(appContext).notify(notificationId, builder.build())
@@ -444,6 +452,7 @@ class PaykitPollingWorker @AssistedInject constructor(
         }
 
         val notificationId = "failure_${request.requestId}".hashCode()
+        val pendingIntent = createPaymentRequestPendingIntent(request.requestId, request.fromPubkey)
         val builder = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(appContext.getString(R.string.notification_subscription_failed_title))
@@ -454,6 +463,7 @@ class PaykitPollingWorker @AssistedInject constructor(
                 ),
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         NotificationManagerCompat.from(appContext).notify(notificationId, builder.build())
@@ -469,6 +479,7 @@ class PaykitPollingWorker @AssistedInject constructor(
         }
 
         val notificationId = "sub_${request.requestId}".hashCode()
+        val pendingIntent = createSubscriptionPendingIntent()
         val builder = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(appContext.getString(R.string.notification_subscription_proposal_title))
@@ -480,9 +491,44 @@ class PaykitPollingWorker @AssistedInject constructor(
                 ),
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         NotificationManagerCompat.from(appContext).notify(notificationId, builder.build())
+    }
+
+    /**
+     * Create a PendingIntent that opens the payment request detail via deep link.
+     * Format: bitkit://payment-request?requestId=xxx&from=yyy
+     */
+    private fun createPaymentRequestPendingIntent(requestId: String, fromPubkey: String): PendingIntent {
+        val deepLinkUri = Uri.parse("bitkit://payment-request?requestId=$requestId&from=$fromPubkey")
+        val intent = Intent(Intent.ACTION_VIEW, deepLinkUri, appContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            appContext,
+            requestId.hashCode(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
+    /**
+     * Create a PendingIntent that opens the subscriptions screen via deep link.
+     * Format: bitkit://subscriptions
+     */
+    private fun createSubscriptionPendingIntent(): PendingIntent {
+        val deepLinkUri = Uri.parse("bitkit://subscriptions")
+        val intent = Intent(Intent.ACTION_VIEW, deepLinkUri, appContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            appContext,
+            "subscriptions".hashCode(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 
     private fun formatPubkey(pubkey: String): String =
