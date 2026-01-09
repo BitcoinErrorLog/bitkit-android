@@ -62,15 +62,21 @@ class SealedBlobRoundTripTest {
 
     @Test
     fun `AAD format is consistent between encrypt and decrypt`() {
-        val subscriberPubkey = "tjtigrhbiinfwwh8nwwgbq4b17t71uqesshsd7zp37zt3huwmwyo"
+        val ownerPubkey = "tjtigrhbiinfwwh8nwwgbq4b17t71uqesshsd7zp37zt3huwmwyo"
+        val providerPubkey = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijkl"
+        val subscriberPubkey = "zyxwvutsrqzyxwvutsrqzyxwvutsrqzyxwvutsrqzyxwvutsrq11"
         val proposalId = "test-proposal-123"
 
-        // Simulating what PaykitV0Protocol.subscriptionProposalAad does
-        val normalizedPubkey = subscriberPubkey.lowercase()
-        val aad = "paykit:v0:subscription_proposal:$normalizedPubkey:$proposalId"
+        // Simulating what PaykitV0Protocol.subscriptionProposalAad does (owner-bound format)
+        // Format: paykit:v0:subscription_proposal:{owner}:{path}:{id}
+        val normalizedOwner = ownerPubkey.lowercase()
+        val contextId = "mock-context-id"
+        val path = "/pub/paykit.app/v0/subscriptions/proposals/$contextId/$proposalId"
+        val aad = "paykit:v0:subscription_proposal:$normalizedOwner:$path:$proposalId"
 
         assertTrue(aad.contains(proposalId), "AAD should contain proposal ID")
-        assertTrue(aad.contains(normalizedPubkey), "AAD should contain normalized pubkey")
+        assertTrue(aad.contains(normalizedOwner), "AAD should contain normalized owner pubkey")
+        assertTrue(aad.contains(path), "AAD should contain storage path")
         assertTrue(aad.startsWith("paykit:v0:subscription_proposal:"), "AAD should have correct prefix")
     }
 
@@ -102,9 +108,13 @@ class SealedBlobRoundTripTest {
             assertEquals(32, publicKey.size, "Public key should be 32 bytes")
             assertEquals(32, secretKey.size, "Secret key should be 32 bytes")
 
-            // Test data
+            // Test data with owner-bound AAD format: paykit:v0:{purpose}:{owner}:{path}:{id}
             val plaintext = """{"provider_pubkey":"test123","amount_sats":1000}""".toByteArray()
-            val aad = "paykit:v0:subscription_proposal:testpubkey:proposal-id-123"
+            val ownerPubkey = "testpubkey12345678901234567890123456789012345678901234"
+            val contextId = "mock-context-id-abc123"
+            val proposalId = "proposal-id-123"
+            val path = "/pub/paykit.app/v0/subscriptions/proposals/$contextId/$proposalId"
+            val aad = "paykit:v0:subscription_proposal:$ownerPubkey:$path:$proposalId"
             val purpose = "subscription_proposal"
 
             // Encrypt to recipient's public key

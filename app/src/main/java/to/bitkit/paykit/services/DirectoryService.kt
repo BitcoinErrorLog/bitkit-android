@@ -51,29 +51,32 @@ object PubkyConfig {
 
     /**
      * Get the canonical path for a payment request addressed to a recipient.
-     * Path format: /pub/paykit.app/v0/requests/{scope}/{requestId}
-     * where scope = hex(sha256(normalized_recipient_pubkey))
+     * Path format: /pub/paykit.app/v0/requests/{context_id}/{requestId}
+     * where context_id = hex(sha256("paykit:v0:context:" + sorted(sender, recipient)))
      */
-    fun paymentRequestPath(recipientPubkey: String, requestId: String): String =
-        PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+    fun paymentRequestPath(senderPubkey: String, recipientPubkey: String, requestId: String): String =
+        PaykitV0Protocol.paymentRequestPath(senderPubkey, recipientPubkey, requestId)
 
     /**
-     * Get the canonical directory path for listing payment requests to a recipient.
+     * Get the canonical directory path for listing payment requests for a peer pair.
      */
-    fun paymentRequestsDir(recipientPubkey: String): String =
-        PaykitV0Protocol.paymentRequestsDir(recipientPubkey)
+    fun paymentRequestsDir(senderPubkey: String, recipientPubkey: String): String =
+        PaykitV0Protocol.paymentRequestsDir(senderPubkey, recipientPubkey)
 
     /**
      * Get the canonical path for a subscription proposal addressed to a subscriber.
      */
-    fun subscriptionProposalPath(subscriberPubkey: String, proposalId: String): String =
-        PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+    fun subscriptionProposalPath(
+        providerPubkey: String,
+        subscriberPubkey: String,
+        proposalId: String,
+    ): String = PaykitV0Protocol.subscriptionProposalPath(providerPubkey, subscriberPubkey, proposalId)
 
     /**
-     * Get the canonical directory path for listing subscription proposals to a subscriber.
+     * Get the canonical directory path for listing subscription proposals for a peer pair.
      */
-    fun subscriptionProposalsDir(subscriberPubkey: String): String =
-        PaykitV0Protocol.subscriptionProposalsDir(subscriberPubkey)
+    fun subscriptionProposalsDir(providerPubkey: String, subscriberPubkey: String): String =
+        PaykitV0Protocol.subscriptionProposalsDir(providerPubkey, subscriberPubkey)
 }
 
 /**
@@ -408,11 +411,11 @@ class DirectoryService @Inject constructor(
     /**
      * Publish a payment request to Pubky storage for async retrieval.
      * Stores the ENCRYPTED request at the canonical v0 path:
-     * `/pub/paykit.app/v0/requests/{recipient_scope}/{requestId}`
+     * `/pub/paykit.app/v0/requests/{context_id}/{requestId}`
      * on the sender's homeserver so the recipient can poll contacts to fetch it.
      *
-     * SECURITY: Requests are encrypted using Sealed Blob v1 to recipient's Noise public key.
-     * Uses canonical AAD format: `paykit:v0:request:{path}:{requestId}`
+     * SECURITY: Requests are encrypted using Sealed Blob v2 to recipient's Noise public key.
+     * Uses owner-bound AAD format: `paykit:v0:request:{owner_z32}:{path}:{requestId}`
      *
      * @param request The payment request to publish
      * @param recipientPubkey The pubkey of the recipient (who should process the request)
@@ -431,17 +434,21 @@ class DirectoryService @Inject constructor(
             request
         )
 
-        // Use canonical v0 path (scope-based)
-        val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, request.id)
+        // Get my pubkey (sender) for ContextId-based path
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
+
+        // Use canonical v0 path (ContextId-based)
+        val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, request.id)
 
         // Discover recipient's Noise endpoint to get their public key for encryption
         val recipientNoiseEndpoint = discoverNoiseEndpoint(recipientPubkey)
             ?: throw DirectoryError.EncryptionFailed("Recipient has no Noise endpoint published")
 
-        // Encrypt request using Sealed Blob v1 with canonical AAD
+        // Encrypt request using Sealed Blob v2 with owner-bound AAD
         val plaintextBytes = requestJson.toByteArray(Charsets.UTF_8)
         val recipientNoisePkBytes = PubkyRingBridge.hexStringToByteArray(recipientNoiseEndpoint.serverNoisePubkey)
-        val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, request.id)
+        val aad = PaykitV0Protocol.paymentRequestAad(myPubkey, myPubkey, recipientPubkey, request.id)
 
         val encryptedEnvelope = try {
             com.pubky.noise.sealedBlobEncrypt(
@@ -480,8 +487,8 @@ class DirectoryService @Inject constructor(
         senderPubkey: String,
         recipientPubkey: String,
     ): to.bitkit.paykit.models.PaymentRequest? {
-        // Use canonical v0 path (scope-based)
-        val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+        // Use canonical v0 path (ContextId-based)
+        val path = PaykitV0Protocol.paymentRequestPath(senderPubkey, recipientPubkey, requestId)
 
         // Use the proper pubky:// URI which uses DHT/Pkarr resolution
         val pubkyUri = "pubky://$senderPubkey$path"
@@ -507,7 +514,8 @@ class DirectoryService @Inject constructor(
                 }
 
                 val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-                val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, requestId)
+                // Owner = sender (stored on their homeserver)
+                val aad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
 
                 val plaintextBytes = try {
                     com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
@@ -543,13 +551,15 @@ class DirectoryService @Inject constructor(
      * only the sender can delete their stored requests.
      *
      * @param requestId The unique request ID
-     * @param recipientPubkey The pubkey of the recipient (used for scope computation)
+     * @param recipientPubkey The pubkey of the recipient (used for ContextId computation)
      */
     suspend fun removePaymentRequest(requestId: String, recipientPubkey: String) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
-        val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
+        val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, requestId)
 
         val result = adapter.delete(path)
         if (!result.success) {
@@ -564,7 +574,7 @@ class DirectoryService @Inject constructor(
      *
      * Used to compare with locally tracked requests and find orphaned ones.
      *
-     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     * @param recipientPubkey The recipient pubkey (used for ContextId computation)
      * @return List of request IDs found on the homeserver
      */
     suspend fun listRequestsOnHomeserver(recipientPubkey: String): List<String> {
@@ -573,9 +583,8 @@ class DirectoryService @Inject constructor(
 
         val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
         val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
-        val recipientScope = PaykitV0Protocol.recipientScope(recipientPubkey)
-        val requestsPath =
-            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/$recipientScope/"
+        // Use ContextId-based path
+        val requestsPath = PaykitV0Protocol.paymentRequestsDir(myPubkey, recipientPubkey)
 
         return try {
             val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, myPubkey)
@@ -599,13 +608,15 @@ class DirectoryService @Inject constructor(
      * Used when the sender wants to cancel a pending request they sent.
      *
      * @param requestId The request ID to delete
-     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     * @param recipientPubkey The recipient pubkey (used for ContextId computation)
      */
     suspend fun deletePaymentRequest(requestId: String, recipientPubkey: String) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
-        val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
+        val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, requestId)
 
         val result = adapter.delete(path)
         if (!result.success) {
@@ -621,17 +632,19 @@ class DirectoryService @Inject constructor(
      * Used to clean up orphaned requests that exist on homeserver but aren't tracked locally.
      *
      * @param requestIds List of request IDs to delete
-     * @param recipientPubkey The recipient pubkey (used for scope computation)
+     * @param recipientPubkey The recipient pubkey (used for ContextId computation)
      * @return Number of successfully deleted requests
      */
     suspend fun deleteRequestsBatch(requestIds: List<String>, recipientPubkey: String): Int {
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
 
         var deletedCount = 0
         for (requestId in requestIds) {
             try {
-                val path = PaykitV0Protocol.paymentRequestPath(recipientPubkey, requestId)
+                val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, requestId)
                 val result = adapter.delete(path)
                 if (result.success) {
                     deletedCount++
@@ -658,13 +671,15 @@ class DirectoryService @Inject constructor(
      * Used when the provider wants to cancel a pending proposal they sent.
      *
      * @param proposalId The proposal ID to delete
-     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     * @param subscriberPubkey The subscriber pubkey (used for ContextId computation)
      */
     suspend fun deleteSubscriptionProposal(proposalId: String, subscriberPubkey: String) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
-        val path = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
+        val path = PaykitV0Protocol.subscriptionProposalPath(myPubkey, subscriberPubkey, proposalId)
 
         val result = adapter.delete(path)
         if (!result.success) {
@@ -679,7 +694,7 @@ class DirectoryService @Inject constructor(
      *
      * Used to compare with locally tracked proposals and find orphaned ones.
      *
-     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     * @param subscriberPubkey The subscriber pubkey (used for ContextId computation)
      * @return List of proposal IDs found on the homeserver
      */
     suspend fun listProposalsOnHomeserver(subscriberPubkey: String): List<String> {
@@ -688,9 +703,8 @@ class DirectoryService @Inject constructor(
 
         val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
         val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
-        val subscriberScope = PaykitV0Protocol.subscriberScope(subscriberPubkey)
-        val proposalsPath =
-            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.SUBSCRIPTION_PROPOSALS_SUBPATH}/$subscriberScope/"
+        // Use ContextId-based path
+        val proposalsPath = PaykitV0Protocol.subscriptionProposalsDir(myPubkey, subscriberPubkey)
 
         return try {
             val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, myPubkey)
@@ -720,11 +734,13 @@ class DirectoryService @Inject constructor(
     suspend fun deleteProposalsBatch(proposalIds: List<String>, subscriberPubkey: String): Int {
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
 
         var deletedCount = 0
         for (proposalId in proposalIds) {
             try {
-                val path = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+                val path = PaykitV0Protocol.subscriptionProposalPath(myPubkey, subscriberPubkey, proposalId)
                 val result = adapter.delete(path)
                 if (result.success) {
                     deletedCount++
@@ -762,18 +778,17 @@ class DirectoryService @Inject constructor(
         kotlinx.coroutines.Dispatchers.IO
     ) {
         val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
-        val myScope = PaykitV0Protocol.recipientScope(myPubkey)
-        val requestsPath = "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/$myScope/"
+        val requestsDir = PaykitV0Protocol.paymentRequestsDir(peerPubkey, myPubkey)
 
         try {
-            val requestFiles = pubkyStorage.listDirectory(requestsPath, adapter, peerPubkey)
+            val requestFiles = pubkyStorage.listDirectory(requestsDir, adapter, peerPubkey)
 
             requestFiles.mapNotNull { requestId ->
                 try {
-                    val requestPath = "$requestsPath$requestId"
+                    val requestPath = PaykitV0Protocol.paymentRequestPath(peerPubkey, myPubkey, requestId)
                     val envelopeBytes = pubkyStorage.retrieve(requestPath, adapter, peerPubkey)
                     val envelopeJson = envelopeBytes?.let { String(it) }
-                    decryptAndParsePaymentRequest(requestId, envelopeJson, myPubkey)
+                    decryptAndParsePaymentRequest(requestId, envelopeJson, peerPubkey, myPubkey)
                 } catch (e: Exception) {
                     Logger.error("Failed to parse request $requestId", e, context = TAG)
                     null
@@ -789,10 +804,10 @@ class DirectoryService @Inject constructor(
      * Discover subscription proposals from a peer's storage.
      *
      * In the v0 provider-storage model, subscribers poll known providers and list
-     * their `.../{my_scope}/` directory to discover pending proposals.
+     * their `.../{context_id}/` directory to discover pending proposals (Sealed Blob v2).
      *
      * @param peerPubkey The pubkey of the peer (provider) whose storage to poll
-     * @param myPubkey Our pubkey (used for scope computation)
+     * @param myPubkey Our pubkey (used for ContextId computation)
      * @return List of discovered proposals addressed to us
      */
     suspend fun discoverSubscriptionProposalsFromPeer(
@@ -803,25 +818,24 @@ class DirectoryService @Inject constructor(
     ) {
         val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
         val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
-        val myScope = PaykitV0Protocol.subscriberScope(myPubkey)
-        val proposalsPath =
-            "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.SUBSCRIPTION_PROPOSALS_SUBPATH}/$myScope/"
+        val proposalsDir = PaykitV0Protocol.subscriptionProposalsDir(peerPubkey, myPubkey)
+        val contextId = PaykitV0Protocol.contextId(peerPubkey, myPubkey)
         Logger.debug(
-            "discoverSubscriptionProposalsFromPeer: myScope=$myScope, path=$proposalsPath, peer=${peerPubkey.take(
+            "discoverSubscriptionProposalsFromPeer: contextId=$contextId, path=$proposalsDir, peer=${peerPubkey.take(
                 12
             )}..., homeserver=${effectiveHomeserver.value}",
             context = TAG
         )
 
         try {
-            val proposalFiles = pubkyStorage.listDirectory(proposalsPath, adapter, peerPubkey)
+            val proposalFiles = pubkyStorage.listDirectory(proposalsDir, adapter, peerPubkey)
 
             proposalFiles.mapNotNull { proposalId ->
                 try {
-                    val proposalPath = "$proposalsPath$proposalId"
+                    val proposalPath = PaykitV0Protocol.subscriptionProposalPath(peerPubkey, myPubkey, proposalId)
                     val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, peerPubkey)
                     val envelopeJson = envelopeBytes?.let { String(it) }
-                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, myPubkey, peerPubkey)
+                    decryptAndParseSubscriptionProposal(proposalId, envelopeJson, peerPubkey, myPubkey)
                 } catch (e: Exception) {
                     Logger.error("Failed to parse proposal $proposalId", e, context = TAG)
                     null
@@ -836,10 +850,10 @@ class DirectoryService @Inject constructor(
     /**
      * Publish a subscription proposal to our storage for the subscriber to discover.
      * The proposal is stored ENCRYPTED at the canonical v0 path:
-     * `/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}`
+     * `/pub/paykit.app/v0/subscriptions/proposals/{context_id}/{proposalId}`
      *
-     * SECURITY: Proposals are encrypted using Sealed Blob v1 to subscriber's Noise public key.
-     * Uses canonical AAD format: `paykit:v0:subscription_proposal:{path}:{proposalId}`
+     * SECURITY: Proposals are encrypted using Sealed Blob v2 to subscriber's Noise public key.
+     * Uses owner-bound AAD format: `paykit:v0:subscription_proposal:{owner}:{path}:{proposalId}`
      *
      * @param proposal The subscription proposal to publish
      * @param subscriberPubkey The z32 pubkey of the subscriber
@@ -854,9 +868,11 @@ class DirectoryService @Inject constructor(
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
 
-        // Use canonical v0 path (scope-based)
-        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposal.id)
+        // Use canonical v0 path (ContextId-based for Sealed Blob v2)
+        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(myPubkey, subscriberPubkey, proposal.id)
 
         val proposalJson = org.json.JSONObject().apply {
             put("provider_pubkey", proposal.providerPubkey)
@@ -873,10 +889,10 @@ class DirectoryService @Inject constructor(
         val subscriberNoiseEndpoint = discoverNoiseEndpoint(subscriberPubkey)
             ?: throw DirectoryError.EncryptionFailed("Subscriber has no Noise endpoint published")
 
-        // Encrypt proposal using Sealed Blob v1 with canonical AAD
+        // Encrypt proposal using Sealed Blob v2 with owner-bound AAD
         val plaintextBytes = proposalJson.toString().toByteArray(Charsets.UTF_8)
         val subscriberNoisePkBytes = PubkyRingBridge.hexStringToByteArray(subscriberNoiseEndpoint.serverNoisePubkey)
-        val aad = PaykitV0Protocol.subscriptionProposalAad(subscriberPubkey, proposal.id)
+        val aad = PaykitV0Protocol.subscriptionProposalAad(myPubkey, myPubkey, subscriberPubkey, proposal.id)
 
         val encryptedEnvelope = try {
             com.pubky.noise.sealedBlobEncrypt(
@@ -903,7 +919,7 @@ class DirectoryService @Inject constructor(
      *
      * @param proposalId The proposal ID
      * @param providerPubkey The z32 pubkey of the provider who stored the proposal
-     * @param subscriberPubkey Our pubkey (used for scope computation and decryption)
+     * @param subscriberPubkey Our pubkey (used for ContextId computation and decryption)
      * @return The discovered proposal or null if not found
      */
     suspend fun fetchSubscriptionProposal(
@@ -912,12 +928,12 @@ class DirectoryService @Inject constructor(
         subscriberPubkey: String,
     ): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
         val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
-        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(providerPubkey, subscriberPubkey, proposalId)
 
         return try {
             val envelopeBytes = pubkyStorage.retrieve(proposalPath, adapter, providerPubkey)
             val envelopeJson = envelopeBytes?.let { String(it) }
-            decryptAndParseSubscriptionProposal(proposalId, envelopeJson, subscriberPubkey, providerPubkey)
+            decryptAndParseSubscriptionProposal(proposalId, envelopeJson, providerPubkey, subscriberPubkey)
         } catch (e: Exception) {
             Logger.error("Failed to fetch subscription proposal $proposalId", e, context = TAG)
             null
@@ -933,7 +949,7 @@ class DirectoryService @Inject constructor(
      * This method can only be called by the **provider** to remove proposals they published.
      *
      * @param proposalId The proposal ID to remove
-     * @param subscriberPubkey The subscriber pubkey (used for scope computation)
+     * @param subscriberPubkey The subscriber pubkey (used for ContextId computation)
      * @throws DirectoryError.NotConfigured if session is not configured
      * @throws DirectoryError.PublishFailed if the delete operation fails
      */
@@ -948,8 +964,10 @@ class DirectoryService @Inject constructor(
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
+        val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+            ?: throw DirectoryError.NotConfigured
 
-        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(subscriberPubkey, proposalId)
+        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(myPubkey, subscriberPubkey, proposalId)
 
         val result = adapter.delete(proposalPath)
         if (!result.success) {
@@ -970,11 +988,12 @@ class DirectoryService @Inject constructor(
     private suspend fun decryptAndParsePaymentRequest(
         requestId: String,
         envelopeJson: String?,
+        senderPubkey: String,
         recipientPubkey: String,
     ): to.bitkit.paykit.workers.DiscoveredRequest? {
         if (envelopeJson.isNullOrBlank()) return null
 
-        // Verify it's an encrypted sealed blob
+        // Verify it's an encrypted sealed blob (v1 or v2)
         if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
             Logger.error("Payment request $requestId is not encrypted (sealed blob required)", context = TAG)
             return null
@@ -989,7 +1008,8 @@ class DirectoryService @Inject constructor(
         }
 
         val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-        val aad = PaykitV0Protocol.paymentRequestAad(recipientPubkey, requestId)
+        // Sealed Blob v2: AAD includes owner (sender stores on their homeserver)
+        val aad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
 
         // Detailed logging for debugging decryption issues
         Logger.info("Decrypting request $requestId:", context = TAG)
@@ -1044,12 +1064,12 @@ class DirectoryService @Inject constructor(
     private suspend fun decryptAndParseSubscriptionProposal(
         proposalId: String,
         envelopeJson: String?,
+        providerPubkey: String,
         subscriberPubkey: String,
-        expectedProviderPubkey: String? = null,
     ): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
         if (envelopeJson.isNullOrBlank()) return null
 
-        // Verify it's an encrypted sealed blob
+        // Verify it's an encrypted sealed blob (v1 or v2)
         if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
             Logger.error("Subscription proposal $proposalId is not encrypted (sealed blob required)", context = TAG)
             return null
@@ -1064,7 +1084,8 @@ class DirectoryService @Inject constructor(
         }
 
         val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-        val aad = PaykitV0Protocol.subscriptionProposalAad(subscriberPubkey, proposalId)
+        // Sealed Blob v2: AAD includes owner (provider stores on their homeserver)
+        val aad = PaykitV0Protocol.subscriptionProposalAad(providerPubkey, providerPubkey, subscriberPubkey, proposalId)
         Logger.debug(
             "Decryption attempt for $proposalId: sk.len=${noiseKeypair.secretKey.length}, bytes.len=${myNoiseSk.size}, myNoisePk=${noiseKeypair.publicKey}",
             context = TAG
@@ -1075,12 +1096,12 @@ class DirectoryService @Inject constructor(
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 
-            val providerPubkey = obj.optString("provider_pubkey", "")
+            val claimedProviderPubkey = obj.optString("provider_pubkey", "")
 
-            // SECURITY: Verify provider identity binding
-            if (expectedProviderPubkey != null && providerPubkey.isNotEmpty()) {
-                val normalizedExpected = PaykitV0Protocol.normalizePubkeyZ32(expectedProviderPubkey)
-                val normalizedActual = PaykitV0Protocol.normalizePubkeyZ32(providerPubkey)
+            // SECURITY: Verify provider identity binding (providerPubkey was passed in AAD)
+            if (claimedProviderPubkey.isNotEmpty()) {
+                val normalizedExpected = PaykitV0Protocol.normalizePubkeyZ32(providerPubkey)
+                val normalizedActual = PaykitV0Protocol.normalizePubkeyZ32(claimedProviderPubkey)
                 if (normalizedExpected != normalizedActual) {
                     Logger.error(
                         "Provider identity mismatch for proposal $proposalId: expected $normalizedExpected, got $normalizedActual",

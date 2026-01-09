@@ -126,13 +126,25 @@ class SubscriptionProposalTest {
     }
 
     @Test
-    fun `path format for subscription proposals matches expected pattern`() {
-        val recipientPubkey = "pk:recipient123"
+    fun `path format for subscription proposals uses context id`() {
+        // Sealed Blob v2 uses ContextId (symmetric peer-pair hash) instead of recipient scope
+        val providerPubkey = "ybndrfg8ejkmcpqxot1uwisza345h769ybndrfg8ejkmcpqxot1u"
+        val subscriberPubkey = "8pinxxgqs41n4aididenw5apqp1urfmzdztr8jt4abrkdn435ewo"
         val proposalId = "proposal-uuid-456"
-        val expectedPath = "/pub/paykit.app/v0/subscriptions/proposals/$recipientPubkey/$proposalId"
 
-        val actualPath = "/pub/paykit.app/v0/subscriptions/proposals/$recipientPubkey/$proposalId"
+        // Use PaykitV0Protocol to generate the path
+        val path = to.bitkit.paykit.protocol.PaykitV0Protocol.subscriptionProposalPath(
+            providerPubkey,
+            subscriberPubkey,
+            proposalId
+        )
 
-        assertEquals(expectedPath, actualPath)
+        // Path should have format: /pub/paykit.app/v0/subscriptions/proposals/{context_id}/{proposal_id}
+        assertTrue(path.startsWith("/pub/paykit.app/v0/subscriptions/proposals/"))
+        assertTrue(path.endsWith("/$proposalId"))
+        // ContextId is a 64-char hex SHA256 hash
+        val parts = path.split("/")
+        assertEquals(8, parts.size)
+        assertEquals(64, parts[6].length)
     }
 }

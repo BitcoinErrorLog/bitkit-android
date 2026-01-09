@@ -580,7 +580,7 @@ class PubkyRingBridge @Inject constructor(
      * Generate a cross-device session request that can be shared as a link or QR.
      *
      * SECURITY: Generates an ephemeral X25519 keypair and includes the public key
-     * in the URL. The relay response must be encrypted to this key (Sealed Blob v1).
+     * in the URL. The relay response must be encrypted to this key (Sealed Blob v2).
      *
      * @return CrossDeviceRequest with URL, QR code bitmap, and request ID
      */
