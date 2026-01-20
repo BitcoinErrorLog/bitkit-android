@@ -5,7 +5,7 @@ This module integrates the Paykit payment coordination protocol with Bitkit Andr
 ## Production Integration Guide
 
 **For complete production integration instructions, see:**
-- **[Bitkit + Paykit Integration Master Guide](https://github.com/BitcoinErrorLog/paykit-rs/blob/main/docs/BITKIT_PAYKIT_INTEGRATION_MASTERGUIDE.md)**
+- **[Bitkit + Paykit Integration Master Guide](https://github.com/BitcoinErrorLog/paykit-rs/blob/main/BITKIT_PAYKIT_INTEGRATION_MASTERGUIDE.md)**
 
 This comprehensive guide covers:
 - Building paykit-rs and pubky-noise from source

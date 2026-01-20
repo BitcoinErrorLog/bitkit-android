@@ -8,6 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import to.bitkit.paykit.storage.PaykitKeychainStorage
+import to.bitkit.paykit.utils.z32Decode
 import to.bitkit.utils.Logger
 import java.util.Date
 import javax.inject.Inject
@@ -17,9 +18,10 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * Handles secure handoff payload fetching and processing for cross-device authentication.
  *
- * Secure handoff v2: Payloads are encrypted using Paykit Sealed Blob v1 format.
- * Bitkit generates an ephemeral X25519 keypair, Ring encrypts to that key,
- * and Bitkit decrypts using the stored ephemeral secret.
+ * Secure handoff v2: Payloads are encrypted using Sealed Blob v2 format with spec-compliant
+ * binary AAD per PUBKY_CRYPTO_SPEC. Bitkit generates an ephemeral X25519 keypair, Ring
+ * encrypts to that key using sealedBlobEncryptWithContext, and Bitkit decrypts using
+ * sealedBlobDecryptWithContext with the stored ephemeral secret.
  */
 @Singleton
 class SecureHandoffHandler @Inject constructor(
@@ -125,19 +127,24 @@ class SecureHandoffHandler @Inject constructor(
             throw PubkyRingException.MissingEphemeralKey
         }
 
-        // Build AAD following Paykit v0 protocol: paykit:v0:handoff:{pubkey}:{path}:{requestId}
-        val storagePath = "/pub/paykit.app/v0/handoff/$requestId"
-        val aad = "paykit:v0:handoff:$pubkey:$storagePath:$requestId"
+        // Spec-compliant AAD construction per PUBKY_CRYPTO_SPEC v2:
+        // AAD = "pubky-envelope/v2:" || owner_peerid_bytes || canonical_path_bytes || header_bytes
+        // sealedBlobDecryptWithContext handles AAD construction internally
+        val canonicalPath = "/pub/paykit.app/v0/handoff/$requestId"
 
         try {
             // Convert secret key from hex to ByteArray
             val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
+            
+            // Convert pubkey (z32) to raw Ed25519 bytes (owner_peerid)
+            val ownerPeeridBytes = z32Decode(pubkey)
 
-            // Decrypt using pubky-noise sealed blob
-            val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(
+            // Decrypt using spec-compliant sealed blob with context
+            val plaintextBytes = com.pubky.noise.sealedBlobDecryptWithContext(
                 secretKeyBytes,
                 envelopeJson,
-                aad,
+                ownerPeeridBytes,
+                canonicalPath,
             )
 
             // Decode decrypted JSON
@@ -155,18 +162,23 @@ class SecureHandoffHandler @Inject constructor(
     private fun hexStringToByteArray(hex: String): ByteArray =
         hex.hexToByteArray()
 
+
     private fun validatePayload(payload: SecureHandoffPayload) {
-        if (System.currentTimeMillis() > payload.expiresAt) {
+        // Ring sends timestamps in Unix seconds per PUBKY_CRYPTO_SPEC
+        val nowSeconds = System.currentTimeMillis() / 1000
+        if (nowSeconds > payload.expiresAt) {
             throw PubkyRingException.Timeout
         }
     }
 
     private fun buildSetupResultFromPayload(payload: SecureHandoffPayload): PaykitSetupResult {
+        // Ring sends timestamps in Unix seconds per PUBKY_CRYPTO_SPEC
+        // Convert to milliseconds for Date constructor
         val session = PubkySession(
             pubkey = payload.pubky,
             sessionSecret = payload.sessionSecret,
             capabilities = payload.capabilities,
-            createdAt = Date(payload.createdAt),
+            createdAt = Date(payload.createdAt * 1000),
             expiresAt = null,
         )
 

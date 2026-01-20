@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.protocol.PaykitV0Protocol
 import to.bitkit.paykit.storage.PaykitKeychainStorage
+import to.bitkit.paykit.utils.z32Decode
 import to.bitkit.paykit.types.HomeserverDefaults
 import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.paykit.types.OwnerPubkey
@@ -415,7 +416,8 @@ class DirectoryService @Inject constructor(
      * on the sender's homeserver so the recipient can poll contacts to fetch it.
      *
      * SECURITY: Requests are encrypted using Sealed Blob v2 to recipient's Noise public key.
-     * Uses owner-bound AAD format: `paykit:v0:request:{owner_z32}:{path}:{requestId}`
+     * Uses spec-compliant binary AAD per PUBKY_CRYPTO_SPEC v2.5:
+     * `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
      *
      * @param request The payment request to publish
      * @param recipientPubkey The pubkey of the recipient (who should process the request)
@@ -445,16 +447,18 @@ class DirectoryService @Inject constructor(
         val recipientNoiseEndpoint = discoverNoiseEndpoint(recipientPubkey)
             ?: throw DirectoryError.EncryptionFailed("Recipient has no Noise endpoint published")
 
-        // Encrypt request using Sealed Blob v2 with owner-bound AAD
+        // Encrypt request using Sealed Blob v2 with spec-compliant binary AAD
+        // Per PUBKY_CRYPTO_SPEC: AAD = "pubky-envelope/v2:" || owner_peerid_bytes || canonical_path_bytes || header_bytes
         val plaintextBytes = requestJson.toByteArray(Charsets.UTF_8)
         val recipientNoisePkBytes = PubkyRingBridge.hexStringToByteArray(recipientNoiseEndpoint.serverNoisePubkey)
-        val aad = PaykitV0Protocol.paymentRequestAad(myPubkey, myPubkey, recipientPubkey, request.id)
+        val ownerPeeridBytes = z32Decode(myPubkey)
 
         val encryptedEnvelope = try {
-            com.pubky.noise.sealedBlobEncrypt(
+            com.pubky.noise.sealedBlobEncryptWithContext(
                 recipientNoisePkBytes,
                 plaintextBytes,
-                aad,
+                ownerPeeridBytes,
+                path,
                 PaykitV0Protocol.PURPOSE_REQUEST,
             )
         } catch (e: Exception) {
@@ -476,7 +480,9 @@ class DirectoryService @Inject constructor(
      * Fetch a payment request from a sender's Pubky storage.
      * Retrieves and decrypts from: `pubky://{senderPubkey}/pub/paykit.app/v0/requests/{scope}/{requestId}`
      *
-     * SECURITY: Decrypts using our Noise secret key and canonical AAD.
+     * SECURITY: Decrypts using our Noise secret key with dual AAD support:
+     * 1. First attempts spec-compliant binary AAD (PUBKY_CRYPTO_SPEC v2.5)
+     * 2. Falls back to legacy string AAD for backward compatibility with older payloads
      *
      * @param requestId The unique request ID
      * @param senderPubkey The pubkey of the sender (who published the request)
@@ -515,13 +521,25 @@ class DirectoryService @Inject constructor(
 
                 val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
                 // Owner = sender (stored on their homeserver)
-                val aad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
+                val ownerPeeridBytes = z32Decode(senderPubkey)
 
+                // Try spec-compliant binary AAD first, fallback to legacy string AAD for backward compatibility
                 val plaintextBytes = try {
-                    com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
+                    com.pubky.noise.sealedBlobDecryptWithContext(
+                        myNoiseSk,
+                        envelopeJson,
+                        ownerPeeridBytes,
+                        path,
+                    )
                 } catch (e: Exception) {
-                    Logger.error("Failed to decrypt payment request $requestId", e, context = TAG)
-                    return null
+                    Logger.debug("Binary AAD decryption failed, trying legacy string AAD: ${e.message}", context = TAG)
+                    try {
+                        val legacyAad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
+                        com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
+                    } catch (legacyError: Exception) {
+                        Logger.error("Failed to decrypt payment request $requestId (both AAD formats)", legacyError, context = TAG)
+                        return null
+                    }
                 }
 
                 val requestJson = String(plaintextBytes)
@@ -853,7 +871,8 @@ class DirectoryService @Inject constructor(
      * `/pub/paykit.app/v0/subscriptions/proposals/{context_id}/{proposalId}`
      *
      * SECURITY: Proposals are encrypted using Sealed Blob v2 to subscriber's Noise public key.
-     * Uses owner-bound AAD format: `paykit:v0:subscription_proposal:{owner}:{path}:{proposalId}`
+     * Uses spec-compliant binary AAD per PUBKY_CRYPTO_SPEC v2.5:
+     * `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
      *
      * @param proposal The subscription proposal to publish
      * @param subscriberPubkey The z32 pubkey of the subscriber
@@ -889,16 +908,18 @@ class DirectoryService @Inject constructor(
         val subscriberNoiseEndpoint = discoverNoiseEndpoint(subscriberPubkey)
             ?: throw DirectoryError.EncryptionFailed("Subscriber has no Noise endpoint published")
 
-        // Encrypt proposal using Sealed Blob v2 with owner-bound AAD
+        // Encrypt proposal using Sealed Blob v2 with spec-compliant binary AAD
+        // Per PUBKY_CRYPTO_SPEC: AAD = "pubky-envelope/v2:" || owner_peerid_bytes || canonical_path_bytes || header_bytes
         val plaintextBytes = proposalJson.toString().toByteArray(Charsets.UTF_8)
         val subscriberNoisePkBytes = PubkyRingBridge.hexStringToByteArray(subscriberNoiseEndpoint.serverNoisePubkey)
-        val aad = PaykitV0Protocol.subscriptionProposalAad(myPubkey, myPubkey, subscriberPubkey, proposal.id)
+        val ownerPeeridBytes = z32Decode(myPubkey)
 
         val encryptedEnvelope = try {
-            com.pubky.noise.sealedBlobEncrypt(
+            com.pubky.noise.sealedBlobEncryptWithContext(
                 subscriberNoisePkBytes,
                 plaintextBytes,
-                aad,
+                ownerPeeridBytes,
+                proposalPath,
                 PaykitV0Protocol.PURPOSE_SUBSCRIPTION_PROPOSAL,
             )
         } catch (e: Exception) {
@@ -1008,15 +1029,16 @@ class DirectoryService @Inject constructor(
         }
 
         val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-        // Sealed Blob v2: AAD includes owner (sender stores on their homeserver)
-        val aad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
+        val ownerPeeridBytes = z32Decode(senderPubkey)
+        val path = PaykitV0Protocol.paymentRequestPath(senderPubkey, recipientPubkey, requestId)
+        val legacyAad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
 
         // Detailed logging for debugging decryption issues
         Logger.info("Decrypting request $requestId:", context = TAG)
         Logger.info("  - recipientPubkey: ${recipientPubkey.take(12)}...", context = TAG)
         Logger.info("  - myNoisePk (first 16 hex): ${noiseKeypair.publicKey.take(32)}...", context = TAG)
         Logger.info("  - epoch: 0", context = TAG)
-        Logger.info("  - AAD: $aad", context = TAG)
+        Logger.info("  - path: $path", context = TAG)
 
         // Check if our local key matches the published endpoint (key sync issue detection)
         val publishedEndpoint = try {
@@ -1034,7 +1056,13 @@ class DirectoryService @Inject constructor(
         }
 
         return try {
-            val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
+            // Try spec-compliant binary AAD first, fallback to legacy string AAD
+            val plaintextBytes = try {
+                com.pubky.noise.sealedBlobDecryptWithContext(myNoiseSk, envelopeJson, ownerPeeridBytes, path)
+            } catch (e: Exception) {
+                Logger.debug("Binary AAD decryption failed, trying legacy: ${e.message}", context = TAG)
+                com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
+            }
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 
@@ -1084,15 +1112,22 @@ class DirectoryService @Inject constructor(
         }
 
         val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-        // Sealed Blob v2: AAD includes owner (provider stores on their homeserver)
-        val aad = PaykitV0Protocol.subscriptionProposalAad(providerPubkey, providerPubkey, subscriberPubkey, proposalId)
+        val ownerPeeridBytes = z32Decode(providerPubkey)
+        val proposalPath = PaykitV0Protocol.subscriptionProposalPath(providerPubkey, subscriberPubkey, proposalId)
+        val legacyAad = PaykitV0Protocol.subscriptionProposalAad(providerPubkey, providerPubkey, subscriberPubkey, proposalId)
         Logger.debug(
             "Decryption attempt for $proposalId: sk.len=${noiseKeypair.secretKey.length}, bytes.len=${myNoiseSk.size}, myNoisePk=${noiseKeypair.publicKey}",
             context = TAG
         )
 
         return try {
-            val plaintextBytes = com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, aad)
+            // Try spec-compliant binary AAD first, fallback to legacy string AAD
+            val plaintextBytes = try {
+                com.pubky.noise.sealedBlobDecryptWithContext(myNoiseSk, envelopeJson, ownerPeeridBytes, proposalPath)
+            } catch (e: Exception) {
+                Logger.debug("Binary AAD decryption failed, trying legacy: ${e.message}", context = TAG)
+                com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
+            }
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 

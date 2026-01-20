@@ -28,12 +28,12 @@ Used when Bitkit and Ring are on the same mobile device.
 1. Bitkit generates ephemeral X25519 keypair
 2. Bitkit sends `pubkyring://paykit-connect?deviceId=...&callback=...&ephemeralPk=<hex>`
 3. Ring signs in, derives session + noise keys + noise_seed
-4. Ring encrypts payload using `sealedBlobEncrypt(ephemeralPk, payload, aad, "handoff")`
+4. Ring encrypts payload using `sealedBlobEncryptWithContext(ephemeralPk, payload, ownerPeerid, storagePath, "handoff")`
 5. Ring stores encrypted envelope on homeserver
 6. Ring calls back: `bitkit://paykit-setup?pubky=...&request_id=...&mode=secure_handoff`
-7. Bitkit fetches, decrypts with ephemeral secret key, persists, deletes blob
+7. Bitkit fetches, decrypts with `sealedBlobDecryptWithContext`, persists, deletes blob
 
-**AAD Format (Paykit v0)**: `paykit:v0:handoff:{pubky}:{storagePath}:{requestId}`
+**AAD Format (PUBKY_CRYPTO_SPEC v2.5)**: Binary AAD constructed as `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
 
 ### Variant B: Cross-Device Secure Relay (pubkyauth)
 
@@ -63,12 +63,14 @@ Used when Bitkit wants full Paykit setup (session + noise keys + noise_seed) via
 1. Bitkit generates ephemeral X25519 keypair
 2. Bitkit displays QR: `https://pubky.app/auth?request_id=...&ephemeralPk=...&relay_url=...`
 3. Ring/web scans QR, signs in, derives session + noise keys + noise_seed
-4. Ring encrypts payload using `sealedBlobEncrypt(ephemeralPk, payload, aad, "handoff")`
+4. Ring encrypts payload using `sealedBlobEncryptWithContext(ephemeralPk, payload, ownerPeerid, storagePath, "handoff")`
 5. Ring PUTs encrypted envelope to `{relay_url}/{request_id}`
 6. Bitkit polls relay, receives encrypted blob
-7. Bitkit decrypts with ephemeral secret key, persists, zeroizes ephemeral key
+7. Bitkit decrypts with `sealedBlobDecryptWithContext`, persists, zeroizes ephemeral key
 
-**AAD Format (Paykit v0)**: `paykit:v0:relay:session:{requestId}`
+**AAD Format (PUBKY_CRYPTO_SPEC v2.5)**: Binary AAD constructed as `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
+
+> **Note**: Handoff decryption uses binary AAD only. There is no fallback to legacy string AAD for handoff payloads. Plaintext payloads are explicitly rejected.
 
 **SECURITY**: The relay only stores encrypted blobs. Bitkit rejects plaintext responses.
 
@@ -88,10 +90,12 @@ Used when Bitkit wants full Paykit setup (session + noise keys + noise_seed) via
     { "epoch": 1, "public_key": "...", "secret_key": "..." }
   ],
   "noise_seed": "...",
-  "created_at": 1735830000000,
-  "expires_at": 1735830300000
+  "created_at": 1735830000,
+  "expires_at": 1735830300
 }
 ```
+
+> **Note**: Timestamps are **Unix seconds** (10-digit integers), not milliseconds. Ring sends timestamps in seconds, and Bitkit validates expiration using `System.currentTimeMillis() / 1000`.
 
 ### Sealed Blob v2 Envelope (stored)
 

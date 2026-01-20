@@ -60,13 +60,16 @@ The central coordinator for Paykit functionality.
 ```kotlin
 @Singleton
 class PaykitManager @Inject constructor(
-    private val lightningRepo: LightningRepo
+    @ApplicationContext private val appContext: Context,
+    private val pubkyRingBridge: PubkyRingBridge,
+    private val pubkySDKService: PubkySDKService,
+    private val directoryService: DirectoryService,
 ) {
-    var isReady: Boolean
-    var sessionState: SessionState
+    val isReady: Boolean
     
-    fun setup()
-    fun getSession(): PubkySession?
+    suspend fun setup()
+    fun hasPaykitSession(): Boolean
+    suspend fun getPubky(): String?
 }
 ```
 

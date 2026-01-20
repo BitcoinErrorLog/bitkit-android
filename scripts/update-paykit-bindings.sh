@@ -75,6 +75,7 @@ echo "Step 4: Checking for Android libraries..."
 
 ANDROID_TARGETS=(
     "aarch64-linux-android:arm64-v8a"
+    "armv7-linux-androideabi:armeabi-v7a"
     "x86_64-linux-android:x86_64"
 )
 

@@ -199,5 +199,175 @@ class SealedBlobRoundTripTest {
             println("Skipping crypto test: pubky-noise not available")
         }
     }
+
+    // ===== Binary AAD (WithContext) Tests per PUBKY_CRYPTO_SPEC v2.5 =====
+
+    @Test
+    fun `sealedBlobEncryptWithContext and sealedBlobDecryptWithContext round trip`() {
+        try {
+            // Generate recipient keypair
+            val secretKey = ByteArray(32) { (it + 1).toByte() }
+            val publicKey = com.pubky.noise.publicKeyFromSecret(secretKey)
+
+            // Test data with spec-compliant binary AAD parameters
+            val plaintext = """{"amount_sats":5000,"memo":"test payment request"}""".toByteArray()
+            val ownerPeeridBytes = ByteArray(32) { (it + 10).toByte() } // 32-byte owner peer ID
+            val canonicalPath = "/pub/paykit.app/v0/requests/ctx123/req456"
+            val purpose = "request"
+
+            // Encrypt using WithContext (binary AAD)
+            val envelope = com.pubky.noise.sealedBlobEncryptWithContext(
+                publicKey,
+                plaintext,
+                ownerPeeridBytes,
+                canonicalPath,
+                purpose,
+            )
+            assertNotNull(envelope, "Encryption should produce envelope")
+            assertTrue(envelope.isNotEmpty(), "Envelope should not be empty")
+            assertTrue(com.pubky.noise.isSealedBlob(envelope), "Envelope should be valid sealed blob")
+
+            // Decrypt using WithContext (binary AAD)
+            val decrypted = com.pubky.noise.sealedBlobDecryptWithContext(
+                secretKey,
+                envelope,
+                ownerPeeridBytes,
+                canonicalPath,
+            )
+            assertNotNull(decrypted, "Decryption should succeed")
+            assertTrue(
+                plaintext.contentEquals(decrypted),
+                "Decrypted content should match original",
+            )
+        } catch (e: UnsatisfiedLinkError) {
+            println("Skipping crypto test: native library not loaded")
+        } catch (e: NoClassDefFoundError) {
+            println("Skipping crypto test: pubky-noise not available")
+        }
+    }
+
+    @Test
+    fun `sealedBlobDecryptWithContext fails with wrong owner peerid`() {
+        try {
+            val secretKey = ByteArray(32) { (it + 1).toByte() }
+            val publicKey = com.pubky.noise.publicKeyFromSecret(secretKey)
+
+            val plaintext = "test payload".toByteArray()
+            val correctOwnerPeeridBytes = ByteArray(32) { (it + 10).toByte() }
+            val wrongOwnerPeeridBytes = ByteArray(32) { (it + 20).toByte() } // Different owner
+            val canonicalPath = "/pub/paykit.app/v0/handoff/abc123"
+
+            // Encrypt with correct owner
+            val envelope = com.pubky.noise.sealedBlobEncryptWithContext(
+                publicKey,
+                plaintext,
+                correctOwnerPeeridBytes,
+                canonicalPath,
+                "handoff",
+            )
+
+            // Decrypt with wrong owner should fail (AAD mismatch)
+            assertFails("Decryption with wrong owner peerid should fail") {
+                com.pubky.noise.sealedBlobDecryptWithContext(
+                    secretKey,
+                    envelope,
+                    wrongOwnerPeeridBytes,
+                    canonicalPath,
+                )
+            }
+        } catch (e: UnsatisfiedLinkError) {
+            println("Skipping crypto test: native library not loaded")
+        } catch (e: NoClassDefFoundError) {
+            println("Skipping crypto test: pubky-noise not available")
+        }
+    }
+
+    @Test
+    fun `sealedBlobDecryptWithContext fails with wrong path`() {
+        try {
+            val secretKey = ByteArray(32) { (it + 1).toByte() }
+            val publicKey = com.pubky.noise.publicKeyFromSecret(secretKey)
+
+            val plaintext = "test payload".toByteArray()
+            val ownerPeeridBytes = ByteArray(32) { (it + 10).toByte() }
+            val correctPath = "/pub/paykit.app/v0/subscriptions/proposals/ctx/prop123"
+            val wrongPath = "/pub/paykit.app/v0/subscriptions/proposals/ctx/prop999" // Different path
+
+            // Encrypt with correct path
+            val envelope = com.pubky.noise.sealedBlobEncryptWithContext(
+                publicKey,
+                plaintext,
+                ownerPeeridBytes,
+                correctPath,
+                "proposal",
+            )
+
+            // Decrypt with wrong path should fail (AAD mismatch)
+            assertFails("Decryption with wrong path should fail") {
+                com.pubky.noise.sealedBlobDecryptWithContext(
+                    secretKey,
+                    envelope,
+                    ownerPeeridBytes,
+                    wrongPath,
+                )
+            }
+        } catch (e: UnsatisfiedLinkError) {
+            println("Skipping crypto test: native library not loaded")
+        } catch (e: NoClassDefFoundError) {
+            println("Skipping crypto test: pubky-noise not available")
+        }
+    }
+
+    @Test
+    fun `binary AAD vs string AAD are not interchangeable`() {
+        try {
+            val secretKey = ByteArray(32) { (it + 1).toByte() }
+            val publicKey = com.pubky.noise.publicKeyFromSecret(secretKey)
+
+            val plaintext = "test data".toByteArray()
+            val ownerPeeridBytes = ByteArray(32) { (it + 10).toByte() }
+            val canonicalPath = "/pub/paykit.app/v0/requests/ctx123/req456"
+
+            // Encrypt with binary AAD (WithContext)
+            val binaryAadEnvelope = com.pubky.noise.sealedBlobEncryptWithContext(
+                publicKey,
+                plaintext,
+                ownerPeeridBytes,
+                canonicalPath,
+                "request",
+            )
+
+            // Encrypt with string AAD (legacy)
+            val legacyAad = "paykit:v0:request:owner:$canonicalPath:req456"
+            val stringAadEnvelope = com.pubky.noise.sealedBlobEncrypt(
+                publicKey,
+                plaintext,
+                legacyAad,
+                "request",
+            )
+
+            // Verify both produce valid sealed blobs
+            assertTrue(com.pubky.noise.isSealedBlob(binaryAadEnvelope))
+            assertTrue(com.pubky.noise.isSealedBlob(stringAadEnvelope))
+
+            // Cross-decryption should fail (AAD mismatch)
+            assertFails("Binary AAD envelope should not decrypt with string AAD") {
+                com.pubky.noise.sealedBlobDecrypt(secretKey, binaryAadEnvelope, legacyAad)
+            }
+
+            assertFails("String AAD envelope should not decrypt with binary AAD") {
+                com.pubky.noise.sealedBlobDecryptWithContext(
+                    secretKey,
+                    stringAadEnvelope,
+                    ownerPeeridBytes,
+                    canonicalPath,
+                )
+            }
+        } catch (e: UnsatisfiedLinkError) {
+            println("Skipping crypto test: native library not loaded")
+        } catch (e: NoClassDefFoundError) {
+            println("Skipping crypto test: pubky-noise not available")
+        }
+    }
 }
 

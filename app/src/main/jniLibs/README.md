@@ -44,6 +44,10 @@ Then copy the generated .so files to the appropriate ABI directories here.
 ## Supported ABIs
 
 - `arm64-v8a` - ARM 64-bit (most modern devices)
-- `x86_64` - x86 64-bit (emulators)
-- `armeabi-v7a` - ARM 32-bit (older devices, not currently built)
+- `armeabi-v7a` - ARM 32-bit (older devices)
+- `x86_64` - x86 64-bit (emulators, debug builds only)
+
+## Unsupported ABIs
+
+- `x86` - x86 32-bit is **not supported**. The x86 emulator market share is negligible, and x86_64 covers emulator use cases.
 
