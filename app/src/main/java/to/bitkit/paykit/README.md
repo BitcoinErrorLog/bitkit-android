@@ -65,12 +65,17 @@ Add native libraries to `app/src/main/jniLibs/`:
 ```
 jniLibs/
 ├── arm64-v8a/
-│   └── libpaykit_mobile.so
+│   ├── libpaykit_mobile.so
+│   └── libpubky_noise.so
 ├── armeabi-v7a/
-│   └── libpaykit_mobile.so
+│   ├── libpaykit_mobile.so
+│   └── libpubky_noise.so
 └── x86_64/
-    └── libpaykit_mobile.so
+    ├── libpaykit_mobile.so
+    └── libpubky_noise.so
 ```
+
+Note: Both PaykitMobile and Pubky Noise native libraries are required.
 
 ### Initialization
 
@@ -309,8 +314,11 @@ Ensure `PaykitIntegrationHelper.setup(lightningRepo)` is called during app start
 If using R8/ProGuard, add these rules:
 
 ```proguard
-# Paykit Mobile
+# Paykit Mobile FFI
 -keep class com.paykit.mobile.** { *; }
+# Pubky Noise FFI (sealed blob encryption, key derivation)
+-keep class com.pubky.noise.** { *; }
+# UniFFI runtime
 -keep class uniffi.** { *; }
 ```
 

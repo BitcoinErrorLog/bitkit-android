@@ -2,6 +2,8 @@ package to.bitkit.paykit.services
 
 import com.pubky.noise.sealedBlobEncryptSigned
 import com.pubky.noise.sealedBlobVerifySignature
+import com.pubky.noise.sb2Sign
+import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,10 +15,16 @@ import javax.inject.Singleton
  * - `sender`: The sender's PKARR pubkey in z-base-32
  * - `sig`: Ed25519 signature over envelope contents
  *
+ * Supports two signing modes:
+ * 1. Direct signing with owner's Ed25519 key
+ * 2. Delegated signing with AppKey (includes cert_id in SB2 header)
+ *
  * Signatures prove message authenticity and prevent relay attacks.
  */
 @Singleton
-class PaykitSigner @Inject constructor() {
+class PaykitSigner @Inject constructor(
+    private val keychainStorage: PaykitKeychainStorage,
+) {
     companion object {
         private const val TAG = "PaykitSigner"
         private const val PUBKEY_LOG_LEN = 12
@@ -99,4 +107,71 @@ class PaykitSigner @Inject constructor() {
             null
         }
     }
+
+    // MARK: - SB2 Binary Signing with AppKey (Delegated Signing)
+
+    /**
+     * Sign an SB2 envelope using AppKey for delegated signing.
+     *
+     * Per PUBKY_UNIFIED_KEY_DELEGATION_SPEC, delegated signatures include:
+     * - cert_id: The AppCert ID in the SB2 header (set during encryption)
+     * - sig: Ed25519 signature from the AppKey
+     *
+     * @param sb2EnvelopeBytes Raw SB2 binary envelope
+     * @param ownerPeeridHex Owner's Ed25519 public key (hex)
+     * @param canonicalPath Path for AAD binding
+     * @return Signed SB2 envelope bytes
+     * @throws AppKeyNotAvailableException if AppKey is not configured
+     */
+    fun signWithAppKey(
+        sb2EnvelopeBytes: ByteArray,
+        ownerPeeridHex: String,
+        canonicalPath: String,
+    ): ByteArray {
+        val appSk = keychainStorage.getAppSecretKey()
+            ?: throw AppKeyNotAvailableException()
+        val certId = keychainStorage.getAppCertId()
+            ?: throw AppKeyNotAvailableException()
+
+        Logger.debug(
+            "Signing SB2 with AppKey (cert_id=${certId.take(PUBKEY_LOG_LEN)}...)",
+            context = TAG,
+        )
+
+        val appSkBytes = hexStringToByteArray(appSk)
+        val ownerPeeridBytes = hexStringToByteArray(ownerPeeridHex)
+
+        return sb2Sign(sb2EnvelopeBytes, appSkBytes, ownerPeeridBytes, canonicalPath)
+    }
+
+    /**
+     * Check if AppKey is available for delegated signing.
+     */
+    fun hasAppKey(): Boolean {
+        return keychainStorage.hasAppKey()
+    }
+
+    /**
+     * Get the AppCert ID if available (for embedding in SB2 headers during encryption).
+     */
+    fun getAppCertIdHex(): String? {
+        return keychainStorage.getAppCertId()
+    }
+
+    /**
+     * Get the AppCert ID as bytes (for SB2 encryption cert_id parameter).
+     */
+    fun getAppCertIdBytes(): ByteArray? {
+        val certIdHex = keychainStorage.getAppCertId() ?: return null
+        return hexStringToByteArray(certIdHex)
+    }
+
+    private fun hexStringToByteArray(hex: String): ByteArray {
+        return hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    }
 }
+
+/**
+ * Exception thrown when AppKey is not available for delegated signing.
+ */
+class AppKeyNotAvailableException : Exception("AppKey not configured. Complete handoff from Ring first.")

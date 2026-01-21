@@ -1,7 +1,11 @@
 package to.bitkit.paykit.services
 
+import com.pubky.noise.FfiAppKeyEntry
+import com.pubky.noise.FfiInboxKeyEntry
 import com.pubky.noise.FfiKeyBinding
+import com.pubky.noise.FfiTransportKeyEntry
 import com.pubky.noise.keybindingDecode
+import org.json.JSONObject
 import to.bitkit.utils.Logger
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -132,28 +136,105 @@ class KeyBindingService @Inject constructor(
     }
 
     /**
-     * Fetch KeyBinding from PKARR for the given peer.
+     * Fetch KeyBinding from homeserver for the given peer.
      *
-     * NOTE: This is a placeholder implementation. The actual PKARR resolution
-     * depends on how Pubky SDK exposes PKARR queries. This may need to be
-     * updated once the PKARR resolution API is available.
+     * Attempts to parse both JSON (from pubky-ring handoff) and CBOR formats.
      */
-    @Suppress("ForbiddenComment")
     private suspend fun fetchKeyBindingFromPkarr(peerPubkeyZ32: String): FfiKeyBinding? {
-        // NOTE: Homeserver fallback until PKARR DNS-over-HTTPS query is exposed by Pubky SDK.
-        // Real implementation: resolve peer's PKARR TXT record → extract CBOR → keybindingDecode()
         try {
             val adapter = pubkyStorageAdapter.createUnauthenticatedAdapter(null)
             val path = "/pub/paykit.app/v0/keybinding"
-            val cborBytes = pubkyStorageAdapter.retrieve(path, adapter, peerPubkeyZ32)
+            val bytes = pubkyStorageAdapter.retrieve(path, adapter, peerPubkeyZ32)
 
-            if (cborBytes != null && cborBytes.isNotEmpty()) {
-                return keybindingDecode(cborBytes)
+            if (bytes == null || bytes.isEmpty()) {
+                return null
             }
+
+            // Try JSON first (from pubky-ring handoff which stores JSON)
+            val jsonKeyBinding = tryParseJsonKeyBinding(bytes)
+            if (jsonKeyBinding != null) {
+                return jsonKeyBinding
+            }
+
+            // Fall back to CBOR (future-proof for PKARR-native KeyBinding)
+            return keybindingDecode(bytes)
         } catch (e: Exception) {
-            Logger.warn("PKARR/homeserver KeyBinding fetch failed: ${e.message}", e, context = TAG)
+            Logger.warn("KeyBinding fetch failed for ${peerPubkeyZ32.take(PUBKEY_LOG_LEN)}...: ${e.message}", e, context = TAG)
         }
 
         return null
+    }
+
+    /**
+     * Try to parse KeyBinding from JSON format (stored by pubky-ring).
+     *
+     * Expected JSON structure:
+     * {
+     *   "inbox_keys": [{"inbox_kid": "hex", "x25519_pub": "hex"}],
+     *   "transport_keys": [{"x25519_pub": "hex"}],
+     *   "app_keys": [{"cert_id": "hex", "ed25519_pub": "hex"}]
+     * }
+     */
+    private fun tryParseJsonKeyBinding(bytes: ByteArray): FfiKeyBinding? {
+        return try {
+            val jsonStr = String(bytes, Charsets.UTF_8)
+            // Quick check if it looks like JSON
+            if (!jsonStr.trimStart().startsWith("{")) {
+                return null
+            }
+
+            val json = JSONObject(jsonStr)
+
+            // Parse inbox_keys
+            val inboxKeys = mutableListOf<FfiInboxKeyEntry>()
+            val inboxKeysArray = json.optJSONArray("inbox_keys")
+            if (inboxKeysArray != null) {
+                for (i in 0 until inboxKeysArray.length()) {
+                    val entry = inboxKeysArray.getJSONObject(i)
+                    inboxKeys.add(
+                        FfiInboxKeyEntry(
+                            inboxKidHex = entry.getString("inbox_kid"),
+                            x25519PubHex = entry.getString("x25519_pub"),
+                        ),
+                    )
+                }
+            }
+
+            // Parse transport_keys
+            val transportKeys = mutableListOf<FfiTransportKeyEntry>()
+            val transportKeysArray = json.optJSONArray("transport_keys")
+            if (transportKeysArray != null) {
+                for (i in 0 until transportKeysArray.length()) {
+                    val entry = transportKeysArray.getJSONObject(i)
+                    transportKeys.add(
+                        FfiTransportKeyEntry(x25519PubHex = entry.getString("x25519_pub")),
+                    )
+                }
+            }
+
+            // Parse app_keys (optional)
+            val appKeys = mutableListOf<FfiAppKeyEntry>()
+            val appKeysArray = json.optJSONArray("app_keys")
+            if (appKeysArray != null) {
+                for (i in 0 until appKeysArray.length()) {
+                    val entry = appKeysArray.getJSONObject(i)
+                    appKeys.add(
+                        FfiAppKeyEntry(
+                            certIdHex = entry.getString("cert_id"),
+                            ed25519PubHex = entry.getString("ed25519_pub"),
+                        ),
+                    )
+                }
+            }
+
+            FfiKeyBinding(
+                inboxKeys = inboxKeys,
+                transportKeys = transportKeys,
+                appKeys = if (appKeys.isNotEmpty()) appKeys else null,
+            )
+        } catch (e: Exception) {
+            // Not JSON or parsing failed, return null to try CBOR
+            null
+        }
     }
 }

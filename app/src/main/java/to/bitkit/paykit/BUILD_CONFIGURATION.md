@@ -37,23 +37,29 @@ ndk.dir=/Users/YOU/Library/Android/sdk/ndk/25.2.9519653
    │   └── libpaykit_mobile.so
    ├── armeabi-v7a/
    │   └── libpaykit_mobile.so
-   ├── x86_64/
-   │   └── libpaykit_mobile.so
-   └── x86/
+   └── x86_64/
        └── libpaykit_mobile.so
    ```
+   
+   Note: x86 (32-bit) is not built by default as most emulators now support x86_64.
 
 ## Step 3: Add Kotlin Bindings
 
 1. Copy generated Kotlin bindings:
    ```bash
+   # For paykit-mobile (if using)
    cp paykit-rs/paykit-mobile/kotlin/generated/com/paykit/mobile/paykit_mobile.kt \
      bitkit-android/app/src/main/java/com/paykit/mobile/
+   
+   # For pubky-noise (required for sealed blob encryption)
+   cp pubky-noise/generated-kotlin/uniffi/pubky_noise/pubky_noise.kt \
+     bitkit-android/app/src/main/java/com/pubky/noise/
    ```
 
-2. Verify import in PaykitManager:
+2. Verify imports in PaykitManager:
    ```kotlin
-   import com.paykit.mobile.*
+   import com.paykit.mobile.*  // PaykitMobile FFI (payment executors)
+   import com.pubky.noise.*   // Pubky Noise FFI (encryption, key derivation)
    ```
 
 ## Step 4: Configure build.gradle.kts
@@ -64,7 +70,7 @@ Add NDK configuration:
 android {
     defaultConfig {
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
     }
 
@@ -108,8 +114,9 @@ Add to `proguard-rules.pro`:
 - Check that library exists for target architecture
 
 ### Import Errors
-- Verify Kotlin bindings are in correct package
-- Check package name: `com.paykit.mobile`
+- Verify Kotlin bindings are in correct package paths:
+  - `com.paykit.mobile` for PaykitMobile FFI
+  - `com.pubky.noise` for Pubky Noise FFI
 
 ## Verification Checklist
 

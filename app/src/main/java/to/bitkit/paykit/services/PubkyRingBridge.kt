@@ -854,6 +854,7 @@ class PubkyRingBridge @Inject constructor(
                         val setupResult = secureHandoffHandler.fetchAndProcessPayload(
                             pubkey = ref.pubkey,
                             requestId = ref.requestId,
+                            homeserver = ref.homeserver,
                             scope = scope,
                             onSessionPersisted = { session ->
                                 sessionCache[session.pubkey] = session

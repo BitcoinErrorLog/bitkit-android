@@ -648,7 +648,8 @@ class CreateProfileViewModel @Inject constructor(
         private const val KEY_SECRET = "pubky.identity.secret"
         private const val KEY_PUBLIC = "pubky.identity.public"
         private const val KEY_SESSION_SECRET = "pubky.session.secret"
-        private const val KEY_DEVICE_ID = "pubky.paykit.deviceId" // Device ID for noise key derivation
+        /** Unified device ID key - MUST match KeyManager and PubkyRingBridge for consistency */
+        private const val KEY_DEVICE_ID = "paykit.device_id"
         private const val KEY_HOMESERVER_URL = "pubky.homeserver.url" // Homeserver URL for the session
         private const val KEY_PROFILE_NAME = "profile.name"
         private const val KEY_PROFILE_BIO = "profile.bio"
@@ -797,8 +798,8 @@ class CreateProfileViewModel @Inject constructor(
                 // Import the session into PubkySDK using the session token
                 pubkySDKService.importSession(setupResult.session.pubkey, setupResult.session.sessionSecret)
 
-                // Store the homeserver URL (use default if not provided by Ring)
-                val homeserverUrl = "https://homeserver.pubky.app"
+                // Store the homeserver URL from Ring callback (fallback to default if not provided)
+                val homeserverUrl = setupResult.homeserver ?: "https://homeserver.pubky.app"
                 keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl)
 
                 // Configure DirectoryService for authenticated writes to homeserver

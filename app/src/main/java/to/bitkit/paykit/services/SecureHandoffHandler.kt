@@ -74,7 +74,7 @@ class SecureHandoffHandler @Inject constructor(
 
         validatePayload(payload)
         val result = buildSetupResultFromPayload(payload, homeserver)
-        cacheAndPersistResult(result, payload.deviceId, scope, onSessionPersisted)
+        cacheAndPersistResult(result, payload, payload.deviceId, scope, onSessionPersisted)
         schedulePayloadDeletion(result.session, requestId, scope)
 
         // Verify Ring published the Noise endpoint, or publish it ourselves as fallback
@@ -99,9 +99,16 @@ class SecureHandoffHandler @Inject constructor(
         }
 
         val payloadJson = result[1]
+        val canonicalPath = "/pub/paykit.app/v0/handoff/$requestId"
 
         // DEBUG: Log the first 200 chars of payload to diagnose format issues
         Logger.debug("Payload received (${payloadJson.length} chars): ${payloadJson.take(200)}", context = TAG)
+
+        // Check for SB2 binary wrapper: {"sb2": base64, ...}
+        if (payloadJson.contains("\"sb2\"")) {
+            Logger.debug("Detected SB2 binary wrapper format", context = TAG)
+            return decryptSb2Envelope(payloadJson, pubkey, canonicalPath, ephemeralSecretKey)
+        }
 
         // SECURITY: Require encrypted sealed blob - no plaintext fallback
         if (!com.pubky.noise.isSealedBlob(payloadJson)) {
@@ -114,8 +121,55 @@ class SecureHandoffHandler @Inject constructor(
             throw PubkyRingException.InvalidCallback
         }
 
-        Logger.debug("Detected encrypted sealed blob envelope", context = TAG)
+        Logger.debug("Detected JSON sealed blob envelope", context = TAG)
         return decryptHandoffEnvelope(payloadJson, pubkey, requestId, ephemeralSecretKey)
+    }
+
+    private fun decryptSb2Envelope(
+        wrapperJson: String,
+        pubkey: String,
+        canonicalPath: String,
+        ephemeralSecretKey: String?,
+    ): SecureHandoffPayload {
+        if (ephemeralSecretKey == null) {
+            Logger.error("Ephemeral key required for SB2 decryption but not found", context = TAG)
+            throw PubkyRingException.MissingEphemeralKey
+        }
+
+        try {
+            // Parse the wrapper JSON to extract base64-encoded SB2 bytes
+            val wrapperObj = org.json.JSONObject(wrapperJson)
+            val sb2Base64 = wrapperObj.getString("sb2")
+            val sb2Bytes = android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP)
+
+            // Verify it's a valid SB2 envelope
+            if (!com.pubky.noise.sb2IsSb2(sb2Bytes)) {
+                Logger.error("Invalid SB2 envelope in wrapper", context = TAG)
+                throw PubkyRingException.InvalidCallback
+            }
+
+            // Decrypt SB2 using ephemeral secret key as InboxKey
+            val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
+            val ownerPeeridBytes = z32Decode(pubkey)
+
+            val decryptResult = com.pubky.noise.sb2Decrypt(
+                sb2Bytes,
+                secretKeyBytes,
+                ownerPeeridBytes,
+                canonicalPath,
+            )
+
+            // Decode decrypted JSON
+            val plaintextJson = decryptResult.plaintext.toString(Charsets.UTF_8)
+            val payload = json.decodeFromString<SecureHandoffPayload>(plaintextJson)
+            Logger.info("Successfully decrypted SB2 handoff payload v${payload.version}", context = TAG)
+            return payload
+        } catch (e: PubkyRingException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.error("SB2 decryption failed: ${e.message}", e, context = TAG)
+            throw PubkyRingException.DecryptionFailed(e.message ?: "Unknown error")
+        }
     }
 
     private fun decryptHandoffEnvelope(
@@ -166,14 +220,16 @@ class SecureHandoffHandler @Inject constructor(
 
 
     private fun validatePayload(payload: SecureHandoffPayload) {
-        // Validate payload version (MUST be v2 per PUBKY_CRYPTO_SPEC)
-        if (payload.version != 2) {
+        // Validate payload version (MUST be v2 or v3 per PUBKY_CRYPTO_SPEC)
+        // v2: Basic handoff with noise keypairs
+        // v3: Adds InboxKey for SB2 stored delivery and AppKey for delegated signing
+        if (payload.version !in listOf(2, 3)) {
             Logger.error(
-                "Unsupported handoff version: expected 2, got ${payload.version}",
+                "Unsupported handoff version: expected 2 or 3, got ${payload.version}",
                 context = TAG,
             )
             throw PubkyRingException.InvalidVersion(
-                "Unsupported handoff version. Expected v2, got v${payload.version}. Please update Pubky Ring."
+                "Unsupported handoff version. Expected v2 or v3, got v${payload.version}. Please update Pubky Ring."
             )
         }
 
@@ -232,6 +288,7 @@ class SecureHandoffHandler @Inject constructor(
 
     private suspend fun cacheAndPersistResult(
         result: PaykitSetupResult,
+        payload: SecureHandoffPayload,
         deviceId: String,
         scope: CoroutineScope,
         onSessionPersisted: suspend (PubkySession) -> Unit,
@@ -252,6 +309,40 @@ class SecureHandoffHandler @Inject constructor(
         // Persist noise seed for future epoch derivation
         result.noiseSeed?.let { seed ->
             persistNoiseSeed(seed, deviceId)
+        }
+
+        // Persist InboxKey for SB2 stored delivery (v3+)
+        payload.inboxKeypair?.let { inboxKp ->
+            persistInboxKeypair(inboxKp)
+        }
+
+        // Persist AppKey for delegated signing (v3+)
+        payload.appKey?.let { appKey ->
+            persistAppKey(appKey)
+        }
+    }
+
+    private suspend fun persistInboxKeypair(inboxKeypair: InboxKeypairPayload) {
+        try {
+            keychainStorage.storeInboxKeypair(inboxKeypair.publicKey, inboxKeypair.secretKey)
+            Logger.info("Persisted InboxKey from handoff", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to persist InboxKey: ${e.message}", e, context = TAG)
+        }
+    }
+
+    private suspend fun persistAppKey(appKey: AppKeyPayload) {
+        try {
+            keychainStorage.storeAppKey(
+                ed25519Sk = appKey.ed25519Sk,
+                ed25519Pk = appKey.ed25519Pk,
+                certId = appKey.certId,
+                certBody = appKey.certBody,
+                certSig = appKey.certSig,
+            )
+            Logger.info("Persisted AppKey from handoff (cert_id=${appKey.certId.take(16)}...)", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to persist AppKey: ${e.message}", e, context = TAG)
         }
     }
 
@@ -444,6 +535,12 @@ data class SecureHandoffPayload(
     /** Noise seed for local epoch derivation (so Bitkit doesn't need to re-call Ring) */
     @SerialName("noise_seed")
     val noiseSeed: String? = null,
+    /** InboxKey X25519 keypair for SB2 stored delivery (v3+) */
+    @SerialName("inbox_keypair")
+    val inboxKeypair: InboxKeypairPayload? = null,
+    /** AppKey for delegated Ed25519 signing (v3+) */
+    @SerialName("app_key")
+    val appKey: AppKeyPayload? = null,
 )
 
 @Serializable
@@ -453,4 +550,26 @@ data class NoiseKeypairPayload(
     val publicKey: String,
     @SerialName("secret_key")
     val secretKey: String,
+)
+
+@Serializable
+data class InboxKeypairPayload(
+    @SerialName("public_key")
+    val publicKey: String,
+    @SerialName("secret_key")
+    val secretKey: String,
+)
+
+@Serializable
+data class AppKeyPayload(
+    @SerialName("ed25519_sk")
+    val ed25519Sk: String,
+    @SerialName("ed25519_pk")
+    val ed25519Pk: String,
+    @SerialName("cert_id")
+    val certId: String,
+    @SerialName("cert_body")
+    val certBody: String,
+    @SerialName("cert_sig")
+    val certSig: String,
 )

@@ -121,7 +121,14 @@ data class PaymentRequest(
     val invoiceNumber: String? = null,
     /** ID of the receipt that fulfilled this request (if paid) */
     @SerialName("receipt_id")
-    var receiptId: String? = null
+    var receiptId: String? = null,
+    /**
+     * The ContextId used for storage path (64 hex chars).
+     * Per Paykit v0.4, new threads use random contextId.
+     * This field is not serialized in the encrypted payload, only tracked locally.
+     */
+    @kotlinx.serialization.Transient
+    var contextId: String? = null,
 ) {
     val counterpartyName: String
         get() {

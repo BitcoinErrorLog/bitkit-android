@@ -100,6 +100,7 @@ class DirectoryService @Inject constructor(
     private val pubkySDKService: PubkySDKService,
     private val pubkyRingBridge: PubkyRingBridge,
     private val keychainStorage: PaykitKeychainStorage,
+    private val keyBindingService: KeyBindingService,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
@@ -415,13 +416,15 @@ class DirectoryService @Inject constructor(
      * `/pub/paykit.app/v0/requests/{context_id}/{requestId}`
      * on the sender's homeserver so the recipient can poll contacts to fetch it.
      *
-     * SECURITY: Requests are encrypted using Sealed Blob v2 to recipient's Noise public key.
-     * Uses spec-compliant binary AAD per PUBKY_CRYPTO_SPEC v2.5:
-     * `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
+     * Per Paykit v0.4, new threads MUST use random ContextId (not pair-derived).
+     * The contextId is set on the request object for local tracking.
      *
-     * @param request The payment request to publish
+     * SECURITY: Uses SB2 Binary Wire Format encrypted to recipient's InboxKey.
+     * Falls back to JSON Sealed Blob with TransportKey for backward compatibility.
+     *
+     * @param request The payment request to publish (contextId will be set on it)
      * @param recipientPubkey The pubkey of the recipient (who should process the request)
-     * @throws DirectoryError.EncryptionFailed if encryption fails (e.g., recipient has no Noise endpoint)
+     * @throws DirectoryError.EncryptionFailed if encryption fails (e.g., recipient has no keys published)
      */
     suspend fun publishPaymentRequest(
         request: to.bitkit.paykit.models.PaymentRequest,
@@ -436,24 +439,97 @@ class DirectoryService @Inject constructor(
             request
         )
 
-        // Get my pubkey (sender) for ContextId-based path
+        // Get my pubkey (sender) for owner binding in AAD
         val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
             ?: throw DirectoryError.NotConfigured
 
-        // Use canonical v0 path (ContextId-based)
-        val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, request.id)
+        // Generate random ContextId for new threads (per Paykit v0.4)
+        val contextId = PaykitV0Protocol.generateRandomContextId()
+        request.contextId = contextId
 
-        // Discover recipient's Noise endpoint to get their public key for encryption
-        val recipientNoiseEndpoint = discoverNoiseEndpoint(recipientPubkey)
-            ?: throw DirectoryError.EncryptionFailed("Recipient has no Noise endpoint published")
+        // Use canonical v0 path with random ContextId
+        val path = PaykitV0Protocol.paymentRequestPathWithContextId(contextId, request.id)
 
-        // Encrypt request using Sealed Blob v2 with spec-compliant binary AAD
-        // Per PUBKY_CRYPTO_SPEC: AAD = "pubky-envelope/v2:" || owner_peerid_bytes || canonical_path_bytes || header_bytes
         val plaintextBytes = requestJson.toByteArray(Charsets.UTF_8)
-        val recipientNoisePkBytes = PubkyRingBridge.hexStringToByteArray(recipientNoiseEndpoint.serverNoisePubkey)
         val ownerPeeridBytes = z32Decode(myPubkey)
+        val recipientPeeridBytes = z32Decode(recipientPubkey)
 
-        val encryptedEnvelope = try {
+        // Try InboxKey first (SB2 binary format), fall back to TransportKey (JSON format)
+        val inboxKey = keyBindingService.getInboxKey(recipientPubkey)
+        val encryptedContent: String
+
+        if (inboxKey != null) {
+            // Use SB2 Binary Wire Format with InboxKey (preferred)
+            val (inboxKidHex, inboxPkHex) = inboxKey
+            val inboxPkBytes = PubkyRingBridge.hexStringToByteArray(inboxPkHex)
+
+            // Get sender's identity for SB2 header
+            val senderPeeridBytes = z32Decode(myPubkey)
+            val sb2ContextId = com.pubky.noise.sb2GenerateContextId()
+            val nowSeconds = System.currentTimeMillis() / 1000
+
+            val envelopeBytes = try {
+                com.pubky.noise.sb2Encrypt(
+                    inboxPkBytes,
+                    plaintextBytes,
+                    sb2ContextId,
+                    request.id, // msgId for idempotency
+                    PaykitV0Protocol.PURPOSE_REQUEST,
+                    ownerPeeridBytes,
+                    senderPeeridBytes,
+                    recipientPeeridBytes,
+                    path,
+                    nowSeconds.toULong(),
+                    (nowSeconds + 24 * 3600).toULong(), // 24hr expiry
+                    null, // certId (no delegated signing for now)
+                )
+            } catch (e: Exception) {
+                Logger.warn("SB2 encryption failed, falling back to JSON: ${e.message}", context = TAG)
+                null
+            }
+
+            if (envelopeBytes != null) {
+                // Wrap SB2 binary as base64 in JSON for storage
+                val base64Envelope = android.util.Base64.encodeToString(envelopeBytes, android.util.Base64.NO_WRAP)
+                encryptedContent = """{"sb2":"$base64Envelope","inbox_kid":"$inboxKidHex"}"""
+                Logger.debug("Encrypted payment request with SB2 to inbox_kid=${inboxKidHex.take(16)}...", context = TAG)
+            } else {
+                // Fall back to JSON format
+                encryptedContent = encryptWithJsonFallback(recipientPubkey, plaintextBytes, ownerPeeridBytes, path)
+            }
+        } else {
+            // No InboxKey, use legacy JSON Sealed Blob with TransportKey
+            encryptedContent = encryptWithJsonFallback(recipientPubkey, plaintextBytes, ownerPeeridBytes, path)
+        }
+
+        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            adapter.put(path, encryptedContent)
+        }
+        if (!result.success) {
+            Logger.error("Failed to publish payment request ${request.id}: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.info(
+            "Published encrypted payment request: ${request.id} with contextId=${contextId.take(16)}... to $recipientPubkey",
+            context = TAG,
+        )
+    }
+
+    /**
+     * Encrypt using legacy JSON Sealed Blob format with TransportKey from Noise endpoint.
+     */
+    private suspend fun encryptWithJsonFallback(
+        recipientPubkey: String,
+        plaintextBytes: ByteArray,
+        ownerPeeridBytes: ByteArray,
+        path: String,
+    ): String {
+        val recipientNoiseEndpoint = discoverNoiseEndpoint(recipientPubkey)
+            ?: throw DirectoryError.EncryptionFailed("Recipient has no Noise endpoint or KeyBinding published")
+
+        val recipientNoisePkBytes = PubkyRingBridge.hexStringToByteArray(recipientNoiseEndpoint.serverNoisePubkey)
+
+        return try {
             com.pubky.noise.sealedBlobEncryptWithContext(
                 recipientNoisePkBytes,
                 plaintextBytes,
@@ -462,27 +538,18 @@ class DirectoryService @Inject constructor(
                 PaykitV0Protocol.PURPOSE_REQUEST,
             )
         } catch (e: Exception) {
-            Logger.error("Failed to encrypt payment request", e, context = TAG)
+            Logger.error("Failed to encrypt with JSON Sealed Blob", e, context = TAG)
             throw DirectoryError.EncryptionFailed("Encryption failed: ${e.message}")
         }
-
-        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            adapter.put(path, encryptedEnvelope)
-        }
-        if (!result.success) {
-            Logger.error("Failed to publish payment request ${request.id}: ${result.error}", context = TAG)
-            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
-        }
-        Logger.info("Published encrypted payment request: ${request.id} to $recipientPubkey", context = TAG)
     }
 
     /**
      * Fetch a payment request from a sender's Pubky storage.
      * Retrieves and decrypts from: `pubky://{senderPubkey}/pub/paykit.app/v0/requests/{scope}/{requestId}`
      *
-     * SECURITY: Decrypts using our Noise secret key with dual AAD support:
-     * 1. First attempts spec-compliant binary AAD (PUBKY_CRYPTO_SPEC v2.5)
-     * 2. Falls back to legacy string AAD for backward compatibility with older payloads
+     * SECURITY: Supports multiple decryption formats:
+     * 1. SB2 binary format (new) - encrypted to InboxKey, wrapped as {"sb2": base64, "inbox_kid": hex}
+     * 2. JSON Sealed Blob (legacy) - encrypted to TransportKey
      *
      * @param requestId The unique request ID
      * @param senderPubkey The pubkey of the sender (who published the request)
@@ -502,63 +569,134 @@ class DirectoryService @Inject constructor(
 
         return try {
             val envelopeBytes = pubkySDKService.getData(pubkyUri)
-            if (envelopeBytes != null) {
-                val envelopeJson = String(envelopeBytes)
-
-                // Check if this is an encrypted sealed blob
-                if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
-                    Logger.error("Payment request is not encrypted (sealed blob required)", context = TAG)
-                    return null
-                }
-
-                // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
-                val noiseKeypair = try {
-                    pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
-                } catch (e: Exception) {
-                    Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
-                    return null
-                }
-
-                val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
-                // Owner = sender (stored on their homeserver)
-                val ownerPeeridBytes = z32Decode(senderPubkey)
-
-                // Try spec-compliant binary AAD first, fallback to legacy string AAD for backward compatibility
-                val plaintextBytes = try {
-                    com.pubky.noise.sealedBlobDecryptWithContext(
-                        myNoiseSk,
-                        envelopeJson,
-                        ownerPeeridBytes,
-                        path,
-                    )
-                } catch (e: Exception) {
-                    Logger.debug("Binary AAD decryption failed, trying legacy string AAD: ${e.message}", context = TAG)
-                    try {
-                        val legacyAad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
-                        com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
-                    } catch (legacyError: Exception) {
-                        Logger.error("Failed to decrypt payment request $requestId (both AAD formats)", legacyError, context = TAG)
-                        return null
-                    }
-                }
-
-                val requestJson = String(plaintextBytes)
-                val request = kotlinx.serialization.json.Json.decodeFromString(
-                    to.bitkit.paykit.models.PaymentRequest.serializer(),
-                    requestJson
-                )
-                Logger.info(
-                    "Successfully fetched payment request $requestId from ${senderPubkey.take(12)}...",
-                    context = TAG
-                )
-                request
-            } else {
+            if (envelopeBytes == null) {
                 Logger.debug("Payment request $requestId not found at ${senderPubkey.take(12)}...", context = TAG)
-                null
+                return null
             }
+
+            val envelopeJson = String(envelopeBytes)
+            val plaintextBytes = decryptPaymentEnvelope(envelopeBytes, envelopeJson, senderPubkey, path, requestId, recipientPubkey)
+
+            if (plaintextBytes == null) {
+                Logger.error("Failed to decrypt payment request $requestId", context = TAG)
+                return null
+            }
+
+            val requestJson = String(plaintextBytes)
+            val request = kotlinx.serialization.json.Json.decodeFromString(
+                to.bitkit.paykit.models.PaymentRequest.serializer(),
+                requestJson
+            )
+            Logger.info(
+                "Successfully fetched payment request $requestId from ${senderPubkey.take(12)}...",
+                context = TAG
+            )
+            request
         } catch (e: Exception) {
             Logger.error("Failed to fetch payment request $requestId from $senderPubkey", e, context = TAG)
             null
+        }
+    }
+
+    /**
+     * Decrypt a payment envelope, detecting format automatically.
+     * Supports SB2 binary and JSON Sealed Blob formats.
+     */
+    private suspend fun decryptPaymentEnvelope(
+        envelopeBytes: ByteArray,
+        envelopeJson: String,
+        senderPubkey: String,
+        path: String,
+        requestId: String,
+        recipientPubkey: String,
+    ): ByteArray? {
+        val ownerPeeridBytes = z32Decode(senderPubkey)
+
+        // Check for SB2 wrapper format: {"sb2": base64, "inbox_kid": hex}
+        if (envelopeJson.contains("\"sb2\"")) {
+            try {
+                val json = org.json.JSONObject(envelopeJson)
+                val sb2Base64 = json.optString("sb2")
+                if (sb2Base64.isNotEmpty()) {
+                    val sb2Bytes = android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP)
+
+                    // Verify it's a valid SB2 envelope
+                    if (com.pubky.noise.sb2IsSb2(sb2Bytes)) {
+                        // Get our InboxKey secret for decryption
+                        val inboxSk = keychainStorage.getInboxSecretKey()
+                        if (inboxSk != null) {
+                            val inboxSkBytes = PubkyRingBridge.hexStringToByteArray(inboxSk)
+                            val result = com.pubky.noise.sb2Decrypt(
+                                sb2Bytes,
+                                inboxSkBytes,
+                                ownerPeeridBytes,
+                                path,
+                            )
+                            Logger.debug("Decrypted SB2 payment request $requestId", context = TAG)
+                            return result.plaintext
+                        } else {
+                            Logger.warn("No InboxKey available for SB2 decryption, trying TransportKey", context = TAG)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.debug("SB2 decryption failed, trying JSON format: ${e.message}", context = TAG)
+            }
+        }
+
+        // Check for raw SB2 binary (not JSON wrapped)
+        if (com.pubky.noise.sb2IsSb2(envelopeBytes)) {
+            val inboxSk = keychainStorage.getInboxSecretKey()
+            if (inboxSk != null) {
+                try {
+                    val inboxSkBytes = PubkyRingBridge.hexStringToByteArray(inboxSk)
+                    val result = com.pubky.noise.sb2Decrypt(
+                        envelopeBytes,
+                        inboxSkBytes,
+                        ownerPeeridBytes,
+                        path,
+                    )
+                    Logger.debug("Decrypted raw SB2 payment request $requestId", context = TAG)
+                    return result.plaintext
+                } catch (e: Exception) {
+                    Logger.debug("Raw SB2 decryption failed: ${e.message}", context = TAG)
+                }
+            }
+        }
+
+        // Fall back to JSON Sealed Blob format with TransportKey
+        if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
+            Logger.error("Payment request is not encrypted (sealed blob required)", context = TAG)
+            return null
+        }
+
+        // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
+        val noiseKeypair = try {
+            pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
+        } catch (e: Exception) {
+            Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
+            return null
+        }
+
+        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
+
+        // Try spec-compliant binary AAD first, fallback to legacy string AAD
+        return try {
+            com.pubky.noise.sealedBlobDecryptWithContext(
+                myNoiseSk,
+                envelopeJson,
+                ownerPeeridBytes,
+                path,
+            )
+        } catch (e: Exception) {
+            Logger.debug("Binary AAD decryption failed, trying legacy string AAD: ${e.message}", context = TAG)
+            try {
+                val legacyAad = PaykitV0Protocol.paymentRequestAad(senderPubkey, senderPubkey, recipientPubkey, requestId)
+                com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
+            } catch (legacyError: Exception) {
+                Logger.error("Failed to decrypt payment request $requestId (all formats)", legacyError, context = TAG)
+                null
+            }
         }
     }
 
@@ -621,27 +759,105 @@ class DirectoryService @Inject constructor(
     }
 
     /**
+     * Discovered request metadata from bounded directory scan.
+     */
+    data class DiscoveredRequest(
+        val contextId: String,
+        val requestId: String,
+        val path: String,
+    )
+
+    /**
+     * Discover all payment requests from a sender's storage using bounded directory listing.
+     *
+     * Per Paykit v0.4, new threads use random ContextId. This function scans all
+     * contextId subdirectories in `/pub/paykit.app/v0/requests/` and returns request
+     * metadata without decrypting the payloads.
+     *
+     * Safety limits per PUBKY_CRYPTO_SPEC v2.5 Section 7.2:
+     * - MAX_DIRECTORY_ENTRIES (100) contextIds scanned
+     * - MAX_SUBDIRECTORY_ENTRIES (50) requests per contextId
+     *
+     * @param senderPubkey The sender's pubkey to discover requests from
+     * @return List of discovered request metadata (contextId, requestId, path)
+     */
+    suspend fun discoverRequestsBounded(senderPubkey: String): List<DiscoveredRequest> {
+        val effectiveHomeserver = homeserverURL ?: HomeserverDefaults.defaultHomeserverURL
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(effectiveHomeserver)
+
+        val requestsBasePath = "${PaykitV0Protocol.PAYKIT_V0_PREFIX}/${PaykitV0Protocol.REQUESTS_SUBPATH}/"
+        val discovered = mutableListOf<DiscoveredRequest>()
+
+        // List all contextId subdirectories (limited to MAX_DIRECTORY_ENTRIES)
+        val contextIds = try {
+            val allContextIds = pubkyStorage.listDirectory(requestsBasePath, adapter, senderPubkey)
+            allContextIds.take(PaykitV0Protocol.MAX_DIRECTORY_ENTRIES)
+        } catch (e: Exception) {
+            Logger.debug(
+                "No requests directory found for sender ${senderPubkey.take(12)}...",
+                context = TAG,
+            )
+            return emptyList()
+        }
+
+        // For each contextId, list request files (limited to MAX_SUBDIRECTORY_ENTRIES)
+        for (contextId in contextIds) {
+            try {
+                val contextPath = "$requestsBasePath$contextId/"
+                val requestIds = pubkyStorage.listDirectory(contextPath, adapter, senderPubkey)
+                    .take(PaykitV0Protocol.MAX_SUBDIRECTORY_ENTRIES)
+
+                for (requestId in requestIds) {
+                    val fullPath = PaykitV0Protocol.paymentRequestPathWithContextId(contextId, requestId)
+                    discovered.add(DiscoveredRequest(contextId, requestId, fullPath))
+                }
+            } catch (e: Exception) {
+                Logger.debug(
+                    "Failed to list requests in contextId ${contextId.take(16)}...: ${e.message}",
+                    context = TAG,
+                )
+            }
+        }
+
+        Logger.info(
+            "Discovered ${discovered.size} requests from ${senderPubkey.take(12)}... (${contextIds.size} contextIds)",
+            context = TAG,
+        )
+        return discovered
+    }
+
+    /**
      * Delete a payment request from OUR storage (as sender).
      *
      * Used when the sender wants to cancel a pending request they sent.
      *
      * @param requestId The request ID to delete
-     * @param recipientPubkey The recipient pubkey (used for ContextId computation)
+     * @param contextId The contextId for the request path (use request.contextId)
+     * @param recipientPubkey Legacy fallback: if contextId is null, compute pair-derived contextId
      */
-    suspend fun deletePaymentRequest(requestId: String, recipientPubkey: String) {
+    suspend fun deletePaymentRequest(requestId: String, contextId: String?, recipientPubkey: String? = null) {
         // Auto-restore from keychain if not configured
         if (!isConfigured) tryRestoreFromKeychain()
         val adapter = authenticatedAdapter ?: throw DirectoryError.NotConfigured
         val myPubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
             ?: throw DirectoryError.NotConfigured
-        val path = PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, requestId)
+
+        @Suppress("DEPRECATION")
+        val path = if (contextId != null) {
+            PaykitV0Protocol.paymentRequestPathWithContextId(contextId, requestId)
+        } else if (recipientPubkey != null) {
+            // Legacy fallback for old requests without contextId stored
+            PaykitV0Protocol.paymentRequestPath(myPubkey, recipientPubkey, requestId)
+        } else {
+            throw IllegalArgumentException("Either contextId or recipientPubkey must be provided")
+        }
 
         val result = adapter.delete(path)
         if (!result.success) {
             Logger.error("Failed to delete payment request $requestId: ${result.error}", context = TAG)
             throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
-        Logger.info("Deleted payment request: $requestId for recipient ${recipientPubkey.take(12)}...", context = TAG)
+        Logger.info("Deleted payment request: $requestId", context = TAG)
     }
 
     /**
