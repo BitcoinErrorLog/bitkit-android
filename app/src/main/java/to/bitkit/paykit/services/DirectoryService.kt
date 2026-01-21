@@ -1066,13 +1066,14 @@ class DirectoryService @Inject constructor(
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 
+            // Support both snake_case (Paykit v0.4 spec) and camelCase (legacy) field names
             to.bitkit.paykit.workers.DiscoveredRequest(
                 requestId = requestId,
                 type = to.bitkit.paykit.workers.RequestType.PaymentRequest,
-                fromPubkey = obj.optString("fromPubkey", ""),
-                amountSats = obj.optLong("amountSats", 0),
+                fromPubkey = obj.optString("from_pubkey", obj.optString("fromPubkey", "")),
+                amountSats = obj.optLong("amount_sats", obj.optLong("amountSats", 0)),
                 description = if (obj.has("description")) obj.getString("description") else null,
-                createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                createdAt = obj.optLong("created_at", obj.optLong("createdAt", System.currentTimeMillis())),
             )
         } catch (e: Exception) {
             Logger.error("Failed to decrypt/parse payment request $requestId", e, context = TAG)

@@ -418,9 +418,116 @@ lifecycleScope.launch {
 3. **Contact Management**: Store frequently used Pubky contacts for quick payments
 4. **Rotation Automation**: Automatically rotate endpoints after use
 
+## Protocol Details (Paykit v0.4 / PUBKY_CRYPTO_SPEC v2.5)
+
+### Sealed Blob v2 (SB2)
+
+All encrypted data uses SB2 binary format with XChaCha20-Poly1305:
+
+```kotlin
+// Encryption (DirectoryService.kt)
+val envelope = com.pubky.noise.sealedBlobEncryptWithContext(
+    recipientPk,      // X25519 InboxKey from KeyBinding
+    plaintext,
+    ownerPeeridBytes, // Storage owner's Ed25519 pubkey
+    canonicalPath,    // e.g., "/pub/paykit.app/v0/requests/{context_id}/{id}"
+    purpose,          // "request", "proposal", "handoff"
+)
+```
+
+### KeyBinding Discovery
+
+Per PUBKY_CRYPTO_SPEC v2.5 Section 7.3, KeyBinding provides keys for different purposes:
+
+- **InboxKey** (X25519): For SB2 stored delivery encryption
+- **TransportKey** (X25519): For Noise live transport
+- **AppKey** (Ed25519): For delegated signing (optional)
+
+```kotlin
+// KeyBindingService.kt
+val keyBinding = keyBindingService.discoverKeyBinding(peerPubkeyZ32)
+val (inboxKid, inboxPubkey) = keyBindingService.getInboxKey(peerPubkeyZ32)
+```
+
+### Signatures (Optional)
+
+For message authenticity, use signed SB2 envelopes:
+
+```kotlin
+// PaykitSigner.kt
+val signedEnvelope = paykitSigner.encryptSigned(
+    recipientPk = inboxKeyBytes,
+    plaintext = payloadBytes,
+    aad = aad,
+    purpose = "request",
+    senderEd25519Sk = mySigningKey,
+    senderPeeridZ32 = myPubkey,
+)
+
+// Verification
+val isValid = paykitSigner.verifySignature(envelope, senderEd25519Pk)
+```
+
+### Random ContextId
+
+New threads MUST use random ContextId (32 random bytes, hex-encoded):
+
+```kotlin
+// PaykitV0Protocol.kt
+val contextId = PaykitV0Protocol.generateRandomContextId()
+val path = PaykitV0Protocol.paymentRequestPathWithContextId(contextId, requestId)
+```
+
+### Safety Limits
+
+Per PUBKY_CRYPTO_SPEC Section 7.2:
+
+| Limit | Value |
+|-------|-------|
+| MAX_HEADER_LEN | 2048 bytes |
+| MAX_MSG_ID_LEN | 128 chars |
+| MAX_BLOB_SIZE | 64 KB |
+| MAX_DIRECTORY_ENTRIES | 100 |
+
+### Secure Handoff
+
+The handoff payload includes optional `homeserver` callback param:
+
+```kotlin
+// PubkyRingCallbackParser.kt
+data class SecureHandoffReference(
+    val pubkey: String,
+    val requestId: String,
+    val homeserver: String? = null,  // Optional homeserver URL
+)
+```
+
+## Architecture
+
+### Key Services
+
+| Service | Purpose |
+|---------|---------|
+| `DirectoryService` | Pubky storage operations, SB2 encryption/decryption |
+| `KeyBindingService` | PKARR KeyBinding discovery and caching |
+| `PaykitSigner` | Signed SB2 envelope creation/verification |
+| `SecureHandoffHandler` | Pubky Ring handoff processing |
+| `KeyManager` | Device identity and X25519 key management |
+
+### FFI Bindings (pubky-noise)
+
+The `com.pubky.noise` package provides:
+
+- `sealedBlobEncryptWithContext()` / `sealedBlobDecryptWithContext()` - SB2 encryption
+- `sealedBlobEncryptSigned()` / `sealedBlobVerifySignature()` - Signed SB2
+- `keybindingDecode()` / `keybindingEncode()` - CBOR KeyBinding parsing
+- `computeInboxKid()` - inbox_kid derivation from X25519 pubkey
+
 ## References
 
 - Paykit Roadmap: `paykit-rs/PAYKIT_ROADMAP.md`
 - iOS Integration: `bitkit-ios/PAYKIT_INTEGRATION.md`
 - Phase 3 Report: `paykit-rs/FINAL_DELIVERY_REPORT.md`
+- Protocol Spec: `pubky-noise/docs/PUBKY_CRYPTO_SPEC.md`
+- Audit Plan: `.cursor/plans/audit-remediation-2026-01-21-bitkit-android-paykit-integration.plan.md`
 

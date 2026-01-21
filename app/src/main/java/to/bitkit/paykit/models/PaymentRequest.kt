@@ -98,21 +98,29 @@ enum class RequestDirection {
 @Serializable
 data class PaymentRequest(
     val id: String,
+    @SerialName("from_pubkey")
     val fromPubkey: String,
+    @SerialName("to_pubkey")
     val toPubkey: String,
+    @SerialName("amount_sats")
     val amountSats: Long,
     val currency: String,
+    @SerialName("method_id")
     val methodId: String,
     val description: String,
+    @SerialName("created_at")
     @Serializable(with = FlexibleTimestampSerializer::class)
     val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("expires_at")
     @Serializable(with = NullableFlexibleTimestampSerializer::class)
     val expiresAt: Long? = null,
     var status: PaymentRequestStatus = PaymentRequestStatus.PENDING,
     val direction: RequestDirection,
     /** Optional invoice number for cross-referencing with receipts */
+    @SerialName("invoice_number")
     val invoiceNumber: String? = null,
     /** ID of the receipt that fulfilled this request (if paid) */
+    @SerialName("receipt_id")
     var receiptId: String? = null
 ) {
     val counterpartyName: String

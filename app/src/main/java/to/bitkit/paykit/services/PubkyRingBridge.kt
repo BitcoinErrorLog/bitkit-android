@@ -1340,6 +1340,8 @@ data class PaykitSetupResult(
     val noiseKeypair1: NoiseKeypair?,
     /** Noise seed for local epoch derivation (so Bitkit doesn't need to re-call Ring) */
     val noiseSeed: String? = null,
+    /** Optional homeserver URL from callback (for DirectoryService configuration) */
+    val homeserver: String? = null,
 ) {
     /** Check if noise keys are available */
     val hasNoiseKeys: Boolean get() = noiseKeypair0 != null
@@ -1359,6 +1361,7 @@ sealed class PubkyRingException(message: String) : Exception(message) {
     data class CrossDeviceFailed(val reason: String) : PubkyRingException("Cross-device authentication failed: $reason")
     object MissingEphemeralKey : PubkyRingException("Ephemeral key not found - cannot decrypt handoff")
     data class DecryptionFailed(val reason: String) : PubkyRingException("Decryption failed: $reason")
+    data class InvalidVersion(val reason: String) : PubkyRingException(reason)
     data class Custom(val reason: String) : PubkyRingException(reason)
 
     /**
@@ -1375,6 +1378,7 @@ sealed class PubkyRingException(message: String) : Exception(message) {
             is CrossDeviceFailed -> "Cross-device authentication failed. Please try again."
             is MissingEphemeralKey -> "Session setup failed. Please update Bitkit and try again."
             is DecryptionFailed -> "Failed to decrypt session data. Please try again."
+            is InvalidVersion -> "Unsupported handoff version. Please update Pubky Ring."
             is Custom -> reason
         }
 }

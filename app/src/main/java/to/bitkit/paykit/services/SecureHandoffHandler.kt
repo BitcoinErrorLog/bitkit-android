@@ -29,6 +29,7 @@ class SecureHandoffHandler @Inject constructor(
     private val pubkyStorageAdapter: PubkyStorageAdapter,
     private val keychainStorage: PaykitKeychainStorage,
     private val directoryServiceProvider: dagger.Lazy<DirectoryService>,
+    private val keyManager: to.bitkit.paykit.KeyManager,
 ) {
     companion object {
         private const val TAG = "SecureHandoffHandler"
@@ -59,6 +60,7 @@ class SecureHandoffHandler @Inject constructor(
         scope: CoroutineScope,
         onSessionPersisted: suspend (PubkySession) -> Unit,
         ephemeralSecretKey: String? = null,
+        homeserver: String? = null,
     ): PaykitSetupResult = withContext(Dispatchers.IO) {
         // Get ephemeral key (from parameter or stored)
         val secretKey = ephemeralSecretKey ?: getEphemeralKey()
@@ -71,7 +73,7 @@ class SecureHandoffHandler @Inject constructor(
         }
 
         validatePayload(payload)
-        val result = buildSetupResultFromPayload(payload)
+        val result = buildSetupResultFromPayload(payload, homeserver)
         cacheAndPersistResult(result, payload.deviceId, scope, onSessionPersisted)
         schedulePayloadDeletion(result.session, requestId, scope)
 
@@ -164,6 +166,17 @@ class SecureHandoffHandler @Inject constructor(
 
 
     private fun validatePayload(payload: SecureHandoffPayload) {
+        // Validate payload version (MUST be v2 per PUBKY_CRYPTO_SPEC)
+        if (payload.version != 2) {
+            Logger.error(
+                "Unsupported handoff version: expected 2, got ${payload.version}",
+                context = TAG,
+            )
+            throw PubkyRingException.InvalidVersion(
+                "Unsupported handoff version. Expected v2, got v${payload.version}. Please update Pubky Ring."
+            )
+        }
+
         // Ring sends timestamps in Unix seconds per PUBKY_CRYPTO_SPEC
         val nowSeconds = System.currentTimeMillis() / 1000
         if (nowSeconds > payload.expiresAt) {
@@ -171,7 +184,10 @@ class SecureHandoffHandler @Inject constructor(
         }
     }
 
-    private fun buildSetupResultFromPayload(payload: SecureHandoffPayload): PaykitSetupResult {
+    private fun buildSetupResultFromPayload(
+        payload: SecureHandoffPayload,
+        homeserver: String? = null,
+    ): PaykitSetupResult {
         // Ring sends timestamps in Unix seconds per PUBKY_CRYPTO_SPEC
         // Convert to milliseconds for Date constructor
         val session = PubkySession(
@@ -200,7 +216,7 @@ class SecureHandoffHandler @Inject constructor(
         }
 
         Logger.info(
-            "Secure handoff payload received for ${payload.pubky.take(12)}..., noiseSeed=${payload.noiseSeed != null}",
+            "Secure handoff payload received for ${payload.pubky.take(12)}..., noiseSeed=${payload.noiseSeed != null}, homeserver=$homeserver",
             context = TAG,
         )
 
@@ -210,6 +226,7 @@ class SecureHandoffHandler @Inject constructor(
             noiseKeypair0 = keypair0,
             noiseKeypair1 = keypair1,
             noiseSeed = payload.noiseSeed,
+            homeserver = homeserver,
         )
     }
 
@@ -223,14 +240,33 @@ class SecureHandoffHandler @Inject constructor(
 
         result.noiseKeypair0?.let { keypair ->
             persistKeypair(keypair, deviceId, 0u)
+            // Also cache to KeyManager for unified access
+            cacheToKeyManager(keypair, 0u)
         }
         result.noiseKeypair1?.let { keypair ->
             persistKeypair(keypair, deviceId, 1u)
+            // Also cache to KeyManager for unified access
+            cacheToKeyManager(keypair, 1u)
         }
 
         // Persist noise seed for future epoch derivation
         result.noiseSeed?.let { seed ->
             persistNoiseSeed(seed, deviceId)
+        }
+    }
+
+    private suspend fun cacheToKeyManager(keypair: NoiseKeypair, epoch: UInt) {
+        try {
+            val x25519Keypair = uniffi.paykit_mobile.X25519Keypair(
+                keypair.secretKey,
+                keypair.publicKey,
+                keypair.deviceId,
+                epoch,
+            )
+            keyManager.cacheNoiseKeypair(x25519Keypair, epoch)
+            Logger.debug("Cached keypair to KeyManager for epoch $epoch", context = TAG)
+        } catch (e: Exception) {
+            Logger.warn("Failed to cache keypair to KeyManager: ${e.message}", e, context = TAG)
         }
     }
 

@@ -39,6 +39,8 @@ class PubkyRingCallbackParser @Inject constructor() {
     data class SecureHandoffReference(
         val pubkey: String,
         val requestId: String,
+        /** Optional homeserver URL from callback. */
+        val homeserver: String? = null,
     )
 
     fun parseSessionCallback(uri: Uri): CallbackResult<SessionData> {
@@ -77,7 +79,10 @@ class PubkyRingCallbackParser @Inject constructor() {
         val requestId = uri.getQueryParameter("request_id")
             ?: return CallbackResult.Error(PubkyRingException.MissingParameters)
 
-        return CallbackResult.Success(SecureHandoffReference(pubkey, requestId))
+        // Optional homeserver parameter (used to configure DirectoryService)
+        val homeserver = uri.getQueryParameter("homeserver")
+
+        return CallbackResult.Success(SecureHandoffReference(pubkey, requestId, homeserver))
     }
 
     fun isSecureHandoffMode(uri: Uri): Boolean {

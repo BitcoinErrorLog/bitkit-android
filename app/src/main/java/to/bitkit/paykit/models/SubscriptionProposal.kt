@@ -7,14 +7,14 @@ import java.util.UUID
 /**
  * Represents a subscription proposal to be sent to a subscriber.
  *
- * In the v0 provider-storage model, proposals are published to the **provider's** Pubky directory
- * in a subscriber-scoped subdirectory. Subscribers poll known providers to discover proposals.
+ * Per Paykit v0.4, proposals are published to the provider's Pubky directory
+ * using ContextId-based paths (random ContextId for new threads).
  *
- * Path format: `/pub/paykit.app/v0/subscriptions/proposals/{subscriber_scope}/{proposalId}`
- * where `subscriber_scope = hex(sha256(normalized_subscriber_pubkey_z32))`
+ * Path format: `/pub/paykit.app/v0/subscriptions/proposals/{context_id}/{proposalId}`
+ * where `context_id` is a 32-byte random hex string for new threads.
  *
  * Stored on: provider's homeserver (sender-storage model)
- * Encryption: Sealed Blob v1 to subscriber's Noise public key
+ * Encryption: Sealed Blob v2 (SB2) binary format using recipient's InboxKey from KeyBinding.
  */
 @Serializable
 data class SubscriptionProposal(

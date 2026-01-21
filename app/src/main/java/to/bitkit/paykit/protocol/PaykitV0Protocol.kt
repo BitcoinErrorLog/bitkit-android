@@ -56,6 +56,31 @@ object PaykitV0Protocol {
     /** Purpose label for secure handoff payloads. */
     const val PURPOSE_HANDOFF = "handoff"
 
+    // ============================================================================
+    // Safety Limits (per PUBKY_CRYPTO_SPEC v2.5 Section 7.2)
+    // ============================================================================
+
+    /** Maximum SB2 header length in bytes. */
+    const val MAX_HEADER_LEN = 2048
+
+    /** Maximum msg_id length in characters. */
+    const val MAX_MSG_ID_LEN = 128
+
+    /** Maximum blob size in bytes (64 KB). */
+    const val MAX_BLOB_SIZE = 65536
+
+    /** Maximum directory entries per listing. */
+    const val MAX_DIRECTORY_ENTRIES = 100
+
+    /** Maximum entries per subdirectory listing. */
+    const val MAX_SUBDIRECTORY_ENTRIES = 50
+
+    /** Maximum CBOR depth for KeyBinding/header parsing. */
+    const val MAX_CBOR_DEPTH = 2
+
+    /** Maximum CBOR top-level keys. */
+    const val MAX_CBOR_KEYS = 16
+
     /** Valid characters in z-base-32 encoding (lowercase only). */
     private const val Z32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769"
 
@@ -108,20 +133,46 @@ object PaykitV0Protocol {
     }
 
     /**
-     * Compute the ContextId for a peer pair.
+     * Generate a random ContextId for new threads.
      *
-     * ContextId is a symmetric identifier for a pair of peers, used for routing
-     * and correlation. The formula is:
+     * Per Paykit v0.4 spec, new threads MUST use random ContextId:
+     * - 32 random bytes (256 bits of entropy)
+     * - Hex-encoded to 64 lowercase characters
+     *
+     * This should be used when creating new payment request threads.
+     * The pair-derived [contextId] function is now only for legacy compatibility.
+     *
+     * @return Lowercase hex string (64 chars) of 32 random bytes
+     */
+    fun generateRandomContextId(): String {
+        val random = java.security.SecureRandom()
+        val bytes = ByteArray(32)
+        random.nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * Compute the ContextId for a peer pair (LEGACY - use for reads only).
+     *
+     * @deprecated Per Paykit v0.4, new threads MUST use [generateRandomContextId].
+     * This pair-derived method is kept for backward compatibility when reading
+     * existing threads. Do NOT use for new writes.
+     *
+     * ContextId is a symmetric identifier for a pair of peers. The formula is:
      *
      * `context_id = hex(sha256("paykit:v0:context:" + first_z32 + ":" + second_z32))`
      *
-     * where first_z32 and second_z32 are sorted lexicographically to ensure symmetry.
+     * where first_z32 and second_z32 are sorted lexicographically for symmetry.
      *
      * @param pubkeyA First peer's z-base-32 encoded pubkey
      * @param pubkeyB Second peer's z-base-32 encoded pubkey
      * @return Lowercase hex string (64 chars) representing the ContextId
      * @throws IllegalArgumentException if either pubkey is malformed
      */
+    @Deprecated(
+        message = "Use generateRandomContextId() for new threads. Pair-derived contextId is legacy-only for reads.",
+        level = DeprecationLevel.WARNING
+    )
     fun contextId(pubkeyA: String, pubkeyB: String): String {
         val normA = normalizePubkeyZ32(pubkeyA)
         val normB = normalizePubkeyZ32(pubkeyB)
@@ -181,19 +232,39 @@ object PaykitV0Protocol {
     // ============================================================================
 
     /**
-     * Build the storage path for a payment request.
+     * Build the storage path for a payment request using explicit contextId.
      *
      * Path format: `/pub/paykit.app/v0/requests/{context_id}/{request_id}`
      *
-     * This path is used on the **sender's** storage to store an encrypted
-     * payment request addressed to the recipient. The context_id is computed
-     * from both sender and recipient pubkeys for symmetric routing.
+     * For NEW threads, use a random contextId from [generateRandomContextId].
+     * For existing threads, use the contextId extracted from the SB2 header.
+     *
+     * @param contextId The contextId (64 hex chars) - random for new, or existing for replies
+     * @param requestId Unique identifier for this request
+     * @return The full storage path (without the `pubky://owner` prefix)
+     */
+    fun paymentRequestPathWithContextId(contextId: String, requestId: String): String {
+        return "$PAYKIT_V0_PREFIX/$REQUESTS_SUBPATH/$contextId/$requestId"
+    }
+
+    /**
+     * Build the storage path for a payment request using pair-derived contextId.
+     *
+     * @deprecated Use [paymentRequestPathWithContextId] with a random contextId for new threads.
+     * This method is kept for backward compatibility when reading legacy threads.
+     *
+     * Path format: `/pub/paykit.app/v0/requests/{context_id}/{request_id}`
      *
      * @param senderPubkeyZ32 The sender's z-base-32 encoded pubkey
      * @param recipientPubkeyZ32 The recipient's z-base-32 encoded pubkey
      * @param requestId Unique identifier for this request
      * @return The full storage path (without the `pubky://owner` prefix)
      */
+    @Deprecated(
+        message = "Use paymentRequestPathWithContextId() with random contextId for new threads",
+        level = DeprecationLevel.WARNING
+    )
+    @Suppress("DEPRECATION")
     fun paymentRequestPath(senderPubkeyZ32: String, recipientPubkeyZ32: String, requestId: String): String {
         val ctxId = contextId(senderPubkeyZ32, recipientPubkeyZ32)
         return "$PAYKIT_V0_PREFIX/$REQUESTS_SUBPATH/$ctxId/$requestId"

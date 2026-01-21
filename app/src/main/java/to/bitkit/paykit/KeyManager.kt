@@ -1,7 +1,6 @@
 package to.bitkit.paykit
 
 import android.content.Context
-import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +32,10 @@ class KeyManager @Inject constructor(
     companion object {
         private const val TAG = "PaykitKeyManager"
         private const val KEY_PUBLIC_Z32 = "paykit.identity.public.z32"
-        private const val KEY_DEVICE_ID = "paykit.device.id"
+        /** Unified device ID key (shared with PubkyRingBridge for consistency) */
+        private const val KEY_DEVICE_ID = "paykit.device_id"
+        /** Legacy device ID key (for migration from old format) */
+        private const val KEY_DEVICE_ID_LEGACY = "paykit.device.id"
         private const val KEY_EPOCH = "paykit.device.epoch"
         private const val KEY_NOISE_KEYPAIR_PREFIX = "paykit.noise.keypair."
     }
@@ -179,14 +181,23 @@ class KeyManager @Inject constructor(
     }
 
     private fun getOrCreateDeviceId(): String {
+        // Try unified key first (shared with PubkyRingBridge)
         val existing = keychain.loadString(KEY_DEVICE_ID)
-        if (existing != null) {
+        if (!existing.isNullOrBlank()) {
             return existing
         }
 
-        val newId = "${Build.MANUFACTURER}_${Build.MODEL}_${Build.ID}_${System.currentTimeMillis()}"
-        // Note: We store it synchronously on first access
-        // This is acceptable since device ID is not sensitive
+        // Migration: check legacy key and migrate to unified key
+        val legacyId = keychain.loadString(KEY_DEVICE_ID_LEGACY)
+        if (!legacyId.isNullOrBlank()) {
+            Logger.info("Migrating device ID from legacy key", context = TAG)
+            // Note: Migration stored asynchronously in cacheNoiseKeypair or next save
+            return legacyId
+        }
+
+        // Generate new UUID format (consistent with PubkyRingBridge)
+        val newId = java.util.UUID.randomUUID().toString().lowercase()
+        Logger.info("Generated new device ID: ${newId.take(8)}...", context = TAG)
         return newId
     }
 
