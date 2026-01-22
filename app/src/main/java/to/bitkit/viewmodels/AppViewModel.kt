@@ -88,6 +88,7 @@ import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.PaykitManager
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.KeyBindingService
+import to.bitkit.paykit.services.PaykitSigner
 import to.bitkit.paykit.services.PaymentRequestProcessingResult
 import to.bitkit.paykit.services.PaymentRequestService
 import to.bitkit.paykit.services.PubkyRingBridge
@@ -1846,6 +1847,7 @@ class AppViewModel @Inject constructor(
         val keyManager = KeyManager(context, keychain)
         val pubkyStorage = PubkyStorageAdapter(context)
         val keyBindingService = KeyBindingService(pubkyStorage)
+        val paykitSigner = PaykitSigner(keychainStorage)
         val directoryService = DirectoryService(
             context,
             keyManager,
@@ -1854,6 +1856,7 @@ class AppViewModel @Inject constructor(
             pubkyRingBridge,
             keychainStorage,
             keyBindingService,
+            paykitSigner,
         ).apply {
             initialize(paykitClient)
         }

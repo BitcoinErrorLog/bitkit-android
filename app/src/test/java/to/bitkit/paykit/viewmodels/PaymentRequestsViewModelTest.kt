@@ -8,6 +8,8 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -233,14 +235,15 @@ class PaymentRequestsViewModelTest : BaseUnitTest() {
             sentAt = System.currentTimeMillis(),
             status = SentRequestStatus.PENDING,
         )
-        wheneverBlocking { directoryService.deletePaymentRequest(any(), any()) }.thenAnswer { }
+        wheneverBlocking { directoryService.deletePaymentRequest(any(), any(), any()) }.thenAnswer { }
         wheneverBlocking { paymentRequestStorage.deleteSentRequest(any()) }.thenAnswer { }
         wheneverBlocking { paymentRequestStorage.deleteRequest(any()) }.thenAnswer { }
 
         viewModel.cancelSentRequest(sentRequest)
         advanceUntilIdle()
 
-        verify(directoryService).deletePaymentRequest("req-to-cancel", "pk:recipient")
+        // Note: deletePaymentRequest(requestId, contextId, recipientPubkey?) - VM calls with contextId=recipientPubkey for legacy
+        verify(directoryService).deletePaymentRequest(eq("req-to-cancel"), eq("pk:recipient"), isNull())
         verify(paymentRequestStorage).deleteSentRequest("req-to-cancel")
         verify(paymentRequestStorage).deleteRequest("req-to-cancel")
     }

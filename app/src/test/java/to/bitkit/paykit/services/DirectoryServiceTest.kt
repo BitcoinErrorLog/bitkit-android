@@ -30,6 +30,8 @@ class DirectoryServiceTest : BaseUnitTest() {
     private lateinit var pubkySDKService: PubkySDKService
     private lateinit var pubkyRingBridge: PubkyRingBridge
     private lateinit var keychainStorage: PaykitKeychainStorage
+    private lateinit var keyBindingService: KeyBindingService
+    private lateinit var paykitSigner: PaykitSigner
     private lateinit var directoryService: DirectoryService
 
     private lateinit var mockUnauthAdapter: PubkyUnauthenticatedStorageAdapter
@@ -49,6 +51,8 @@ class DirectoryServiceTest : BaseUnitTest() {
         pubkySDKService = mock()
         pubkyRingBridge = mock()
         keychainStorage = mock()
+        keyBindingService = mock()
+        paykitSigner = mock()
 
         mockUnauthAdapter = mock()
         mockAuthAdapter = mock()
@@ -63,6 +67,8 @@ class DirectoryServiceTest : BaseUnitTest() {
             pubkySDKService,
             pubkyRingBridge,
             keychainStorage,
+            keyBindingService,
+            paykitSigner,
         )
     }
 

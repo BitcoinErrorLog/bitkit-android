@@ -101,6 +101,7 @@ class DirectoryService @Inject constructor(
     private val pubkyRingBridge: PubkyRingBridge,
     private val keychainStorage: PaykitKeychainStorage,
     private val keyBindingService: KeyBindingService,
+    private val paykitSigner: PaykitSigner,
 ) {
     companion object {
         private const val TAG = "DirectoryService"
@@ -108,6 +109,12 @@ class DirectoryService @Inject constructor(
         private const val KEY_PUBLIC = "pubky.identity.public"
         private const val KEY_SESSION_SECRET = "pubky.session.secret"
         private const val KEY_HOMESERVER_URL = "pubky.homeserver.url"
+
+        /** Convert z32 pubkey to hex string for FFI calls that require hex */
+        private fun myPubkeyHex(pubkeyZ32: String): String {
+            val bytes = z32Decode(pubkeyZ32)
+            return bytes.joinToString("") { "%02x".format(it) }
+        }
     }
 
     private var paykitClient: PaykitClient? = null
@@ -468,7 +475,10 @@ class DirectoryService @Inject constructor(
             val sb2ContextId = com.pubky.noise.sb2GenerateContextId()
             val nowSeconds = System.currentTimeMillis() / 1000
 
-            val envelopeBytes = try {
+            // Get AppKey cert_id for delegated signing (if available)
+            val certIdBytes = paykitSigner.getAppCertIdBytes()
+
+            var envelopeBytes = try {
                 com.pubky.noise.sb2Encrypt(
                     inboxPkBytes,
                     plaintextBytes,
@@ -481,11 +491,21 @@ class DirectoryService @Inject constructor(
                     path,
                     nowSeconds.toULong(),
                     (nowSeconds + 24 * 3600).toULong(), // 24hr expiry
-                    null, // certId (no delegated signing for now)
+                    certIdBytes, // Include cert_id for delegated signing verification
                 )
             } catch (e: Exception) {
                 Logger.warn("SB2 encryption failed, falling back to JSON: ${e.message}", context = TAG)
                 null
+            }
+
+            // Sign the envelope with AppKey if available
+            if (envelopeBytes != null && paykitSigner.hasAppKey()) {
+                envelopeBytes = try {
+                    paykitSigner.signWithAppKey(envelopeBytes, myPubkeyHex(myPubkey), path)
+                } catch (e: Exception) {
+                    Logger.warn("AppKey signing failed, sending unsigned: ${e.message}", context = TAG)
+                    envelopeBytes // Continue with unsigned envelope
+                }
             }
 
             if (envelopeBytes != null) {
@@ -1086,15 +1106,15 @@ class DirectoryService @Inject constructor(
      * The proposal is stored ENCRYPTED at the canonical v0 path:
      * `/pub/paykit.app/v0/subscriptions/proposals/{context_id}/{proposalId}`
      *
-     * SECURITY: Proposals are encrypted using Sealed Blob v2 to subscriber's Noise public key.
-     * Uses spec-compliant binary AAD per PUBKY_CRYPTO_SPEC v2.5:
-     * `pubky-envelope/v2: || owner_peerid_bytes || canonical_path_bytes || header_bytes`
+     * SECURITY: Uses SB2 Binary Wire Format encrypted to subscriber's InboxKey (preferred).
+     * Falls back to JSON Sealed Blob with TransportKey for backward compatibility.
+     * When AppKey is available, envelopes are signed with delegated credentials.
      *
      * @param proposal The subscription proposal to publish
      * @param subscriberPubkey The z32 pubkey of the subscriber
      * @throws DirectoryError.NotConfigured if session is not configured
      * @throws DirectoryError.PublishFailed if the publish operation fails
-     * @throws DirectoryError.EncryptionFailed if encryption fails (e.g., subscriber has no Noise endpoint)
+     * @throws DirectoryError.EncryptionFailed if encryption fails (e.g., subscriber has no keys published)
      */
     suspend fun publishSubscriptionProposal(
         proposal: to.bitkit.paykit.models.SubscriptionProposal,
@@ -1120,17 +1140,93 @@ class DirectoryService @Inject constructor(
             put("created_at", proposal.createdAt)
         }
 
-        // Discover subscriber's Noise endpoint to get their public key for encryption
-        val subscriberNoiseEndpoint = discoverNoiseEndpoint(subscriberPubkey)
-            ?: throw DirectoryError.EncryptionFailed("Subscriber has no Noise endpoint published")
-
-        // Encrypt proposal using Sealed Blob v2 with spec-compliant binary AAD
-        // Per PUBKY_CRYPTO_SPEC: AAD = "pubky-envelope/v2:" || owner_peerid_bytes || canonical_path_bytes || header_bytes
         val plaintextBytes = proposalJson.toString().toByteArray(Charsets.UTF_8)
-        val subscriberNoisePkBytes = PubkyRingBridge.hexStringToByteArray(subscriberNoiseEndpoint.serverNoisePubkey)
         val ownerPeeridBytes = z32Decode(myPubkey)
+        val subscriberPeeridBytes = z32Decode(subscriberPubkey)
 
-        val encryptedEnvelope = try {
+        // Try InboxKey first (SB2 binary format), fall back to TransportKey (JSON format)
+        val inboxKey = keyBindingService.getInboxKey(subscriberPubkey)
+        val encryptedContent: String
+
+        if (inboxKey != null) {
+            // Use SB2 Binary Wire Format with InboxKey (preferred)
+            val (inboxKidHex, inboxPkHex) = inboxKey
+            val inboxPkBytes = PubkyRingBridge.hexStringToByteArray(inboxPkHex)
+
+            val senderPeeridBytes = z32Decode(myPubkey)
+            val sb2ContextId = com.pubky.noise.sb2GenerateContextId()
+            val nowSeconds = System.currentTimeMillis() / 1000
+
+            // Get AppKey cert_id for delegated signing (if available)
+            val certIdBytes = paykitSigner.getAppCertIdBytes()
+
+            var envelopeBytes = try {
+                com.pubky.noise.sb2Encrypt(
+                    inboxPkBytes,
+                    plaintextBytes,
+                    sb2ContextId,
+                    proposal.id, // msgId for idempotency
+                    PaykitV0Protocol.PURPOSE_SUBSCRIPTION_PROPOSAL,
+                    ownerPeeridBytes,
+                    senderPeeridBytes,
+                    subscriberPeeridBytes,
+                    proposalPath,
+                    nowSeconds.toULong(),
+                    (nowSeconds + 7 * 24 * 3600).toULong(), // 7 day expiry for proposals
+                    certIdBytes,
+                )
+            } catch (e: Exception) {
+                Logger.warn("SB2 encryption failed, falling back to JSON: ${e.message}", context = TAG)
+                null
+            }
+
+            // Sign the envelope with AppKey if available
+            if (envelopeBytes != null && paykitSigner.hasAppKey()) {
+                envelopeBytes = try {
+                    paykitSigner.signWithAppKey(envelopeBytes, myPubkeyHex(myPubkey), proposalPath)
+                } catch (e: Exception) {
+                    Logger.warn("AppKey signing failed, sending unsigned: ${e.message}", context = TAG)
+                    envelopeBytes
+                }
+            }
+
+            if (envelopeBytes != null) {
+                // Wrap SB2 binary as base64 in JSON for storage
+                val base64Envelope = android.util.Base64.encodeToString(envelopeBytes, android.util.Base64.NO_WRAP)
+                encryptedContent = """{"sb2":"$base64Envelope","inbox_kid":"$inboxKidHex"}"""
+                Logger.debug("Encrypted subscription proposal with SB2 to inbox_kid=${inboxKidHex.take(16)}...", context = TAG)
+            } else {
+                // Fall back to JSON format
+                encryptedContent = encryptProposalWithJsonFallback(subscriberPubkey, plaintextBytes, ownerPeeridBytes, proposalPath)
+            }
+        } else {
+            // No InboxKey, use legacy JSON Sealed Blob with TransportKey
+            encryptedContent = encryptProposalWithJsonFallback(subscriberPubkey, plaintextBytes, ownerPeeridBytes, proposalPath)
+        }
+
+        val result = adapter.put(proposalPath, encryptedContent)
+        if (!result.success) {
+            Logger.error("Failed to publish subscription proposal: ${result.error}", context = TAG)
+            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+        }
+        Logger.info("Published encrypted subscription proposal ${proposal.id} to $subscriberPubkey", context = TAG)
+    }
+
+    /**
+     * Encrypt subscription proposal using legacy JSON Sealed Blob format with TransportKey.
+     */
+    private suspend fun encryptProposalWithJsonFallback(
+        subscriberPubkey: String,
+        plaintextBytes: ByteArray,
+        ownerPeeridBytes: ByteArray,
+        proposalPath: String,
+    ): String {
+        val subscriberNoiseEndpoint = discoverNoiseEndpoint(subscriberPubkey)
+            ?: throw DirectoryError.EncryptionFailed("Subscriber has no Noise endpoint or KeyBinding published")
+
+        val subscriberNoisePkBytes = PubkyRingBridge.hexStringToByteArray(subscriberNoiseEndpoint.serverNoisePubkey)
+
+        return try {
             com.pubky.noise.sealedBlobEncryptWithContext(
                 subscriberNoisePkBytes,
                 plaintextBytes,
@@ -1139,16 +1235,106 @@ class DirectoryService @Inject constructor(
                 PaykitV0Protocol.PURPOSE_SUBSCRIPTION_PROPOSAL,
             )
         } catch (e: Exception) {
-            Logger.error("Failed to encrypt subscription proposal", e, context = TAG)
+            Logger.error("Failed to encrypt subscription proposal with JSON Sealed Blob", e, context = TAG)
             throw DirectoryError.EncryptionFailed("Encryption failed: ${e.message}")
         }
+    }
 
-        val result = adapter.put(proposalPath, encryptedEnvelope)
-        if (!result.success) {
-            Logger.error("Failed to publish subscription proposal: ${result.error}", context = TAG)
-            throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
+    /**
+     * Decrypt a subscription proposal envelope, detecting format automatically.
+     * Supports SB2 binary and JSON Sealed Blob formats.
+     */
+    private suspend fun decryptProposalEnvelope(
+        envelopeBytes: ByteArray,
+        envelopeJson: String,
+        providerPubkey: String,
+        proposalPath: String,
+        proposalId: String,
+        subscriberPubkey: String,
+    ): ByteArray? {
+        val ownerPeeridBytes = z32Decode(providerPubkey)
+
+        // Check for SB2 wrapper format: {"sb2": base64, "inbox_kid": hex}
+        if (envelopeJson.contains("\"sb2\"")) {
+            try {
+                val json = org.json.JSONObject(envelopeJson)
+                val sb2Base64 = json.optString("sb2")
+                if (sb2Base64.isNotEmpty()) {
+                    val sb2Bytes = android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP)
+
+                    // Verify it's a valid SB2 envelope
+                    if (com.pubky.noise.sb2IsSb2(sb2Bytes)) {
+                        // Get our InboxKey secret for decryption
+                        val inboxSk = keychainStorage.getInboxSecretKey()
+                        if (inboxSk != null) {
+                            val inboxSkBytes = PubkyRingBridge.hexStringToByteArray(inboxSk)
+                            val result = com.pubky.noise.sb2Decrypt(
+                                sb2Bytes,
+                                inboxSkBytes,
+                                ownerPeeridBytes,
+                                proposalPath,
+                            )
+                            Logger.debug("Decrypted SB2 subscription proposal $proposalId", context = TAG)
+                            return result.plaintext
+                        } else {
+                            Logger.warn("No InboxKey available for SB2 decryption, trying TransportKey", context = TAG)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.debug("SB2 decryption failed, trying JSON format: ${e.message}", context = TAG)
+            }
         }
-        Logger.info("Published encrypted subscription proposal ${proposal.id} to $subscriberPubkey", context = TAG)
+
+        // Check for raw SB2 binary (not JSON wrapped)
+        if (com.pubky.noise.sb2IsSb2(envelopeBytes)) {
+            val inboxSk = keychainStorage.getInboxSecretKey()
+            if (inboxSk != null) {
+                try {
+                    val inboxSkBytes = PubkyRingBridge.hexStringToByteArray(inboxSk)
+                    val result = com.pubky.noise.sb2Decrypt(
+                        envelopeBytes,
+                        inboxSkBytes,
+                        ownerPeeridBytes,
+                        proposalPath,
+                    )
+                    Logger.debug("Decrypted raw SB2 subscription proposal $proposalId", context = TAG)
+                    return result.plaintext
+                } catch (e: Exception) {
+                    Logger.debug("Raw SB2 decryption failed: ${e.message}", context = TAG)
+                }
+            }
+        }
+
+        // Fall back to JSON Sealed Blob format with TransportKey
+        if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
+            Logger.error("Subscription proposal $proposalId is not encrypted (sealed blob required)", context = TAG)
+            return null
+        }
+
+        // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
+        val noiseKeypair = try {
+            pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
+        } catch (e: Exception) {
+            Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
+            return null
+        }
+
+        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
+        val legacyAad = PaykitV0Protocol.subscriptionProposalAad(providerPubkey, providerPubkey, subscriberPubkey, proposalId)
+
+        // Try spec-compliant binary AAD first, fallback to legacy string AAD
+        return try {
+            com.pubky.noise.sealedBlobDecryptWithContext(myNoiseSk, envelopeJson, ownerPeeridBytes, proposalPath)
+        } catch (e: Exception) {
+            Logger.debug("Binary AAD decryption failed, trying legacy string AAD: ${e.message}", context = TAG)
+            try {
+                com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
+            } catch (legacyError: Exception) {
+                Logger.error("Failed to decrypt subscription proposal $proposalId (all formats)", legacyError, context = TAG)
+                null
+            }
+        }
     }
 
     /**
@@ -1298,12 +1484,16 @@ class DirectoryService @Inject constructor(
     }
 
     /**
-     * Decrypt and parse a subscription proposal from an encrypted sealed blob.
+     * Decrypt and parse a subscription proposal from an encrypted envelope.
+     *
+     * SECURITY: Supports multiple decryption formats:
+     * 1. SB2 binary format (new) - encrypted to InboxKey, wrapped as {"sb2": base64, "inbox_kid": hex}
+     * 2. JSON Sealed Blob (legacy) - encrypted to TransportKey
      *
      * @param proposalId The proposal ID
      * @param envelopeJson The JSON string of the sealed blob (or null)
+     * @param providerPubkey The provider's pubkey
      * @param subscriberPubkey Our pubkey (used for canonical AAD computation)
-     * @param expectedProviderPubkey If provided, verifies that provider_pubkey in the proposal matches this value
      * @return The parsed proposal or null if decryption/parsing/validation fails
      */
     private suspend fun decryptAndParseSubscriptionProposal(
@@ -1314,37 +1504,25 @@ class DirectoryService @Inject constructor(
     ): to.bitkit.paykit.workers.DiscoveredSubscriptionProposal? {
         if (envelopeJson.isNullOrBlank()) return null
 
-        // Verify it's an encrypted sealed blob (v1 or v2)
-        if (!com.pubky.noise.isSealedBlob(envelopeJson)) {
-            Logger.error("Subscription proposal $proposalId is not encrypted (sealed blob required)", context = TAG)
-            return null
-        }
-
-        // Get our Noise secret key for decryption - derive from noise_seed via PubkyRingBridge
-        val noiseKeypair = try {
-            pubkyRingBridge.requestNoiseKeypair(context, epoch = 0uL)
-        } catch (e: Exception) {
-            Logger.error("Failed to get Noise keypair for decryption: ${e.message}", context = TAG)
-            return null
-        }
-
-        val myNoiseSk = PubkyRingBridge.hexStringToByteArray(noiseKeypair.secretKey)
         val ownerPeeridBytes = z32Decode(providerPubkey)
         val proposalPath = PaykitV0Protocol.subscriptionProposalPath(providerPubkey, subscriberPubkey, proposalId)
-        val legacyAad = PaykitV0Protocol.subscriptionProposalAad(providerPubkey, providerPubkey, subscriberPubkey, proposalId)
-        Logger.debug(
-            "Decryption attempt for $proposalId: sk.len=${noiseKeypair.secretKey.length}, bytes.len=${myNoiseSk.size}, myNoisePk=${noiseKeypair.publicKey}",
-            context = TAG
+
+        // Try SB2 format first (preferred)
+        val plaintextBytes = decryptProposalEnvelope(
+            envelopeJson.toByteArray(Charsets.UTF_8),
+            envelopeJson,
+            providerPubkey,
+            proposalPath,
+            proposalId,
+            subscriberPubkey,
         )
 
+        if (plaintextBytes == null) {
+            Logger.error("Failed to decrypt subscription proposal $proposalId", context = TAG)
+            return null
+        }
+
         return try {
-            // Try spec-compliant binary AAD first, fallback to legacy string AAD
-            val plaintextBytes = try {
-                com.pubky.noise.sealedBlobDecryptWithContext(myNoiseSk, envelopeJson, ownerPeeridBytes, proposalPath)
-            } catch (e: Exception) {
-                Logger.debug("Binary AAD decryption failed, trying legacy: ${e.message}", context = TAG)
-                com.pubky.noise.sealedBlobDecrypt(myNoiseSk, envelopeJson, legacyAad)
-            }
             val plaintextJson = String(plaintextBytes)
             val obj = org.json.JSONObject(plaintextJson)
 
