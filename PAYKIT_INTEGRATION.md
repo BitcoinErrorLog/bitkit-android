@@ -514,20 +514,20 @@ data class SecureHandoffReference(
 | `SecureHandoffHandler` | Pubky Ring handoff processing |
 | `KeyManager` | Device identity and X25519 key management |
 
-### FFI Bindings (pubky-noise)
+### FFI Bindings (pubky-noise / pubky-crypto)
 
-The `com.pubky.noise` package provides:
+The `com.pubky.noise` package provides FFI access to both Noise transport and crypto primitives. Cryptographic functions (Sealed Blob, KDF, X25519/Ed25519 helpers, UKD) are implemented in `pubky-crypto` and re-exported by `pubky-noise` for backward compatibility. The FFI package name remains `com.pubky.noise`.
 
-- `sealedBlobEncryptWithContext()` / `sealedBlobDecryptWithContext()` - SB2 encryption
-- `sealedBlobEncryptSigned()` / `sealedBlobVerifySignature()` - Signed SB2
-- `keybindingDecode()` / `keybindingEncode()` - CBOR KeyBinding parsing
-- `computeInboxKid()` - inbox_kid derivation from X25519 pubkey
+- `sealedBlobEncryptWithContext()` / `sealedBlobDecryptWithContext()` - SB2 encryption (from pubky-crypto)
+- `sealedBlobEncryptSigned()` / `sealedBlobVerifySignature()` - Signed SB2 (from pubky-crypto)
+- `keybindingDecode()` / `keybindingEncode()` - CBOR KeyBinding parsing (from pubky-crypto)
+- `computeInboxKid()` - inbox_kid derivation from X25519 pubkey (from pubky-crypto)
 
 ## References
 
 - Paykit Roadmap: `paykit-rs/PAYKIT_ROADMAP.md`
 - iOS Integration: `bitkit-ios/PAYKIT_INTEGRATION.md`
 - Phase 3 Report: `paykit-rs/FINAL_DELIVERY_REPORT.md`
-- Protocol Spec: `pubky-noise/docs/PUBKY_CRYPTO_SPEC.md`
+- Protocol Spec: `pubky-noise/docs/PUBKY_CRYPTO_SPEC.md` (crypto primitives now in `pubky-crypto`, re-exported by `pubky-noise`)
 - Audit Plan: `.cursor/plans/audit-remediation-2026-01-21-bitkit-android-paykit-integration.plan.md`
 
