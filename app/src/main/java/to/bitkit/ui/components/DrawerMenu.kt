@@ -34,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,8 +54,8 @@ import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.InterFontFamily
 
-private const val zIndexScrim = 10f
-private const val zIndexMenu = 11f
+private const val Z_INDEX_SCRIM = 10f
+private const val Z_INDEX_MENU = 11f
 private val bgScrim = Colors.Black50
 private val drawerBg = Colors.Brand
 private val drawerWidth = 200.dp
@@ -78,7 +79,7 @@ fun DrawerMenu(
         },
         modifier = Modifier
             .fillMaxSize()
-            .zIndex(zIndexScrim)
+            .zIndex(Z_INDEX_SCRIM)
     )
 
     AnimatedVisibility(
@@ -92,7 +93,7 @@ fun DrawerMenu(
         modifier = modifier.then(
             Modifier
                 .fillMaxHeight()
-                .zIndex(zIndexMenu)
+                .zIndex(Z_INDEX_MENU)
                 .blockPointerInputPassthrough()
         )
     ) {
@@ -173,7 +174,7 @@ private fun Menu(
                 rootNavController.navigateIfNotCurrent(Routes.PaykitProfileEdit)
                 scope.launch { drawerState.close() }
             },
-            modifier = Modifier.testTag("DrawerProfile"),
+            modifier = Modifier.testTag("DrawerProfile")
         )
 
         DrawerItem(
@@ -292,6 +293,8 @@ private fun DrawerItem(
                     fontFamily = InterFontFamily,
                     color = Colors.White,
                 ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
         }

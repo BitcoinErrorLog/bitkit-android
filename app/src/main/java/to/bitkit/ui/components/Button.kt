@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package to.bitkit.ui.components
 
 import androidx.compose.foundation.BorderStroke
@@ -62,6 +64,7 @@ fun PrimaryButton(
     enabled: Boolean = true,
     fullWidth: Boolean = true,
     color: Color? = null,
+    enableGradient: Boolean = true,
 ) {
     val contentPadding = PaddingValues(horizontal = size.horizontalPadding.takeIf { text != null } ?: 0.dp)
     val buttonShape = MaterialTheme.shapes.large
@@ -81,7 +84,8 @@ fun PrimaryButton(
             .primaryButtonStyle(
                 isEnabled = enabled && !isLoading,
                 shape = buttonShape,
-                primaryColor = color
+                primaryColor = color,
+                enableGradient = enableGradient
             )
             .alphaFeedback(enabled = enabled && !isLoading)
     ) {
@@ -313,6 +317,7 @@ private fun PrimaryButtonPreview() {
                 onClick = {},
                 fullWidth = false,
                 color = Colors.Brand,
+                enableGradient = false
             )
             PrimaryButton(
                 text = "Primary Small Loading",

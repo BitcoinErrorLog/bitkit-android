@@ -3,7 +3,11 @@ package to.bitkit.repositories
 import app.cash.turbine.test
 import com.google.firebase.messaging.FirebaseMessaging
 import com.synonym.bitkitcore.FeeRates
+import com.synonym.bitkitcore.IBtInfo
+import com.synonym.bitkitcore.ILspNode
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import org.lightningdevkit.ldknode.ChannelDetails
@@ -13,22 +17,24 @@ import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.SpendableUtxo
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
-import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.data.AppCacheData
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsData
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.keychain.Keychain
 import to.bitkit.ext.createChannelDetails
-import to.bitkit.ext.from
+import to.bitkit.ext.of
 import to.bitkit.models.BalanceState
 import to.bitkit.models.CoinSelectionPreference
 import to.bitkit.models.NodeLifecycleState
@@ -47,23 +53,23 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LightningRepoTest : BaseUnitTest() {
-
     private lateinit var sut: LightningRepo
 
-    private val lightningService: LightningService = mock()
-    private val settingsStore: SettingsStore = mock()
-    private val coreService: CoreService = mock()
-    private val lspNotificationsService: LspNotificationsService = mock()
-    private val firebaseMessaging: FirebaseMessaging = mock()
-    private val keychain: Keychain = mock()
-    private val cacheStore: CacheStore = mock()
-    private val preActivityMetadataRepo: PreActivityMetadataRepo = mock()
-
-    private val lnurlService: LnurlService = mock()
+    private val lightningService = mock<LightningService>()
+    private val settingsStore = mock<SettingsStore>()
+    private val coreService = mock<CoreService>()
+    private val lspNotificationsService = mock<LspNotificationsService>()
+    private val firebaseMessaging = mock<FirebaseMessaging>()
+    private val keychain = mock<Keychain>()
+    private val cacheStore = mock<CacheStore>()
+    private val preActivityMetadataRepo = mock<PreActivityMetadataRepo>()
+    private val lnurlService = mock<LnurlService>()
+    private val connectivityRepo = mock<ConnectivityRepo>()
 
     @Before
-    fun setUp() {
-        wheneverBlocking { coreService.checkGeoBlock() }.thenReturn(Pair(false, false))
+    fun setUp() = runBlocking {
+        whenever(coreService.isGeoBlocked()).thenReturn(false)
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.CONNECTED))
         sut = LightningRepo(
             bgDispatcher = testDispatcher,
             lightningService = lightningService,
@@ -75,25 +81,35 @@ class LightningRepoTest : BaseUnitTest() {
             lnurlService = lnurlService,
             cacheStore = cacheStore,
             preActivityMetadataRepo = preActivityMetadataRepo,
+            connectivityRepo = connectivityRepo,
         )
     }
 
     private suspend fun startNodeForTesting() {
         sut.setInitNodeLifecycleState()
         whenever(lightningService.node).thenReturn(mock())
-        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
         whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        whenever(lightningService.sync()).thenReturn(Unit)
         whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+        whenever(blocktank.info(any())).thenReturn(null)
         val result = sut.start()
         assertTrue(result.isSuccess)
+        // Simulate successful sync to set isSyncHealthy = true
+        sut.sync()
     }
 
     @Test
     fun `start should transition through correct states`() = test {
         sut.setInitNodeLifecycleState()
         whenever(lightningService.node).thenReturn(mock())
-        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
         whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+        whenever(blocktank.info(any())).thenReturn(null)
 
         sut.lightningState.test {
             assertEquals(NodeLifecycleState.Initializing, awaitItem().nodeLifecycleState)
@@ -198,7 +214,7 @@ class LightningRepoTest : BaseUnitTest() {
 
     @Test
     fun `openChannel should fail when node is not running`() = test {
-        val testPeer = PeerDetails.from("nodeId", "host", "9735")
+        val testPeer = PeerDetails.of("nodeId", "host", "9735")
         val result = sut.openChannel(testPeer, 100000uL)
         assertTrue(result.isFailure)
     }
@@ -206,7 +222,7 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `openChannel should succeed when node is running`() = test {
         startNodeForTesting()
-        val peer = PeerDetails.from("nodeId", "host", "9735")
+        val peer = PeerDetails.of("nodeId", "host", "9735")
         val userChannelId = "testChannelId"
         val channelAmountSats = 100_000uL
         whenever(lightningService.openChannel(peer, channelAmountSats, null, null))
@@ -342,7 +358,7 @@ class LightningRepoTest : BaseUnitTest() {
 
     @Test
     fun `disconnectPeer should fail when node is not running`() = test {
-        val testPeer = PeerDetails.from("nodeId", "host", "9735")
+        val testPeer = PeerDetails.of("nodeId", "host", "9735")
         val result = sut.disconnectPeer(testPeer)
         assertTrue(result.isFailure)
     }
@@ -350,8 +366,8 @@ class LightningRepoTest : BaseUnitTest() {
     @Test
     fun `disconnectPeer should succeed when node is running`() = test {
         startNodeForTesting()
-        val testPeer = PeerDetails.from("nodeId", "host", "9735")
-        whenever(lightningService.disconnectPeer(any())).thenReturn(Unit)
+        val testPeer = PeerDetails.of("nodeId", "host", "9735")
+        whenever(lightningService.disconnectPeer(any())).thenReturn(Result.success(Unit))
 
         val result = sut.disconnectPeer(testPeer)
         assertTrue(result.isSuccess)
@@ -364,6 +380,29 @@ class LightningRepoTest : BaseUnitTest() {
     }
 
     @Test
+    fun `sendOnChain should fail when sync is unhealthy`() = test {
+        // Start node but make sync fail (isSyncHealthy = false)
+        // Mock connectivity as disconnected to prevent retry loop from running indefinitely
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.DISCONNECTED))
+        sut.setInitNodeLifecycleState()
+        whenever(lightningService.node).thenReturn(mock())
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        whenever(lightningService.sync()).thenThrow(RuntimeException("Sync failed"))
+        whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+        whenever(blocktank.info(any())).thenReturn(null)
+        sut.start()
+
+        // Sync failed during start(), so isSyncHealthy should be false
+
+        val result = sut.sendOnChain("address", 1000uL)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is SyncUnhealthyError)
+    }
+
+    @Test
     fun `sendOnChain should cache activity meta data`() = test {
         val mockSettingsData = SettingsData(
             defaultTransactionSpeed = TransactionSpeed.Fast,
@@ -371,9 +410,7 @@ class LightningRepoTest : BaseUnitTest() {
         )
         whenever(settingsStore.data).thenReturn(flowOf(mockSettingsData))
 
-        wheneverBlocking {
-            preActivityMetadataRepo.addPreActivityMetadata(any())
-        }.thenReturn(Result.success(Unit))
+        whenever(preActivityMetadataRepo.addPreActivityMetadata(any())).thenReturn(Result.success(Unit))
 
         whenever(
             lightningService.send(
@@ -429,7 +466,7 @@ class LightningRepoTest : BaseUnitTest() {
         assertTrue(result.isSuccess)
         val inOrder = inOrder(lightningService)
         inOrder.verify(lightningService).stop()
-        inOrder.verify(lightningService).setup(any(), eq(customServerUrl), anyOrNull())
+        inOrder.verify(lightningService).setup(any(), eq(customServerUrl), anyOrNull(), anyOrNull(), anyOrNull())
         inOrder.verify(lightningService).start(anyOrNull(), any())
         assertEquals(NodeLifecycleState.Running, sut.lightningState.value.nodeLifecycleState)
     }
@@ -576,5 +613,92 @@ class LightningRepoTest : BaseUnitTest() {
 
         assertTrue(result.isFailure)
         assertEquals(serviceError, result.exceptionOrNull())
+    }
+
+    @Test
+    fun `start should load trusted peers from blocktank info`() = test {
+        sut.setInitNodeLifecycleState()
+        whenever(lightningService.node).thenReturn(null)
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+
+        val mockNodes = listOf(
+            ILspNode(
+                alias = "LSP1",
+                pubkey = "node1pubkey",
+                connectionStrings = listOf("node1pubkey@node1.example.com:9735"),
+                readonly = null,
+            ),
+            ILspNode(
+                alias = "LSP2",
+                pubkey = "node2pubkey",
+                connectionStrings = listOf("node2pubkey@node2.example.com:9735"),
+                readonly = null,
+            ),
+        )
+        val mockInfo = mock<IBtInfo> { on { nodes } doReturn mockNodes }
+        whenever(blocktank.info(refresh = false)).thenReturn(mockInfo)
+
+        val result = sut.start()
+
+        assertTrue(result.isSuccess)
+        verify(lightningService).setup(
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            argThat { peers ->
+                peers?.size == 2 &&
+                    peers.any { it.nodeId == "node1pubkey" && it.address == "node1.example.com:9735" } &&
+                    peers.any { it.nodeId == "node2pubkey" && it.address == "node2.example.com:9735" }
+            },
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `start should pass null trusted peers when blocktank returns null`() = test {
+        sut.setInitNodeLifecycleState()
+        whenever(lightningService.node).thenReturn(null)
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+        whenever(blocktank.info(refresh = false)).thenReturn(null)
+        whenever(blocktank.info(refresh = true)).thenReturn(null)
+
+        val result = sut.start()
+
+        assertTrue(result.isSuccess)
+        verify(lightningService).setup(any(), anyOrNull(), anyOrNull(), isNull(), anyOrNull())
+    }
+
+    @Test
+    fun `start should not retry when node lifecycle state is Running`() = test {
+        sut.setInitNodeLifecycleState()
+        whenever(lightningService.node).thenReturn(null)
+        whenever(lightningService.setup(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Unit)
+        whenever(settingsStore.data).thenReturn(flowOf(SettingsData()))
+        val blocktank = mock<BlocktankService>()
+        whenever(coreService.blocktank).thenReturn(blocktank)
+        whenever(blocktank.info(any())).thenReturn(null)
+
+        // lightningService.start() succeeds (state becomes Running at line 241)
+        whenever(lightningService.start(anyOrNull(), any())).thenReturn(Unit)
+        // lightningService.nodeId throws during syncState() (called at line 244, AFTER state = Running)
+        whenever(lightningService.nodeId).thenThrow(RuntimeException("error during syncState"))
+
+        val result = sut.start()
+
+        // Defensive check: state is Running, so don't retry, return success
+        assertTrue(result.isSuccess)
+        assertEquals(NodeLifecycleState.Running, sut.lightningState.value.nodeLifecycleState)
+        // Verify start was only called once (no retry)
+        verify(lightningService, times(1)).start(anyOrNull(), any())
     }
 }

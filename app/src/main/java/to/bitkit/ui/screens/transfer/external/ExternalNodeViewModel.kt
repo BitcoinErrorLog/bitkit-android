@@ -18,14 +18,12 @@ import org.lightningdevkit.ldknode.UserChannelId
 import to.bitkit.R
 import to.bitkit.data.SettingsStore
 import to.bitkit.ext.WatchResult
-import to.bitkit.ext.parse
+import to.bitkit.ext.of
 import to.bitkit.ext.watchUntil
 import to.bitkit.models.Toast
-import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.TransferType
 import to.bitkit.models.formatToModernDisplay
 import to.bitkit.repositories.LightningRepo
-import to.bitkit.repositories.PreActivityMetadataRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.SideEffect
 import to.bitkit.ui.screens.transfer.external.ExternalNodeContract.UiState
@@ -41,7 +39,6 @@ class ExternalNodeViewModel @Inject constructor(
     private val lightningRepo: LightningRepo,
     private val settingsStore: SettingsStore,
     private val transferRepo: to.bitkit.repositories.TransferRepo,
-    private val preActivityMetadataRepo: to.bitkit.repositories.PreActivityMetadataRepo,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
@@ -86,7 +83,7 @@ class ExternalNodeViewModel @Inject constructor(
 
     fun parseNodeUri(uriString: String) {
         viewModelScope.launch {
-            val result = runCatching { PeerDetails.parse(uriString) }
+            val result = runCatching { PeerDetails.of(uriString) }
 
             if (result.isSuccess) {
                 _uiState.update { it.copy(peer = result.getOrNull()) }
@@ -120,33 +117,12 @@ class ExternalNodeViewModel @Inject constructor(
     fun onAmountContinue() {
         viewModelScope.launch {
             val speed = settingsStore.data.first().defaultTransactionSpeed
-            val defaultSatsPerVbyte = lightningRepo.getFeeRateForSpeed(speed).getOrThrow().toUInt()
-            _uiState.update {
-                it.copy(
-                    customFeeRate = defaultSatsPerVbyte,
-                    networkFee = 0L,
-                )
-            }
-            updateNetworkFee()
-        }
-    }
-
-    fun onCustomFeeRateChange(feeRate: UInt) {
-        _uiState.update { it.copy(customFeeRate = feeRate) }
-        updateNetworkFee()
-    }
-
-    private fun updateNetworkFee() {
-        viewModelScope.launch {
             val amountSats = _uiState.value.amount.sats
-            val customFeeRate = _uiState.value.customFeeRate
 
-            if (amountSats <= 0 || customFeeRate == 0u) {
+            if (amountSats <= 0) {
                 _uiState.update { it.copy(networkFee = 0L) }
                 return@launch
             }
-
-            val speed = customFeeRate?.let { TransactionSpeed.Custom(it) }
 
             val fee = lightningRepo.calculateTotalFee(
                 amountSats = amountSats.toULong(),
@@ -161,27 +137,14 @@ class ExternalNodeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
+            @Suppress("ForbiddenComment")
             // TODO: pass customFeeRate to ldk-node when supported
             lightningRepo.openChannel(
                 peer = requireNotNull(_uiState.value.peer),
                 channelAmountSats = _uiState.value.amount.sats.toULong(),
             ).mapCatching { result ->
                 awaitChannelPendingEvent(result.userChannelId).mapCatching { event ->
-                    val (txId, vout) = event.fundingTxo
-                    val transactionDetails = lightningRepo.getTransactionDetails(txId).getOrNull()
-                    val address = transactionDetails?.outputs?.getOrNull(vout.toInt())?.scriptpubkeyAddress ?: ""
-                    val feeRate = _uiState.value.customFeeRate ?: 0u
-
-                    preActivityMetadataRepo.savePreActivityMetadata(
-                        id = txId,
-                        txId = txId,
-                        address = address,
-                        isReceive = false,
-                        tags = emptyList(),
-                        feeRate = feeRate.toULong(),
-                        isTransfer = true,
-                        channelId = event.channelId,
-                    )
+                    val (txId, _) = event.fundingTxo
 
                     transferRepo.createTransfer(
                         type = TransferType.MANUAL_SETUP,
@@ -234,7 +197,6 @@ interface ExternalNodeContract {
         val peer: PeerDetails? = null,
         val amount: Amount = Amount(),
         val networkFee: Long = 0,
-        val customFeeRate: UInt? = null,
     ) {
         data class Amount(
             val sats: Long = 0,

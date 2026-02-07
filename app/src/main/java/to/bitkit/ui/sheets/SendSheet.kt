@@ -47,6 +47,7 @@ import to.bitkit.viewmodels.SendEffect
 import to.bitkit.viewmodels.SendEvent
 import to.bitkit.viewmodels.WalletViewModel
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun SendSheet(
     appViewModel: AppViewModel,
@@ -57,7 +58,7 @@ fun SendSheet(
         // always reset state on new user-initiated send
         if (startDestination == SendRoute.Recipient) {
             appViewModel.resetSendState()
-            appViewModel.resetQuickPayData()
+            appViewModel.resetQuickPay()
         }
     }
     Column(
@@ -89,6 +90,7 @@ fun SendSheet(
                     is SendEffect.NavigateToWithdrawError -> navController.navigate(SendRoute.WithdrawError)
                     is SendEffect.NavigateToFee -> navController.navigate(SendRoute.FeeRate)
                     is SendEffect.NavigateToFeeCustom -> navController.navigate(SendRoute.FeeCustom)
+                    is SendEffect.NavigateToComingSoon -> navController.navigate(SendRoute.ComingSoon)
                 }
             }
         }
@@ -122,10 +124,10 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.Amount> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                val walletUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+                val lightningState by walletViewModel.lightningState.collectAsStateWithLifecycle()
                 SendAmountScreen(
                     uiState = uiState,
-                    walletUiState = walletUiState,
+                    nodeLifecycleState = lightningState.nodeLifecycleState,
                     canGoBack = startDestination != SendRoute.Amount,
                     onBack = {
                         if (!navController.popBackStack()) {
@@ -178,12 +180,12 @@ fun SendSheet(
             }
             composableWithDefaultTransitions<SendRoute.Confirm> {
                 val uiState by appViewModel.sendUiState.collectAsStateWithLifecycle()
-                val walletUiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+                val lightningState by walletViewModel.lightningState.collectAsStateWithLifecycle()
 
                 SendConfirmScreen(
                     savedStateHandle = it.savedStateHandle,
                     uiState = uiState,
-                    isNodeRunning = walletUiState.nodeLifecycleState.isRunning(),
+                    isNodeRunning = lightningState.nodeLifecycleState.isRunning(),
                     canGoBack = startDestination != SendRoute.Confirm,
                     onBack = {
                         if (!navController.popBackStack()) {
@@ -277,6 +279,12 @@ fun SendSheet(
                     }
                 )
             }
+            composableWithDefaultTransitions<SendRoute.ComingSoon> {
+                ComingSoonSheetContent(
+                    onWalletOverviewClick = { appViewModel.hideSheet() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composableWithDefaultTransitions<SendRoute.Error> {
                 val route = it.toRoute<SendRoute.Error>()
                 SendErrorScreen(
@@ -350,6 +358,9 @@ sealed interface SendRoute {
 
     @Serializable
     data object Success : SendRoute
+
+    @Serializable
+    data object ComingSoon : SendRoute
 
     @Serializable
     data class Error(val errorMessage: String) : SendRoute

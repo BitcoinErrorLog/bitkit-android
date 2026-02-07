@@ -1,5 +1,6 @@
 package to.bitkit.usecases
 
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -18,6 +19,7 @@ import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.services.CoreService
+import to.bitkit.services.MigrationService
 import to.bitkit.test.BaseUnitTest
 import kotlin.test.assertTrue
 
@@ -33,6 +35,8 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
     private val blocktankRepo = mock<BlocktankRepo>()
     private val activityRepo = mock<ActivityRepo>()
     private val lightningRepo = mock<LightningRepo>()
+    private val firebaseMessaging = mock<FirebaseMessaging>()
+    private val migrationService = mock<MigrationService>()
 
     private lateinit var sut: WipeWalletUseCase
 
@@ -56,6 +60,8 @@ class WipeWalletUseCaseTest : BaseUnitTest() {
             blocktankRepo = blocktankRepo,
             activityRepo = activityRepo,
             lightningRepo = lightningRepo,
+            firebaseMessaging = firebaseMessaging,
+            migrationService = migrationService,
         )
     }
 

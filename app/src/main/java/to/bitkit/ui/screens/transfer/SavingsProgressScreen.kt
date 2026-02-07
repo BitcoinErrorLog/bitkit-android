@@ -1,7 +1,5 @@
 package to.bitkit.ui.screens.transfer
 
-import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -27,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import to.bitkit.R
+import to.bitkit.models.Toast
 import to.bitkit.ui.components.BodyM
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.PrimaryButton
@@ -44,16 +44,15 @@ import to.bitkit.viewmodels.AppViewModel
 import to.bitkit.viewmodels.TransferViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
-enum class SavingsProgressState { PROGRESS, SUCCESS, INTERRUPTED }
-
 @Composable
 fun SavingsProgressScreen(
     app: AppViewModel,
     transfer: TransferViewModel,
     wallet: WalletViewModel,
     onContinueClick: () -> Unit = {},
+    onTransferUnavailable: () -> Unit = {},
 ) {
-    val window = LocalActivity.current?.window
+    val context = LocalContext.current
     var progressState by remember { mutableStateOf(SavingsProgressState.PROGRESS) }
 
     // Effect to close channels & update UI
@@ -62,31 +61,44 @@ fun SavingsProgressScreen(
         val channelsFailedToCoopClose = transfer.closeSelectedChannels()
 
         if (channelsFailedToCoopClose.isEmpty()) {
-            window?.clearFlags(FLAG_KEEP_SCREEN_ON)
-
             wallet.refreshState()
             delay(5000)
             progressState = SavingsProgressState.SUCCESS
         } else {
-            transfer.startCoopCloseRetries(channelsFailedToCoopClose) {
-                app.showSheet(Sheet.ForceTransfer)
-            }
-            delay(2500)
-            progressState = SavingsProgressState.INTERRUPTED
-        }
-    }
+            // Check if any channels can be retried (filter out trusted peers)
+            val (_, nonTrustedChannels) = transfer.separateTrustedChannels(channelsFailedToCoopClose)
 
-    // Keeps screen on while this view is active
-    DisposableEffect(Unit) {
-        window?.addFlags(FLAG_KEEP_SCREEN_ON)
-        onDispose {
-            window?.clearFlags(FLAG_KEEP_SCREEN_ON)
+            if (nonTrustedChannels.isEmpty()) {
+                // All channels are trusted peers - show error and navigate back immediately
+                app.toast(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.lightning__close_error),
+                    description = context.getString(R.string.lightning__close_error_msg),
+                )
+                onTransferUnavailable()
+            } else {
+                transfer.startCoopCloseRetries(
+                    channels = nonTrustedChannels,
+                    onGiveUp = { app.showSheet(Sheet.ForceTransfer) },
+                    onTransferUnavailable = {
+                        app.toast(
+                            type = Toast.ToastType.ERROR,
+                            title = context.getString(R.string.lightning__close_error),
+                            description = context.getString(R.string.lightning__close_error_msg),
+                        )
+                        onTransferUnavailable()
+                    },
+                )
+                delay(2500)
+                progressState = SavingsProgressState.INTERRUPTED
+            }
         }
     }
 
     Content(
         progressState = progressState,
         onContinueClick = { onContinueClick() },
+        modifier = Modifier.keepScreenOn(),
     )
 }
 
@@ -94,10 +106,11 @@ fun SavingsProgressScreen(
 private fun Content(
     progressState: SavingsProgressState,
     onContinueClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val inProgress = progressState == SavingsProgressState.PROGRESS
     ScreenColumn(
-        modifier = Modifier.testTag(if (inProgress) "TransferSettingUp" else "TransferSuccess")
+        modifier = modifier.testTag(if (inProgress) "TransferSettingUp" else "TransferSuccess")
     ) {
         AppTopBar(
             titleText = when (progressState) {
@@ -189,6 +202,8 @@ private fun Content(
         }
     }
 }
+
+enum class SavingsProgressState { PROGRESS, SUCCESS, INTERRUPTED }
 
 @Preview(showSystemUi = true)
 @Composable

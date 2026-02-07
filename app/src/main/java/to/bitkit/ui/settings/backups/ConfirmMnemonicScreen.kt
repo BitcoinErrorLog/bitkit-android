@@ -34,16 +34,20 @@ import to.bitkit.ui.components.BodyMSB
 import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.PrimaryButton
 import to.bitkit.ui.scaffold.SheetTopBar
+import to.bitkit.ui.shared.effects.BlockScreenshots
 import to.bitkit.ui.shared.util.gradientBackground
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun ConfirmMnemonicScreen(
     uiState: BackupContract.UiState,
     onContinue: () -> Unit,
     onBack: () -> Unit,
 ) {
+    BlockScreenshots()
+
     val originalSeed = remember(uiState.bip39Mnemonic) {
         uiState.bip39Mnemonic.split(" ").filter { it.isNotBlank() }
     }
@@ -155,9 +159,11 @@ private fun ConfirmMnemonicContent(
                     .testTag("backup_shuffled_words_grid")
             ) {
                 shuffledWords.forEachIndexed { index, word ->
+                    val isSelected = pressedStates.getOrElse(index, defaultValue = { false })
                     PrimaryButton(
                         text = word,
-                        color = if (pressedStates.getOrNull(index) == true) Colors.White32 else Colors.White16,
+                        color = if (isSelected) Colors.White32 else Colors.White16,
+                        enableGradient = !isSelected,
                         fullWidth = false,
                         size = ButtonSize.Small,
                         onClick = { onWordPress(word, index) },

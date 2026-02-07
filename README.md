@@ -1,21 +1,20 @@
 # Bitkit Android (Native)
 
-> [!CAUTION]
-> ⚠️This is **NOT** the repository of the Bitkit app from the app stores!<br>
-> ⚠️Work-in-progress<br>
-> The Bitkit app repository is here: **[github.com/synonymdev/bitkit](https://github.com/synonymdev/bitkit)**
-
----
-
 ## About
 
-This repository contains a **new native Android app** which is **not ready for production**.
+This repository contains the **native Android app** for Bitkit.
 
 ## Development
 
 ### Prerequisites
 
-#### 1. Download `google-services.json` to `app/` from FCM Console.
+#### 1. Firebase Configuration
+
+Download `google-services.json` from the Firebase Console for each of the following build flavor groups,:
+- dev/tnet/mainnetDebug: Place in `app/google-services.json`
+- mainnetRelease: Place in `app/src/mainnetRelease/google-services.json`
+
+> **Note**: Each flavor requires its own Firebase project configuration. The mainnet flavor will fail to build without its dedicated `google-services.json` file.
 
 #### 2. GitHub Packages setup
 
@@ -39,15 +38,22 @@ See also:
 
 ### References
 
-- For LNURL dev testing see [bitkit-docker](https://github.com/ovitrif/bitkit-docker)
+- For LNURL dev testing see [bitkit-docker](https://github.com/synonymdev/bitkit-docker)
 
 ### Lint
 
 This project uses detekt with default ktlint and compose-rules for android code linting.
 
-Recommended Android Studio plugins:
-- EditorConfig
-- Detekt
+### IDE Plugins
+The following IDE plugins are recommended for development with Android Studio or IntelliJ IDEA:
+- [Compose Color Preview](https://plugins.jetbrains.com/plugin/21298-compose-color-preview)
+- [Compose Stability Analyzer](https://plugins.jetbrains.com/plugin/28767-compose-stability-analyzer)
+- [detekt](https://plugins.jetbrains.com/plugin/10761-detekt)
+  <details>
+  <summary>See screenshot on how to setup the Detekt plugin after installation.</summary>
+  
+  ![Detekt plugin setup][img_detekt]
+  </details>
 
 **Commands** 
 ```sh
@@ -77,19 +83,33 @@ To pull the latest translations from Transifex:
    - Follow the installation instructions: [Transifex CLI Installation](https://developers.transifex.com/docs/cli)
 
 2. **Authenticate with Transifex** (if not already configured):
-   - Create a `.transifexrc` file in your home directory (`~/.transifexrc`) with your API token:
-     ```ini
-     [https://www.transifex.com]
-     rest_hostname = https://rest.api.transifex.com
-     token         = YOUR_API_TOKEN_HERE
+   - Set the `TX_TOKEN` environment variable with your API token:
+     ```sh
+     export TX_TOKEN="YOUR_API_TOKEN_HERE"
      ```
-   - You can get your API token from your [Transifex account settings](https://www.transifex.com/user/settings/api/)
-   - The CLI will prompt you for an API token if one is not configured
+   - You can get your API token from [Transifex account settings](https://www.transifex.com/user/settings/api/)
+   - Add it to `~/.zshrc` or other shell rc file to persist across sessions
 
 3. **Pull translations**:
    ```sh
    ./scripts/pull-translations.sh
    ```
+
+### Pushing Source Strings
+
+When you add or modify translation keys in the EN source file, push them to Transifex:
+
+```sh
+tx push --source
+```
+
+### Translation Workflow
+
+1. **Add/modify strings** in `app/src/main/res/values/strings.xml`
+2. **Push to Transifex:** `tx push --source`
+3. **Translators** work on translations in Transifex
+4. **Pull translations:** `./scripts/pull-translations.sh`
+5. **Commit** the updated translation files
 
 ## Build
 
@@ -100,27 +120,11 @@ The build config supports building 3 different apps for the 3 bitcoin networks (
 - `mainnet` flavour = mainnet
 - `tnet` flavour = testnet
 
-### Build for E2E Testing
-
-Simply pass `E2E=true` as environment variable and build any flavor.
-
-```sh
-E2E=true ./gradlew assembleDevRelease
-```
-
-#### Disable Geoblocking Checks
-
-By default, geoblocking checks via API are enabled. To disable at build time, use the `GEO` environment variable:
-
-```sh
-GEO=false E2E=true ./gradlew assembleDevRelease
-```
-
-### Build for Release
+### Build for Internal Testing
 
 **Prerequisites**  
 Setup the signing config:
-- Add the keystore file to root dir (i.e. `release.keystore`)
+- Add the keystore file to root dir (i.e. `internal.keystore`)
 - Setup `keystore.properties` file in root dir (`cp keystore.properties.template keystore.properties`)
 
 **Routine**
@@ -133,6 +137,53 @@ Increment `versionCode` and `versionName` in `app/build.gradle.kts`, then run:
 
 APK is generated in `app/build/outputs/apk/_flavor_/release`. (`_flavor_` can be any of 'dev', 'mainnet', 'tnet').
 Example for dev: `app/build/outputs/apk/dev/release`
+
+### Build for Release
+
+To build the mainnet flavor for release run:
+
+```sh
+./gradlew assembleMainnetRelease
+```
+
+#### Android App Bundle (AAB)
+
+For Play Store submission, build an AAB instead of APK:
+
+```sh
+./gradlew bundleMainnetRelease
+```
+
+AAB is generated in `app/build/outputs/bundle/mainnetRelease/`.
+
+### Build for E2E Testing
+
+Pass `E2E=true` and build any flavor. By default, E2E uses a local Electrum override.
+
+```sh
+E2E=true ./gradlew assembleDevRelease
+```
+
+#### Use Network Electrum (Staging/Mainnet)
+
+Set `E2E_BACKEND=network` to use the network Electrum based on the build flavor:
+
+```sh
+# regtest (dev flavor)
+E2E=true E2E_BACKEND=network ./gradlew assembleDevRelease
+# testnet (tnet flavor)
+E2E=true E2E_BACKEND=network ./gradlew assembleTnetRelease
+# mainnet
+E2E=true E2E_BACKEND=network ./gradlew assembleMainnetRelease
+```
+
+#### Disable Geoblocking Checks
+
+By default, geoblocking checks via API are enabled. To disable at build time, use the `GEO` environment variable:
+
+```sh
+GEO=false E2E=true ./gradlew assembleDevRelease
+```
 
 ## Contributing
 
@@ -187,3 +238,5 @@ Destructive operations like `rm -rf`, `git commit`, and `git push` still require
 
 This project is licensed under the MIT License.
 See the [LICENSE](./LICENSE) file for more details.
+
+[img_detekt]: .github/img/detekt.png

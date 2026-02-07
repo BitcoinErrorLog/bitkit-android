@@ -1,4 +1,5 @@
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+import com.android.build.gradle.internal.tasks.FinalizeBundleTask
 import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
@@ -9,6 +10,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.compose.stability.analyzer)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -36,7 +38,15 @@ val keystoreProperties by lazy {
     keystoreProperties
 }
 
-val locales = listOf("en", "ar", "ca", "cs", "de", "el", "es", "fr", "it", "nl", "pl", "pt", "ru")
+// Android resource qualifier format for androidResources.localeFilters
+val androidLocales = listOf(
+    "en", "ar", "b+es+419", "ca", "cs", "de", "el", "es", "es-rES", "fr", "it", "nl", "pl", "pt", "pt-rBR", "ru"
+)
+// BCP 47 format for BuildConfig.LOCALES (used with Locale.forLanguageTag())
+val bcp47Locales = listOf(
+    "en", "ar", "es-419", "ca", "cs", "de", "el", "es", "es-ES", "fr", "it", "nl", "pl", "pt", "pt-BR", "ru"
+)
+val e2eBackendEnv = System.getenv("E2E_BACKEND") ?: "local"
 
 android {
     namespace = "to.bitkit"
@@ -45,15 +55,16 @@ android {
         applicationId = "to.bitkit"
         minSdk = 28
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.0.15"
+        versionCode = 175
+        versionName = "2.0.1"
         testInstrumentationRunner = "to.bitkit.test.HiltTestRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
         buildConfigField("boolean", "E2E", System.getenv("E2E")?.toBoolean()?.toString() ?: "false")
+        buildConfigField("String", "E2E_BACKEND", "\"$e2eBackendEnv\"")
         buildConfigField("boolean", "GEO", System.getenv("GEO")?.toBoolean()?.toString() ?: "true")
-        buildConfigField("String", "LOCALES", "\"${locales.joinToString(",")}\"")
+        buildConfigField("String", "LOCALES", "\"${bcp47Locales.joinToString(",")}\"")
     }
 
     flavorDimensions += "network"
@@ -66,14 +77,14 @@ android {
             manifestPlaceholders["app_icon"] = "@mipmap/ic_launcher_regtest"
             manifestPlaceholders["app_icon_round"] = "@mipmap/ic_launcher_regtest_round"
         }
-        // create("mainnet") {
-        //     dimension = "network"
-        //     applicationIdSuffix = ""
-        //     buildConfigField("String", "NETWORK", "\"BITCOIN\"")
-        //     resValue("string", "app_name", "Bitkit")
-        //     manifestPlaceholders["app_icon"] = "@mipmap/ic_launcher_orange"
-        //     manifestPlaceholders["app_icon_round"] = "@mipmap/ic_launcher_orange_round"
-        // }
+        create("mainnet") {
+            dimension = "network"
+            applicationIdSuffix = ""
+            buildConfigField("String", "NETWORK", "\"BITCOIN\"")
+            resValue("string", "app_name", "Bitkit")
+            manifestPlaceholders["app_icon"] = "@mipmap/ic_launcher_orange"
+            manifestPlaceholders["app_icon_round"] = "@mipmap/ic_launcher_orange_round"
+        }
         create("tnet") {
             dimension = "network"
             applicationIdSuffix = ".tnet"
@@ -143,7 +154,7 @@ android {
     }
     androidResources {
         @Suppress("UnstableApiUsage")
-        localeFilters.addAll(locales)
+        localeFilters.addAll(androidLocales)
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
@@ -162,6 +173,16 @@ android {
             jniLibs.srcDirs("src/main/jniLibs")
         }
     }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            // Only architectures supported by native libs (ldk-node, bitkit-core)
+            // x86 not supported; x86_64 only for debug/emulator
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = true
+        }
+    }
     testOptions {
         unitTests {
             isReturnDefaultValues = true // mockito
@@ -173,18 +194,32 @@ android {
     }
     applicationVariants.all {
         val variant = this
+        val bitkit = "bitkit"
+        val flavorName = variant.flavorName
+        val variantName = variant.buildType.name
+        val versionCode = defaultConfig.versionCode
         outputs
             .map { it as BaseVariantOutputImpl }
             .forEach { output ->
-                val apkName = "bitkit-android-${defaultConfig.versionCode}-${variant.name}.apk"
+                val abi = output.getFilter("ABI") ?: "universal"
+                val apkName = "$bitkit-$flavorName-$variantName-$versionCode-$abi.apk"
                 output.outputFileName = apkName
             }
+
+        // Rename AAB bundle
+        tasks.named(
+            "sign${variant.name.replaceFirstChar { it.uppercase() }}Bundle",
+            FinalizeBundleTask::class.java,
+        ) {
+            val aabName = "$bitkit-$flavorName-$variantName-$versionCode.aab"
+            val outputDir = finalBundleFile.asFile.get().parentFile
+            finalBundleFile.set(File(outputDir, aabName))
+        }
     }
 }
 
 composeCompiler {
-    featureFlags = setOf(
-    )
+    featureFlags = setOf()
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
 }
 
@@ -230,6 +265,7 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
+    implementation(libs.compose.runtime.tracing)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)

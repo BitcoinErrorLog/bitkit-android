@@ -1,15 +1,18 @@
 package to.bitkit.usecases
 
+import com.google.firebase.messaging.FirebaseMessaging
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
 import to.bitkit.data.SettingsStore
 import to.bitkit.data.WidgetsStore
 import to.bitkit.data.keychain.Keychain
+import to.bitkit.env.Env
 import to.bitkit.repositories.ActivityRepo
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.services.CoreService
+import to.bitkit.services.MigrationService
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,18 +30,20 @@ class WipeWalletUseCase @Inject constructor(
     private val blocktankRepo: BlocktankRepo,
     private val activityRepo: ActivityRepo,
     private val lightningRepo: LightningRepo,
+    private val firebaseMessaging: FirebaseMessaging,
+    private val migrationService: MigrationService,
 ) {
-    @Suppress("TooGenericExceptionCaught")
     suspend operator fun invoke(
         walletIndex: Int = 0,
         resetWalletState: () -> Unit,
         onSuccess: () -> Unit,
     ): Result<Unit> {
-        try {
+        return runCatching {
             backupRepo.setWiping(true)
             backupRepo.reset()
 
             keychain.wipe()
+            firebaseMessaging.deleteToken()
 
             coreService.wipeData()
             db.clearAllTables()
@@ -51,20 +56,22 @@ class WipeWalletUseCase @Inject constructor(
             activityRepo.resetState()
             resetWalletState()
 
-            return lightningRepo.wipeStorage(walletIndex)
+            migrationService.markMigrationChecked()
+
+            lightningRepo.wipeStorage(walletIndex)
                 .onSuccess {
                     onSuccess()
-                    Logger.reset()
+                    if (Env.isDebug) Logger.reset()
                 }
-        } catch (e: Throwable) {
-            Logger.error("Wipe wallet error", e, context = TAG)
-            return Result.failure(e)
-        } finally {
+                .getOrThrow()
+        }.onFailure {
+            Logger.error("Wipe wallet error", it, context = TAG)
+        }.also {
             backupRepo.setWiping(false)
         }
     }
 
-    companion object Companion {
-        const val TAG = "WipeWalletUseCase"
+    companion object {
+        private const val TAG = "WipeWalletUseCase"
     }
 }

@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -80,6 +80,7 @@ import to.bitkit.ui.LocalBalances
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.ActivityBanner
 import to.bitkit.ui.components.AppStatus
+import to.bitkit.ui.components.Title
 import to.bitkit.ui.components.BalanceHeaderView
 import to.bitkit.ui.components.EmptyStateView
 import to.bitkit.ui.components.HorizontalSpacer
@@ -89,7 +90,6 @@ import to.bitkit.ui.components.SuggestionCard
 import to.bitkit.ui.components.TabBar
 import to.bitkit.ui.components.TertiaryButton
 import to.bitkit.ui.components.Text13Up
-import to.bitkit.ui.components.Title
 import to.bitkit.ui.components.TopBarSpacer
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.components.WalletBalanceView
@@ -118,13 +118,13 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
 import to.bitkit.viewmodels.ActivityListViewModel
 import to.bitkit.viewmodels.AppViewModel
-import to.bitkit.viewmodels.MainUiState
 import to.bitkit.viewmodels.SettingsViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun HomeScreen(
-    mainUiState: MainUiState,
+    isRefreshing: Boolean,
     drawerState: DrawerState,
     rootNavController: NavController,
     walletNavController: NavHostController,
@@ -164,7 +164,7 @@ fun HomeScreen(
     }
 
     Content(
-        mainUiState = mainUiState,
+        isRefreshing = isRefreshing,
         homeUiState = homeUiState,
         rootNavController = rootNavController,
         walletNavController = walletNavController,
@@ -176,13 +176,6 @@ fun HomeScreen(
             activityListViewModel.resync()
             walletViewModel.onPullToRefresh()
             homeViewModel.refreshWidgets()
-        },
-        onClickProfile = {
-            if (!hasSeenProfileIntro) {
-                rootNavController.navigate(Routes.ProfileIntro)
-            } else {
-                rootNavController.navigate(Routes.CreateProfile)
-            }
         },
         onRemoveSuggestion = { suggestion ->
             homeViewModel.removeSuggestion(suggestion)
@@ -223,11 +216,7 @@ fun HomeScreen(
                 }
 
                 Suggestion.PROFILE -> {
-                    if (!hasSeenProfileIntro) {
-                        rootNavController.navigate(Routes.ProfileIntro)
-                    } else {
-                        rootNavController.navigate(Routes.CreateProfile)
-                    }
+                    rootNavController.navigate(Routes.Profile)
                 }
 
                 Suggestion.SHOP -> {
@@ -285,10 +274,11 @@ fun HomeScreen(
     )
 }
 
+@Suppress("MagicNumber")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 private fun Content(
-    mainUiState: MainUiState,
+    isRefreshing: Boolean,
     homeUiState: HomeUiState,
     rootNavController: NavController,
     walletNavController: NavController,
@@ -326,11 +316,11 @@ private fun Content(
         val pullToRefreshState = rememberPullToRefreshState()
         PullToRefreshBox(
             state = pullToRefreshState,
-            isRefreshing = mainUiState.isRefreshing,
+            isRefreshing = isRefreshing,
             onRefresh = onRefresh,
             indicator = {
                 Indicator(
-                    isRefreshing = mainUiState.isRefreshing,
+                    isRefreshing = isRefreshing,
                     state = pullToRefreshState,
                     modifier = Modifier
                         .padding(top = heightStatusBar)
@@ -713,7 +703,7 @@ private fun TopBar(
                     )
                 }
             },
-            colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
+            colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -743,7 +733,7 @@ private fun Preview() {
     AppThemeSurface {
         Box {
             Content(
-                mainUiState = MainUiState(),
+                isRefreshing = false,
                 homeUiState = HomeUiState(
                     showWidgets = true,
                 ),
@@ -767,7 +757,7 @@ private fun PreviewEmpty() {
     AppThemeSurface {
         Box {
             Content(
-                mainUiState = MainUiState(),
+                isRefreshing = false,
                 homeUiState = HomeUiState(
                     showEmptyState = true,
                 ),

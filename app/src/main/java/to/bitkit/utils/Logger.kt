@@ -6,6 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.serializer
 import org.lightningdevkit.ldknode.LogRecord
 import org.lightningdevkit.ldknode.LogWriter
@@ -19,6 +22,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.measureTime
 import org.lightningdevkit.ldknode.LogLevel as LdkLogLevel
 
 private const val APP = "APP"
@@ -26,28 +31,38 @@ private const val LDK = "LDK"
 private const val COMPACT = false
 
 enum class LogSource { Ldk, Bitkit, Unknown }
-enum class LogLevel { PERF, VERBOSE, GOSSIP, TRACE, DEBUG, INFO, WARN, ERROR; }
+enum class LogLevel { PERF, VERBOSE, GOSSIP, TRACE, DEBUG, INFO, WARN, ERROR }
 
 val Logger = AppLogger()
 
-class AppLogger(
-    private val source: LogSource = LogSource.Bitkit,
-) {
+class AppLogger {
+    companion object {
+        private const val TAG = "Logger"
+        private val saverRef = AtomicReference<LogSaver?>(null)
+
+        fun getOrCreateSaver(): LogSaver = saverRef.get() ?: synchronized(this) {
+            saverRef.get() ?: run {
+                val sessionPath = runCatching { buildSessionLogFilePath() }.getOrElse { "" }
+                LogSaverImpl(sessionPath).also { saverRef.set(it) }
+            }
+        }
+    }
+
     private var delegate: LoggerImpl? = null
 
     init {
         delegate = runCatching { createDelegate() }.getOrNull()
     }
 
-    private fun createDelegate(): LoggerImpl {
-        val sessionPath = runCatching { buildSessionLogFilePath(source) }.getOrElse { "" }
-        return LoggerImpl(APP, LogSaverImpl(source, sessionPath))
-    }
+    private fun createDelegate() = LoggerImpl(APP, getOrCreateSaver())
 
     fun reset() {
-        warn("Wiping entire logs directory...")
-        runCatching { Env.logDir.deleteRecursively() }
-        delegate = runCatching { createDelegate() }.getOrNull()
+        warn("Wiping entire logs directory…", context = TAG)
+        synchronized(AppLogger) {
+            runCatching { Env.logDir.deleteRecursively() }
+            saverRef.set(null)
+            delegate = runCatching { createDelegate() }.getOrNull()
+        }
     }
 
     fun info(
@@ -98,17 +113,17 @@ class AppLogger(
         delegate?.verbose(msg, e, context, file, line)
     }
 
-    fun performance(
+    fun perf(
         msg: String?,
         context: String = "",
         file: String = getCallerPath(),
         line: Int = getCallerLine(),
     ) {
-        delegate?.performance(msg, context, file, line)
+        delegate?.perf(msg, context, file, line)
     }
 }
 
-class LoggerImpl(
+private class LoggerImpl(
     private val tag: String = APP,
     private val saver: LogSaver,
     private val compact: Boolean = COMPACT,
@@ -142,7 +157,7 @@ class LoggerImpl(
         path: String = getCallerPath(),
         line: Int = getCallerLine(),
     ) {
-        val errMsg = e?.let { errLogOf(it) }.orEmpty()
+        val errMsg = e?.let { errorLogOf(it) }.orEmpty()
         val message = formatLog(LogLevel.WARN, "$msg $errMsg", context, path, line)
         if (compact) Log.w(tag, message) else Log.w(tag, message, e)
         saver.save(message)
@@ -155,7 +170,7 @@ class LoggerImpl(
         path: String = getCallerPath(),
         line: Int = getCallerLine(),
     ) {
-        val errMsg = e?.let { errLogOf(it) }.orEmpty()
+        val errMsg = e?.let { errorLogOf(it) }.orEmpty()
         val message = formatLog(LogLevel.ERROR, "$msg $errMsg", context, path, line)
         if (compact) Log.e(tag, message) else Log.e(tag, message, e)
         saver.save(message)
@@ -175,7 +190,7 @@ class LoggerImpl(
         saver.save(message)
     }
 
-    fun performance(
+    fun perf(
         msg: String?,
         context: String = "",
         path: String = getCallerPath(),
@@ -192,7 +207,6 @@ interface LogSaver {
 }
 
 class LogSaverImpl(
-    source: LogSource,
     private val sessionFilePath: String,
 ) : LogSaver {
     private val queue: CoroutineScope by lazy {
@@ -201,7 +215,7 @@ class LogSaverImpl(
 
     init {
         if (sessionFilePath.isNotEmpty()) {
-            log("Log session for '${source.name}' initialized with file path: '$sessionFilePath'")
+            log("Log session initialized with file path: '$sessionFilePath'")
 
             // Clean all old log files in background
             CoroutineScope(Dispatchers.IO).launch {
@@ -215,8 +229,9 @@ class LogSaverImpl(
 
         queue.launch {
             runCatching {
+                val sanitized = message.replace("\n", " ")
                 FileOutputStream(File(sessionFilePath), true).use { stream ->
-                    stream.write("$message\n".toByteArray())
+                    stream.write("$sanitized\n".toByteArray())
                 }
             }.onFailure {
                 Log.e(APP, "Error writing to log file: '$sessionFilePath'", it)
@@ -224,40 +239,43 @@ class LogSaverImpl(
         }
     }
 
-    private fun log(message: String, level: LogLevel = LogLevel.INFO) {
+    private fun log(
+        message: String,
+        level: LogLevel = LogLevel.INFO,
+        androidLog: (String, String) -> Unit = { tag, msg -> Log.i(tag, msg) },
+    ) {
         val formatted = formatLog(level, message, TAG, getCallerPath(), getCallerLine())
-        Log.i(APP, formatted)
+        androidLog(APP, formatted)
         save(formatted)
     }
 
     private fun cleanupOldLogFiles(maxTotalSizeMB: Int = 20) {
-        log("Deleting old log files…", LogLevel.VERBOSE)
+        log("Deleting old log files…", LogLevel.VERBOSE, Log::v)
         val logDir = runCatching { Env.logDir }.getOrNull() ?: return
 
         val logFiles = logDir
             .listFiles { file -> file.extension == "log" }
-            ?.map { file -> Triple(file, file.length(), file.lastModified()) }
             ?: return
 
-        var totalSize = logFiles.sumOf { it.second }
+        var totalSize = logFiles.sumOf { it.length() }
         val maxSizeBytes = maxTotalSizeMB * 1024L * 1024L
 
         // Sort by creation date (oldest first)
         logFiles
-            .sortedBy { it.third }
-            .forEach { (file, size, _) ->
+            .sortedBy { it.lastModified() }
+            .forEach { file ->
                 if (totalSize <= maxSizeBytes) return
 
                 runCatching {
-                    Log.d(APP, "Deleting old log file: '${file.name}'")
+                    log("Deleting old log file: '${file.name}'", LogLevel.DEBUG, Log::d)
                     if (file.delete()) {
-                        totalSize -= size
+                        totalSize -= file.length()
                     }
                 }.onFailure {
-                    Log.w(APP, "Failed to delete old log file: '${file.name}'", it)
+                    log("Failed to delete old log file: '${file.name}'", LogLevel.WARN, Log::w)
                 }
             }
-        Log.v(APP, "Deleted all old log files.")
+        log("Deleted all old log files.", LogLevel.VERBOSE, Log::v)
     }
 
     companion object {
@@ -267,8 +285,7 @@ class LogSaverImpl(
 
 class LdkLogWriter(
     private val maxLogLevel: LdkLogLevel = Env.ldkLogLevel,
-    private val source: LogSource = LogSource.Ldk,
-    saver: LogSaver = LogSaverImpl(source, buildSessionLogFilePath(source)),
+    saver: LogSaver = AppLogger.getOrCreateSaver(),
 ) : LogWriter {
     private val delegate: LoggerImpl = LoggerImpl(LDK, saver)
 
@@ -290,11 +307,10 @@ class LdkLogWriter(
     }
 }
 
-private fun buildSessionLogFilePath(source: LogSource): String {
+private fun buildSessionLogFilePath(): String {
     val logDir = Env.logDir
-    val sourceName = source.name.lowercase()
     val timestamp = utcDateFormatterOf(DatePattern.LOG_FILE).format(Date())
-    val path = logDir.resolve("${sourceName}_$timestamp.log").path
+    val path = logDir.resolve("bitkit_$timestamp.log").path
     return path
 }
 
@@ -302,13 +318,13 @@ private fun formatLog(level: LogLevel, msg: String?, context: String, path: Stri
     val timestamp = utcDateFormatterOf(DatePattern.LOG_LINE).format(Date())
     val message = msg?.trim().orEmpty()
     val contextString = if (context.isNotEmpty()) " - $context" else ""
+    val location = "[$path:$line]"
     return String.format(
         Locale.US,
-        "%s %-7s [%s:%d] %s%s",
+        "%s %-7s %-36s %s%s",
         timestamp,
         level.name,
-        path,
-        line,
+        location,
         message,
         contextString,
     )
@@ -336,8 +352,32 @@ val jsonLogger = Json(json) {
     prettyPrint = false
 }
 
-inline fun <reified T> jsonLogOf(value: T): String = with(jsonLogger) {
-    encodeToString(serializersModule.serializer(), value)
+inline fun <reified T : Any> jsonLogOf(value: T): String {
+    val jsonElement = jsonLogger.encodeToJsonElement(jsonLogger.serializersModule.serializer<T>(), value)
+    if (jsonElement !is JsonObject || "type" !in jsonElement) return jsonElement.toString()
+
+    return buildJsonObject {
+        jsonElement.forEach { (key, elem) ->
+            if (key == "type") {
+                put("type", value::class.simpleName ?: "Unknown")
+            } else {
+                put(key, elem)
+            }
+        }
+    }.toString()
 }
 
-fun errLogOf(e: Throwable): String = "[${e::class.simpleName}='${e.message}']"
+fun errorLogOf(e: Throwable): String = "[${e::class.simpleName}='${e.message}']"
+
+internal inline fun <T> measured(
+    label: String,
+    context: String,
+    block: () -> T,
+): T {
+    var result: T
+    val elapsed = measureTime {
+        result = block()
+    }
+    Logger.perf("$label took $elapsed", context = context)
+    return result
+}

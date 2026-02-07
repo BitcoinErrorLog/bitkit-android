@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -26,18 +28,6 @@ import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
-
-object ReportIssueTestTags {
-    const val SCREEN = "report_issue_screen"
-    const val TITLE = "report_issue_title"
-    const val DESCRIPTION = "report_issue_description"
-    const val EMAIL_LABEL = "report_issue_email_label"
-    const val EMAIL_INPUT = "report_issue_email_input"
-    const val MESSAGE_LABEL = "report_issue_message_label"
-    const val MESSAGE_INPUT = "report_issue_message_input"
-    const val SEND_BUTTON = "report_issue_send_button"
-    const val CLOSE_BUTTON = "report_issue_close_button"
-}
 
 @Composable
 fun ReportIssueScreen(
@@ -71,7 +61,7 @@ fun ReportIssueContent(
     onConfirm: () -> Unit,
     onUpdateEmail: (String) -> Unit,
     onUpdateMessage: (String) -> Unit,
-    uiState: ReportIssueUiState
+    uiState: ReportIssueUiState,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -109,7 +99,12 @@ fun ReportIssueContent(
                 onValueChange = onUpdateEmail,
                 isError = uiState.errorEmail,
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Next,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(ReportIssueTestTags.EMAIL_INPUT)
@@ -129,7 +124,7 @@ fun ReportIssueContent(
                 placeholder = stringResource(R.string.settings__support__placeholder_message),
                 value = uiState.messageInput,
                 onValueChange = onUpdateMessage,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Unspecified),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -149,6 +144,18 @@ fun ReportIssueContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+object ReportIssueTestTags {
+    const val SCREEN = "report_issue_screen"
+    const val TITLE = "report_issue_title"
+    const val DESCRIPTION = "report_issue_description"
+    const val EMAIL_LABEL = "report_issue_email_label"
+    const val EMAIL_INPUT = "report_issue_email_input"
+    const val MESSAGE_LABEL = "report_issue_message_label"
+    const val MESSAGE_INPUT = "report_issue_message_input"
+    const val SEND_BUTTON = "report_issue_send_button"
+    const val CLOSE_BUTTON = "report_issue_close_button"
 }
 
 @Preview(showBackground = true)

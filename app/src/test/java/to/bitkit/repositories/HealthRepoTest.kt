@@ -36,7 +36,7 @@ class HealthRepoTest : BaseUnitTest() {
 
     @Before
     fun setUp() {
-        whenever(connectivityRepo.isOnline).thenReturn(flowOf(ConnectivityState.CONNECTED))
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.CONNECTED))
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(LightningState()))
         whenever(blocktankRepo.blocktankState).thenReturn(MutableStateFlow(BlocktankState()))
         whenever(cacheStore.backupStatuses).thenReturn(flowOf(emptyMap()))
@@ -227,7 +227,10 @@ class HealthRepoTest : BaseUnitTest() {
 
     @Test
     fun `lightning node state maps correctly when online`() = test {
-        val lightningState = LightningState(nodeLifecycleState = NodeLifecycleState.Running)
+        val lightningState = LightningState(
+            nodeLifecycleState = NodeLifecycleState.Running,
+            lastSuccessfulSyncAt = System.currentTimeMillis(),
+        )
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(lightningState))
 
         sut = createSut()
@@ -242,7 +245,7 @@ class HealthRepoTest : BaseUnitTest() {
 
     @Test
     fun `all statuses except backup go to error when internet connectivity is off`() = test {
-        whenever(connectivityRepo.isOnline).thenReturn(flowOf(ConnectivityState.DISCONNECTED))
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.DISCONNECTED))
 
         // Set up conditions that would normally be READY/PENDING if online
         val mockChannel = mock<ChannelDetails> {
@@ -282,7 +285,10 @@ class HealthRepoTest : BaseUnitTest() {
         val connectivityFlow = MutableStateFlow(ConnectivityState.CONNECTED)
         whenever(connectivityRepo.isOnline).thenReturn(connectivityFlow)
 
-        val lightningState = LightningState(nodeLifecycleState = NodeLifecycleState.Running)
+        val lightningState = LightningState(
+            nodeLifecycleState = NodeLifecycleState.Running,
+            lastSuccessfulSyncAt = System.currentTimeMillis(),
+        )
         whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(lightningState))
         whenever(cacheStore.backupStatuses).thenReturn(flowOf(emptyMap()))
 
@@ -311,13 +317,50 @@ class HealthRepoTest : BaseUnitTest() {
 
     @Test
     fun `internet status maps to error when disconnected`() = test {
-        whenever(connectivityRepo.isOnline).thenReturn(flowOf(ConnectivityState.DISCONNECTED))
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.DISCONNECTED))
 
         sut = createSut()
 
         sut.healthState.test {
             val disconnectedState = awaitItem()
             assertEquals(HealthState.ERROR, disconnectedState.internet)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `node and electrum are error when sync fails`() = test {
+        val lightningState = LightningState(
+            nodeLifecycleState = NodeLifecycleState.Running,
+            lastSyncError = RuntimeException("Sync failed"),
+            lastSuccessfulSyncAt = null,
+        )
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(lightningState))
+
+        sut = createSut()
+
+        sut.healthState.test {
+            val state = awaitItem()
+            assertEquals(HealthState.ERROR, state.node)
+            assertEquals(HealthState.ERROR, state.electrum)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `node and electrum are pending when syncing`() = test {
+        val lightningState = LightningState(
+            nodeLifecycleState = NodeLifecycleState.Running,
+            isSyncingWallet = true,
+        )
+        whenever(lightningRepo.lightningState).thenReturn(MutableStateFlow(lightningState))
+
+        sut = createSut()
+
+        sut.healthState.test {
+            val state = awaitItem()
+            assertEquals(HealthState.PENDING, state.node)
+            assertEquals(HealthState.PENDING, state.electrum)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -335,7 +378,7 @@ class HealthRepoTest : BaseUnitTest() {
 
     @Test
     fun `isOnline returns false when internet is not ready`() = test {
-        whenever(connectivityRepo.isOnline).thenReturn(flowOf(ConnectivityState.DISCONNECTED))
+        whenever(connectivityRepo.isOnline).thenReturn(MutableStateFlow(ConnectivityState.DISCONNECTED))
 
         sut = createSut()
 

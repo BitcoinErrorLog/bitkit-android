@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,22 +31,25 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import to.bitkit.R
 import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.ButtonSize
 import to.bitkit.ui.components.Display
 import to.bitkit.ui.components.Footnote
+import to.bitkit.ui.components.SecondaryButton
 import to.bitkit.ui.components.VerticalSpacer
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.shared.util.screen
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.withAccent
+
+private const val LAST_PAGE_INDEX = 3
+private const val PAGE_COUNT = LAST_PAGE_INDEX + 1
 
 @Composable
 fun OnboardingSlidesScreen(
@@ -59,7 +60,7 @@ fun OnboardingSlidesScreen(
     onRestoreClick: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = currentTab, pageCount = { 5 })
+    val pagerState = rememberPagerState(initialPage = currentTab, pageCount = { PAGE_COUNT })
 
     Box(
         modifier = Modifier
@@ -90,31 +91,23 @@ fun OnboardingSlidesScreen(
                 )
 
                 2 -> OnboardingTab(
-                    imageResId = R.drawable.spark,
-                    title = stringResource(R.string.onboarding__slide2_header),
-                    titleAccentColor = Colors.Yellow,
-                    text = stringResource(R.string.onboarding__slide2_text),
-                    modifier = Modifier.testTag("Slide2")
-                )
-
-                3 -> OnboardingTab(
                     imageResId = R.drawable.shield,
                     title = stringResource(R.string.onboarding__slide3_header),
                     titleAccentColor = Colors.Green,
                     text = stringResource(R.string.onboarding__slide3_text),
-                    modifier = Modifier.testTag("Slide3")
+                    modifier = Modifier.testTag("Slide2")
                 )
 
-                4 -> CreateWalletScreen(
+                LAST_PAGE_INDEX -> CreateWalletScreen(
                     onCreateClick = onCreateClick,
                     onRestoreClick = onRestoreClick,
-                    modifier = Modifier.testTag("Slide4")
+                    modifier = Modifier.testTag("Slide$LAST_PAGE_INDEX")
                 )
             }
         }
 
         // Dots indicator
-        val isIndicatorVisible = pagerState.currentPage != 4
+        val isIndicatorVisible = pagerState.currentPage != LAST_PAGE_INDEX
         val yOffset by animateDpAsState(
             targetValue = if (isIndicatorVisible) 0.dp else 20.dp,
             animationSpec = tween(durationMillis = 300),
@@ -135,7 +128,7 @@ fun OnboardingSlidesScreen(
                 .offset { IntOffset(0, yOffset.roundToPx()) }
                 .alpha(alpha)
         ) {
-            repeat(5) { index ->
+            repeat(PAGE_COUNT) { index ->
                 val size by animateDpAsState(
                     targetValue = if (index == pagerState.currentPage) 10.dp else 7.dp,
                     animationSpec = tween(durationMillis = 300),
@@ -157,32 +150,28 @@ fun OnboardingSlidesScreen(
         onBackClick = null,
         titleText = null,
         actions = {
-            if (pagerState.currentPage == 4) {
-                TextButton(
+            if (pagerState.currentPage == LAST_PAGE_INDEX) {
+                SecondaryButton(
+                    text = stringResource(R.string.onboarding__advanced_setup),
                     onClick = onAdvancedSetupClick,
-                    modifier = Modifier.testTag("Passphrase")
-                ) {
-                    Text(
-                        text = stringResource(R.string.onboarding__advanced_setup),
-                        fontSize = 17.sp,
-                        color = Colors.White64,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                    size = ButtonSize.Small,
+                    fullWidth = false,
+                    modifier = Modifier
+                        .testTag("Passphrase")
+                        .padding(horizontal = 16.dp)
+                )
             } else {
-                TextButton(
+                SecondaryButton(
+                    text = stringResource(R.string.onboarding__skip),
                     onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.pageCount - 1) }
                     },
-                    modifier = Modifier.testTag("SkipButton")
-                ) {
-                    Text(
-                        text = stringResource(R.string.onboarding__skip),
-                        fontSize = 17.sp,
-                        color = Colors.White64,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                    size = ButtonSize.Small,
+                    fullWidth = false,
+                    modifier = Modifier
+                        .testTag("SkipButton")
+                        .padding(horizontal = 16.dp)
+                )
             }
         }
     )
@@ -276,7 +265,7 @@ private fun OnboardingViewPreview3() {
 private fun OnboardingViewPreview4() {
     AppThemeSurface {
         OnboardingSlidesScreen(
-            currentTab = 4,
+            currentTab = LAST_PAGE_INDEX,
             onAdvancedSetupClick = {},
             onCreateClick = {},
             onRestoreClick = {},

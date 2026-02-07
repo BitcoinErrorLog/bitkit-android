@@ -33,11 +33,14 @@ DO NOT claim Java is unavailable - it IS installed at the path above.
 # Run instrumented tests
 ./gradlew connectedDevDebugAndroidTest
 
-# Build for E2E tests
+# Build for E2E tests (UI hooks enabled, local Electrum by default)
 E2E=true ./gradlew assembleDevRelease
 
 # Build for E2E tests with geoblocking disabled
 GEO=false E2E=true ./gradlew assembleDevRelease
+
+# Build for E2E tests using network Electrum (not local; staging/mainnet based on flavor)
+E2E=true E2E_BACKEND=network ./gradlew assembleTnetRelease
 
 # Lint using detekt
 ./gradlew detekt
@@ -58,6 +61,7 @@ GEO=false E2E=true ./gradlew assembleDevRelease
 ## Architecture Overview
 
 ### Tech Stack
+
 - **Language**: Kotlin
 - **UI Framework**: Jetpack Compose with Material3
 - **Architecture**: MVVM with Hilt dependency injection
@@ -70,6 +74,7 @@ GEO=false E2E=true ./gradlew assembleDevRelease
 - **Storage**: DataStore with json files
 
 ### Project Structure
+
 - **app/src/main/java/to/bitkit/**
   - **App.kt**: Application class with Hilt setup
   - **ui/**: All UI components
@@ -88,6 +93,7 @@ GEO=false E2E=true ./gradlew assembleDevRelease
   - **usecases/**: Domain layer: use cases
 
 ### Key Architecture Patterns
+
 1. **Single Activity Architecture**: MainActivity hosts all screens via Compose Navigation
 2. **Repository Pattern**: Repositories abstract data sources from ViewModels
 3. **Service Layer**: Core business logic in services (LightningService, WalletService)
@@ -95,27 +101,34 @@ GEO=false E2E=true ./gradlew assembleDevRelease
 5. **Coroutine-based Async**: All async operations use Kotlin coroutines
 
 ### Build Variants
+
 - **dev**: Regtest network for development
 - **tnet**: Testnet network
-- **mainnet**: Production (currently commented out)
+- **mainnet**: Production
 
 ## Common Pitfalls
 
 ### ❌ DON'T
+
 ```kotlin
 GlobalScope.launch { }                          // Use viewModelScope
 val result = nullable!!.doSomething()           // Use safe calls
 Text("Send Payment")                            // Use string resources
 class Service(@Inject val vm: ViewModel)        // Never inject VMs
+
 suspend fun getData() = runBlocking { }         // Use withContext
 ```
 
 ### ✅ DO
+
 ```kotlin
 viewModelScope.launch { }
 val result = nullable?.doSomething() ?: default
 Text(stringResource(R.string.send_payment))
-class Service { fun process(data: Data) }
+class Service {
+  fun process(data: Data)
+}
+
 suspend fun getData() = withContext(Dispatchers.IO) { }
 ```
 
@@ -130,40 +143,45 @@ suspend fun getData() = withContext(Dispatchers.IO) { }
 ## Common Patterns
 
 ### ViewModel State
+
 ```kotlin
 private val _uiState = MutableStateFlow(InitialState)
 val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
 fun updateState(action: Action) {
-    viewModelScope.launch {
-        _uiState.update { it.copy(/* fields */) }
-    }
+  viewModelScope.launch {
+    _uiState.update { it.copy(/* fields */) }
+  }
 }
 ```
 
 ### Repository
+
 ```kotlin
 suspend fun getData(): Result<Data> = withContext(Dispatchers.IO) {
-    runCatching {
-        Result.success(apiService.fetchData())
-    }.onFailure { e ->
-        Logger.error("Failed", e = e, context = TAG)
-    }
+  runCatching {
+    apiService.fetchData()
+  }.onFailure {
+    Logger.error("Failed", it, context = TAG)
+  }
 }
 ```
 
 ### Rules
+
 - USE coding rules from `.cursor/default.rules.mdc`
 - ALWAYS run `./gradlew compileDevDebugKotlin` after code changes to verify code compiles
 - ALWAYS run `./gradlew testDevDebugUnitTest` after code changes to verify tests succeed and fix accordingly
 - ALWAYS run `./gradlew detekt` after code changes to check for new lint issues and fix accordingly
 - ALWAYS ask clarifying questions to ensure an optimal plan when encountering functional or technical uncertainties in requests
 - ALWAYS when fixing lint or test failures prefer to do the minimal amount of changes to fix the issues
-- USE single-line commit messages under 50 chars; use template format: `feat: add something new`
+- USE single-line commit messages under 50 chars; use conventional commit messages template format: `feat: add something new`
 - USE `git diff HEAD sourceFilePath` to diff an uncommitted file against the last commit
+- NEVER capitalize words in commit messages
+- ALWAYS run `git status` to check ALL uncommitted changes after completing any code edits, then reply with 3 commit message suggestions covering the ENTIRE uncommitted diff
 - ALWAYS check existing code patterns before implementing new features
 - USE existing extensions and utilities rather than creating new ones
-- ALWAYS consider applying YAGNI (You Aren't Gonna Need It) principle for new code 
+- ALWAYS consider applying YAGNI (You Ain't Gonna Need It) principle for new code
 - ALWAYS reuse existing constants
 - ALWAYS ensure a method exist before calling it
 - ALWAYS remove unused code after refactors
@@ -172,13 +190,19 @@ suspend fun getData(): Result<Data> = withContext(Dispatchers.IO) {
 - ALWAYS acknowledge datastore async operations run synchronously in a suspend context
 - NEVER use `runBlocking` in suspend functions
 - ALWAYS pass the TAG as context to `Logger` calls, e.g. `Logger.debug("message", context = TAG)`
+- NEVER add `e = ` named parameter to Logger calls
+- NEVER manually append the `Throwable`'s message or any other props to the string passed as the 1st param of `Logger.*` calls, its internals are already enriching the final log message with the details of the `Throwable` passed via the `e` arg
+- ALWAYS log errors at the final handling layer where the error is acted upon, not in intermediate layers that just propagate it
 - ALWAYS use the Result API instead of try-catch
 - NEVER wrap methods returning `Result<T>` in try-catch
+- PREFER to use `it` instead of explicit named parameters in lambdas e.g. `fn().onSuccess { log(it) }.onFailure { log(it) }`
 - NEVER inject ViewModels as dependencies - Only android activities and composable functions can use viewmodels
 - NEVER hardcode strings and always preserve string resources
 - ALWAYS localize in ViewModels using injected `@ApplicationContext`, e.g. `context.getString()`
 - ALWAYS use `remember` for expensive Compose computations
-- ALWAYS add modifiers to the last place in the argument list when calling `@Composable` functions
+- ALWAYS add modifiers to the last place in the argument list when calling composable functions
+- NEVER add parameters with default values BEFORE the `modifier` parameter in composable functions - modifier must be the FIRST optional parameter
+- ALWAYS prefer `VerticalSpacer`, `HorizontalSpacer`, `FillHeight` and `FillWidth` over `Spacer` when applicable
 - PREFER declaring small dependant classes, constants, interfaces or top-level functions in the same file with the core class where these are used
 - ALWAYS create data classes for state AFTER viewModel class in same file
 - ALWAYS return early where applicable, PREFER guard-like `if` conditions like `if (condition) return`
@@ -191,17 +215,24 @@ suspend fun getData(): Result<Data> = withContext(Dispatchers.IO) {
 - ALWAYS be mindful of thread safety when working with mutable lists & state
 - ALWAYS split screen composables into parent accepting viewmodel + inner private child accepting state and callbacks `Content()`
 - ALWAYS name lambda parameters in a composable function using present tense, NEVER use past tense
-- ALWAYS list 3 suggested commit messages after implementation work
-- NEVER use `wheneverBlocking` when in an unit test where you're using expression body and already wrapping the test with a `= test {}` lambda.
+- NEVER use `wheneverBlocking` in unit test expression body functions wrapped in a `= test {}` lambda
+- ALWAYS wrap unit tests `setUp` methods mocking suspending calls with `runBlocking`, e.g `setUp() = runBlocking {}`
 - ALWAYS add business logic to Repository layer via methods returning `Result<T>` and use it in ViewModels
-- ALWAYS use services to wrap RUST code exposed via bindings
 - ALWAYS order upstream architectural data flow this way: `UI -> ViewModel -> Repository -> RUST` and vice-versa for downstream
-- ALWAYS add new string string resources in alphabetical order in `strings.xml` 
+- ALWAYS add new localizable string string resources in alphabetical order in `strings.xml`
+- NEVER add string resources for strings used only in dev settings screens and previews and never localize acronyms
 - ALWAYS use template in `.github/pull_request_template.md` for PR descriptions
 - ALWAYS wrap `ULong` numbers with `USat` in arithmetic operations, to guard against overflows
+- PREFER to use one-liners with `run {}` when applicable, e.g. `override fun someCall(value: String) = run { this.value = value }`
+- ALWAYS add imports instead of inline fully-qualified names
+- PREFER to place `@Suppress()` annotations at the narrowest possible scope
+- ALWAYS wrap suspend functions in `withContext(bgDispatcher)` if in domain layer, using ctor injected prop `@BgDispatcher private val bgDispatcher: CoroutineDispatcher`
 
 ### Architecture Guidelines
+
 - Use `LightningNodeService` to manage background notifications while the node is running
 - Use `LightningService` to wrap node's RUST APIs and manage the inner lifecycle of the node
 - Use `LightningRepo` to defining the business logic for the node operations, usually delegating to `LightningService`
 - Use `WakeNodeWorker` to manage the handling of remote notifications received via cloud messages
+- Use `*Services` to wrap rust library code exposed via bindings
+- Use CQRS pattern of Command + Handler like it's done in the `NotifyPaymentReceived` + `NotifyPaymentReceivedHandler` setup

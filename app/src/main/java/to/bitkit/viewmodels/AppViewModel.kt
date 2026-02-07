@@ -22,16 +22,15 @@ import com.synonym.bitkitcore.LnurlWithdrawData
 import com.synonym.bitkitcore.OnChainInvoice
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.Scanner
-import com.synonym.bitkitcore.decode
 import com.synonym.bitkitcore.validateBitcoinAddress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -46,6 +45,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import org.lightningdevkit.ldknode.ChannelDataMigration
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.PaymentId
 import org.lightningdevkit.ldknode.SpendableUtxo
@@ -59,6 +60,7 @@ import to.bitkit.data.resetPin
 import to.bitkit.di.BgDispatcher
 import to.bitkit.domain.commands.NotifyPaymentReceived
 import to.bitkit.domain.commands.NotifyPaymentReceivedHandler
+import to.bitkit.env.Defaults
 import to.bitkit.env.Env
 import to.bitkit.ext.WatchResult
 import to.bitkit.ext.amountOnClose
@@ -68,7 +70,6 @@ import to.bitkit.ext.maxSendableSat
 import to.bitkit.ext.maxWithdrawableSat
 import to.bitkit.ext.minSendableSat
 import to.bitkit.ext.minWithdrawableSat
-import to.bitkit.ext.nowMillis
 import to.bitkit.ext.rawId
 import to.bitkit.ext.removeSpaces
 import to.bitkit.ext.setClipboardText
@@ -82,7 +83,9 @@ import to.bitkit.models.NewTransactionSheetType
 import to.bitkit.models.Suggestion
 import to.bitkit.models.Toast
 import to.bitkit.models.TransactionSpeed
+import to.bitkit.models.safe
 import to.bitkit.models.toActivityFilter
+import to.bitkit.models.toLdkNetwork
 import to.bitkit.models.toTxType
 import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.PaykitManager
@@ -108,31 +111,42 @@ import to.bitkit.repositories.CurrencyRepo
 import to.bitkit.repositories.HealthRepo
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.PreActivityMetadataRepo
+import to.bitkit.repositories.SweepRepo
 import to.bitkit.repositories.TransferRepo
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.services.AppUpdaterService
+import to.bitkit.services.CoreService
+import to.bitkit.services.MigrationService
 import to.bitkit.ui.Routes
 import to.bitkit.ui.components.Sheet
-import to.bitkit.ui.components.TimedSheetType
 import to.bitkit.ui.shared.toast.ToastEventBus
 import to.bitkit.ui.shared.toast.ToastQueueManager
 import to.bitkit.ui.sheets.SendRoute
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
+import to.bitkit.usecases.FormatMoneyValue
+import to.bitkit.utils.Bip21Utils
 import to.bitkit.utils.Logger
+import to.bitkit.utils.NetworkValidationHelper
 import to.bitkit.utils.jsonLogOf
+import to.bitkit.utils.timedsheets.TimedSheetManager
+import to.bitkit.utils.timedsheets.sheets.AppUpdateTimedSheet
+import to.bitkit.utils.timedsheets.sheets.BackupTimedSheet
+import to.bitkit.utils.timedsheets.sheets.HighBalanceTimedSheet
+import to.bitkit.utils.timedsheets.sheets.NotificationsTimedSheet
+import to.bitkit.utils.timedsheets.sheets.QuickPayTimedSheet
 import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
-@Suppress("LongParameterList")
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
 @HiltViewModel
 class AppViewModel @Inject constructor(
     connectivityRepo: ConnectivityRepo,
     healthRepo: HealthRepo,
     toastManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> ToastQueueManager,
+    timedSheetManagerProvider: @JvmSuppressWildcards (CoroutineScope) -> TimedSheetManager,
     @ApplicationContext private val context: Context,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
     private val keychain: Keychain,
@@ -151,6 +165,15 @@ class AppViewModel @Inject constructor(
     private val pubkySDKService: PubkySDKService,
     private val pubkyRingBridge: PubkyRingBridge,
     private val paykitManager: PaykitManager,
+    private val migrationService: MigrationService,
+    private val sweepRepo: SweepRepo,
+    private val coreService: CoreService,
+    private val appUpdateSheet: AppUpdateTimedSheet,
+    private val backupSheet: BackupTimedSheet,
+    private val notificationsSheet: NotificationsTimedSheet,
+    private val quickPaySheet: QuickPayTimedSheet,
+    private val highBalanceSheet: HighBalanceTimedSheet,
+    private val formatMoneyValue: FormatMoneyValue,
 ) : ViewModel() {
     val healthState = healthRepo.healthState
 
@@ -186,11 +209,19 @@ class AppViewModel @Inject constructor(
     private val _showForgotPinSheet = MutableStateFlow(false)
     val showForgotPinSheet = _showForgotPinSheet.asStateFlow()
 
-    private val processedPayments = mutableSetOf<String>()
+    private val _currentSheet: MutableStateFlow<Sheet?> = MutableStateFlow(null)
+    val currentSheet = _currentSheet.asStateFlow()
 
-    private var timedSheetsScope: CoroutineScope? = null
-    private var timedSheetQueue: List<TimedSheetType> = emptyList()
-    private var currentTimedSheet: TimedSheetType? = null
+    private val processedPayments = mutableSetOf<String>()
+    private val timedSheetManager = timedSheetManagerProvider(viewModelScope).apply {
+        registerSheet(appUpdateSheet)
+        registerSheet(backupSheet)
+        registerSheet(notificationsSheet)
+        registerSheet(quickPaySheet)
+        registerSheet(highBalanceSheet)
+    }
+    private var isCompletingMigration = false
+    private var addressValidationJob: Job? = null
 
     fun setShowForgotPin(value: Boolean) {
         _showForgotPinSheet.value = value
@@ -231,21 +262,60 @@ class AppViewModel @Inject constructor(
         }
         viewModelScope.launch {
             // Delays are required for auth check on launch functionality
-            delay(1000)
+            delay(AUTH_CHECK_INITIAL_DELAY_MS)
             resetIsAuthenticatedState()
-            delay(500)
+            delay(AUTH_CHECK_SPLASH_DELAY_MS)
             splashVisible = false
         }
         viewModelScope.launch {
             lightningRepo.updateGeoBlockState()
         }
-
+        viewModelScope.launch {
+            timedSheetManager.currentSheet.collect { sheetType ->
+                if (sheetType != null) {
+                    val currentSheet = _currentSheet.value
+                    val isHighPrioritySheetShowing = currentSheet is Sheet.Gift ||
+                        currentSheet is Sheet.Send ||
+                        currentSheet is Sheet.LnurlAuth ||
+                        currentSheet is Sheet.Pin
+                    if (!isHighPrioritySheetShowing) {
+                        showSheet(Sheet.TimedSheet(sheetType))
+                    }
+                } else {
+                    // Clear the timed sheet when manager sets it to null
+                    _currentSheet.update { current ->
+                        if (current is Sheet.TimedSheet) null else current
+                    }
+                }
+            }
+        }
         observeLdkNodeEvents()
         observeSendEvents()
-
         viewModelScope.launch {
-            walletRepo.balanceState.collect {
-                checkTimedSheets()
+            checkCriticalAppUpdate()
+        }
+        viewModelScope.launch {
+            migrationService.isShowingMigrationLoading.collect { isShowing ->
+                if (isShowing) {
+                    @Suppress("SwallowedException")
+                    try {
+                        withTimeout(MIGRATION_LOADING_TIMEOUT_MS) {
+                            migrationService.isShowingMigrationLoading.first { !it }
+                        }
+                    } catch (e: TimeoutCancellationException) {
+                        val timeoutSecs = MIGRATION_LOADING_TIMEOUT_MS / 1000
+                        Logger.warn("Migration loading timeout (${timeoutSecs}s), dismissing", context = TAG)
+                        migrationService.setShowingMigrationLoading(false)
+                    }
+                } else {
+                    if (migrationService.needsPostMigrationSync()) {
+                        ToastEventBus.send(
+                            type = Toast.ToastType.WARNING,
+                            title = context.getString(R.string.migration__network_required_title),
+                            description = context.getString(R.string.migration__network_required_msg),
+                        )
+                    }
+                }
             }
         }
     }
@@ -308,7 +378,146 @@ class AppViewModel @Inject constructor(
         walletRepo.syncBalances()
     }
 
-    private fun handleSyncCompleted() = walletRepo.debounceSyncByEvent()
+    private suspend fun handleSyncCompleted() {
+        val isShowingLoading = migrationService.isShowingMigrationLoading.value
+        val isRestoringRemote = migrationService.isRestoringFromRNRemoteBackup.value
+        val needsPostMigrationSync = migrationService.needsPostMigrationSync()
+
+        when {
+            (isShowingLoading || needsPostMigrationSync) && !isCompletingMigration -> completeMigration()
+            isRestoringRemote -> completeRNRemoteBackupRestore()
+            !isShowingLoading && !needsPostMigrationSync && !isCompletingMigration -> walletRepo.debounceSyncByEvent()
+            else -> Unit
+        }
+    }
+
+    private suspend fun completeRNRemoteBackupRestore() {
+        val channelMigration = buildChannelMigrationIfAvailable()
+
+        if (channelMigration != null) {
+            lightningRepo.stop().onFailure {
+                Logger.error("Failed to stop node during remote restore restart", it, context = TAG)
+            }
+            delay(REMOTE_RESTORE_NODE_RESTART_DELAY_MS)
+            lightningRepo.start(channelMigration = channelMigration, shouldRetry = false)
+                .onSuccess {
+                    migrationService.consumePendingChannelMigration()
+                    walletRepo.syncNodeAndWallet()
+                    walletRepo.syncBalances()
+                }
+                .onFailure { e ->
+                    Logger.error("Failed to restart node after remote restore: $e", e, context = TAG)
+                }
+        }
+
+        lightningRepo.getPayments().onSuccess { activityRepo.syncLdkNodePayments(it) }
+        migrationService.reapplyMetadataAfterSync()
+        activityRepo.syncActivities()
+        walletRepo.syncBalances()
+
+        if (migrationService.canCleanupAfterMigration) {
+            migrationService.cleanupAfterMigration()
+            migrationService.setRestoringFromRNRemoteBackup(false)
+            migrationService.setShowingMigrationLoading(false)
+            checkForSweepableFunds()
+        } else {
+            Logger.info("Post-migration sync incomplete (remote restore), will retry on next sync", context = TAG)
+            migrationService.setShowingMigrationLoading(false)
+        }
+    }
+
+    private fun buildChannelMigrationIfAvailable(): ChannelDataMigration? {
+        val migration = migrationService.peekPendingChannelMigration() ?: return null
+        return ChannelDataMigration(
+            channelManager = migration.channelManager.map { it.toUByte() },
+            channelMonitors = migration.channelMonitors.map { monitor -> monitor.map { it.toUByte() } },
+        )
+    }
+
+    private suspend fun completeMigration() {
+        if (isCompletingMigration) return
+        isCompletingMigration = true
+
+        runCatching {
+            lightningRepo.getPayments().onSuccess { payments ->
+                activityRepo.syncLdkNodePayments(payments)
+            }.onFailure { e ->
+                Logger.warn("Failed to get payments during migration: $e", e, context = TAG)
+            }
+            activityRepo.markAllUnseenActivitiesAsSeen()
+
+            migrationService.consumePendingChannelMigration()
+
+            walletRepo.syncNodeAndWallet()
+                .onSuccess { finishMigrationSuccessfully() }
+                .onFailure { e ->
+                    Logger.warn("Sync failed during migration: $e", e, context = TAG)
+                    finishMigrationWithFallbackSync()
+                }
+        }.onFailure { e ->
+            Logger.error("Migration completion error: $e", e, context = TAG)
+            finishMigrationWithError()
+        }.also {
+            isCompletingMigration = false
+        }
+    }
+
+    private suspend fun finishMigrationSuccessfully() {
+        lightningRepo.getPayments().onSuccess { payments ->
+            activityRepo.syncLdkNodePayments(payments)
+        }
+        transferRepo.syncTransferStates()
+        migrationService.reapplyMetadataAfterSync()
+
+        if (migrationService.canCleanupAfterMigration) {
+            migrationService.cleanupAfterMigration()
+            migrationService.setShowingMigrationLoading(false)
+            delay(MIGRATION_AUTH_RESET_DELAY_MS)
+            resetIsAuthenticatedStateInternal()
+            checkForSweepableFunds()
+        } else {
+            Logger.info("Post-migration sync incomplete, will retry on next sync", context = TAG)
+            migrationService.setShowingMigrationLoading(false)
+        }
+    }
+
+    private suspend fun finishMigrationWithFallbackSync() {
+        walletRepo.syncBalances()
+        lightningRepo.getPayments().onSuccess { payments ->
+            activityRepo.syncLdkNodePayments(payments)
+        }
+        transferRepo.syncTransferStates()
+        migrationService.reapplyMetadataAfterSync()
+
+        if (migrationService.canCleanupAfterMigration) {
+            migrationService.cleanupAfterMigration()
+            migrationService.setShowingMigrationLoading(false)
+            delay(MIGRATION_AUTH_RESET_DELAY_MS)
+            resetIsAuthenticatedStateInternal()
+            checkForSweepableFunds()
+        } else {
+            Logger.info("Post-migration sync incomplete (fallback), will retry on next sync", context = TAG)
+            migrationService.setShowingMigrationLoading(false)
+        }
+    }
+
+    private suspend fun finishMigrationWithError() {
+        migrationService.setShowingMigrationLoading(false)
+        delay(MIGRATION_AUTH_RESET_DELAY_MS)
+        resetIsAuthenticatedStateInternal()
+        toast(
+            type = Toast.ToastType.ERROR,
+            title = "Migration Warning",
+            description = "Migration completed but node restart failed. Please restart the app."
+        )
+    }
+
+    fun checkForSweepableFunds() {
+        viewModelScope.launch(bgDispatcher) {
+            sweepRepo.hasSweepableFunds()
+                .onSuccess { hasFunds -> if (hasFunds) showSheet(Sheet.SweepPrompt) }
+        }
+    }
 
     private suspend fun handleOnchainTransactionConfirmed(event: Event.OnchainTransactionConfirmed) {
         activityRepo.handleOnchainTransactionConfirmed(event.txid, event.details)
@@ -329,8 +538,17 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun handleOnchainTransactionReplaced(event: Event.OnchainTransactionReplaced) {
+        // If the replaced transaction was just boosted via RBF from within the app, we already show a
+        // dedicated boost success toast; suppress the generic "transaction replaced" toast to avoid
+        // flakiness/noise (notably in E2E flows).
+        val shouldSuppressReplacedToast = activityRepo
+            .getOnchainActivityByTxId(event.txid)
+            ?.let { it.isBoosted && it.txType == PaymentType.SENT } == true
+
         activityRepo.handleOnchainTransactionReplaced(event.txid, event.conflicts)
-        notifyTransactionReplaced(event)
+        if (!shouldSuppressReplacedToast) {
+            notifyTransactionReplaced(event)
+        }
     }
 
     private suspend fun handlePaymentFailed(event: Event.PaymentFailed) {
@@ -390,21 +608,12 @@ class AppViewModel @Inject constructor(
     }
 
     private suspend fun notifyPaymentReceived(event: Event) {
-        val command = NotifyPaymentReceived.Command.from(event) ?: return
-        if (command is NotifyPaymentReceived.Command.Lightning) {
-            val cachedId = cacheStore.data.first().lastLightningPaymentId
-            // Skip if this is a replay by ldk-node on startup
-            if (command.event.paymentHash == cachedId) {
-                Logger.debug("Skipping notification for replayed event: $event", context = TAG)
-                return
-            }
-            // Cache to skip later as needed
-            cacheStore.setLastLightningPayment(command.event.paymentHash)
+        if (migrationService.isShowingMigrationLoading.value || migrationService.needsPostMigrationSync()) {
+            return
         }
-
+        val command = NotifyPaymentReceived.Command.from(event) ?: return
         val result = notifyPaymentReceivedHandler(command).getOrNull()
         if (result !is NotifyPaymentReceived.Result.ShowSheet) return
-
         showTransactionSheet(result.sheet)
     }
 
@@ -467,6 +676,7 @@ class AppViewModel @Inject constructor(
 
     // region send
 
+    @Suppress("CyclomaticComplexMethod")
     private fun observeSendEvents() {
         viewModelScope.launch {
             sendEvents.collect {
@@ -492,10 +702,15 @@ class AppViewModel @Inject constructor(
                     SendEvent.SwipeToPay -> onSwipeToPay()
                     is SendEvent.ConfirmAmountWarning -> onConfirmAmountWarning(it.warning)
                     SendEvent.DismissAmountWarning -> onDismissAmountWarning()
+                    SendEvent.EstimateMaxRoutingFee -> viewModelScope.launch {
+                        estimateMaxAmountRoutingFee()
+                    }
+
                     SendEvent.PayConfirmed -> onConfirmPay()
                     SendEvent.ClearPayConfirmation -> _sendUiState.update { s -> s.copy(shouldConfirmPay = false) }
                     SendEvent.BackToAmount -> setSendEffect(SendEffect.PopBack(SendRoute.Amount))
                     SendEvent.NavToAddress -> setSendEffect(SendEffect.NavigateToAddress)
+                    SendEvent.Contacts -> setSendEffect(SendEffect.NavigateToComingSoon)
                 }
             }
         }
@@ -509,6 +724,7 @@ class AppViewModel @Inject constructor(
     }
 
     private fun resetAddressInput() {
+        addressValidationJob?.cancel()
         _sendUiState.update { state ->
             state.copy(
                 addressInput = "",
@@ -519,15 +735,182 @@ class AppViewModel @Inject constructor(
 
     private fun onAddressChange(value: String) {
         val valueWithoutSpaces = value.removeSpaces()
-        viewModelScope.launch {
-            val result = runCatching { decode(valueWithoutSpaces) }
-            _sendUiState.update {
-                it.copy(
-                    addressInput = valueWithoutSpaces,
-                    isAddressInputValid = result.isSuccess,
+
+        // Update text immediately, reset validity until validation completes
+        _sendUiState.update {
+            it.copy(
+                addressInput = valueWithoutSpaces,
+                isAddressInputValid = false,
+            )
+        }
+
+        // Cancel pending validation
+        addressValidationJob?.cancel()
+
+        // Skip validation for empty input
+        if (valueWithoutSpaces.isEmpty()) return
+
+        // Start debounced validation
+        addressValidationJob = viewModelScope.launch {
+            delay(ADDRESS_VALIDATION_DEBOUNCE_MS)
+            validateAddressWithFeedback(valueWithoutSpaces)
+        }
+    }
+
+    private suspend fun validateAddressWithFeedback(input: String) = withContext(bgDispatcher) {
+        // TODO Workaround for https://github.com/synonymdev/bitkit-core/issues/63
+        if (Bip21Utils.isDuplicatedBip21(input)) {
+            showAddressValidationError(
+                titleRes = R.string.other__scan_err_decoding,
+                descriptionRes = R.string.other__scan__error__generic,
+                testTag = "DuplicatedBip21Toast",
+            )
+            return@withContext
+        }
+
+        val scanResult = runCatching { coreService.decode(input) }
+
+        if (scanResult.isFailure) {
+            showAddressValidationError(
+                titleRes = R.string.other__scan_err_decoding,
+                descriptionRes = R.string.other__scan__error__generic,
+                testTag = "InvalidAddressToast",
+            )
+            return@withContext
+        }
+
+        when (val decoded = scanResult.getOrNull()) {
+            is Scanner.Lightning -> validateLightningInvoice(decoded.invoice)
+            is Scanner.OnChain -> validateOnChainAddress(decoded.invoice)
+            else -> _sendUiState.update { it.copy(isAddressInputValid = true) }
+        }
+    }
+
+    private suspend fun validateLightningInvoice(invoice: LightningInvoice) {
+        if (invoice.isExpired) {
+            showAddressValidationError(
+                titleRes = R.string.other__scan_err_decoding,
+                descriptionRes = R.string.other__scan__error__expired,
+                testTag = "ExpiredLightningToast",
+            )
+            return
+        }
+
+        if (invoice.amountSatoshis > 0uL) {
+            val maxSendLightning = walletRepo.balanceState.value.maxSendLightningSats
+            if (maxSendLightning == 0uL || !lightningRepo.canSend(invoice.amountSatoshis)) {
+                val shortfall = invoice.amountSatoshis.safe() - maxSendLightning.safe()
+                showAddressValidationError(
+                    titleRes = R.string.other__pay_insufficient_spending,
+                    descriptionRes = R.string.other__pay_insufficient_spending_amount_description,
+                    descriptionArgs = mapOf("amount" to formatMoneyValue(shortfall)),
+                    testTag = "InsufficientSpendingToast",
                 )
+                return
             }
         }
+
+        _sendUiState.update { it.copy(isAddressInputValid = true) }
+    }
+
+    private suspend fun validateOnChainAddress(invoice: OnChainInvoice) {
+        val validatedAddress = runCatching { validateBitcoinAddress(invoice.address) }
+            .getOrElse {
+                showAddressValidationError(
+                    titleRes = R.string.other__scan_err_decoding,
+                    descriptionRes = R.string.wallet__error_invalid_bitcoin_address,
+                    testTag = "InvalidAddressToast",
+                )
+                return
+            }
+
+        if (NetworkValidationHelper.isNetworkMismatch(validatedAddress.network.toLdkNetwork(), Env.network)) {
+            showAddressValidationError(
+                titleRes = R.string.other__scan_err_decoding,
+                descriptionRes = R.string.other__scan__error__generic,
+                testTag = "InvalidAddressToast",
+            )
+            return
+        }
+
+        extractViableLightningInvoice(invoice.params)?.let { lnInvoice ->
+            _sendUiState.update {
+                it.copy(
+                    isAddressInputValid = true,
+                    isUnified = true,
+                    decodedInvoice = lnInvoice,
+                    payMethod = SendMethod.LIGHTNING,
+                )
+            }
+            return
+        }
+
+        val maxSendOnchain = walletRepo.balanceState.value.maxSendOnchainSats
+
+        if (maxSendOnchain == 0uL) {
+            showAddressValidationError(
+                titleRes = R.string.other__pay_insufficient_savings,
+                descriptionRes = R.string.other__pay_insufficient_savings_description,
+                testTag = "InsufficientSavingsToast",
+            )
+            return
+        }
+
+        if (invoice.amountSatoshis > 0uL && invoice.amountSatoshis > maxSendOnchain) {
+            val shortfall = invoice.amountSatoshis - maxSendOnchain
+            showAddressValidationError(
+                titleRes = R.string.other__pay_insufficient_savings,
+                descriptionRes = R.string.other__pay_insufficient_savings_amount_description,
+                descriptionArgs = mapOf("amount" to formatMoneyValue(shortfall)),
+                testTag = "InsufficientSavingsToast",
+            )
+            return
+        }
+
+        _sendUiState.update { it.copy(isAddressInputValid = true) }
+    }
+
+    private suspend fun extractViableLightningInvoice(params: Map<String, String>?): LightningInvoice? =
+        params?.get("lightning")?.let { bolt11 ->
+            runCatching { coreService.decode(bolt11) }.getOrNull()
+                ?.let { it as? Scanner.Lightning }
+                ?.invoice
+                ?.takeIf { lnInv ->
+                    if (lnInv.isExpired) {
+                        Logger.debug(
+                            "Lightning invoice expired in unified URI, defaulting to onchain-only",
+                            context = TAG
+                        )
+                        return@takeIf false
+                    }
+                    val canSend = lightningRepo.canSend(lnInv.amountSatoshis.coerceAtLeast(1u))
+                    if (!canSend) {
+                        Logger.debug(
+                            "Cannot pay unified invoice using LN, defaulting to onchain-only",
+                            context = TAG
+                        )
+                    }
+                    return@takeIf canSend
+                }
+        }
+
+    private fun showAddressValidationError(
+        @StringRes titleRes: Int,
+        @StringRes descriptionRes: Int,
+        descriptionArgs: Map<String, String> = emptyMap(),
+        testTag: String? = null,
+    ) {
+        _sendUiState.update { it.copy(isAddressInputValid = false) }
+        var description = context.getString(descriptionRes)
+        descriptionArgs.forEach { (key, value) ->
+            description = description.replace("{$key}", value)
+        }
+        toast(
+            type = Toast.ToastType.ERROR,
+            title = context.getString(titleRes),
+            description = description,
+            testTag = testTag,
+        )
     }
 
     private fun onAddressContinue(data: String) {
@@ -616,6 +999,19 @@ class AppViewModel @Inject constructor(
         }
 
         val lnurl = _sendUiState.value.lnurl
+        if (lnurl is LnurlParams.LnurlPay) {
+            val minSendable = lnurl.data.minSendableSat()
+            if (_sendUiState.value.amount < minSendable) {
+                toast(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.wallet__lnurl_pay__error_min__title),
+                    description = context.getString(R.string.wallet__lnurl_pay__error_min__description)
+                        .replace("{amount}", formatMoneyValue(minSendable)),
+                    testTag = "LnurlPayAmountTooLowToast",
+                )
+                return
+            }
+        }
         if (lnurl is LnurlParams.LnurlWithdraw) {
             setSendEffect(SendEffect.NavigateToWithdrawConfirm)
             return
@@ -648,14 +1044,13 @@ class AppViewModel @Inject constructor(
                 null -> lightningRepo.canSend(amount)
                 is LnurlParams.LnurlWithdraw -> amount < lnurl.data.maxWithdrawableSat()
                 is LnurlParams.LnurlPay -> {
-                    val minSat = lnurl.data.minSendableSat()
                     val maxSat = lnurl.data.maxSendableSat()
 
-                    amount in minSat..maxSat && lightningRepo.canSend(amount)
+                    amount <= maxSat && lightningRepo.canSend(amount)
                 }
             }
 
-            SendMethod.ONCHAIN -> amount > Env.TransactionDefaults.dustLimit.toULong()
+            SendMethod.ONCHAIN -> amount > Defaults.dustLimit.toULong()
         }
     }
 
@@ -701,10 +1096,20 @@ class AppViewModel @Inject constructor(
     private suspend fun handleScan(result: String) = withContext(bgDispatcher) {
         // always reset state on new scan
         resetSendState()
-        resetQuickPayData()
+        resetQuickPay()
 
-        @Suppress("ForbiddenComment") // TODO: wrap `decode` from bindings in a `CoreService` method and call that one
-        val scan = runCatching { decode(result) }
+        // TODO Workaround for https://github.com/synonymdev/bitkit-core/issues/63
+        if (Bip21Utils.isDuplicatedBip21(result)) {
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = context.getString(R.string.other__scan_err_decoding),
+                description = context.getString(R.string.other__scan__error__generic),
+                testTag = "DuplicatedBip21Toast",
+            )
+            return@withContext
+        }
+
+        val scan = runCatching { coreService.decode(result) }
             .onFailure { Logger.error("Failed to decode scan data: '$result'", it, context = TAG) }
             .onSuccess { Logger.info("Handling decoded scan data: $it", context = TAG) }
             .getOrNull()
@@ -729,26 +1134,38 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     private suspend fun onScanOnchain(invoice: OnChainInvoice, scanResult: String) {
-        val lnInvoice: LightningInvoice? = invoice.params?.get("lightning")?.let { bolt11 ->
-            runCatching { decode(bolt11) }.getOrNull()
-                ?.let { it as? Scanner.Lightning }
-                ?.invoice
-                ?.takeIf { invoice ->
-                    val canSend = lightningRepo.canSend(invoice.amountSatoshis.coerceAtLeast(1u))
-                    if (!canSend) {
-                        Logger.debug("Cannot pay unified invoice using LN, defaulting to onchain-only", context = TAG)
-                    }
-                    return@takeIf canSend
-                }
+        val validatedAddress = runCatching { validateBitcoinAddress(invoice.address) }
+            .getOrElse {
+                toast(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.other__scan_err_decoding),
+                    description = context.getString(R.string.wallet__error_invalid_bitcoin_address),
+                    testTag = "InvalidAddressToast",
+                )
+                return
+            }
+
+        if (NetworkValidationHelper.isNetworkMismatch(validatedAddress.network.toLdkNetwork(), Env.network)) {
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = context.getString(R.string.other__scan_err_decoding),
+                description = context.getString(R.string.other__scan__error__generic),
+                testTag = "InvalidAddressToast",
+            )
+            return
         }
+        val maxSendOnchain = walletRepo.balanceState.value.maxSendOnchainSats
+
+        val lnInvoice = extractViableLightningInvoice(invoice.params)
         _sendUiState.update {
             it.copy(
                 address = invoice.address,
                 addressInput = scanResult,
                 isAddressInputValid = true,
                 amount = invoice.amountSatoshis,
-                isUnified = lnInvoice != null,
+                isUnified = lnInvoice != null && invoice.amountSatoshis <= maxSendOnchain && maxSendOnchain > 0u,
                 decodedInvoice = lnInvoice,
                 payMethod = lnInvoice?.let { SendMethod.LIGHTNING } ?: SendMethod.ONCHAIN,
             )
@@ -773,6 +1190,34 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        // Check on-chain balance before proceeding to amount screen
+        if (maxSendOnchain == 0uL && _sendUiState.value.payMethod == SendMethod.ONCHAIN) {
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = context.getString(R.string.other__pay_insufficient_savings),
+                description = context.getString(R.string.other__pay_insufficient_savings_description),
+                testTag = "InsufficientSavingsToast",
+            )
+            return
+        }
+
+        // Check if on-chain invoice amount exceeds available balance
+        if (
+            invoice.amountSatoshis > 0uL &&
+            invoice.amountSatoshis > maxSendOnchain &&
+            _sendUiState.value.payMethod == SendMethod.ONCHAIN
+        ) {
+            val shortfall = invoice.amountSatoshis - maxSendOnchain
+            toast(
+                type = Toast.ToastType.ERROR,
+                title = context.getString(R.string.other__pay_insufficient_savings),
+                description = context.getString(R.string.other__pay_insufficient_savings_amount_description)
+                    .replace("{amount}", formatMoneyValue(shortfall)),
+                testTag = "InsufficientSavingsToast",
+            )
+            return
+        }
+
         Logger.info(
             when (invoice.amountSatoshis > 0u) {
                 true -> "Found amount in invoice, proceeding to edit amount"
@@ -794,6 +1239,7 @@ class AppViewModel @Inject constructor(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.other__scan_err_decoding),
                 description = context.getString(R.string.other__scan__error__expired),
+                testTag = "ExpiredLightningToast",
             )
             return
         }
@@ -802,10 +1248,14 @@ class AppViewModel @Inject constructor(
         if (quickPayHandled) return
 
         if (!lightningRepo.canSend(invoice.amountSatoshis)) {
+            val maxSendLightning = walletRepo.balanceState.value.maxSendLightningSats
+            val shortfall = invoice.amountSatoshis.safe() - maxSendLightning.safe()
             toast(
                 type = Toast.ToastType.ERROR,
-                title = "Insufficient Funds",
-                description = "You do not have enough funds to send this payment."
+                title = context.getString(R.string.other__pay_insufficient_spending),
+                description = context.getString(R.string.other__pay_insufficient_spending_amount_description)
+                    .replace("{amount}", formatMoneyValue(shortfall)),
+                testTag = "InsufficientSpendingToast",
             )
             return
         }
@@ -854,15 +1304,17 @@ class AppViewModel @Inject constructor(
             return
         }
 
+        val hasAmount = minSendable == maxSendable && minSendable > 0u
+        val initialAmount = if (hasAmount) minSendable else 0u
+
         _sendUiState.update {
             it.copy(
-                amount = minSendable,
+                amount = initialAmount,
                 payMethod = SendMethod.LIGHTNING,
                 lnurl = LnurlParams.LnurlPay(data),
             )
         }
 
-        val hasAmount = minSendable == maxSendable && minSendable > 0u
         if (hasAmount) {
             Logger.info("Found amount $$minSendable in lnurlPay, proceeding with payment", context = TAG)
 
@@ -885,7 +1337,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun onScanLnurlWithdraw(data: LnurlWithdrawData) {
+    private suspend fun onScanLnurlWithdraw(data: LnurlWithdrawData) {
         Logger.debug("LNURL: $data", context = TAG)
 
         val minWithdrawable = data.minWithdrawableSat()
@@ -909,7 +1361,12 @@ class AppViewModel @Inject constructor(
         }
 
         if (minWithdrawable == maxWithdrawable) {
-            setSendEffect(SendEffect.NavigateToWithdrawConfirm)
+            delay(TRANSITION_SCREEN_MS)
+            if (isMainScanner) {
+                showSheet(Sheet.Send(SendRoute.WithdrawConfirm))
+            } else {
+                setSendEffect(SendEffect.NavigateToWithdrawConfirm)
+            }
             return
         }
 
@@ -1057,13 +1514,17 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     private suspend fun handleSanityChecks(amountSats: ULong) {
         if (_sendUiState.value.showSanityWarningDialog != null) return
 
         val settings = settingsStore.data.first()
-
+        val balanceToCheck = when (_sendUiState.value.payMethod) {
+            SendMethod.ONCHAIN -> walletRepo.balanceState.value.maxSendOnchainSats
+            SendMethod.LIGHTNING -> walletRepo.balanceState.value.maxSendLightningSats
+        }
         if (
-            amountSats > BigDecimal.valueOf(walletRepo.balanceState.value.totalSats.toLong())
+            amountSats > BigDecimal.valueOf(balanceToCheck.toLong())
                 .times(BigDecimal(MAX_BALANCE_FRACTION)).toLong().toUInt() &&
             SanityWarning.OVER_HALF_BALANCE !in _sendUiState.value.confirmedWarnings
         ) {
@@ -1122,6 +1583,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    @Suppress("LongMethod")
     private suspend fun proceedWithPayment() {
         delay(SCREEN_TRANSITION_DELAY_MS) // wait for screen transitions when applicable
 
@@ -1140,7 +1602,7 @@ class AppViewModel @Inject constructor(
                     it.copy(decodedInvoice = invoice)
                 }
             }.onFailure {
-                toast(Exception("Error fetching lnurl invoice"))
+                toast(Exception(context.getString(R.string.wallet__error_lnurl_invoice_fetch)))
                 hideSheet()
                 return
             }
@@ -1149,18 +1611,9 @@ class AppViewModel @Inject constructor(
         when (_sendUiState.value.payMethod) {
             SendMethod.ONCHAIN -> {
                 val address = _sendUiState.value.address
-                // TODO validate early, validate network & address types, showing detailed errors
-                val validatedAddress = runCatching { validateBitcoinAddress(address) }
-                    .getOrElse { e ->
-                        Logger.error("Invalid bitcoin send address: '$address'", e, context = TAG)
-                        toast(Exception("Invalid bitcoin send address"))
-                        hideSheet()
-                        return
-                    }
-
                 val tags = _sendUiState.value.selectedTags
 
-                sendOnchain(validatedAddress.address, amount, tags = tags)
+                sendOnchain(address, amount, tags = tags)
                     .onSuccess { txId ->
                         Logger.info("Onchain send result txid: $txId", context = TAG)
                         handlePaymentSuccess(
@@ -1169,16 +1622,18 @@ class AppViewModel @Inject constructor(
                                 direction = NewTransactionSheetDirection.SENT,
                                 paymentHashOrTxId = txId,
                                 sats = amount.toLong(),
+                                isLoadingDetails = true,
                             )
                         )
                         lightningRepo.sync()
                         activityRepo.syncActivities()
+                        _successSendUiState.update { it.copy(isLoadingDetails = false) }
                     }.onFailure { e ->
                         Logger.error(msg = "Error sending onchain payment", e = e, context = TAG)
                         toast(
                             type = Toast.ToastType.ERROR,
-                            title = "Error Sending",
-                            description = e.message ?: "Unknown error"
+                            title = context.getString(R.string.wallet__error_sending_title),
+                            description = e.message ?: context.getString(R.string.common__error_body)
                         )
                         hideSheet()
                     }
@@ -1387,7 +1842,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun resetQuickPayData() = _quickPayData.update { null }
+    fun resetQuickPay() = _quickPayData.update { null }
 
     /** Reselect utxos for current amount & speed then refresh fees using updated utxos */
     private fun refreshOnchainSendIfNeeded() {
@@ -1407,13 +1862,11 @@ class AppViewModel @Inject constructor(
                     .mapCatching { satsPerVByte ->
                         lightningRepo.determineUtxosToSpend(
                             sats = currentState.amount,
-                            satsPerVByte = satsPerVByte.toUInt(),
+                            satsPerVByte = satsPerVByte,
                         )
                     }
                     .onSuccess { utxos ->
-                        _sendUiState.update {
-                            it.copy(selectedUtxos = utxos)
-                        }
+                        _sendUiState.update { it.copy(selectedUtxos = utxos) }
                     }
             }
             refreshFeeEstimates()
@@ -1477,6 +1930,37 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    private suspend fun estimateMaxAmountRoutingFee() {
+        val currentState = _sendUiState.value
+        if (currentState.payMethod != SendMethod.LIGHTNING) return
+
+        val decodedInvoice = currentState.decodedInvoice ?: return
+        val bolt11 = decodedInvoice.bolt11
+
+        val maxSendLightning = walletRepo.balanceState.value.maxSendLightningSats
+        if (maxSendLightning == 0uL) {
+            _sendUiState.update { it.copy(estimatedRoutingFee = 0uL) }
+            return
+        }
+
+        val buffer = 2uL
+        val amountToEstimate = maxSendLightning.safe() - buffer.safe()
+
+        val feeResult = lightningRepo.estimateRoutingFeesForAmount(
+            bolt11 = bolt11,
+            amountSats = amountToEstimate
+        )
+
+        feeResult.onSuccess { fee ->
+            _sendUiState.update {
+                it.copy(estimatedRoutingFee = fee + buffer)
+            }
+        }.onFailure { e ->
+            Logger.error("Failed to estimate routing fee for max amount", e, context = TAG)
+            _sendUiState.update { it.copy(estimatedRoutingFee = 0uL) }
+        }
+    }
+
     private suspend fun getFeeEstimate(speed: TransactionSpeed? = null): Long {
         val currentState = _sendUiState.value
         return lightningRepo.calculateTotalFee(
@@ -1489,6 +1973,7 @@ class AppViewModel @Inject constructor(
     }
 
     suspend fun resetSendState() {
+        addressValidationJob?.cancel()
         val speed = settingsStore.data.first().defaultTransactionSpeed
         val rates = let {
             // Refresh blocktank info to get latest fee rates
@@ -1549,9 +2034,6 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region Sheets
-    private val _currentSheet: MutableStateFlow<Sheet?> = MutableStateFlow(null)
-    val currentSheet = _currentSheet.asStateFlow()
-
     fun showSheet(sheetType: Sheet) {
         viewModelScope.launch {
             _currentSheet.value?.let {
@@ -1563,10 +2045,18 @@ class AppViewModel @Inject constructor(
     }
 
     fun hideSheet() {
-        if (currentSheet.value is Sheet.TimedSheet && currentTimedSheet != null) {
-            dismissTimedSheet()
-        } else {
-            _currentSheet.update { null }
+        when {
+            currentSheet.value is Sheet.TimedSheet -> {
+                // Only dismiss if manager still has a sheet (user initiated)
+                // If manager already cleared it, just update our state
+                if (timedSheetManager.currentSheet.value != null) {
+                    dismissTimedSheet()
+                } else {
+                    _currentSheet.update { null }
+                }
+            }
+
+            else -> _currentSheet.update { null }
         }
     }
 
@@ -1597,7 +2087,11 @@ class AppViewModel @Inject constructor(
     }
 
     fun toast(error: Throwable) {
-        toast(type = Toast.ToastType.ERROR, title = "Error", description = error.message ?: "Unknown error")
+        toast(
+            type = Toast.ToastType.ERROR,
+            title = context.getString(R.string.common__error),
+            description = error.message ?: context.getString(R.string.common__error_body)
+        )
     }
 
     fun toast(toast: Toast) {
@@ -1618,13 +2112,15 @@ class AppViewModel @Inject constructor(
     // endregion
 
     // region security
+    private suspend fun resetIsAuthenticatedStateInternal() {
+        val settings = settingsStore.data.first()
+        val needsAuth = settings.isPinEnabled
+        _isAuthenticated.value = !needsAuth
+    }
+
     fun resetIsAuthenticatedState() {
         viewModelScope.launch {
-            val settings = settingsStore.data.first()
-            val needsAuth = settings.isPinEnabled && settings.isPinOnLaunchEnabled
-            if (!needsAuth) {
-                _isAuthenticated.value = true
-            }
+            resetIsAuthenticatedStateInternal()
         }
     }
 
@@ -1658,7 +2154,6 @@ class AppViewModel @Inject constructor(
 
     fun addPin(pin: String) {
         viewModelScope.launch {
-            settingsStore.update { it.copy(isPinOnLaunchEnabled = true) }
             settingsStore.addDismissedSuggestion(Suggestion.SECURE)
         }
         editPin(pin)
@@ -1682,6 +2177,10 @@ class AppViewModel @Inject constructor(
         }
     }
     // endregion
+
+    suspend fun canDecodeClipboard(text: String): Boolean = withContext(bgDispatcher) {
+        runCatching { coreService.decode(text) }.isSuccess
+    }
 
     fun onClipboardAutoRead(data: String) {
         viewModelScope.launch {
@@ -1938,155 +2437,20 @@ class AppViewModel @Inject constructor(
             .replace("lnurlp:", "")
     }
 
-    fun checkTimedSheets() {
-        if (backupRepo.isRestoring.value) return
+    fun checkTimedSheets() = timedSheetManager.onHomeScreenEntered()
 
-        if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
-            Logger.debug("Timed sheet already active, skipping check")
-            return
-        }
+    fun onLeftHome() = timedSheetManager.onHomeScreenExited()
 
-        timedSheetsScope?.cancel()
-        timedSheetsScope = CoroutineScope(bgDispatcher + SupervisorJob())
-        timedSheetsScope?.launch {
-            delay(CHECK_DELAY_MILLIS)
+    fun dismissTimedSheet() = timedSheetManager.dismissCurrentSheet()
 
-            if (currentTimedSheet != null || timedSheetQueue.isNotEmpty()) {
-                Logger.debug("Timed sheet became active during delay, skipping")
-                return@launch
-            }
+    private suspend fun checkCriticalAppUpdate() = withContext(bgDispatcher) {
+        delay(SCREEN_TRANSITION_DELAY_MS)
 
-            val eligibleSheets = TimedSheetType.entries
-                .filter { shouldDisplaySheet(it) }
-                .sortedByDescending { it.priority }
-
-            if (eligibleSheets.isNotEmpty()) {
-                Logger.debug(
-                    "Building timed sheet queue: ${eligibleSheets.joinToString { it.name }}",
-                    context = "Timed sheet"
-                )
-                timedSheetQueue = eligibleSheets
-                currentTimedSheet = eligibleSheets.first()
-                showSheet(Sheet.TimedSheet(eligibleSheets.first()))
-            } else {
-                Logger.debug("No timed sheet eligible, skipping", context = "Timed sheet")
-            }
-        }
-    }
-
-    fun onLeftHome() {
-        Logger.debug("Left home, skipping timed sheet check")
-        timedSheetsScope?.cancel()
-        timedSheetsScope = null
-    }
-
-    fun dismissTimedSheet(skipQueue: Boolean = false) {
-        Logger.debug("dismissTimedSheet called", context = "Timed sheet")
-
-        val currentQueue = timedSheetQueue
-        val currentSheet = currentTimedSheet
-
-        if (currentQueue.isEmpty() || currentSheet == null) {
-            clearTimedSheets()
-            return
-        }
-
-        viewModelScope.launch {
-            val currentTime = nowMillis()
-
-            when (currentSheet) {
-                TimedSheetType.HIGH_BALANCE -> settingsStore.update {
-                    it.copy(
-                        balanceWarningTimes = it.balanceWarningTimes + 1,
-                        balanceWarningIgnoredMillis = currentTime,
-                    )
-                }
-
-                TimedSheetType.NOTIFICATIONS -> settingsStore.update {
-                    it.copy(notificationsIgnoredMillis = currentTime)
-                }
-
-                TimedSheetType.BACKUP -> settingsStore.update {
-                    it.copy(backupWarningIgnoredMillis = currentTime)
-                }
-
-                TimedSheetType.QUICK_PAY -> settingsStore.update {
-                    it.copy(quickPayIntroSeen = true)
-                }
-
-                TimedSheetType.APP_UPDATE -> Unit
-            }
-        }
-
-        if (skipQueue) {
-            clearTimedSheets()
-            return
-        }
-
-        val currentIndex = currentQueue.indexOf(currentSheet)
-        val nextIndex = currentIndex + 1
-
-        if (nextIndex < currentQueue.size) {
-            Logger.debug("Moving to next timed sheet in queue: ${currentQueue[nextIndex].name}")
-            currentTimedSheet = currentQueue[nextIndex]
-            showSheet(Sheet.TimedSheet(currentQueue[nextIndex]))
-        } else {
-            Logger.debug("Timed sheet queue exhausted")
-            clearTimedSheets()
-        }
-    }
-
-    private fun clearTimedSheets() {
-        currentTimedSheet = null
-        timedSheetQueue = emptyList()
-        hideSheet()
-    }
-
-    private suspend fun shouldDisplaySheet(sheet: TimedSheetType): Boolean = when (sheet) {
-        TimedSheetType.APP_UPDATE -> checkAppUpdate()
-        TimedSheetType.BACKUP -> checkBackupSheet()
-        TimedSheetType.NOTIFICATIONS -> checkNotificationSheet()
-        TimedSheetType.QUICK_PAY -> checkQuickPaySheet()
-        TimedSheetType.HIGH_BALANCE -> checkHighBalance()
-    }
-
-    private suspend fun checkQuickPaySheet(): Boolean {
-        val settings = settingsStore.data.first()
-        if (settings.quickPayIntroSeen || settings.isQuickPayEnabled) return false
-        val shouldShow = walletRepo.balanceState.value.totalLightningSats > 0U
-        return shouldShow
-    }
-
-    private suspend fun checkNotificationSheet(): Boolean {
-        val settings = settingsStore.data.first()
-        if (settings.notificationsGranted) return false
-        if (walletRepo.balanceState.value.totalLightningSats == 0UL) return false
-
-        return checkTimeout(
-            lastIgnoredMillis = settings.notificationsIgnoredMillis,
-            intervalMillis = ONE_WEEK_ASK_INTERVAL_MILLIS
-        )
-    }
-
-    private suspend fun checkBackupSheet(): Boolean {
-        val settings = settingsStore.data.first()
-        if (settings.backupVerified) return false
-
-        val hasBalance = walletRepo.balanceState.value.totalSats > 0U
-        if (!hasBalance) return false
-
-        return checkTimeout(
-            lastIgnoredMillis = settings.backupWarningIgnoredMillis,
-            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS
-        )
-    }
-
-    private suspend fun checkAppUpdate(): Boolean = withContext(bgDispatcher) {
-        try {
+        runCatching {
             val androidReleaseInfo = appUpdaterService.getReleaseInfo().platforms.android
             val currentBuildNumber = BuildConfig.VERSION_CODE
 
-            if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext false
+            if (androidReleaseInfo.buildNumber <= currentBuildNumber) return@withContext
 
             if (androidReleaseInfo.isCritical) {
                 mainScreenEffect(
@@ -2097,53 +2461,10 @@ class AppViewModel @Inject constructor(
                         }
                     )
                 )
-                return@withContext false
             }
-
-            return@withContext true
-        } catch (e: Exception) {
-            Logger.warn("Failure fetching new releases", e = e)
-            return@withContext false
+        }.onFailure { e ->
+            Logger.warn("Failure fetching new releases", e = e, context = TAG)
         }
-    }
-
-    private suspend fun checkHighBalance(): Boolean {
-        val settings = settingsStore.data.first()
-
-        val totalOnChainSats = walletRepo.balanceState.value.totalSats
-        val balanceUsd = satsToUsd(totalOnChainSats) ?: return false
-        val thresholdReached = balanceUsd > BigDecimal(BALANCE_THRESHOLD_USD)
-
-        if (!thresholdReached) {
-            settingsStore.update { it.copy(balanceWarningTimes = 0) }
-            return false
-        }
-
-        val belowMaxWarnings = settings.balanceWarningTimes < MAX_WARNINGS
-
-        return checkTimeout(
-            lastIgnoredMillis = settings.balanceWarningIgnoredMillis,
-            intervalMillis = ONE_DAY_ASK_INTERVAL_MILLIS,
-            additionalCondition = belowMaxWarnings
-        )
-    }
-
-    private fun checkTimeout(
-        lastIgnoredMillis: Long,
-        intervalMillis: Long,
-        additionalCondition: Boolean = true,
-    ): Boolean {
-        if (!additionalCondition) return false
-
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        val isTimeOutOver = lastIgnoredMillis == 0L ||
-            (currentTime - lastIgnoredMillis > intervalMillis)
-        return isTimeOutOver
-    }
-
-    private fun satsToUsd(sats: ULong): BigDecimal? {
-        val converted = currencyRepo.convertSatsToFiat(sats = sats.toLong(), currency = "USD").getOrNull()
-        return converted?.value
     }
 
     companion object {
@@ -2153,19 +2474,12 @@ class AppViewModel @Inject constructor(
         private const val MAX_BALANCE_FRACTION = 0.5
         private const val MAX_FEE_AMOUNT_RATIO = 0.5
         private const val SCREEN_TRANSITION_DELAY_MS = 300L
-
-        /**How high the balance must be to show this warning to the user (in USD)*/
-        private const val BALANCE_THRESHOLD_USD = 500L
-        private const val MAX_WARNINGS = 3
-
-        /** how long this prompt will be hidden if user taps Later*/
-        private const val ONE_DAY_ASK_INTERVAL_MILLIS = 1000 * 60 * 60 * 24L
-
-        /** how long this prompt will be hidden if user taps Later*/
-        private const val ONE_WEEK_ASK_INTERVAL_MILLIS = ONE_DAY_ASK_INTERVAL_MILLIS * 7L
-
-        /**How long user needs to stay on the home screen before he see this prompt*/
-        private const val CHECK_DELAY_MILLIS = 2000L
+        private const val MIGRATION_LOADING_TIMEOUT_MS = 120_000L
+        private const val MIGRATION_AUTH_RESET_DELAY_MS = 500L
+        private const val REMOTE_RESTORE_NODE_RESTART_DELAY_MS = 500L
+        private const val AUTH_CHECK_INITIAL_DELAY_MS = 1000L
+        private const val AUTH_CHECK_SPLASH_DELAY_MS = 500L
+        private const val ADDRESS_VALIDATION_DEBOUNCE_MS = 1000L
     }
 }
 
@@ -2192,6 +2506,7 @@ data class SendUiState(
     val feeRates: FeeRates? = null,
     val fee: SendFee? = null,
     val fees: Map<FeeRate, Long> = emptyMap(),
+    val estimatedRoutingFee: ULong = 0uL,
 )
 
 enum class SanityWarning(@StringRes val message: Int, val testTag: String) {
@@ -2221,6 +2536,7 @@ sealed class SendEffect {
     data object NavigateToQuickPay : SendEffect()
     data object NavigateToFee : SendEffect()
     data object NavigateToFeeCustom : SendEffect()
+    data object NavigateToComingSoon : SendEffect()
     data class PaymentSuccess(val sheet: NewTransactionSheetDetails? = null) : SendEffect()
 }
 
@@ -2255,11 +2571,13 @@ sealed interface SendEvent {
     data object SpeedAndFee : SendEvent
     data object PaymentMethodSwitch : SendEvent
     data class ConfirmAmountWarning(val warning: SanityWarning) : SendEvent
+    data object EstimateMaxRoutingFee : SendEvent
     data object DismissAmountWarning : SendEvent
     data object PayConfirmed : SendEvent
     data object ClearPayConfirmation : SendEvent
     data object BackToAmount : SendEvent
     data object NavToAddress : SendEvent
+    data object Contacts : SendEvent
 }
 
 sealed interface LnurlParams {

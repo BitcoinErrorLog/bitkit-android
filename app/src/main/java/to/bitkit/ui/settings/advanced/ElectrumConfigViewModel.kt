@@ -22,6 +22,7 @@ import to.bitkit.env.Env
 import to.bitkit.models.ElectrumProtocol
 import to.bitkit.models.ElectrumServer
 import to.bitkit.models.ElectrumServerPeer
+import to.bitkit.models.MAX_VALID_PORT
 import to.bitkit.models.Toast
 import to.bitkit.models.getDefaultPort
 import to.bitkit.repositories.LightningRepo
@@ -48,9 +49,11 @@ class ElectrumConfigViewModel @Inject constructor(
     private fun observeState() {
         viewModelScope.launch(bgDispatcher) {
             lightningRepo.lightningState.collect { lightningState ->
+                val isNodeRunning = lightningState.nodeStatus?.isRunning == true
+                val hasSyncError = lightningState.lastSyncError != null
                 _uiState.update { currentState ->
                     currentState.copy(
-                        isConnected = lightningState.nodeStatus?.isRunning == true,
+                        isConnected = isNodeRunning && !hasSyncError,
                     )
                 }
             }
@@ -111,7 +114,7 @@ class ElectrumConfigViewModel @Inject constructor(
     }
 
     fun resetToDefault() {
-        val defaultServer = ElectrumServer.parse(Env.defaultElectrumServer)
+        val defaultServer = ElectrumServer.parse(Env.electrumServerUrl)
         _uiState.update {
             val newState = it.copy(
                 host = defaultServer.host,
@@ -122,19 +125,18 @@ class ElectrumConfigViewModel @Inject constructor(
         }
     }
 
+    @Suppress("ComplexCondition")
     fun connectToServer() {
         val currentState = _uiState.value
         val port = currentState.port.toIntOrNull()
         val protocol = currentState.protocol
 
-        if (currentState.host.isBlank() || port == null || port <= 0 || protocol == null) {
-            return
-        }
+        if (currentState.host.isBlank() || port == null || port <= 0 || protocol == null) return
 
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch(bgDispatcher) {
-            try {
+            runCatching {
                 val electrumServer = ElectrumServer.fromUserInput(
                     host = currentState.host,
                     port = port,
@@ -153,7 +155,7 @@ class ElectrumConfigViewModel @Inject constructor(
                         }
                     }
                     .onFailure { error -> throw error }
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -178,7 +180,7 @@ class ElectrumConfigViewModel @Inject constructor(
             error = context.getString(R.string.settings__es__error_port)
         } else {
             val portNumber = port.toIntOrNull()
-            if (portNumber == null || portNumber <= 0 || portNumber > 65535) {
+            if (portNumber == null || portNumber <= 0 || portNumber > MAX_VALID_PORT) {
                 error = context.getString(R.string.settings__es__error_port_invalid)
             }
         }

@@ -30,12 +30,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import to.bitkit.R
 import to.bitkit.androidServices.LightningNodeService
 import to.bitkit.androidServices.LightningNodeService.Companion.CHANNEL_ID_NODE
 import to.bitkit.models.NewTransactionSheetDetails
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.ui.components.AuthCheckView
-import to.bitkit.ui.components.InactivityTracker
 import to.bitkit.ui.components.IsOnlineTracker
 import to.bitkit.ui.components.ToastOverlay
 import to.bitkit.ui.onboarding.CreateWalletWithPassphraseScreen
@@ -44,6 +44,7 @@ import to.bitkit.ui.onboarding.OnboardingSlidesScreen
 import to.bitkit.ui.onboarding.RestoreWalletScreen
 import to.bitkit.ui.onboarding.TermsOfUseScreen
 import to.bitkit.ui.onboarding.WarningMultipleDevicesScreen
+import to.bitkit.ui.screens.MigrationLoadingScreen
 import to.bitkit.ui.screens.SplashScreen
 import to.bitkit.ui.sheets.ForgotPinSheet
 import to.bitkit.ui.sheets.NewTransactionSheet
@@ -79,15 +80,15 @@ class MainActivity : FragmentActivity() {
     private val settingsViewModel by viewModels<SettingsViewModel>()
     private val backupsViewModel by viewModels<BackupsViewModel>()
 
+    @Suppress("LongMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         initNotificationChannel()
         initNotificationChannel(
-            // TODO Transifex
             id = CHANNEL_ID_NODE,
-            name = "Lightning node notification",
-            desc = "Channel for LightningNodeService",
+            name = getString(R.string.notification__channel_node__name),
+            desc = getString(R.string.notification__channel_node__body),
             importance = NotificationManager.IMPORTANCE_LOW
         )
         handleIntent(intent)
@@ -106,19 +107,25 @@ class MainActivity : FragmentActivity() {
                 val walletExists by walletViewModel.walletState
                     .map { it.walletExists }
                     .collectAsStateWithLifecycle(initialValue = walletViewModel.walletExists)
+                val isShowingMigrationLoading by walletViewModel.isShowingMigrationLoading.collectAsStateWithLifecycle()
+                val restoreState by walletViewModel.restoreState.collectAsStateWithLifecycle()
                 val hazeState = rememberHazeState(blurEnabled = true)
 
                 LaunchedEffect(
                     walletExists,
                     isRecoveryMode,
-                    notificationsGranted
+                    notificationsGranted,
+                    restoreState,
                 ) {
-                    if (walletExists && !isRecoveryMode && notificationsGranted) {
+                    val canStartService = walletExists && notificationsGranted && restoreState.isIdle()
+                    if (canStartService && !isRecoveryMode) {
                         tryStartForegroundService()
                     }
                 }
 
-                if (!walletViewModel.walletExists && !isRecoveryMode) {
+                if (isShowingMigrationLoading && !isRecoveryMode) {
+                    MigrationLoadingScreen(isVisible = true)
+                } else if (!walletViewModel.walletExists && !isRecoveryMode) {
                     OnboardingNav(
                         startupNavController = rememberNavController(),
                         scope = scope,
@@ -129,19 +136,18 @@ class MainActivity : FragmentActivity() {
                     val isAuthenticated by appViewModel.isAuthenticated.collectAsStateWithLifecycle()
 
                     IsOnlineTracker(appViewModel)
-                    InactivityTracker(appViewModel, settingsViewModel) {
-                        ContentView(
-                            appViewModel = appViewModel,
-                            walletViewModel = walletViewModel,
-                            blocktankViewModel = blocktankViewModel,
-                            currencyViewModel = currencyViewModel,
-                            activityListViewModel = activityListViewModel,
-                            transferViewModel = transferViewModel,
-                            settingsViewModel = settingsViewModel,
-                            backupsViewModel = backupsViewModel,
-                            modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
-                        )
-                    }
+                    ContentView(
+                        appViewModel = appViewModel,
+                        walletViewModel = walletViewModel,
+                        blocktankViewModel = blocktankViewModel,
+                        currencyViewModel = currencyViewModel,
+                        activityListViewModel = activityListViewModel,
+                        transferViewModel = transferViewModel,
+                        settingsViewModel = settingsViewModel,
+                        backupsViewModel = backupsViewModel,
+                        hazeState = hazeState,
+                        modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
+                    )
 
                     AnimatedVisibility(
                         visible = !isAuthenticated,

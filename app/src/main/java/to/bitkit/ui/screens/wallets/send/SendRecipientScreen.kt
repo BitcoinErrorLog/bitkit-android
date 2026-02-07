@@ -77,10 +77,14 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.theme.Shapes
 import to.bitkit.ui.theme.TRANSITION_SCREEN_MS
 import to.bitkit.ui.utils.withAccent
+import to.bitkit.utils.AppError
 import to.bitkit.utils.Logger
 import to.bitkit.viewmodels.SendEvent
 import java.util.concurrent.Executors
+import kotlin.coroutines.cancellation.CancellationException
 import androidx.camera.core.Preview as CameraPreview
+
+private const val TAG = "SendRecipientScreen"
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -99,7 +103,11 @@ fun SendRecipientScreen(
     // Camera state
     var isFlashlightOn by remember { mutableStateOf(false) }
     var isCameraInitialized by remember { mutableStateOf(false) }
-    val previewView = remember { PreviewView(context) }
+    val previewView = remember {
+        PreviewView(context).apply {
+            setLayerType(LAYER_TYPE_HARDWARE, null)
+        }
+    }
     val preview = remember { CameraPreview.Builder().build() }
     var camera by remember { mutableStateOf<Camera?>(null) }
     val executor = remember { Executors.newSingleThreadExecutor() }
@@ -128,11 +136,11 @@ fun SendRecipientScreen(
         QrCodeAnalyzer { result ->
             if (result.isSuccess) {
                 val qrCode = result.getOrThrow()
-                Logger.debug("QR scanned: $qrCode")
+                Logger.debug("QR scanned: '$qrCode'", context = TAG)
                 onEvent(SendEvent.AddressContinue(qrCode))
             } else {
                 val error = requireNotNull(result.exceptionOrNull())
-                Logger.error("Scan failed", error)
+                Logger.error("Scan failed", error, context = TAG)
                 app?.toast(
                     type = Toast.ToastType.ERROR,
                     title = context.getString(R.string.other__qr_error_header),
@@ -165,12 +173,14 @@ fun SendRecipientScreen(
                 )
                 preview.surfaceProvider = previewView.surfaceProvider
                 isCameraInitialized = true
-            }.onFailure { e ->
-                Logger.error("Camera initialization failed", e)
+            }.onFailure {
+                if (it is CancellationException) return@onFailure
+                Logger.error("Camera initialization failed", it, context = TAG)
                 app?.toast(
                     type = Toast.ToastType.ERROR,
                     title = context.getString(R.string.other__qr_error_header),
-                    description = "Failed to initialize camera: ${e.message}"
+                    description = context.getString(R.string.other__camera_init_error)
+                        .replace("{message}", it.message.orEmpty())
                 )
                 isCameraInitialized = false
             }
@@ -183,8 +193,8 @@ fun SendRecipientScreen(
             camera?.let {
                 runCatching {
                     ProcessCameraProvider.getInstance(context).get().unbindAll()
-                }.onFailure { e ->
-                    Logger.error("Camera cleanup failed", e)
+                }.onFailure {
+                    Logger.error("Camera cleanup failed", it, context = TAG)
                 }
             }
             // Reset state - camera will reinit if needed on next composition
@@ -194,21 +204,12 @@ fun SendRecipientScreen(
     }
 
     // Gallery picker launchers
-    val handleGalleryScanSuccess = remember(onEvent) {
-        {
-                qrCode: String ->
-            Logger.debug("QR from gallery: $qrCode")
-            onEvent(SendEvent.AddressContinue(qrCode))
-        }
+    val handleGalleryScanSuccess = { qrCode: String ->
+        Logger.debug("QR from gallery: $qrCode", context = TAG)
+        onEvent(SendEvent.AddressContinue(qrCode))
     }
 
-    val handleGalleryError = remember(app) {
-        {
-                e: Exception ->
-            app?.toast(e)
-            Unit
-        }
-    }
+    val handleGalleryError: (Throwable) -> Unit = { app?.toast(it) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -218,7 +219,7 @@ fun SendRecipientScreen(
                     context = context,
                     uri = it,
                     onScanSuccess = handleGalleryScanSuccess,
-                    onError = handleGalleryError
+                    onError = handleGalleryError,
                 )
             }
         }
@@ -232,7 +233,7 @@ fun SendRecipientScreen(
                 context = context,
                 uri = it,
                 onScanSuccess = handleGalleryScanSuccess,
-                onError = handleGalleryError
+                onError = handleGalleryError,
             )
         }
     }
@@ -244,8 +245,8 @@ fun SendRecipientScreen(
                 isFlashlightOn = !isFlashlightOn
                 runCatching {
                     control.enableTorch(isFlashlightOn)
-                }.onFailure { e ->
-                    Logger.error("Torch control failed", e)
+                }.onFailure {
+                    Logger.error("Torch control failed", it, context = TAG)
                     // Revert state
                     isFlashlightOn = !isFlashlightOn
                 }
@@ -265,7 +266,7 @@ fun SendRecipientScreen(
         onClickManual = { onEvent(SendEvent.EnterManually) },
         cameraPermissionGranted = cameraPermissionState.status.isGranted,
         onRequestPermission = { context.startActivityAppSettings() },
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
@@ -362,11 +363,7 @@ private fun CameraPreviewWithControls(
             modifier = Modifier
                 .fillMaxSize()
                 .clipToBounds(),
-            factory = {
-                previewView.apply {
-                    setLayerType(LAYER_TYPE_HARDWARE, null)
-                }
-            }
+            factory = { previewView }
         )
 
         // Gallery button (top-left)
@@ -387,7 +384,7 @@ private fun CameraPreviewWithControls(
         }
 
         BodyMSB(
-            "Scan QR",
+            stringResource(R.string.other__camera_scan_qr),
             color = Colors.White,
             modifier = Modifier
                 .padding(top = 31.dp)
@@ -424,12 +421,16 @@ private fun PermissionDenied(
             .background(Colors.Black)
             .padding(32.dp)
     ) {
-        Display("SCAN\n<accent>QR CODE</accent>".withAccent(accentColor = Colors.Brand), color = Colors.White)
+        Display(
+            stringResource(R.string.other__camera_permission_title)
+                .withAccent(accentColor = Colors.Brand),
+            color = Colors.White
+        )
 
         VerticalSpacer(8.dp)
 
         BodyM(
-            "Allow camera access to scan bitcoin invoices and pay more quickly.",
+            stringResource(R.string.other__camera_permission_description),
             color = Colors.White64,
             modifier = Modifier.fillMaxWidth()
         )
@@ -437,7 +438,7 @@ private fun PermissionDenied(
         VerticalSpacer(32.dp)
 
         PrimaryButton(
-            text = "Enable camera",
+            text = stringResource(R.string.other__camera_permission_button),
             icon = {
                 Icon(painter = painterResource(R.drawable.ic_camera), contentDescription = null)
             },
@@ -450,7 +451,7 @@ private fun processImageFromGallery(
     context: Context,
     uri: Uri,
     onScanSuccess: (String) -> Unit,
-    onError: (Exception) -> Unit,
+    onError: (Throwable) -> Unit,
 ) {
     try {
         val image = InputImage.fromFilePath(context, uri)
@@ -464,19 +465,19 @@ private fun processImageFromGallery(
                 for (barcode in barcodes) {
                     barcode.rawValue?.let { qrCode ->
                         onScanSuccess(qrCode)
-                        Logger.info("QR from gallery: $qrCode")
+                        Logger.info("QR from gallery: $qrCode", context = TAG)
                         return@addOnSuccessListener
                     }
                 }
-                Logger.error("No QR code in image")
-                onError(Exception(context.getString(R.string.other__qr_error_text)))
+                Logger.error("No QR code in image", context = TAG)
+                onError(AppError(context.getString(R.string.other__qr_error_text)))
             }
-            .addOnFailureListener { e ->
-                Logger.error("Gallery scan failed", e)
-                onError(e)
+            .addOnFailureListener {
+                Logger.error("Gallery scan failed", it, context = TAG)
+                onError(it)
             }
     } catch (e: IllegalArgumentException) {
-        Logger.error("Gallery processing failed", e)
+        Logger.error("Gallery processing failed", e, context = TAG)
         onError(e)
     }
 }

@@ -41,9 +41,12 @@ class PriceService @Inject constructor(
     override suspend fun fetchData(): Result<PriceDTO> = runCatching {
         val period = widgetsStore.data.first().pricePreferences.period ?: GraphPeriod.ONE_DAY
 
-        val widgets = TradingPair.entries.map { pair ->
-            fetchPairData(pair = pair, period = period)
+        val widgets = TradingPair.entries.mapNotNull { pair ->
+            runCatching { fetchPairData(pair = pair, period = period) }
+                .onFailure { Logger.warn(e = it, msg = "Failed to fetch ${pair.ticker}", context = TAG) }
+                .getOrNull()
         }
+        if (widgets.isEmpty()) throw PriceError.InvalidResponse("No price data available")
         PriceDTO(widgets = widgets, source = sourceLabel)
     }.onFailure {
         Logger.warn(e = it, msg = "Failed to fetch price data", context = TAG)
@@ -53,14 +56,12 @@ class PriceService @Inject constructor(
         coroutineScope {
             GraphPeriod.entries.map { period ->
                 async {
-                    PriceDTO(
-                        widgets = TradingPair.entries.map { pair ->
-                            fetchPairData(pair = pair, period = period)
-                        },
-                        source = sourceLabel
-                    )
+                    val widgets = TradingPair.entries.mapNotNull { pair ->
+                        runCatching { fetchPairData(pair = pair, period = period) }.getOrNull()
+                    }
+                    PriceDTO(widgets = widgets, source = sourceLabel)
                 }
-            }.awaitAll()
+            }.awaitAll().filter { it.widgets.isNotEmpty() }
         }
     }.onFailure {
         Logger.warn(e = it, msg = "fetchAllPeriods: Failed to fetch price data", context = TAG)
@@ -145,7 +146,7 @@ class PriceService @Inject constructor(
     }
 
     private fun formatPrice(pair: TradingPair, price: Double): String {
-        return try {
+        return runCatching {
             val currency = Currency.getInstance(pair.quote)
             val numberFormat = NumberFormat.getCurrencyInstance(Locale.US).apply {
                 this.currency = currency
@@ -160,14 +161,9 @@ class PriceService @Inject constructor(
             val formatted = numberFormat.format(price)
             val currencySymbol = currency.symbol
             formatted.replace(currencySymbol, "").trim()
-        } catch (e: Exception) {
-            Logger.warn(
-                e = e,
-                msg = "Error formatting price for ${pair.displayName}",
-                context = TAG
-            )
-            String.format("%.2f", price)
-        }
+        }.onFailure {
+            Logger.warn("Error formatting price for ${pair.displayName}", e = it, context = TAG)
+        }.getOrDefault(String.format(Locale.US, "%.2f", price))
     }
 
     companion object {
@@ -179,6 +175,6 @@ class PriceService @Inject constructor(
  * Price-specific error types
  */
 sealed class PriceError(message: String) : AppError(message) {
-    data class InvalidResponse(override val message: String) : PriceError(message)
-    data class NetworkError(override val message: String) : PriceError(message)
+    class InvalidResponse(override val message: String) : PriceError(message)
+    class NetworkError(override val message: String) : PriceError(message)
 }

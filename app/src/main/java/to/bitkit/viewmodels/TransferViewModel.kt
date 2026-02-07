@@ -50,7 +50,7 @@ import kotlin.time.ExperimentalTime
 const val RETRY_INTERVAL_MS = 1 * 60 * 1000L // 1 minutes in ms
 const val GIVE_UP_MS = 30 * 60 * 1000L // 30 minutes in ms
 
-@Suppress("LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList")
 @OptIn(ExperimentalTime::class)
 @HiltViewModel
 class TransferViewModel @Inject constructor(
@@ -218,50 +218,48 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private suspend fun watchOrder(orderId: String): Result<Boolean> {
+    private suspend fun watchOrder(orderId: String): Result<Boolean> = runCatching {
         Logger.debug("Started watching order: '$orderId'", context = TAG)
-        try {
-            // Step 0: Starting
-            settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_0) }
-            Logger.debug("LN setup step: $LN_SETUP_STEP_0", context = TAG)
-            delay(MIN_STEP_DELAY_MS)
 
-            // Poll until payment is confirmed (order state becomes PAID or EXECUTED)
-            val paidOrder = pollUntil(orderId) { order ->
-                order.state2 == BtOrderState2.PAID || order.state2 == BtOrderState2.EXECUTED
-            } ?: return Result.failure(Exception("Order not found or expired"))
+        // Step 0: Starting
+        settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_0) }
+        Logger.debug("LN setup step: $LN_SETUP_STEP_0", context = TAG)
+        delay(MIN_STEP_DELAY_MS)
 
-            // Step 1: Payment confirmed
-            settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_1) }
-            Logger.debug("LN setup step: $LN_SETUP_STEP_1", context = TAG)
-            delay(MIN_STEP_DELAY_MS)
+        // Poll until payment is confirmed (order state becomes PAID or EXECUTED)
+        val paidOrder = pollUntil(orderId) { order ->
+            order.state2 == BtOrderState2.PAID || order.state2 == BtOrderState2.EXECUTED
+        } ?: return Result.failure(Exception("Order not found or expired"))
 
-            // Try to open channel (idempotent - safe to call multiple times)
-            blocktankRepo.openChannel(paidOrder.id)
+        // Step 1: Payment confirmed
+        settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_1) }
+        Logger.debug("LN setup step: $LN_SETUP_STEP_1", context = TAG)
+        delay(MIN_STEP_DELAY_MS)
 
-            // Step 2: Channel opening requested
-            settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_2) }
-            Logger.debug("LN setup step: $LN_SETUP_STEP_2", context = TAG)
-            delay(MIN_STEP_DELAY_MS)
+        // Try to open channel (idempotent - safe to call multiple times)
+        blocktankRepo.openChannel(paidOrder.id)
 
-            // Poll until channel is ready (EXECUTED state or channel has state)
-            pollUntil(orderId) { order ->
-                order.state2 == BtOrderState2.EXECUTED || order.channel?.state != null
-            } ?: return Result.failure(Exception("Order not found or expired"))
+        // Step 2: Channel opening requested
+        settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_2) }
+        Logger.debug("LN setup step: $LN_SETUP_STEP_2", context = TAG)
+        delay(MIN_STEP_DELAY_MS)
 
-            // Step 3: Complete
-            transferRepo.syncTransferStates()
-            settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_3) }
-            Logger.debug("LN setup step: $LN_SETUP_STEP_3", context = TAG)
+        // Poll until channel is ready (EXECUTED state or channel has state)
+        pollUntil(orderId) { order ->
+            order.state2 == BtOrderState2.EXECUTED || order.channel?.state != null
+        } ?: return Result.failure(Exception("Order not found or expired"))
 
-            Logger.debug("Order settled: '$orderId'", context = TAG)
-            return Result.success(true)
-        } catch (e: Throwable) {
-            Logger.error("Failed to watch order: '$orderId'", e, context = TAG)
-            return Result.failure(e)
-        } finally {
-            Logger.debug("Stopped watching order: '$orderId'", context = TAG)
-        }
+        // Step 3: Complete
+        transferRepo.syncTransferStates()
+        settingsStore.update { it.copy(lightningSetupStep = LN_SETUP_STEP_3) }
+        Logger.debug("LN setup step: $LN_SETUP_STEP_3", context = TAG)
+
+        Logger.debug("Order settled: '$orderId'", context = TAG)
+        return@runCatching true
+    }.onFailure {
+        Logger.error("Failed to watch order: '$orderId'", it, context = TAG)
+    }.also {
+        Logger.debug("Stopped watching order: '$orderId'", context = TAG)
     }
 
     private suspend fun pollUntil(orderId: String, condition: (IBtOrder) -> Boolean): IBtOrder? {
@@ -374,6 +372,10 @@ class TransferViewModel @Inject constructor(
     /** Closes the channels selected earlier, pending closure */
     suspend fun closeSelectedChannels() = closeChannels(channelsToClose)
 
+    fun separateTrustedChannels(
+        channels: List<ChannelDetails>,
+    ): Pair<List<ChannelDetails>, List<ChannelDetails>> = lightningRepo.separateTrustedChannels(channels)
+
     private suspend fun closeChannels(channels: List<ChannelDetails>): List<ChannelDetails> {
         val channelsFailedToClose = coroutineScope {
             channels.map { channel ->
@@ -404,6 +406,7 @@ class TransferViewModel @Inject constructor(
     fun startCoopCloseRetries(
         channels: List<ChannelDetails>,
         onGiveUp: () -> Unit,
+        onTransferUnavailable: () -> Unit,
     ) {
         val startTimeMs = clock.now().toEpochMilliseconds()
         channelsToClose = channels
@@ -427,21 +430,63 @@ class TransferViewModel @Inject constructor(
                 delay(RETRY_INTERVAL_MS)
             }
 
-            Logger.info("Giving up on coop close.")
-            onGiveUp()
+            Logger.info("Giving up on coop close. Checking if force close is possible.", context = TAG)
+
+            // Check if any channels can be force closed (filter out trusted peers)
+            val (_, nonTrustedChannels) = lightningRepo.separateTrustedChannels(channelsToClose)
+
+            if (nonTrustedChannels.isNotEmpty()) {
+                onGiveUp()
+            } else {
+                Logger.warn("All channels are with trusted peers. Cannot force close.", context = TAG)
+                channelsToClose = emptyList()
+                onTransferUnavailable()
+            }
         }
     }
 
     fun forceTransfer(onComplete: () -> Unit) = viewModelScope.launch {
         _isForceTransferLoading.value = true
         runCatching {
-            val failedChannels = forceCloseChannels(channelsToClose)
+            // Filter out trusted peer channels (cannot force close LSP channels)
+            val (trustedChannels, nonTrustedChannels) = lightningRepo.separateTrustedChannels(channelsToClose)
+
+            if (trustedChannels.isNotEmpty()) {
+                Logger.warn("Skipping ${trustedChannels.size} trusted peer channel(s)", context = TAG)
+            }
+
+            if (nonTrustedChannels.isEmpty()) {
+                channelsToClose = emptyList()
+                Logger.error("Cannot force close channels with trusted peer", context = TAG)
+                ToastEventBus.send(
+                    type = Toast.ToastType.ERROR,
+                    title = context.getString(R.string.lightning__force_failed_title),
+                    description = context.getString(R.string.lightning__force_failed_msg)
+                )
+                return@runCatching
+            }
+
+            val failedChannels = forceCloseChannels(nonTrustedChannels)
+
+            // Remove successfully closed channels and trusted peer channels from the list
+            val successfulChannelIds = nonTrustedChannels
+                .filterNot { channel -> failedChannels.any { it.channelId == channel.channelId } }
+                .map { it.channelId }
+                .toSet()
+            val trustedChannelIds = trustedChannels.map { it.channelId }.toSet()
+            channelsToClose = channelsToClose.filterNot {
+                it.channelId in successfulChannelIds || it.channelId in trustedChannelIds
+            }
+
             if (failedChannels.isEmpty()) {
                 Logger.info("Force close initiated successfully for all channels", context = TAG)
+                val initMsg = context.getString(R.string.lightning__force_init_msg)
+                val skippedMsg = context.getString(R.string.lightning__force_channels_skipped)
+                val description = if (trustedChannels.isNotEmpty()) "$initMsg $skippedMsg" else initMsg
                 ToastEventBus.send(
                     type = Toast.ToastType.LIGHTNING,
                     title = context.getString(R.string.lightning__force_init_title),
-                    description = context.getString(R.string.lightning__force_init_msg)
+                    description = description,
                 )
             } else {
                 Logger.error("Force close failed for ${failedChannels.size} channels", context = TAG)
@@ -451,8 +496,8 @@ class TransferViewModel @Inject constructor(
                     description = context.getString(R.string.lightning__force_failed_msg)
                 )
             }
-        }.onFailure { e ->
-            Logger.error("Force close failed", e = e, context = TAG)
+        }.onFailure {
+            Logger.error("Force close failed", e = it, context = TAG)
             ToastEventBus.send(
                 type = Toast.ToastType.ERROR,
                 title = context.getString(R.string.lightning__force_failed_title),

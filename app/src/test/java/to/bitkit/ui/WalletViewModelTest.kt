@@ -3,6 +3,7 @@ package to.bitkit.ui
 import android.content.Context
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -15,15 +16,18 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import to.bitkit.data.SettingsStore
-import to.bitkit.ext.from
+import to.bitkit.ext.of
 import to.bitkit.models.BalanceState
 import to.bitkit.repositories.BackupRepo
 import to.bitkit.repositories.BlocktankRepo
+import to.bitkit.repositories.ConnectivityRepo
+import to.bitkit.repositories.ConnectivityState
 import to.bitkit.repositories.LightningRepo
 import to.bitkit.repositories.LightningState
 import to.bitkit.repositories.SyncSource
 import to.bitkit.repositories.WalletRepo
 import to.bitkit.repositories.WalletState
+import to.bitkit.services.MigrationService
 import to.bitkit.test.BaseUnitTest
 import to.bitkit.viewmodels.RestoreState
 import to.bitkit.viewmodels.WalletViewModel
@@ -32,31 +36,39 @@ import to.bitkit.viewmodels.WalletViewModel
 class WalletViewModelTest : BaseUnitTest() {
     private lateinit var sut: WalletViewModel
 
-    private val appContext = mock<Context>()
+    private val context = mock<Context>()
     private val walletRepo = mock<WalletRepo>()
     private val lightningRepo = mock<LightningRepo>()
     private val settingsStore = mock<SettingsStore>()
     private val backupRepo = mock<BackupRepo>()
     private val blocktankRepo = mock<BlocktankRepo>()
+    private val migrationService = mock<MigrationService>()
+    private val connectivityRepo = mock<ConnectivityRepo>()
 
     private val lightningState = MutableStateFlow(LightningState())
     private val walletState = MutableStateFlow(WalletState())
     private val balanceState = MutableStateFlow(BalanceState())
     private val isRecoveryMode = MutableStateFlow(false)
+    private val isOnline = MutableStateFlow(ConnectivityState.CONNECTED)
 
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
+        whenever(context.getString(any())).thenReturn("")
         whenever(walletRepo.walletState).thenReturn(walletState)
         whenever(lightningRepo.lightningState).thenReturn(lightningState)
+        whenever(migrationService.isMigrationChecked()).thenReturn(true)
+        whenever(connectivityRepo.isOnline).thenReturn(isOnline)
 
         sut = WalletViewModel(
-            appContext = appContext,
+            context = context,
             bgDispatcher = testDispatcher,
             walletRepo = walletRepo,
             lightningRepo = lightningRepo,
             settingsStore = settingsStore,
             backupRepo = backupRepo,
             blocktankRepo = blocktankRepo,
+            migrationService = migrationService,
+            connectivityRepo = connectivityRepo,
         )
     }
 
@@ -91,7 +103,7 @@ class WalletViewModelTest : BaseUnitTest() {
 
     @Test
     fun `disconnectPeer should call lightningRepo disconnectPeer`() = test {
-        val testPeer = PeerDetails.from("nodeId", "host", "9735")
+        val testPeer = PeerDetails.of("nodeId", "host", "9735")
         val testError = Exception("Test error")
         whenever(lightningRepo.disconnectPeer(testPeer)).thenReturn(Result.failure(testError))
 
@@ -167,7 +179,7 @@ class WalletViewModelTest : BaseUnitTest() {
 
     @Test
     fun `backup restore should not be triggered when wallet exists while not restoring`() = test {
-        assertEquals(RestoreState.Initial, sut.restoreState)
+        assertEquals(RestoreState.Initial, sut.restoreState.value)
 
         walletState.value = walletState.value.copy(walletExists = true)
 
@@ -179,39 +191,39 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
         walletState.value = walletState.value.copy(walletExists = true)
         sut.restoreWallet("mnemonic", "passphrase")
-        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
+        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState.value)
 
         sut.onRestoreContinue()
 
-        assertEquals(RestoreState.Settled, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState.value)
     }
 
     @Test
-    fun `proceedWithoutRestore should exit restore flow`() = test {
+    fun `onProceedWithoutRestore should exit restore flow`() = test {
         val testError = Exception("Test error")
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.failure(testError))
         sut.restoreWallet("mnemonic", "passphrase")
         walletState.value = walletState.value.copy(walletExists = true)
-        assertEquals(RestoreState.Completed, sut.restoreState)
+        assertEquals(RestoreState.Completed, sut.restoreState.value)
 
-        sut.proceedWithoutRestore(onDone = {})
+        sut.onProceedWithoutRestore(onDone = {})
         advanceUntilIdle()
-        assertEquals(RestoreState.Settled, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState.value)
     }
 
     @Test
     fun `restore state should transition as expected`() = test {
         whenever(backupRepo.performFullRestoreFromLatestBackup()).thenReturn(Result.success(Unit))
-        assertEquals(RestoreState.Initial, sut.restoreState)
+        assertEquals(RestoreState.Initial, sut.restoreState.value)
 
         sut.restoreWallet("mnemonic", "passphrase")
-        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState)
+        assertEquals(RestoreState.InProgress.Wallet, sut.restoreState.value)
 
         walletState.value = walletState.value.copy(walletExists = true)
-        assertEquals(RestoreState.Completed, sut.restoreState)
+        assertEquals(RestoreState.Completed, sut.restoreState.value)
 
         sut.onRestoreContinue()
-        assertEquals(RestoreState.Settled, sut.restoreState)
+        assertEquals(RestoreState.Settled, sut.restoreState.value)
     }
 
     @Test
@@ -229,26 +241,28 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(testWalletRepo.walletExists()).thenReturn(true)
         whenever(testLightningRepo.lightningState).thenReturn(lightningState)
         whenever(testLightningRepo.isRecoveryMode).thenReturn(isRecoveryMode)
-        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(Unit))
 
         val testSut = WalletViewModel(
-            appContext = appContext,
+            context = context,
             bgDispatcher = testDispatcher,
             walletRepo = testWalletRepo,
             lightningRepo = testLightningRepo,
             settingsStore = settingsStore,
             backupRepo = backupRepo,
             blocktankRepo = blocktankRepo,
+            migrationService = migrationService,
+            connectivityRepo = connectivityRepo,
         )
 
-        assertEquals(RestoreState.Initial, testSut.restoreState)
+        assertEquals(RestoreState.Initial, testSut.restoreState.value)
         assertEquals(true, testSut.walletExists)
 
         testSut.start()
         advanceUntilIdle()
 
-        verify(testLightningRepo).start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull())
+        verify(testLightningRepo).start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
         verify(testWalletRepo).refreshBip21()
     }
 
@@ -268,22 +282,24 @@ class WalletViewModelTest : BaseUnitTest() {
         whenever(testWalletRepo.restoreWallet(any(), anyOrNull())).thenReturn(Result.success(Unit))
         whenever(testLightningRepo.lightningState).thenReturn(lightningState)
         whenever(testLightningRepo.isRecoveryMode).thenReturn(isRecoveryMode)
-        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        whenever(testLightningRepo.start(any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(Unit))
 
         val testSut = WalletViewModel(
-            appContext = appContext,
+            context = context,
             bgDispatcher = testDispatcher,
             walletRepo = testWalletRepo,
             lightningRepo = testLightningRepo,
             settingsStore = settingsStore,
             backupRepo = backupRepo,
             blocktankRepo = blocktankRepo,
+            migrationService = migrationService,
+            connectivityRepo = connectivityRepo,
         )
 
         // Trigger restore to put state in non-idle
         testSut.restoreWallet("mnemonic", null)
-        assertEquals(RestoreState.InProgress.Wallet, testSut.restoreState)
+        assertEquals(RestoreState.InProgress.Wallet, testSut.restoreState.value)
 
         testSut.start()
         advanceUntilIdle()

@@ -1,5 +1,6 @@
 package to.bitkit.ui.screens.wallets.activity
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -57,7 +58,7 @@ import to.bitkit.ext.timestamp
 import to.bitkit.ext.toActivityItemDate
 import to.bitkit.ext.toActivityItemTime
 import to.bitkit.ext.totalValue
-import to.bitkit.models.FeeRate
+import to.bitkit.models.FeeRate.Companion.getFeeShortDescription
 import to.bitkit.models.Toast
 import to.bitkit.ui.Routes
 import to.bitkit.ui.appViewModel
@@ -75,9 +76,13 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.screens.wallets.activity.components.ActivityAddTagSheet
 import to.bitkit.ui.screens.wallets.activity.components.ActivityIcon
+import to.bitkit.ui.settingsViewModel
+import to.bitkit.ui.shared.UiConstants
+import to.bitkit.ui.shared.animations.BalanceAnimations
 import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.shared.modifiers.sheetHeight
 import to.bitkit.ui.sheets.BoostTransactionSheet
+import to.bitkit.ui.sheets.ComingSoonSheet
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.ui.utils.copyToClipboard
@@ -85,6 +90,7 @@ import to.bitkit.ui.utils.getScreenTitleRes
 import to.bitkit.viewmodels.ActivityDetailViewModel
 import to.bitkit.viewmodels.ActivityListViewModel
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun ActivityDetailScreen(
     listViewModel: ActivityListViewModel,
@@ -167,6 +173,7 @@ fun ActivityDetailScreen(
                 val tags by detailViewModel.tags.collectAsStateWithLifecycle()
                 val boostSheetVisible by detailViewModel.boostSheetVisible.collectAsStateWithLifecycle()
                 var showAddTagSheet by remember { mutableStateOf(false) }
+                var showAssignSheet by remember { mutableStateOf(false) }
                 var isCpfpChild by remember { mutableStateOf(false) }
                 var boostTxDoesExist by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
 
@@ -216,6 +223,7 @@ fun ActivityDetailScreen(
                         tags = tags,
                         onRemoveTag = { detailViewModel.removeTag(it) },
                         onAddTagClick = { showAddTagSheet = true },
+                        onAssignClick = { showAssignSheet = true },
                         onClickBoost = detailViewModel::onClickBoost,
                         onExploreClick = onExploreClick,
                         onChannelClick = onChannelClick,
@@ -249,7 +257,8 @@ fun ActivityDetailScreen(
                                 app.toast(
                                     type = Toast.ToastType.SUCCESS,
                                     title = context.getString(R.string.wallet__boost_success_title),
-                                    description = context.getString(R.string.wallet__boost_success_msg)
+                                    description = context.getString(R.string.wallet__boost_success_msg),
+                                    testTag = "BoostSuccessToast"
                                 )
                                 listViewModel.resync()
                                 onCloseClick()
@@ -258,7 +267,8 @@ fun ActivityDetailScreen(
                                 app.toast(
                                     type = Toast.ToastType.ERROR,
                                     title = context.getString(R.string.wallet__boost_error_title),
-                                    description = context.getString(R.string.wallet__boost_error_msg)
+                                    description = context.getString(R.string.wallet__boost_error_msg),
+                                    testTag = "BoostFailureToast"
                                 )
                                 detailViewModel.onDismissBoostSheet()
                             },
@@ -279,6 +289,13 @@ fun ActivityDetailScreen(
                         )
                     }
                 }
+
+                if (showAssignSheet) {
+                    ComingSoonSheet(
+                        onWalletOverviewClick = onCloseClick,
+                        onBack = { showAssignSheet = false },
+                    )
+                }
             }
         }
     }
@@ -291,6 +308,7 @@ private fun ActivityDetailContent(
     tags: List<String>,
     onRemoveTag: (String) -> Unit,
     onAddTagClick: () -> Unit,
+    onAssignClick: () -> Unit,
     onClickBoost: () -> Unit,
     onExploreClick: (String) -> Unit,
     onChannelClick: ((String) -> Unit)?,
@@ -300,6 +318,9 @@ private fun ActivityDetailContent(
     onCopy: (String) -> Unit,
     feeRates: FeeRates? = null,
 ) {
+    val settings = settingsViewModel ?: return
+    val hideBalance by settings.hideBalance.collectAsStateWithLifecycle()
+
     val isLightning = item is Activity.Lightning
     val isSent = item.isSent()
     val isTransfer = item.isTransfer()
@@ -362,7 +383,7 @@ private fun ActivityDetailContent(
                 sats = item.totalValue().toLong(),
                 prefix = amountPrefix,
                 showBitcoinSymbol = false,
-                useSwipeToHide = false,
+                useSwipeToHide = true,
                 modifier = Modifier.weight(1f)
             )
             ActivityIcon(
@@ -433,7 +454,7 @@ private fun ActivityDetailContent(
                         text = when {
                             isTransferToSpending -> stringResource(R.string.wallet__activity_transfer_to_spending)
                             isTransferFromSpending -> stringResource(R.string.wallet__activity_transfer_to_savings)
-                            isSelfSend -> "Sent to myself" // TODO add missing localized text
+                            isSelfSend -> stringResource(R.string.wallet__activity_sent_self)
                             else -> stringResource(R.string.wallet__activity_payment)
                         },
                         color = Colors.White64,
@@ -454,7 +475,17 @@ private fun ActivityDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        MoneySSB(sats = displayAmount.toLong())
+                        AnimatedContent(
+                            targetState = hideBalance,
+                            transitionSpec = { BalanceAnimations.activityAmountTransition },
+                            label = "amountAnimation"
+                        ) { isHidden ->
+                            if (isHidden) {
+                                BodySSB(text = UiConstants.HIDE_BALANCE_SHORT)
+                            } else {
+                                MoneySSB(sats = displayAmount.toLong())
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider()
@@ -481,7 +512,17 @@ private fun ActivityDetailContent(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            MoneySSB(sats = fee.toLong())
+                            AnimatedContent(
+                                targetState = hideBalance,
+                                transitionSpec = { BalanceAnimations.activityAmountTransition },
+                                label = "feeAnimation"
+                            ) { isHidden ->
+                                if (isHidden) {
+                                    BodySSB(text = UiConstants.HIDE_BALANCE_SHORT)
+                                } else {
+                                    MoneySSB(sats = fee.toLong())
+                                }
+                            }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider()
@@ -565,10 +606,11 @@ private fun ActivityDetailContent(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                @Suppress("ForbiddenComment")
                 PrimaryButton(
                     text = stringResource(R.string.wallet__activity_assign),
                     size = ButtonSize.Small,
-                    onClick = { /* TODO: Implement assign functionality */ },
+                    onClick = onAssignClick,
                     enabled = !isSelfSend,
                     icon = {
                         Icon(
@@ -606,13 +648,10 @@ private fun ActivityDetailContent(
                     is Activity.Onchain -> {
                         val activity = item.v1
                         if (activity.isBoosted && activity.boostTxIds.isNotEmpty()) {
-                            val hasCPFP = activity.boostTxIds.any { boostTxDoesExist[it] == true }
-                            if (hasCPFP) {
+                            if (activity.txType == PaymentType.SENT) {
                                 true
-                            } else if (activity.txType == PaymentType.SENT) {
-                                activity.boostTxIds.any { boostTxDoesExist[it] == false }
                             } else {
-                                false
+                                activity.boostTxIds.any { boostTxDoesExist[it] == true }
                             }
                         } else {
                             false
@@ -739,8 +778,8 @@ private fun StatusSection(
                     var statusTestTag: String? = null
 
                     if (item.v1.isTransfer) {
-                        val duration = FeeRate.getFeeDescription(item.v1.feeRate, feeRates)
-                            .removeEstimationSymbol()
+                        val context = LocalContext.current
+                        val duration = context.getFeeShortDescription(item.v1.feeRate, feeRates)
                         statusText = stringResource(R.string.wallet__activity_transfer_pending)
                             .replace("{duration}", duration)
                         statusTestTag = "StatusTransfer"
@@ -848,6 +887,7 @@ private fun PreviewLightningSent() {
             tags = listOf("Lunch", "Drinks"),
             onRemoveTag = {},
             onAddTagClick = {},
+            onAssignClick = {},
             onExploreClick = {},
             onChannelClick = null,
             onCopy = {},
@@ -878,6 +918,7 @@ private fun PreviewOnchain() {
             tags = emptyList(),
             onRemoveTag = {},
             onAddTagClick = {},
+            onAssignClick = {},
             onExploreClick = {},
             onChannelClick = null,
             onCopy = {},
@@ -909,6 +950,7 @@ private fun PreviewSheetSmallScreen() {
                 tags = listOf("Lunch", "Drinks"),
                 onRemoveTag = {},
                 onAddTagClick = {},
+                onAssignClick = {},
                 onExploreClick = {},
                 onChannelClick = null,
                 onCopy = {},
@@ -945,21 +987,11 @@ private fun isBoostCompleted(
     activity: OnchainActivity,
     boostTxDoesExist: Map<String, Boolean>,
 ): Boolean {
-    // If boostTxIds is empty, boost is in progress (RBF case)
     if (activity.boostTxIds.isEmpty()) return true
 
-    // Check if CPFP boost is completed
-    val hasCPFP = activity.boostTxIds.any { boostTxDoesExist[it] == true }
-    if (hasCPFP) return true
-
-    // For sent transactions, check if RBF boost is completed
     if (activity.txType == PaymentType.SENT) {
-        val hasRBF = activity.boostTxIds.any { boostTxDoesExist[it] == false }
-        if (hasRBF) return true
+        return true
+    } else {
+        return activity.boostTxIds.any { boostTxDoesExist[it] == true }
     }
-
-    return false
 }
-
-// TODO remove this method after transifex update
-private fun String.removeEstimationSymbol() = this.replace("±", "")

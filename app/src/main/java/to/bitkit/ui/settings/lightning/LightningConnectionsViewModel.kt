@@ -11,6 +11,7 @@ import com.synonym.bitkitcore.ClosedChannelDetails
 import com.synonym.bitkitcore.IBtOrder
 import com.synonym.bitkitcore.PaymentType
 import com.synonym.bitkitcore.SortDirection
+import com.synonym.bitkitcore.TransactionDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -23,7 +24,6 @@ import kotlinx.coroutines.launch
 import org.lightningdevkit.ldknode.ChannelDetails
 import org.lightningdevkit.ldknode.Event
 import org.lightningdevkit.ldknode.OutPoint
-import org.lightningdevkit.ldknode.TransactionDetails
 import to.bitkit.R
 import to.bitkit.di.BgDispatcher
 import to.bitkit.ext.amountOnClose
@@ -156,6 +156,7 @@ class LightningConnectionsViewModel @Inject constructor(
         _selectedChannel.update { updatedChannel?.mapToUiModel() }
     }
 
+    @Suppress("ReturnCount")
     private fun findUpdatedChannel(
         currentChannel: ChannelDetails,
         allChannels: List<ChannelDetails>,
@@ -243,6 +244,7 @@ class LightningConnectionsViewModel @Inject constructor(
         details = this
     )
 
+    @Suppress("ForbiddenComment")
     private fun getChannelName(channel: ChannelDetails): String {
         val default = channel.inboundScidAlias?.toString() ?: "${channel.channelId.take(10)}…"
 
@@ -390,18 +392,19 @@ class LightningConnectionsViewModel @Inject constructor(
 
     fun fetchTransactionDetails(txid: String) {
         viewModelScope.launch(bgDispatcher) {
-            runCatching {
-                val transactionDetails = lightningRepo.getTransactionDetails(txid).getOrNull()
-                _txDetails.update { transactionDetails }
-                if (transactionDetails != null) {
-                    Logger.debug("fetchTransactionDetails success for: '$txid'", context = TAG)
-                } else {
-                    Logger.warn("Transaction details not found for: '$txid'", context = TAG)
+            activityRepo.getTransactionDetails(txid)
+                .onSuccess { transactionDetails ->
+                    _txDetails.update { transactionDetails }
+                    if (transactionDetails != null) {
+                        Logger.debug("fetchTransactionDetails success for: '$txid'", context = TAG)
+                    } else {
+                        Logger.warn("Transaction details not found for: '$txid'", context = TAG)
+                    }
                 }
-            }.onFailure { e ->
-                Logger.warn("fetchTransactionDetails error for: '$txid'", e, context = TAG)
-                _txDetails.update { null }
-            }
+                .onFailure { e ->
+                    Logger.warn("fetchTransactionDetails error for: '$txid'", e, context = TAG)
+                    _txDetails.update { null }
+                }
         }
     }
 

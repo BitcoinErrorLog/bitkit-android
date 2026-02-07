@@ -13,6 +13,7 @@ import to.bitkit.data.SettingsStore
 import to.bitkit.models.TransactionSpeed
 import javax.inject.Inject
 
+@Suppress("TooManyFunctions")
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
@@ -108,15 +109,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    val isPinOnIdleEnabled = settingsStore.data.map { it.isPinOnIdleEnabled }
-        .asStateFlow(initialValue = false)
-
-    fun setIsPinOnIdleEnabled(value: Boolean) {
-        viewModelScope.launch {
-            settingsStore.update { it.copy(isPinOnIdleEnabled = value) }
-        }
-    }
-
     val isPinForPaymentsEnabled = settingsStore.data.map { it.isPinForPaymentsEnabled }
         .asStateFlow(initialValue = false)
 
@@ -146,15 +138,6 @@ class SettingsViewModel @Inject constructor(
 
     val isPinEnabled = settingsStore.data.map { it.isPinEnabled }
         .asStateFlow(SharingStarted.Eagerly, false)
-
-    val isPinOnLaunchEnabled = settingsStore.data.map { it.isPinOnLaunchEnabled }
-        .asStateFlow(SharingStarted.Eagerly, false)
-
-    fun setIsPinOnLaunchEnabled(value: Boolean) {
-        viewModelScope.launch {
-            settingsStore.update { it.copy(isPinOnLaunchEnabled = value) }
-        }
-    }
 
     val isBiometricEnabled = settingsStore.data.map { it.isBiometricEnabled }
         .asStateFlow(SharingStarted.Eagerly, false)

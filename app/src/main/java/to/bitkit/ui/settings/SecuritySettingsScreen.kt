@@ -41,9 +41,7 @@ fun SecuritySettingsScreen(
     val app = appViewModel ?: return
 
     val isPinEnabled by settings.isPinEnabled.collectAsStateWithLifecycle()
-    val isPinOnLaunchEnabled by settings.isPinOnLaunchEnabled.collectAsStateWithLifecycle()
     val isBiometricEnabled by settings.isBiometricEnabled.collectAsStateWithLifecycle()
-    val isPinOnIdleEnabled by settings.isPinOnIdleEnabled.collectAsStateWithLifecycle()
     val isPinForPaymentsEnabled by settings.isPinForPaymentsEnabled.collectAsStateWithLifecycle()
     val enableSwipeToHideBalance by settings.enableSwipeToHideBalance.collectAsStateWithLifecycle()
     val hideBalanceOnOpen by settings.hideBalanceOnOpen.collectAsStateWithLifecycle()
@@ -52,9 +50,7 @@ fun SecuritySettingsScreen(
 
     Content(
         isPinEnabled = isPinEnabled,
-        isPinOnLaunchEnabled = isPinOnLaunchEnabled,
         isBiometricEnabled = isBiometricEnabled,
-        isPinOnIdleEnabled = isPinOnIdleEnabled,
         isPinForPaymentsEnabled = isPinForPaymentsEnabled,
         enableSwipeToHideBalance = enableSwipeToHideBalance,
         hideBalanceOnOpen = hideBalanceOnOpen,
@@ -70,16 +66,6 @@ fun SecuritySettingsScreen(
         },
         onChangePinClick = {
             navController.navigateToChangePin()
-        },
-        onPinOnLaunchClick = {
-            navController.navigateToAuthCheck(
-                onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_LAUNCH,
-            )
-        },
-        onPinOnIdleClick = {
-            navController.navigateToAuthCheck(
-                onSuccessActionId = AuthCheckAction.TOGGLE_PIN_ON_IDLE,
-            )
         },
         onPinForPaymentsClick = {
             navController.navigateToAuthCheck(
@@ -114,9 +100,7 @@ fun SecuritySettingsScreen(
 @Composable
 private fun Content(
     isPinEnabled: Boolean,
-    isPinOnLaunchEnabled: Boolean,
     isBiometricEnabled: Boolean,
-    isPinOnIdleEnabled: Boolean,
     isPinForPaymentsEnabled: Boolean,
     enableSwipeToHideBalance: Boolean,
     hideBalanceOnOpen: Boolean,
@@ -125,8 +109,6 @@ private fun Content(
     isBiometrySupported: Boolean,
     onPinClick: () -> Unit = {},
     onChangePinClick: () -> Unit = {},
-    onPinOnLaunchClick: () -> Unit = {},
-    onPinOnIdleClick: () -> Unit = {},
     onPinForPaymentsClick: () -> Unit = {},
     onAutoPaySettingsClick: () -> Unit = {},
     onUseBiometricsClick: () -> Unit = {},
@@ -182,7 +164,11 @@ private fun Content(
                 title = stringResource(R.string.settings__security__pin),
                 value = SettingsButtonValue.StringValue(
                     stringResource(
-                        if (isPinEnabled) R.string.settings__security__pin_enabled else R.string.settings__security__pin_disabled
+                        if (isPinEnabled) {
+                            R.string.settings__security__pin_enabled
+                        } else {
+                            R.string.settings__security__pin_disabled
+                        }
                     )
                 ),
                 onClick = onPinClick,
@@ -193,18 +179,6 @@ private fun Content(
                     title = stringResource(R.string.settings__security__pin_change),
                     onClick = onChangePinClick,
                     modifier = Modifier.testTag("PINChange"),
-                )
-                SettingsSwitchRow(
-                    title = stringResource(R.string.settings__security__pin_launch),
-                    isChecked = isPinOnLaunchEnabled,
-                    onClick = onPinOnLaunchClick,
-                    modifier = Modifier.testTag("EnablePinOnLaunch"),
-                )
-                SettingsSwitchRow(
-                    title = stringResource(R.string.settings__security__pin_idle),
-                    isChecked = isPinOnIdleEnabled,
-                    onClick = onPinOnIdleClick,
-                    modifier = Modifier.testTag("EnablePinOnIdle"),
                 )
                 SettingsSwitchRow(
                     title = stringResource(R.string.settings__security__pin_payments),
@@ -250,9 +224,7 @@ private fun Preview() {
     AppThemeSurface {
         Content(
             isPinEnabled = true,
-            isPinOnLaunchEnabled = true,
             isBiometricEnabled = false,
-            isPinOnIdleEnabled = false,
             isPinForPaymentsEnabled = false,
             enableSwipeToHideBalance = true,
             hideBalanceOnOpen = false,

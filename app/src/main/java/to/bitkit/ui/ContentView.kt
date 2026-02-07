@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package to.bitkit.ui
 
 import android.content.Intent
@@ -13,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +38,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
@@ -57,6 +59,7 @@ import to.bitkit.ui.onboarding.InitializingWalletView
 import to.bitkit.ui.onboarding.WalletRestoreErrorView
 import to.bitkit.ui.onboarding.WalletRestoreSuccessView
 import to.bitkit.ui.screens.CriticalUpdateScreen
+import to.bitkit.ui.screens.common.ComingSoonScreen
 import to.bitkit.ui.screens.profile.CreateProfileScreen
 import to.bitkit.ui.screens.profile.ProfileIntroScreen
 import to.bitkit.ui.screens.recovery.RecoveryMnemonicScreen
@@ -65,6 +68,8 @@ import to.bitkit.ui.screens.scanner.QrScanningScreen
 import to.bitkit.ui.screens.scanner.SCAN_REQUEST_KEY
 import to.bitkit.ui.screens.settings.DevSettingsScreen
 import to.bitkit.ui.screens.settings.FeeSettingsScreen
+import to.bitkit.ui.screens.settings.LdkDebugScreen
+import to.bitkit.ui.screens.settings.ProbingToolScreen
 import to.bitkit.ui.screens.shop.ShopIntroScreen
 import to.bitkit.ui.screens.shop.shopDiscover.ShopDiscoverScreen
 import to.bitkit.ui.screens.shop.shopWebView.ShopWebViewScreen
@@ -85,7 +90,6 @@ import to.bitkit.ui.screens.transfer.TransferIntroScreen
 import to.bitkit.ui.screens.transfer.external.ExternalAmountScreen
 import to.bitkit.ui.screens.transfer.external.ExternalConfirmScreen
 import to.bitkit.ui.screens.transfer.external.ExternalConnectionScreen
-import to.bitkit.ui.screens.transfer.external.ExternalFeeCustomScreen
 import to.bitkit.ui.screens.transfer.external.ExternalNodeViewModel
 import to.bitkit.ui.screens.transfer.external.ExternalSuccessScreen
 import to.bitkit.ui.screens.transfer.external.LnurlChannelScreen
@@ -133,6 +137,11 @@ import to.bitkit.ui.settings.advanced.AddressViewerScreen
 import to.bitkit.ui.settings.advanced.CoinSelectPreferenceScreen
 import to.bitkit.ui.settings.advanced.ElectrumConfigScreen
 import to.bitkit.ui.settings.advanced.RgsServerScreen
+import to.bitkit.ui.settings.advanced.sweep.SweepConfirmScreen
+import to.bitkit.ui.settings.advanced.sweep.SweepFeeCustomScreen
+import to.bitkit.ui.settings.advanced.sweep.SweepFeeRateScreen
+import to.bitkit.ui.settings.advanced.sweep.SweepSettingsScreen
+import to.bitkit.ui.settings.advanced.sweep.SweepSuccessScreen
 import to.bitkit.ui.settings.appStatus.AppStatusScreen
 import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsIntroScreen
 import to.bitkit.ui.settings.backgroundPayments.BackgroundPaymentsSettings
@@ -168,6 +177,7 @@ import to.bitkit.ui.sheets.LnurlAuthSheet
 import to.bitkit.ui.sheets.PinSheet
 import to.bitkit.ui.sheets.QuickPayIntroSheet
 import to.bitkit.ui.sheets.SendSheet
+import to.bitkit.ui.sheets.SweepPromptSheet
 import to.bitkit.ui.sheets.UpdateSheet
 import to.bitkit.ui.theme.TRANSITION_SHEET_MS
 import to.bitkit.ui.utils.AutoReadClipboardHandler
@@ -184,6 +194,7 @@ import to.bitkit.viewmodels.CurrencyViewModel
 import to.bitkit.viewmodels.MainScreenEffect
 import to.bitkit.viewmodels.RestoreState
 import to.bitkit.viewmodels.SettingsViewModel
+import to.bitkit.viewmodels.SweepViewModel
 import to.bitkit.viewmodels.TransferViewModel
 import to.bitkit.viewmodels.WalletViewModel
 
@@ -198,6 +209,7 @@ fun ContentView(
     transferViewModel: TransferViewModel,
     settingsViewModel: SettingsViewModel,
     backupsViewModel: BackupsViewModel,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -270,15 +282,22 @@ fun ContentView(
     var walletIsInitializing by remember { mutableStateOf(nodeLifecycleState == NodeLifecycleState.Initializing) }
     var walletInitShouldFinish by remember { mutableStateOf(false) }
 
+    val restoreState by walletViewModel.restoreState.collectAsStateWithLifecycle()
+    val isRestoringFromRNRemoteBackup by walletViewModel.isRestoringFromRNRemoteBackup.collectAsStateWithLifecycle()
+
     // React to nodeLifecycleState changes
-    LaunchedEffect(nodeLifecycleState) {
+    LaunchedEffect(nodeLifecycleState, restoreState, isRestoringFromRNRemoteBackup) {
         when (nodeLifecycleState) {
             NodeLifecycleState.Initializing -> {
                 walletIsInitializing = true
             }
 
             NodeLifecycleState.Running -> {
-                walletInitShouldFinish = true
+                val restoreComplete = restoreState !is RestoreState.InProgress
+                val metadataComplete = !isRestoringFromRNRemoteBackup
+                if (restoreComplete && metadataComplete) {
+                    walletInitShouldFinish = true
+                }
             }
 
             is NodeLifecycleState.ErrorStarting -> {
@@ -289,25 +308,16 @@ fun ContentView(
         }
     }
 
-    val restoreState = walletViewModel.restoreState
-    var restoreRetryCount by remember { mutableIntStateOf(0) }
-
     if (walletIsInitializing) {
-        // TODO ADAPT THIS LOGIC TO WORK WITH LightningNodeService
         if (nodeLifecycleState is NodeLifecycleState.ErrorStarting) {
             WalletRestoreErrorView(
-                retryCount = restoreRetryCount,
-                onRetry = {
-                    restoreRetryCount++
-                    walletViewModel.setInitNodeLifecycleState()
-                    walletViewModel.start()
-                },
+                retryCount = restoreState.retryCount(),
+                hazeState = hazeState,
+                onRetry = walletViewModel::onRestoreRetry,
                 onProceedWithoutRestore = {
-                    walletViewModel.proceedWithoutRestore(
-                        onDone = {
-                            walletIsInitializing = false
-                        }
-                    )
+                    walletViewModel.onProceedWithoutRestore {
+                        walletIsInitializing = false
+                    }
                 },
             )
         } else {
@@ -327,7 +337,10 @@ fun ContentView(
         return
     } else if (restoreState is RestoreState.Completed) {
         WalletRestoreSuccessView(
-            onContinue = { walletViewModel.onRestoreContinue() },
+            onContinue = {
+                walletViewModel.onRestoreContinue()
+                appViewModel.checkForSweepableFunds()
+            },
         )
         return
     }
@@ -375,9 +388,9 @@ fun ContentView(
                         }
 
                         is Sheet.Receive -> {
-                            val walletUiState by walletViewModel.uiState.collectAsState()
+                            val walletState by walletViewModel.walletState.collectAsState()
                             ReceiveSheet(
-                                walletState = walletUiState,
+                                walletState = walletState,
                                 navigateToExternalConnection = {
                                     navController.navigate(ExternalConnection())
                                     appViewModel.hideSheet()
@@ -391,6 +404,14 @@ fun ContentView(
                         is Sheet.Backup -> BackupSheet(sheet, onDismiss = { appViewModel.hideSheet() })
                         is Sheet.LnurlAuth -> LnurlAuthSheet(sheet, appViewModel)
                         Sheet.ForceTransfer -> ForceTransferSheet(appViewModel, transferViewModel)
+                        Sheet.SweepPrompt -> SweepPromptSheet(
+                            onSweep = {
+                                appViewModel.hideSheet()
+                                navController.navigate(Routes.SweepNav)
+                            },
+                            onCancel = { appViewModel.hideSheet() },
+                        )
+
                         is Sheet.Gift -> GiftSheet(sheet, appViewModel)
                         is Sheet.TimedSheet -> {
                             when (sheet.type) {
@@ -408,7 +429,7 @@ fun ContentView(
                                 TimedSheetType.NOTIFICATIONS -> {
                                     BackgroundPaymentsIntroSheet(
                                         onContinue = {
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            appViewModel.dismissTimedSheet()
                                             navController.navigate(Routes.BackgroundPaymentsSettings)
                                             settingsViewModel.setBgPaymentsIntroSeen(true)
                                         },
@@ -418,7 +439,7 @@ fun ContentView(
                                 TimedSheetType.QUICK_PAY -> {
                                     QuickPayIntroSheet(
                                         onContinue = {
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            appViewModel.dismissTimedSheet()
                                             navController.navigate(Routes.QuickPaySettings)
                                         },
                                     )
@@ -431,7 +452,7 @@ fun ContentView(
                                             val intent =
                                                 Intent(Intent.ACTION_VIEW, Env.STORING_BITCOINS_URL.toUri())
                                             context.startActivity(intent)
-                                            appViewModel.dismissTimedSheet(skipQueue = true)
+                                            appViewModel.dismissTimedSheet()
                                         }
                                     )
                                 }
@@ -457,6 +478,8 @@ fun ContentView(
                     val showTabBar = currentRoute in listOf(
                         Routes.Home::class.qualifiedName,
                         Routes.AllActivity::class.qualifiedName,
+                        Routes.Savings::class.qualifiedName,
+                        Routes.Spending::class.qualifiedName,
                     )
 
                     if (showTabBar) {
@@ -508,6 +531,7 @@ private fun RootNavHost(
             navController = navController,
         )
         settings(navController, settingsViewModel)
+        comingSoon(navController)
         profile(navController, settingsViewModel)
         shop(navController, settingsViewModel, appViewModel)
         generalSettings(navController)
@@ -549,7 +573,7 @@ private fun RootNavHost(
                         navController.navigateToTransferFunding()
                         settingsViewModel.setHasSeenTransferIntro(true)
                     },
-                    onBackClick = {},
+                    onBackClick = { navController.popBackStack() },
                 )
             }
             composableWithDefaultTransitions<Routes.SavingsIntro> {
@@ -587,6 +611,7 @@ private fun RootNavHost(
                     wallet = walletViewModel,
                     transfer = transferViewModel,
                     onContinueClick = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
+                    onTransferUnavailable = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
                 )
             }
             composableWithDefaultTransitions<Routes.SpendingIntro> {
@@ -713,7 +738,6 @@ private fun RootNavHost(
                             walletViewModel.refreshState()
                             navController.navigate(Routes.ExternalSuccess)
                         },
-                        onNetworkFeeClick = { navController.navigate(Routes.ExternalFeeCustom) },
                         onBackClick = { navController.popBackStack() },
                     )
                 }
@@ -727,16 +751,7 @@ private fun RootNavHost(
                 }
                 composableWithDefaultTransitions<Routes.ExternalSuccess> {
                     ExternalSuccessScreen(
-                        onContinue = { navController.popBackStack<Routes.TransferRoot>(inclusive = true) },
-                    )
-                }
-                composableWithDefaultTransitions<Routes.ExternalFeeCustom> {
-                    val parentEntry = remember(it) { navController.getBackStackEntry(Routes.ExternalNav) }
-                    val viewModel = hiltViewModel<ExternalNodeViewModel>(parentEntry)
-
-                    ExternalFeeCustomScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
+                        onContinue = { navController.navigateToHome() },
                     )
                 }
             }
@@ -745,7 +760,7 @@ private fun RootNavHost(
 }
 
 // region destinations
-@Suppress("LongParameterList")
+@Suppress("LongMethod", "LongParameterList")
 private fun NavGraphBuilder.home(
     walletViewModel: WalletViewModel,
     appViewModel: AppViewModel,
@@ -755,10 +770,12 @@ private fun NavGraphBuilder.home(
     drawerState: DrawerState,
 ) {
     composable<Routes.Home> {
-        val uiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+        val isRefreshing by walletViewModel.isRefreshing.collectAsStateWithLifecycle()
+        val isRecoveryMode by walletViewModel.isRecoveryMode.collectAsStateWithLifecycle()
         val hazeState = rememberHazeState()
 
         RequestNotificationPermissions(
+            showPermissionDialog = !isRecoveryMode,
             onPermissionChange = { granted ->
                 settingsViewModel.setNotificationPreference(granted)
             }
@@ -769,7 +786,7 @@ private fun NavGraphBuilder.home(
                 .hazeSource(hazeState)
         ) {
             HomeScreen(
-                mainUiState = uiState,
+                isRefreshing = isRefreshing,
                 drawerState = drawerState,
                 rootNavController = navController,
                 walletNavController = navController,
@@ -809,11 +826,11 @@ private fun NavGraphBuilder.home(
         exitTransition = { Transitions.slideOutHorizontally },
     ) {
         val hasSeenSavingsIntro by settingsViewModel.hasSeenSavingsIntro.collectAsStateWithLifecycle()
-        val uiState by walletViewModel.uiState.collectAsStateWithLifecycle()
+        val lightningState by walletViewModel.lightningState.collectAsStateWithLifecycle()
         val lightningActivities by activityListViewModel.lightningActivities.collectAsStateWithLifecycle()
 
         SpendingWalletScreen(
-            uiState = uiState,
+            channels = lightningState.channels,
             lightningActivities = lightningActivities.orEmpty(),
             onAllActivityButtonClick = { navController.navigateToAllActivity() },
             onActivityItemClick = { navController.navigateToActivityItem(it) },
@@ -853,6 +870,7 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.Settings> {
         SettingsScreen(navController)
     }
+    @Suppress("ForbiddenComment")
     // TODO: display as sheet
     composableWithDefaultTransitions<Routes.QuickPayIntro> {
         QuickPayIntroScreen(
@@ -871,6 +889,12 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.DevSettings> {
         DevSettingsScreen(navController)
     }
+    composableWithDefaultTransitions<Routes.LdkDebug> {
+        LdkDebugScreen(navController)
+    }
+    composableWithDefaultTransitions<Routes.ProbingTool> {
+        ProbingToolScreen(navController)
+    }
     composableWithDefaultTransitions<Routes.FeeSettings> {
         FeeSettingsScreen(navController)
     }
@@ -880,6 +904,23 @@ private fun NavGraphBuilder.settings(
     composableWithDefaultTransitions<Routes.LanguageSettings> {
         LanguageSettingsScreen(
             onBackClick = { navController.popBackStack() },
+        )
+    }
+}
+
+private fun NavGraphBuilder.comingSoon(
+    navController: NavHostController,
+) {
+    composableWithDefaultTransitions<Routes.Contacts> {
+        ComingSoonScreen(
+            onWalletOverviewClick = { navController.navigateToHome() },
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+    composableWithDefaultTransitions<Routes.Profile> {
+        ComingSoonScreen(
+            onWalletOverviewClick = { navController.navigateToHome() },
+            onBackClick = { navController.popBackStack() }
         )
     }
 }
@@ -984,6 +1025,34 @@ private fun NavGraphBuilder.advancedSettings(navController: NavHostController) {
     }
     composableWithDefaultTransitions<Routes.AddressViewer> {
         AddressViewerScreen(navController)
+    }
+    navigationWithDefaultTransitions<Routes.SweepNav>(
+        startDestination = Routes.Sweep,
+    ) {
+        composableWithDefaultTransitions<Routes.Sweep> {
+            val parentEntry = remember(it) { navController.getBackStackEntry(Routes.SweepNav) }
+            val viewModel = hiltViewModel<SweepViewModel>(parentEntry)
+            SweepSettingsScreen(navController, viewModel)
+        }
+        composableWithDefaultTransitions<Routes.SweepConfirm> {
+            val parentEntry = remember(it) { navController.getBackStackEntry(Routes.SweepNav) }
+            val viewModel = hiltViewModel<SweepViewModel>(parentEntry)
+            SweepConfirmScreen(navController, viewModel)
+        }
+        composableWithDefaultTransitions<Routes.SweepFeeRate> {
+            val parentEntry = remember(it) { navController.getBackStackEntry(Routes.SweepNav) }
+            val viewModel = hiltViewModel<SweepViewModel>(parentEntry)
+            SweepFeeRateScreen(navController, viewModel)
+        }
+        composableWithDefaultTransitions<Routes.SweepFeeCustom> {
+            val parentEntry = remember(it) { navController.getBackStackEntry(Routes.SweepNav) }
+            val viewModel = hiltViewModel<SweepViewModel>(parentEntry)
+            SweepFeeCustomScreen(navController, viewModel)
+        }
+        composableWithDefaultTransitions<Routes.SweepSuccess> {
+            val route = it.toRoute<Routes.SweepSuccess>()
+            SweepSuccessScreen(navController, amountSats = route.amountSats)
+        }
     }
     composableWithDefaultTransitions<Routes.NodeInfo> {
         NodeInfoScreen(navController)
@@ -1296,6 +1365,7 @@ private fun NavGraphBuilder.support(
     }
 }
 
+@Suppress("LongMethod")
 private fun NavGraphBuilder.widgets(
     navController: NavHostController,
     settingsViewModel: SettingsViewModel,
@@ -1307,7 +1377,7 @@ private fun NavGraphBuilder.widgets(
                 settingsViewModel.setHasSeenWidgetsIntro(true)
                 navController.navigate(Routes.AddWidget)
             },
-            onBackClick = {},
+            onBackClick = { navController.popBackStack() },
         )
     }
     composableWithDefaultTransitions<Routes.AddWidget> {
@@ -1800,6 +1870,24 @@ sealed interface Routes {
     data object AddressViewer : Routes
 
     @Serializable
+    data object SweepNav : Routes
+
+    @Serializable
+    data object Sweep : Routes
+
+    @Serializable
+    data object SweepConfirm : Routes
+
+    @Serializable
+    data object SweepFeeRate : Routes
+
+    @Serializable
+    data object SweepFeeCustom : Routes
+
+    @Serializable
+    data class SweepSuccess(val amountSats: Long) : Routes
+
+    @Serializable
     data object AboutSettings : Routes
 
     @Serializable
@@ -1874,6 +1962,12 @@ sealed interface Routes {
     data object DevSettings : Routes
 
     @Serializable
+    data object LdkDebug : Routes
+
+    @Serializable
+    data object ProbingTool : Routes
+
+    @Serializable
     data object FeeSettings : Routes
 
     @Serializable
@@ -1940,9 +2034,6 @@ sealed interface Routes {
     data object ExternalSuccess : Routes
 
     @Serializable
-    data object ExternalFeeCustom : Routes
-
-    @Serializable
     data class LnurlChannel(val uri: String, val callback: String, val k1: String) : Routes
 
     @Serializable
@@ -1977,6 +2068,12 @@ sealed interface Routes {
 
     @Serializable
     data object LanguageSettings : Routes
+
+    @Serializable
+    data object Contacts : Routes
+
+    @Serializable
+    data object Profile : Routes
 
     @Serializable
     data object ProfileIntro : Routes

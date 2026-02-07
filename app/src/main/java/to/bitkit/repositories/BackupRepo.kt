@@ -7,6 +7,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.Serializable
 import to.bitkit.R
 import to.bitkit.data.AppDb
 import to.bitkit.data.CacheStore
@@ -49,6 +53,7 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 /**
@@ -65,7 +70,7 @@ import kotlin.time.ExperimentalTime
  *   Idle State:          running=false, synced≥required
  * ```
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 @OptIn(ExperimentalTime::class)
 @Singleton
 class BackupRepo @Inject constructor(
@@ -115,7 +120,22 @@ class BackupRepo @Inject constructor(
         isObserving = true
         Logger.debug("Start observing backup statuses and data store changes", context = TAG)
 
-        scope.launch { vssBackupClient.setup() }
+        scope.launch {
+            vssBackupClient.setupWithRetry {
+                onSuccess = { attempt ->
+                    Logger.debug("VSS client setup succeeded on attempt $attempt", context = TAG)
+                }
+                onRetry = { attempt, maxAttempts, delayMs ->
+                    Logger.debug(
+                        "VSS client setup deferred, retrying in ${delayMs}ms (attempt $attempt/$maxAttempts)",
+                        context = TAG,
+                    )
+                }
+                onExhausted = { maxAttempts ->
+                    Logger.warn("VSS client setup failed after $maxAttempts attempts", context = TAG)
+                }
+            }
+        }
 
         scope.launch {
             BackupCategory.entries.forEach { category ->
@@ -487,7 +507,7 @@ class BackupRepo @Inject constructor(
 
         _isRestoring.update { true }
 
-        return@withContext try {
+        val result = runCatching {
             performRestore(BackupCategory.METADATA) { dataBytes ->
                 val parsed = json.decodeFromString<MetadataBackupV1>(String(dataBytes))
                 val cleanCache = parsed.cache.resetBip21() // Force address rotation
@@ -498,7 +518,6 @@ class BackupRepo @Inject constructor(
                 Logger.debug("Restored ${parsed.tagMetadata.size} pre-activity metadata", TAG)
                 parsed.createdAt
             }
-
             performRestore(BackupCategory.SETTINGS) { dataBytes ->
                 val parsed = json.decodeFromString<SettingsBackupV1>(String(dataBytes))
                 settingsStore.restoreFromBackup(parsed)
@@ -527,13 +546,46 @@ class BackupRepo @Inject constructor(
             }
 
             Logger.info("Full restore success", context = TAG)
-            Result.success(Unit)
-        } catch (e: Throwable) {
+        }.onSuccess {
+            settingsStore.update { it.copy(backupVerified = true) }
+        }.onFailure { e ->
             Logger.warn("Full restore error", e = e, context = TAG)
-            Result.failure(e)
-        } finally {
-            _isRestoring.update { false }
         }
+
+        _isRestoring.update { false }
+
+        return@withContext result
+    }
+
+    suspend fun getLatestBackupTime(): ULong? = withContext(ioDispatcher) {
+        runCatching {
+            withTimeout(VSS_TIMESTAMP_TIMEOUT) {
+                vssBackupClient.setup().getOrThrow()
+                coroutineScope {
+                    BackupCategory.entries
+                        .filter { it != BackupCategory.LIGHTNING_CONNECTIONS }
+                        .map { category -> async { getRemoteBackupTimestamp(category) } }
+                        .mapNotNull { it.await() }
+                        .filter { it > 0uL }
+                        .maxOrNull()
+                }
+            }
+        }.onFailure { e ->
+            Logger.warn("Failed to get VSS backup timestamp: $e", context = TAG)
+        }.getOrNull()
+    }
+
+    private suspend fun getRemoteBackupTimestamp(category: BackupCategory): ULong? {
+        val item = vssBackupClient.getObject(category.name).getOrNull() ?: return null
+        val data = item.value ?: return null
+
+        @Serializable
+        data class BackupWithCreatedAt(val createdAt: Long? = null)
+
+        return runCatching {
+            val millis = json.decodeFromString<BackupWithCreatedAt>(String(data)).createdAt ?: return@runCatching null
+            (millis / 1000).toULong()
+        }.getOrNull()
     }
 
     fun scheduleFullBackup() {
@@ -578,5 +630,6 @@ class BackupRepo @Inject constructor(
         private const val FAILED_BACKUP_CHECK_TIME = 30 * 60 * 1000L // 30 minutes
         private const val FAILED_BACKUP_NOTIFICATION_INTERVAL = 10 * 60 * 1000L // 10 minutes
         private const val SYNC_STATUS_DEBOUNCE = 500L // 500ms debounce for sync status updates
+        private val VSS_TIMESTAMP_TIMEOUT = 60.seconds
     }
 }

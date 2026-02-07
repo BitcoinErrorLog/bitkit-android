@@ -20,3 +20,5 @@ google-services.json
 !debug.keystore
 keystore.properties
 app/google-services.json
+keystore.*
+!keystore.properties.template

@@ -4,6 +4,22 @@ import to.bitkit.models.SATS_IN_BTC
 
 object Bip21Utils {
 
+    private const val BIP21_PREFIX = "bitcoin:"
+
+    /**
+     * Checks if a BIP21 URI is duplicated (contains multiple bitcoin: prefixes).
+     * Workaround for https://github.com/synonymdev/bitkit-core/issues/63
+     * @return true if the input contains duplicated BIP21 URIs, false otherwise
+     */
+    fun isDuplicatedBip21(input: String): Boolean {
+        val lowercased = input.lowercase()
+        val firstIndex = lowercased.indexOf(BIP21_PREFIX)
+        if (firstIndex == -1) return false
+
+        val secondIndex = lowercased.indexOf(BIP21_PREFIX, firstIndex + BIP21_PREFIX.length)
+        return secondIndex != -1
+    }
+
     fun buildBip21Url(
         bitcoinAddress: String,
         amountSats: ULong? = null,
@@ -21,8 +37,8 @@ object Bip21Utils {
         }
 
         // Add optional parameters
-        label?.let { queryParams.add("label=${it.encodeToUrl()}") }
-        message?.let { queryParams.add("message=${it.encodeToUrl()}") }
+        if (!label.isNullOrBlank()) { queryParams.add("label=${label.encodeToUrl()}") }
+        if (!message.isNullOrBlank()) { queryParams.add("message=${message.encodeToUrl()}") }
 
         // Add query parameters if any exist
         if (queryParams.isNotEmpty()) {

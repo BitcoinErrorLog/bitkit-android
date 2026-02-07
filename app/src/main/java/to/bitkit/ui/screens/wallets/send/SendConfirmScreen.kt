@@ -85,6 +85,7 @@ import to.bitkit.viewmodels.SendMethod
 import to.bitkit.viewmodels.SendUiState
 import java.time.Instant
 
+@Suppress("MagicNumber")
 @Composable
 fun SendConfirmScreen(
     savedStateHandle: SavedStateHandle,
@@ -289,6 +290,10 @@ fun ContentRunning(
 
         SwipeToConfirm(
             text = stringResource(R.string.wallet__send_swipe),
+            color = when (uiState.payMethod) {
+                SendMethod.ONCHAIN -> Colors.Brand
+                SendMethod.LIGHTNING -> Colors.Purple
+            },
             loading = isLoading,
             confirmed = isLoading,
             onConfirm = onSwipeToConfirm,
@@ -596,6 +601,7 @@ private fun sendUiState() = SendUiState(
     ),
 )
 
+@Suppress("MagicNumber")
 @Preview(showSystemUi = true, group = "onchain")
 @Composable
 private fun PreviewOnChain() {
@@ -616,6 +622,7 @@ private fun PreviewOnChain() {
     }
 }
 
+@Suppress("MagicNumber")
 @Preview(showSystemUi = true, group = "onchain", device = Devices.NEXUS_5)
 @Composable
 private fun PreviewOnChainLongFeeSmallScreen() {
@@ -656,6 +663,7 @@ private fun PreviewOnChainFeeLoading() {
     }
 }
 
+@Suppress("MagicNumber")
 @Preview(showSystemUi = true)
 @Composable
 private fun PreviewLightning() {

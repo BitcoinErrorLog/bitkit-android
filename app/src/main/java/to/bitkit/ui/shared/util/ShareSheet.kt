@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider
 import kotlinx.io.IOException
 import to.bitkit.R
 import to.bitkit.env.Env
+import to.bitkit.utils.Logger
 import java.io.File
 import java.io.FileOutputStream
 
@@ -44,10 +45,10 @@ fun shareQrCode(context: Context, bitmap: Bitmap, text: String) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        val chooser = Intent.createChooser(intent, "Share Qr code via")
+        val chooser = Intent.createChooser(intent, context.getString(R.string.other__share_qr))
         context.startActivity(chooser)
     } catch (e: IOException) {
-        e.printStackTrace()
+        Logger.error("Failed to share QR code", e, context = "ShareSheet")
         // Fallback to text-only sharing
         shareText(context, text)
     }
@@ -62,4 +63,13 @@ fun Context.shareZipFile(uri: Uri) {
     startActivity(
         Intent.createChooser(intent, this.getString(R.string.lightning__export_logs))
     )
+}
+
+fun Context.shareFile(uri: Uri, mimeType: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    startActivity(Intent.createChooser(intent, "Share file via"))
 }
