@@ -531,7 +531,7 @@ private fun RootNavHost(
             navController = navController,
         )
         settings(navController, settingsViewModel)
-        comingSoon(navController)
+        comingSoon(navController, settingsViewModel)
         profile(navController, settingsViewModel)
         shop(navController, settingsViewModel, appViewModel)
         generalSettings(navController)
@@ -910,6 +910,7 @@ private fun NavGraphBuilder.settings(
 
 private fun NavGraphBuilder.comingSoon(
     navController: NavHostController,
+    settingsViewModel: SettingsViewModel,
 ) {
     composableWithDefaultTransitions<Routes.Contacts> {
         ComingSoonScreen(
@@ -918,10 +919,18 @@ private fun NavGraphBuilder.comingSoon(
         )
     }
     composableWithDefaultTransitions<Routes.Profile> {
-        ComingSoonScreen(
-            onWalletOverviewClick = { navController.navigateToHome() },
-            onBackClick = { navController.popBackStack() }
-        )
+        val hasSeenProfileIntro by settingsViewModel.hasSeenProfileIntro.collectAsStateWithLifecycle()
+        LaunchedEffect(hasSeenProfileIntro) {
+            if (hasSeenProfileIntro) {
+                navController.navigate(Routes.CreateProfile) {
+                    popUpTo<Routes.Profile> { inclusive = true }
+                }
+            } else {
+                navController.navigate(Routes.ProfileIntro) {
+                    popUpTo<Routes.Profile> { inclusive = true }
+                }
+            }
+        }
     }
 }
 

@@ -172,6 +172,13 @@ fun HomeScreen(
         latestActivities = latestActivities,
         displayName = displayName,
         profileAvatarUrl = profileAvatarUrl,
+        onClickProfile = {
+            if (hasSeenProfileIntro) {
+                rootNavController.navigate(Routes.CreateProfile)
+            } else {
+                rootNavController.navigate(Routes.ProfileIntro)
+            }
+        },
         onRefresh = {
             activityListViewModel.resync()
             walletViewModel.onPullToRefresh()
