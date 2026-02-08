@@ -17,8 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -26,10 +26,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 import to.bitkit.R
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.viewmodels.ContactsViewModel
@@ -55,6 +59,7 @@ fun PaykitContactsScreen(
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val contactAvatars by viewModel.contactAvatars.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.loadContacts()
@@ -136,6 +141,8 @@ fun PaykitContactsScreen(
                     items(contacts) { contact ->
                         ContactRow(
                             contact = contact,
+                            avatar = contactAvatars[contact.publicKeyZ32]?.bitmap,
+                            onLoadAvatar = { viewModel.loadAvatar(contact.publicKeyZ32, contact.avatarUrl) },
                             onClick = { onNavigateToContactDetail(contact.id) },
                         )
                     }
@@ -148,26 +155,44 @@ fun PaykitContactsScreen(
 @Composable
 private fun ContactRow(
     contact: Contact,
+    avatar: android.graphics.Bitmap?,
+    onLoadAvatar: () -> Unit,
     onClick: () -> Unit,
 ) {
+    LaunchedEffect(contact.publicKeyZ32, contact.avatarUrl) {
+        onLoadAvatar()
+    }
+
     Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .background(Colors.Gray6, RoundedCornerShape(12.dp))
             .clickableAlpha { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .background(Colors.White16, CircleShape),
-            contentAlignment = Alignment.Center,
+                .background(Colors.White16, CircleShape)
         ) {
-            BodyMSB(
-                text = contact.name.take(1).uppercase().ifEmpty { "?" },
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (avatar != null) {
+                Image(
+                    bitmap = avatar.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Colors.White16, CircleShape)
+                        .clip(CircleShape)
+                )
+            } else {
+                BodyMSB(
+                    text = contact.name.take(1).uppercase().ifEmpty { "?" },
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         HorizontalSpacer(12.dp)

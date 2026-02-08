@@ -105,6 +105,7 @@ class ContactStorage @Inject constructor(
                 contacts[index] = newContact.copy(
                     lastPaymentAt = existing.lastPaymentAt,
                     paymentCount = existing.paymentCount,
+                    avatarUrl = newContact.avatarUrl ?: existing.avatarUrl,
                 )
             } else {
                 contacts.add(newContact)

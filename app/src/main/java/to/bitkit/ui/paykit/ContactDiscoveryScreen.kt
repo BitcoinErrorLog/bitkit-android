@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Refresh
@@ -34,6 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -63,6 +67,7 @@ fun ContactDiscoveryScreen(
     val discoveredContacts by viewModel.discoveredContacts.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val contactAvatars by viewModel.contactAvatars.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var pubkeyToFollow by remember { mutableStateOf("") }
 
@@ -187,11 +192,14 @@ fun ContactDiscoveryScreen(
                         items(discoveredContacts) { discovered ->
                             DiscoveredContactRow(
                                 discovered = discovered,
+                                avatar = contactAvatars[discovered.pubkey]?.bitmap,
+                                onLoadAvatar = { viewModel.loadAvatar(discovered.pubkey, discovered.avatarUrl) },
                                 onAdd = {
                                     onContactDiscovered(
                                         Contact.create(
                                             publicKeyZ32 = discovered.pubkey,
                                             name = discovered.name ?: "",
+                                            avatarUrl = discovered.avatarUrl,
                                         ),
                                     )
                                 },
@@ -214,27 +222,45 @@ fun ContactDiscoveryScreen(
 @Composable
 private fun DiscoveredContactRow(
     discovered: DiscoveredContact,
+    avatar: android.graphics.Bitmap?,
+    onLoadAvatar: () -> Unit,
     onAdd: () -> Unit,
     onFollow: () -> Unit,
     onUnfollow: () -> Unit,
 ) {
+    LaunchedEffect(discovered.pubkey, discovered.avatarUrl) {
+        onLoadAvatar()
+    }
+
     Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .background(Colors.Gray6, RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .background(Colors.White16, CircleShape),
-            contentAlignment = Alignment.Center,
+                .background(Colors.White16, CircleShape)
         ) {
-            BodyMSB(
-                text = (discovered.name?.take(1) ?: discovered.pubkey.take(1)).uppercase(),
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (avatar != null) {
+                Image(
+                    bitmap = avatar.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Colors.White16, CircleShape)
+                        .clip(CircleShape)
+                )
+            } else {
+                BodyMSB(
+                    text = (discovered.name?.take(1) ?: discovered.pubkey.take(1)).uppercase(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         HorizontalSpacer(12.dp)

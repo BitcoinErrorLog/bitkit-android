@@ -11,6 +11,7 @@ import org.mockito.kotlin.wheneverBlocking
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.DiscoveredContact
+import to.bitkit.paykit.services.ImageUploadService
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.storage.ContactStorage
 import to.bitkit.test.BaseUnitTest
@@ -26,6 +27,7 @@ class ContactsViewModelTest : BaseUnitTest() {
     private lateinit var contactStorage: ContactStorage
     private lateinit var directoryService: DirectoryService
     private lateinit var pubkySDKService: PubkySDKService
+    private lateinit var imageUploadService: ImageUploadService
     private lateinit var viewModel: ContactsViewModel
 
     @Before
@@ -33,12 +35,18 @@ class ContactsViewModelTest : BaseUnitTest() {
         contactStorage = mock()
         directoryService = mock()
         pubkySDKService = mock()
+        imageUploadService = mock()
         // Mock all methods called in init/loadContacts
         wheneverBlocking { contactStorage.listContacts() }.thenReturn(emptyList())
         wheneverBlocking { contactStorage.getContact(any()) }.thenReturn(null)
         wheneverBlocking { contactStorage.importContacts(any()) }.thenReturn(Unit)
         wheneverBlocking { directoryService.discoverContactsFromFollows() }.thenReturn(emptyList())
-        viewModel = ContactsViewModel(contactStorage, directoryService, pubkySDKService)
+        viewModel = ContactsViewModel(
+            contactStorage,
+            directoryService,
+            pubkySDKService,
+            imageUploadService,
+        )
     }
 
     // MARK: - Load Contacts Tests

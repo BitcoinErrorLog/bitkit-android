@@ -1624,7 +1624,8 @@ class DirectoryService @Inject constructor(
      * Fetch profile using direct FFI (fallback)
      */
     private suspend fun fetchProfileViaFFI(pubkey: String): PubkyProfile? {
-        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserverURL)
+        val resolvedHomeserver = resolveHomeserverUrlFor(pubkey)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(resolvedHomeserver)
         val profilePath = "/pub/pubky.app/profile.json"
 
         return try {
@@ -1731,25 +1732,115 @@ class DirectoryService @Inject constructor(
      * Fetch raw string content from a pubky:// URL (for file metadata JSON).
      */
     suspend fun fetchRawContent(pubkyUrl: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val data = pubkySDKService.getData(pubkyUrl)
-            data?.toString(Charsets.UTF_8)
+        val data = try {
+            pubkySDKService.getData(pubkyUrl)
         } catch (e: Exception) {
-            Logger.error("Failed to fetch raw content from $pubkyUrl: ${e.message}", context = TAG)
             null
         }
+
+        if (data != null) {
+            return@withContext data.toString(Charsets.UTF_8)
+        }
+
+        val (ownerPubkey, path) = parsePubkyUrl(pubkyUrl) ?: return@withContext null
+        val homeserver = resolveHomeserverUrlFor(ownerPubkey)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserver)
+        val fallback = adapter.get(ownerPubkey, path)
+        if (!fallback.success) {
+            Logger.error("Failed to fetch raw content from $pubkyUrl: ${fallback.error}", context = TAG)
+            return@withContext null
+        }
+        fallback.content
     }
 
     /**
      * Fetch raw binary blob data from a pubky:// URL (for image blobs).
      */
     suspend fun fetchBlobData(pubkyUrl: String): ByteArray? = withContext(Dispatchers.IO) {
-        try {
+        val data = try {
             pubkySDKService.getData(pubkyUrl)
         } catch (e: Exception) {
-            Logger.error("Failed to fetch blob from $pubkyUrl: ${e.message}", context = TAG)
             null
         }
+
+        if (data != null && isLikelyImagePayload(data)) {
+            return@withContext data
+        }
+
+        val (ownerPubkey, path) = parsePubkyUrl(pubkyUrl) ?: return@withContext null
+        val homeserver = resolveHomeserverUrlFor(ownerPubkey)
+        val adapter = pubkyStorage.createUnauthenticatedAdapter(homeserver)
+        val fallback = adapter.getData(ownerPubkey, path)
+        if (fallback == null) {
+            Logger.error("Failed to fetch blob from $pubkyUrl via fallback", context = TAG)
+            return@withContext null
+        }
+        if (!isLikelyImagePayload(fallback)) {
+            Logger.error("Fetched non-image blob from $pubkyUrl via fallback", context = TAG)
+            return@withContext null
+        }
+        fallback
+    }
+
+    private suspend fun resolveHomeserverUrlFor(ownerPubkey: String): HomeserverURL {
+        val resolved = runCatching { pubkySDKService.getHomeserverFor(ownerPubkey) }.getOrNull()
+        if (!resolved.isNullOrBlank()) {
+            val pubkey = HomeserverPubkey(resolved)
+            return if (pubkey.isValid) {
+                HomeserverResolver.resolveWithDNS(pubkey)
+            } else {
+                val normalized = if (
+                    resolved.startsWith("https://") ||
+                    resolved.startsWith("http://")
+                ) {
+                    resolved
+                } else {
+                    "https://$resolved"
+                }
+                HomeserverURL(normalized)
+            }
+        }
+        return HomeserverDefaults.defaultHomeserverURL
+    }
+
+    private fun parsePubkyUrl(pubkyUrl: String): Pair<String, String>? {
+        if (!pubkyUrl.startsWith("pubky://")) return null
+        val stripped = pubkyUrl.removePrefix("pubky://")
+        val slashIndex = stripped.indexOf('/')
+        if (slashIndex <= 0) return null
+        val ownerPubkey = stripped.substring(0, slashIndex)
+        val path = stripped.substring(slashIndex)
+        return ownerPubkey to path
+    }
+
+    private fun isLikelyTextPayload(data: ByteArray): Boolean {
+        if (data.isEmpty()) return true
+        if (data.size > 2048) return false
+        val text = runCatching { data.toString(Charsets.UTF_8) }.getOrNull() ?: return false
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return true
+        return trimmed.startsWith("{") ||
+            trimmed.startsWith("<") ||
+            trimmed.startsWith("error", ignoreCase = true) ||
+            trimmed.contains("\"error\"") ||
+            trimmed.contains("Not Found", ignoreCase = true)
+    }
+
+    private fun isLikelyImagePayload(data: ByteArray): Boolean {
+        if (data.size < 4) return false
+        val b0 = data[0].toInt() and 0xFF
+        val b1 = data[1].toInt() and 0xFF
+        val b2 = data[2].toInt() and 0xFF
+        val b3 = data[3].toInt() and 0xFF
+        // JPEG (FF D8 FF)
+        if (b0 == 0xFF && b1 == 0xD8 && b2 == 0xFF) return true
+        // PNG (89 50 4E 47)
+        if (b0 == 0x89 && b1 == 0x50 && b2 == 0x4E && b3 == 0x47) return true
+        // GIF (47 49 46 38)
+        if (b0 == 0x47 && b1 == 0x49 && b2 == 0x46 && b3 == 0x38) return true
+        // WebP (52 49 46 46 = RIFF)
+        if (b0 == 0x52 && b1 == 0x49 && b2 == 0x46 && b3 == 0x46) return true
+        return false
     }
 
     /**
@@ -1901,7 +1992,7 @@ class DirectoryService @Inject constructor(
         for (followPubkey in followsList) {
             // Fetch profile to get name (best effort)
             val profile = runCatching {
-                pubkySDKService.fetchProfile(followPubkey)
+                fetchProfile(followPubkey, context)
             }.getOrNull()
 
             // Check if this follow has payment methods
@@ -1913,6 +2004,7 @@ class DirectoryService @Inject constructor(
                     DiscoveredContact(
                         pubkey = followPubkey,
                         name = profile?.name,
+                        avatarUrl = profile?.image,
                         hasPaymentMethods = paymentMethods.isNotEmpty(),
                         supportedMethods = paymentMethods.map { it.methodId },
                     )
@@ -1946,6 +2038,7 @@ data class PubkyProfileLink(
 data class DiscoveredContact(
     val pubkey: String,
     val name: String? = null,
+    val avatarUrl: String? = null,
     val hasPaymentMethods: Boolean = false,
     val supportedMethods: List<String> = emptyList()
 )

@@ -174,9 +174,10 @@ class ImageUploadService @Inject constructor(
     }
 
     private fun parseBlobSrcFromFileMetadata(json: String): String? {
-        // Simple JSON parsing for "src" field
-        val srcPattern = "\"src\"\\s*:\\s*\"([^\"]+)\"".toRegex()
-        return srcPattern.find(json)?.groupValues?.get(1)
+        return runCatching {
+            val obj = org.json.JSONObject(json)
+            obj.optString("src").takeIf { it.isNotBlank() }
+        }.getOrNull()
     }
 
     private fun loadAndResizeImage(uri: Uri): ByteArray {

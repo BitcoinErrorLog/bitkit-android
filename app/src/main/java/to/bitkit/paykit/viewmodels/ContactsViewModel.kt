@@ -10,9 +10,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.graphics.Bitmap
 import to.bitkit.paykit.models.Contact
 import to.bitkit.paykit.services.DirectoryService
 import to.bitkit.paykit.services.DiscoveredContact
+import to.bitkit.paykit.services.ImageUploadService
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.storage.ContactStorage
 import to.bitkit.utils.Logger
@@ -27,6 +29,7 @@ class ContactsViewModel @Inject constructor(
     private val contactStorage: ContactStorage,
     private val directoryService: DirectoryService,
     private val pubkySDKService: PubkySDKService,
+    private val imageUploadService: ImageUploadService,
 ) : ViewModel() {
 
     companion object {
@@ -54,6 +57,11 @@ class ContactsViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _contactAvatars = MutableStateFlow<Map<String, ContactAvatar>>(emptyMap())
+    val contactAvatars: StateFlow<Map<String, ContactAvatar>> = _contactAvatars.asStateFlow()
+
+    private val avatarLoading = mutableSetOf<String>()
+
     init {
         loadContacts()
     }
@@ -74,6 +82,7 @@ class ContactsViewModel @Inject constructor(
                         id = discovered.pubkey,
                         publicKeyZ32 = discovered.pubkey,
                         name = discovered.name ?: existing?.name ?: "",
+                        avatarUrl = discovered.avatarUrl ?: existing?.avatarUrl,
                         notes = existing?.notes,
                         createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                         lastPaymentAt = existing?.lastPaymentAt,
@@ -222,6 +231,7 @@ class ContactsViewModel @Inject constructor(
                         id = pubkey,
                         publicKeyZ32 = pubkey,
                         name = profile?.name ?: "",
+                        avatarUrl = profile?.image ?: profile?.avatar,
                         notes = null,
                         createdAt = System.currentTimeMillis(),
                         lastPaymentAt = null,
@@ -262,7 +272,48 @@ class ContactsViewModel @Inject constructor(
         }
     }
 
+    fun loadAvatar(pubkey: String, avatarUrl: String?) {
+        val cached = _contactAvatars.value[pubkey]
+        if (cached?.bitmap != null && (avatarUrl == null || cached.url == avatarUrl)) return
+        if (avatarLoading.contains(pubkey)) return
+
+        avatarLoading.add(pubkey)
+        viewModelScope.launch {
+            try {
+                val resolvedUrl = avatarUrl?.takeIf { it.isNotBlank() }
+                    ?: runCatching { directoryService.fetchProfile(pubkey) }
+                        .getOrNull()
+                        ?.let { it.image }
+
+                if (resolvedUrl == null) {
+                    return@launch
+                }
+
+                val existing = contactStorage.getContact(pubkey)
+                if (existing != null && existing.avatarUrl != resolvedUrl) {
+                    contactStorage.saveContact(existing.copy(avatarUrl = resolvedUrl))
+                }
+
+                val bitmap = imageUploadService.downloadProfileImage(resolvedUrl)
+                _contactAvatars.update { current ->
+                    if (bitmap != null) {
+                        current + (pubkey to ContactAvatar(resolvedUrl, bitmap))
+                    } else {
+                        if (current[pubkey]?.url == resolvedUrl) current - pubkey else current
+                    }
+                }
+            } finally {
+                avatarLoading.remove(pubkey)
+            }
+        }
+    }
+
     fun clearError() {
         _errorMessage.value = null
     }
 }
+
+data class ContactAvatar(
+    val url: String,
+    val bitmap: Bitmap?,
+)

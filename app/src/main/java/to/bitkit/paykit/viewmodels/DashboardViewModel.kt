@@ -115,6 +115,7 @@ class DashboardViewModel @Inject constructor(
                     val newContact = Contact.create(
                         publicKeyZ32 = discovered.pubkey,
                         name = discovered.name ?: discovered.pubkey.take(12),
+                        avatarUrl = discovered.avatarUrl,
                     )
                     contactStorage.saveContact(newContact)
                 }

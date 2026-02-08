@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,7 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,6 +65,7 @@ fun ContactDetailScreen(
     val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val contactAvatars by viewModel.contactAvatars.collectAsStateWithLifecycle()
 
     var contact by remember { mutableStateOf<Contact?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -75,6 +80,10 @@ fun ContactDetailScreen(
         if (contact == null && !isLoading) {
             viewModel.loadContacts()
         }
+    }
+
+    LaunchedEffect(contact?.publicKeyZ32, contact?.avatarUrl) {
+        contact?.let { viewModel.loadAvatar(it.publicKeyZ32, it.avatarUrl) }
     }
 
     LaunchedEffect(errorMessage) {
@@ -119,18 +128,20 @@ fun ContactDetailScreen(
                 CircularProgressIndicator(color = Colors.Brand)
             }
         } else {
+            val selectedContact = requireNotNull(contact)
             ContactDetailContent(
-                contact = requireNotNull(contact),
+                contact = selectedContact,
+                avatar = contactAvatars[selectedContact.publicKeyZ32]?.bitmap,
                 isDeleting = isDeleting,
                 onCopyPubkey = {
-                    clipboardManager.setText(AnnotatedString(contact!!.publicKeyZ32))
+                    clipboardManager.setText(AnnotatedString(selectedContact.publicKeyZ32))
                     app?.toast(
                         type = to.bitkit.models.Toast.ToastType.SUCCESS,
                         title = context.getString(R.string.paykit__copied),
                         description = context.getString(R.string.paykit__public_key_copied_to_clipboard),
                     )
                 },
-                onSendPayment = { onNavigateToNoisePayment(contact!!.publicKeyZ32) },
+                onSendPayment = { onNavigateToNoisePayment(selectedContact.publicKeyZ32) },
                 onRemoveContact = { showDeleteConfirm = true },
             )
         }
@@ -140,6 +151,7 @@ fun ContactDetailScreen(
 @Composable
 private fun ContactDetailContent(
     contact: Contact,
+    avatar: android.graphics.Bitmap?,
     isDeleting: Boolean,
     onCopyPubkey: () -> Unit,
     onSendPayment: () -> Unit,
@@ -154,15 +166,26 @@ private fun ContactDetailContent(
     ) {
         // Large Avatar
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(120.dp)
-                .background(Colors.White16, CircleShape),
-            contentAlignment = Alignment.Center,
+                .background(Colors.White16, CircleShape)
         ) {
-            Title(
-                text = contact.name.take(1).uppercase().ifEmpty { "?" },
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (avatar != null) {
+                Image(
+                    bitmap = avatar.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            } else {
+                Title(
+                    text = contact.name.take(1).uppercase().ifEmpty { "?" },
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         VerticalSpacer(24.dp)

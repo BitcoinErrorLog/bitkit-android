@@ -112,6 +112,36 @@ class PubkyUnauthenticatedStorageAdapter(
     private val homeserverURL: HomeserverURL? = null,
 ) : PubkyUnauthenticatedStorageCallback {
 
+    fun getData(ownerPubkey: String, path: String): ByteArray? {
+        val url = homeserverURL?.value
+        val urlString = if (url != null) {
+            "$url$path"
+        } else {
+            "https://_pubky.$ownerPubkey$path"
+        }
+
+        var requestBuilder = Request.Builder()
+            .url(urlString)
+            .get()
+
+        if (url != null) {
+            requestBuilder = requestBuilder.header("pubky-host", ownerPubkey)
+        }
+
+        val request = requestBuilder.build()
+
+        return try {
+            val response = client.newCall(request).execute()
+            when {
+                response.code == 404 -> null
+                response.code in 200..299 -> response.body?.bytes()
+                else -> null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override fun get(ownerPubkey: String, path: String): StorageGetResult {
         val url = homeserverURL?.value
         // When using central homeserver, path is just /path, owner identified via pubky-host header

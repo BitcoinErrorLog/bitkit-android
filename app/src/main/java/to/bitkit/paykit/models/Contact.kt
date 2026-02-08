@@ -13,6 +13,7 @@ data class Contact(
     val publicKeyZ32: String,
     /** Display name */
     var name: String,
+    var avatarUrl: String? = null,
     /** Optional notes */
     var notes: String? = null,
     /** When the contact was added (Unix timestamp) */
@@ -26,11 +27,12 @@ data class Contact(
         /**
          * Create a new contact from public key and name
          */
-        fun create(publicKeyZ32: String, name: String, notes: String? = null): Contact {
+        fun create(publicKeyZ32: String, name: String, notes: String? = null, avatarUrl: String? = null): Contact {
             return Contact(
                 id = publicKeyZ32,
                 publicKeyZ32 = publicKeyZ32,
                 name = name,
+                avatarUrl = avatarUrl,
                 notes = notes
             )
         }
