@@ -662,7 +662,9 @@ private fun TopBar(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
+                        .fillMaxWidth()
                         .clickableAlpha(onClick = onClickProfile)
+                        .padding(vertical = 8.dp)
                         .testTag("Header")
                 ) {
                     // Avatar - show initial if we have a name, otherwise default icon
