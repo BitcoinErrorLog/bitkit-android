@@ -33,6 +33,7 @@ class HomeViewModel @Inject constructor(
     private val widgetsRepo: WidgetsRepo,
     private val settingsStore: SettingsStore,
     private val transferRepo: TransferRepo,
+    private val imageUploadService: to.bitkit.paykit.services.ImageUploadService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -41,10 +42,29 @@ class HomeViewModel @Inject constructor(
     private val _currentArticle = MutableStateFlow<ArticleModel?>(null)
     private val _currentFact = MutableStateFlow<String?>(null)
 
+    private val _profileAvatarBitmap = MutableStateFlow<android.graphics.Bitmap?>(null)
+    val profileAvatarBitmap: StateFlow<android.graphics.Bitmap?> = _profileAvatarBitmap.asStateFlow()
+
     init {
         setupStateObservation()
         setupArticleRotation()
         setupFactRotation()
+        setupAvatarLoading()
+    }
+
+    private fun setupAvatarLoading() {
+        viewModelScope.launch {
+            settingsStore.data
+                .map { it.profileAvatarUrl }
+                .collect { avatarUrl ->
+                    if (avatarUrl.isNotEmpty()) {
+                        val bitmap = imageUploadService.downloadProfileImage(avatarUrl)
+                        _profileAvatarBitmap.value = bitmap
+                    } else {
+                        _profileAvatarBitmap.value = null
+                    }
+                }
+        }
     }
 
     private fun setupStateObservation() {

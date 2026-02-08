@@ -1,7 +1,13 @@
 package to.bitkit.ui.screens.profile
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -30,6 +37,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,9 +49,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -63,16 +76,22 @@ import to.bitkit.R
 import to.bitkit.data.SettingsStore
 import to.bitkit.paykit.KeyManager
 import to.bitkit.paykit.services.DirectoryService
+import to.bitkit.paykit.services.ImageUploadService
 import to.bitkit.paykit.services.PubkyProfile
 import to.bitkit.paykit.services.PubkyProfileLink
 import to.bitkit.paykit.services.PubkyRingBridge
 import to.bitkit.paykit.services.PubkySDKService
 import to.bitkit.paykit.services.PubkySession
 import to.bitkit.paykit.storage.PaykitKeychainStorage
+import to.bitkit.paykit.types.HomeserverDefaults
+import to.bitkit.paykit.types.HomeserverPubkey
+import to.bitkit.paykit.types.HomeserverResolver
 import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.scaffold.AppAlertDialog
 import to.bitkit.ui.scaffold.DrawerNavIcon
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 import to.bitkit.ui.theme.AppThemeSurface
 import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
@@ -86,6 +105,11 @@ fun CreateProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.updateImageUri(it) }
+    }
 
     CreateProfileContent(
         uiState = uiState,
@@ -101,6 +125,11 @@ fun CreateProfileScreen(
         onUpdateLinkUrl = viewModel::updateLinkUrl,
         onSave = viewModel::saveProfile,
         onDisconnect = viewModel::disconnectIdentity,
+        onPickPhoto = {
+            photoPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
     )
 }
 
@@ -119,6 +148,7 @@ private fun CreateProfileContent(
     onUpdateLinkUrl: (Int, String) -> Unit,
     onSave: () -> Unit,
     onDisconnect: () -> Unit,
+    onPickPhoto: () -> Unit,
 ) {
     ScreenColumn {
         AppTopBar(
@@ -176,6 +206,7 @@ private fun CreateProfileContent(
                     onUpdateLinkUrl = onUpdateLinkUrl,
                     onSave = onSave,
                     onDisconnect = onDisconnect,
+                    onPickPhoto = onPickPhoto,
                 )
             }
         }
@@ -302,7 +333,10 @@ private fun ProfileEditorContent(
     onUpdateLinkUrl: (Int, String) -> Unit,
     onSave: () -> Unit,
     onDisconnect: () -> Unit,
+    onPickPhoto: () -> Unit,
 ) {
+    var showDisconnectDialog by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -349,31 +383,106 @@ private fun ProfileEditorContent(
 
         item {
             Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Colors.Brand.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
+                            .size(100.dp)
+                            .clickableAlpha { onPickPhoto() }
                     ) {
-                        if (uiState.name.isNotEmpty()) {
-                            Text(
-                                text = uiState.name.take(1).uppercase(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = Colors.Brand
-                            )
-                        } else {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(Colors.Brand.copy(alpha = 0.2f))
+                        ) {
+                            when {
+                                uiState.localImageUri != null -> {
+                                    val context = LocalContext.current
+                                    val bitmap = remember(uiState.localImageUri) {
+                                        runCatching {
+                                            context.contentResolver.openInputStream(uiState.localImageUri)?.use {
+                                                BitmapFactory.decodeStream(it)
+                                            }
+                                        }.getOrNull()
+                                    }
+                                    if (bitmap != null) {
+                                        androidx.compose.foundation.Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = "Profile photo",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                                uiState.loadedAvatarBitmap != null -> {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = uiState.loadedAvatarBitmap.asImageBitmap(),
+                                        contentDescription = "Profile photo",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                uiState.name.isNotEmpty() -> {
+                                    Text(
+                                        text = uiState.name.take(1).uppercase(),
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = Colors.Brand
+                                    )
+                                }
+                                else -> {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = Colors.Brand,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+                            }
+                        }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Colors.Brand)
+                                .border(2.dp, Colors.Black, CircleShape)
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = Colors.Brand,
-                                modifier = Modifier.size(40.dp)
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = stringResource(R.string.paykit__tap_to_change_photo),
+                                tint = Colors.White,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .clickableAlpha { onPickPhoto() }
+                            .padding(vertical = 8.dp, horizontal = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint = Colors.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.paykit__tap_to_change_photo),
+                            color = Colors.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -607,15 +716,39 @@ private fun ProfileEditorContent(
         }
 
         item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+        }
+
+        item {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Connection",
+                    color = Colors.White64,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (uiState.pubkyId.isNotEmpty()) {
+                    Text(
+                        text = "Connected: ${uiState.pubkyId.take(16)}...",
+                        color = Colors.White64,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
+        item {
             OutlinedButton(
-                onClick = onDisconnect,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                onClick = { showDisconnectDialog = true },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Colors.Red
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -623,13 +756,25 @@ private fun ProfileEditorContent(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Disconnect Identity")
+                Text("Disconnect from Pubky")
             }
         }
 
         item {
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    if (showDisconnectDialog) {
+        AppAlertDialog(
+            title = "Disconnect from Pubky",
+            text = "This will clear your profile and session data. You'll need to reconnect with Pubky Ring to use Paykit features again.",
+            onConfirm = {
+                showDisconnectDialog = false
+                onDisconnect()
+            },
+            onDismiss = { showDisconnectDialog = false },
+        )
     }
 }
 
@@ -641,6 +786,8 @@ class CreateProfileViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val directoryService: DirectoryService,
     private val keyManager: KeyManager,
+    private val imageUploadService: ImageUploadService,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     companion object {
@@ -683,14 +830,19 @@ class CreateProfileViewModel @Inject constructor(
                 it.copy(hasIdentity = true, pubkyId = storedPubkey)
             }
 
+            settingsStore.update { settings ->
+                settings.copy(profilePubkyId = storedPubkey)
+            }
+
             // Restore the session if we have the session secret stored
             val sessionSecret = keychainStorage.getString(KEY_SESSION_SECRET)
             if (sessionSecret != null) {
                 try {
                     pubkySDKService.importSession(storedPubkey, sessionSecret)
-                    // Restore homeserver URL if stored, otherwise use default
-                    val homeserverUrl = keychainStorage.getString(KEY_HOMESERVER_URL)
-                        ?.let { HomeserverURL(it) }
+            // Restore homeserver URL if stored, otherwise use default
+            val homeserverUrl = resolveHomeserverUrl(keychainStorage.getString(KEY_HOMESERVER_URL))
+                ?: HomeserverDefaults.defaultHomeserverURL
+            keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl.value)
                     // Configure DirectoryService for authenticated writes
                     directoryService.configureWithPubkySession(
                         PubkySession(
@@ -712,11 +864,16 @@ class CreateProfileViewModel @Inject constructor(
 
             // Load profile from SettingsStore first (fast local cache)
             val settings = settingsStore.data.first()
-            if (settings.profileName.isNotEmpty() || settings.profileBio.isNotEmpty()) {
+            if (
+                settings.profileName.isNotEmpty() ||
+                settings.profileBio.isNotEmpty() ||
+                settings.profileAvatarUrl.isNotEmpty()
+            ) {
                 _uiState.update {
                     it.copy(
                         name = settings.profileName,
                         bio = settings.profileBio,
+                        imageUrl = settings.profileAvatarUrl.takeIf { it.isNotEmpty() }
                     )
                 }
             }
@@ -728,30 +885,56 @@ class CreateProfileViewModel @Inject constructor(
 
     private suspend fun loadProfile(pubkey: String) {
         try {
-            val sdkProfile = pubkySDKService.fetchProfile(pubkey)
-            // Convert SDK profile to PubkyProfile for consistency with DirectoryService
-            val profile = PubkyProfile(
-                name = sdkProfile.name,
-                bio = sdkProfile.bio,
-                image = sdkProfile.image,
-                links = sdkProfile.links?.map { link ->
-                    PubkyProfileLink(title = link.title, url = link.url)
-                },
-            )
-            originalProfile = profile
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    name = profile.name ?: "",
-                    bio = profile.bio ?: "",
-                    links = profile.links?.map { link ->
-                        EditableLink(title = link.title, url = link.url)
-                    } ?: emptyList()
-                )
+            val profile = directoryService.fetchProfile(pubkey, appContext)
+            if (profile != null) {
+                originalProfile = profile
+                directoryService.updateCachedProfile(profile)
+
+                settingsStore.update { settings ->
+                    settings.copy(
+                        profileName = profile.name ?: "",
+                        profileBio = profile.bio ?: "",
+                        profileAvatarUrl = profile.image ?: "",
+                        profilePubkyId = pubkey,
+                    )
+                }
+
+                val avatarBitmap = if (!profile.image.isNullOrEmpty()) {
+                    imageUploadService.downloadProfileImage(profile.image!!)
+                } else {
+                    null
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        name = profile.name ?: "",
+                        bio = profile.bio ?: "",
+                        imageUrl = profile.image,
+                        loadedAvatarBitmap = avatarBitmap ?: if (profile.image.isNullOrEmpty()) null else it.loadedAvatarBitmap,
+                        localImageUri = null,
+                        links = profile.links?.map { link ->
+                            EditableLink(title = link.title, url = link.url)
+                        } ?: emptyList(),
+                        hasChanges = false,
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(isLoading = false) }
             }
         } catch (e: Exception) {
             Logger.debug("No existing profile found: ${e.message}", context = TAG)
             _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private suspend fun resolveHomeserverUrl(raw: String?): HomeserverURL? {
+        if (raw.isNullOrBlank()) return null
+        val pubkey = HomeserverPubkey(raw)
+        return if (pubkey.isValid) {
+            HomeserverResolver.resolveWithDNS(pubkey)
+        } else {
+            HomeserverURL(raw)
         }
     }
 
@@ -799,16 +982,21 @@ class CreateProfileViewModel @Inject constructor(
                 pubkySDKService.importSession(setupResult.session.pubkey, setupResult.session.sessionSecret)
 
                 // Store the homeserver URL from Ring callback (fallback to default if not provided)
-                val homeserverUrl = setupResult.homeserver ?: "https://homeserver.pubky.app"
-                keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl)
+                val homeserverUrl = resolveHomeserverUrl(setupResult.homeserver)
+                    ?: HomeserverDefaults.defaultHomeserverURL
+                keychainStorage.setString(KEY_HOMESERVER_URL, homeserverUrl.value)
 
                 // Configure DirectoryService for authenticated writes to homeserver
-                directoryService.configureWithPubkySession(setupResult.session, HomeserverURL(homeserverUrl))
+                directoryService.configureWithPubkySession(setupResult.session, homeserverUrl)
 
                 // Store pubkey, session secret, and device ID so we can restore everything on app restart
                 keychainStorage.setString(KEY_PUBLIC, setupResult.session.pubkey)
                 keychainStorage.setString(KEY_SESSION_SECRET, setupResult.session.sessionSecret)
                 keychainStorage.setString(KEY_DEVICE_ID, setupResult.deviceId)
+
+                settingsStore.update { settings ->
+                    settings.copy(profilePubkyId = setupResult.session.pubkey)
+                }
 
                 // Log noise key status
                 if (setupResult.hasNoiseKeys) {
@@ -882,6 +1070,10 @@ class CreateProfileViewModel @Inject constructor(
                     )
                 }
 
+                settingsStore.update { settings ->
+                    settings.copy(profilePubkyId = publicKey)
+                }
+
                 Logger.info("Created new Pubky identity: ${publicKey.take(16)}...", context = TAG)
             } catch (e: Exception) {
                 Logger.error("Failed to create identity", e, context = TAG)
@@ -900,10 +1092,11 @@ class CreateProfileViewModel @Inject constructor(
     }
 
     fun updateName(name: String) {
+        val trimmedName = name.trim()
         _uiState.update {
             it.copy(
-                name = name,
-                hasChanges = checkHasChanges(name, it.bio, it.links),
+                name = trimmedName,
+                hasChanges = checkHasChanges(trimmedName, it.bio, it.links, it.localImageUri != null),
                 errorMessage = null,
                 successMessage = null
             )
@@ -911,10 +1104,11 @@ class CreateProfileViewModel @Inject constructor(
     }
 
     fun updateBio(bio: String) {
+        val trimmedBio = bio.trim()
         _uiState.update {
             it.copy(
-                bio = bio,
-                hasChanges = checkHasChanges(it.name, bio, it.links),
+                bio = trimmedBio,
+                hasChanges = checkHasChanges(it.name, trimmedBio, it.links, it.localImageUri != null),
                 errorMessage = null,
                 successMessage = null
             )
@@ -926,7 +1120,7 @@ class CreateProfileViewModel @Inject constructor(
             val newLinks = it.links + EditableLink("", "")
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks),
+                hasChanges = checkHasChanges(it.name, it.bio, newLinks, it.localImageUri != null),
                 errorMessage = null,
                 successMessage = null
             )
@@ -938,7 +1132,7 @@ class CreateProfileViewModel @Inject constructor(
             val newLinks = it.links.toMutableList().apply { removeAt(index) }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks),
+                hasChanges = checkHasChanges(it.name, it.bio, newLinks, it.localImageUri != null),
                 errorMessage = null,
                 successMessage = null
             )
@@ -946,14 +1140,15 @@ class CreateProfileViewModel @Inject constructor(
     }
 
     fun updateLinkTitle(index: Int, title: String) {
+        val trimmedTitle = title.trim()
         _uiState.update {
             val newLinks = it.links.toMutableList()
             if (index < newLinks.size) {
-                newLinks[index] = newLinks[index].copy(title = title)
+                newLinks[index] = newLinks[index].copy(title = trimmedTitle)
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks),
+                hasChanges = checkHasChanges(it.name, it.bio, newLinks, it.localImageUri != null),
                 errorMessage = null,
                 successMessage = null
             )
@@ -961,14 +1156,26 @@ class CreateProfileViewModel @Inject constructor(
     }
 
     fun updateLinkUrl(index: Int, url: String) {
+        val trimmedUrl = url.trim()
         _uiState.update {
             val newLinks = it.links.toMutableList()
             if (index < newLinks.size) {
-                newLinks[index] = newLinks[index].copy(url = url)
+                newLinks[index] = newLinks[index].copy(url = trimmedUrl)
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, newLinks),
+                hasChanges = checkHasChanges(it.name, it.bio, newLinks, it.localImageUri != null),
+                errorMessage = null,
+                successMessage = null
+            )
+        }
+    }
+
+    fun updateImageUri(uri: Uri) {
+        _uiState.update {
+            it.copy(
+                localImageUri = uri,
+                hasChanges = true,
                 errorMessage = null,
                 successMessage = null
             )
@@ -1020,10 +1227,20 @@ class CreateProfileViewModel @Inject constructor(
                 }
             }
 
+            var imageUrl = state.imageUrl ?: originalProfile?.image
+            state.localImageUri?.let { uri ->
+                val result = imageUploadService.uploadProfileImage(uri)
+                result.onSuccess { url ->
+                    imageUrl = url
+                }.onFailure { e ->
+                    throw e
+                }
+            }
+
             val profile = PubkyProfile(
                 name = state.name.trim().takeIf { it.isNotEmpty() },
                 bio = state.bio.trim().takeIf { it.isNotEmpty() },
-                image = null,
+                image = imageUrl,
                 links = state.links
                     .filter { it.title.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
                     .map { PubkyProfileLink(it.title.trim(), it.url.trim()) }
@@ -1035,6 +1252,15 @@ class CreateProfileViewModel @Inject constructor(
                 directoryService.publishProfile(profile)
 
                 originalProfile = profile
+                directoryService.updateCachedProfile(profile)
+
+                val uploadedBitmap = state.localImageUri?.let { uri ->
+                    runCatching {
+                        appContext.contentResolver.openInputStream(uri)?.use {
+                            BitmapFactory.decodeStream(it)
+                        }
+                    }.getOrNull()
+                }
 
                 // Save to SettingsStore for home screen display
                 settingsStore.update { settings ->
@@ -1050,6 +1276,9 @@ class CreateProfileViewModel @Inject constructor(
                     it.copy(
                         isSaving = false,
                         hasChanges = false,
+                        imageUrl = imageUrl,
+                        localImageUri = null,
+                        loadedAvatarBitmap = uploadedBitmap ?: it.loadedAvatarBitmap,
                         successMessage = "Profile published successfully!"
                     )
                 }
@@ -1108,14 +1337,19 @@ class CreateProfileViewModel @Inject constructor(
         name: String,
         bio: String,
         links: List<EditableLink>,
+        hasLocalImage: Boolean,
     ): Boolean {
         val original = originalProfile
-            ?: return name.isNotEmpty() || bio.isNotEmpty() || links.any { it.title.isNotEmpty() || it.url.isNotEmpty() }
+            ?: return name.isNotEmpty() ||
+                bio.isNotEmpty() ||
+                links.any { it.title.isNotEmpty() || it.url.isNotEmpty() } ||
+                hasLocalImage
 
         val validLinks = links.filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
         val originalLinks = original.links ?: emptyList()
 
-        return name != (original.name ?: "") ||
+        return hasLocalImage ||
+            name != (original.name ?: "") ||
             bio != (original.bio ?: "") ||
             validLinks.size != originalLinks.size
     }
@@ -1129,6 +1363,9 @@ data class CreateProfileUiState(
     val pubkyId: String = "",
     val name: String = "",
     val bio: String = "",
+    val imageUrl: String? = null,
+    val localImageUri: Uri? = null,
+    val loadedAvatarBitmap: android.graphics.Bitmap? = null,
     val links: List<EditableLink> = emptyList(),
     val hasChanges: Boolean = false,
     val errorMessage: String? = null,
@@ -1158,6 +1395,7 @@ private fun PreviewNoIdentity() {
             onUpdateLinkUrl = { _, _ -> },
             onSave = {},
             onDisconnect = {},
+            onPickPhoto = {},
         )
     }
 }
@@ -1190,6 +1428,7 @@ private fun PreviewWithIdentity() {
             onUpdateLinkUrl = { _, _ -> },
             onSave = {},
             onDisconnect = {},
+            onPickPhoto = {},
         )
     }
 }

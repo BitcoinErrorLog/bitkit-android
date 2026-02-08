@@ -65,6 +65,12 @@ class SecureHandoffHandler @Inject constructor(
         // Get ephemeral key (from parameter or stored)
         val secretKey = ephemeralSecretKey ?: getEphemeralKey()
 
+        Logger.debug(
+            "fetchAndProcessPayload: pubkey=${pubkey.take(16)}..., requestId=${requestId.take(16)}..., " +
+                "ephemeralKey=${if (secretKey != null) "present(${secretKey.length} chars, prefix=${secretKey.take(16)})" else "MISSING"}",
+            context = TAG,
+        )
+
         val payload = fetchHandoffPayload(pubkey, requestId, secretKey)
 
         // Clear ephemeral key now that we've decrypted
@@ -125,6 +131,7 @@ class SecureHandoffHandler @Inject constructor(
         return decryptHandoffEnvelope(payloadJson, pubkey, requestId, ephemeralSecretKey)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun decryptSb2Envelope(
         wrapperJson: String,
         pubkey: String,
@@ -140,17 +147,35 @@ class SecureHandoffHandler @Inject constructor(
             // Parse the wrapper JSON to extract base64-encoded SB2 bytes
             val wrapperObj = org.json.JSONObject(wrapperJson)
             val sb2Base64 = wrapperObj.getString("sb2")
+
+            Logger.debug(
+                "SB2 base64 length=${sb2Base64.length}, first16=${sb2Base64.take(16)}, last16=${sb2Base64.takeLast(16)}",
+                context = TAG,
+            )
+
             val sb2Bytes = android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP)
+
+            Logger.debug(
+                "SB2 decoded bytes size=${sb2Bytes.size}, magic=${sb2Bytes.take(3).toByteArray().toString(Charsets.US_ASCII)}",
+                context = TAG,
+            )
 
             // Verify it's a valid SB2 envelope
             if (!com.pubky.noise.sb2IsSb2(sb2Bytes)) {
-                Logger.error("Invalid SB2 envelope in wrapper", context = TAG)
+                Logger.error("Invalid SB2 envelope in wrapper (sb2IsSb2=false, size=${sb2Bytes.size})", context = TAG)
                 throw PubkyRingException.InvalidCallback
             }
 
             // Decrypt SB2 using ephemeral secret key as InboxKey
             val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
             val ownerPeeridBytes = z32Decode(pubkey)
+
+            Logger.debug(
+                "SB2 decrypt params: sk_size=${secretKeyBytes.size}, sk_prefix=${secretKeyBytes.toHexString().take(16)}, " +
+                    "owner_size=${ownerPeeridBytes.size}, owner_hex=${ownerPeeridBytes.toHexString().take(16)}..., " +
+                    "pubkey_z32=${pubkey.take(16)}..., canonical=$canonicalPath",
+                context = TAG,
+            )
 
             val decryptResult = com.pubky.noise.sb2Decrypt(
                 sb2Bytes,
@@ -168,10 +193,65 @@ class SecureHandoffHandler @Inject constructor(
             throw e
         } catch (e: Exception) {
             Logger.error("SB2 decryption failed: ${e.message}", e, context = TAG)
+
+            // Attempt fallback: try decoding with Base64.DEFAULT in case of encoding mismatch
+            try {
+                Logger.debug("Attempting SB2 decode with Base64.DEFAULT flag as fallback", context = TAG)
+                val wrapperObj = org.json.JSONObject(wrapperJson)
+                val sb2Base64 = wrapperObj.getString("sb2")
+                val sb2BytesFallback = android.util.Base64.decode(sb2Base64, android.util.Base64.DEFAULT)
+                val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
+                val ownerPeeridBytes = z32Decode(pubkey)
+
+                Logger.debug(
+                    "Fallback SB2 bytes size=${sb2BytesFallback.size} (original was different=${sb2BytesFallback.size != android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP).size})",
+                    context = TAG,
+                )
+
+                val decryptResult = com.pubky.noise.sb2Decrypt(
+                    sb2BytesFallback,
+                    secretKeyBytes,
+                    ownerPeeridBytes,
+                    canonicalPath,
+                )
+                val plaintextJson = decryptResult.plaintext.toString(Charsets.UTF_8)
+                val payload = json.decodeFromString<SecureHandoffPayload>(plaintextJson)
+                Logger.info("SB2 fallback decryption succeeded with DEFAULT flag, v${payload.version}", context = TAG)
+                return payload
+            } catch (fallbackError: Exception) {
+                Logger.debug("SB2 fallback also failed: ${fallbackError.message}", context = TAG)
+            }
+
+            // Attempt fallback: try JSON sealed blob decryption in case Ring fell back but stored in sb2 wrapper
+            try {
+                Logger.debug("Attempting JSON sealed blob fallback for SB2-wrapped content", context = TAG)
+                val wrapperObj = org.json.JSONObject(wrapperJson)
+                val sb2Base64 = wrapperObj.getString("sb2")
+                val decodedStr = String(android.util.Base64.decode(sb2Base64, android.util.Base64.NO_WRAP), Charsets.UTF_8)
+                if (com.pubky.noise.isSealedBlob(decodedStr)) {
+                    Logger.debug("Decoded content IS a JSON sealed blob, attempting sealedBlobDecryptWithContext", context = TAG)
+                    val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
+                    val ownerPeeridBytes = z32Decode(pubkey)
+                    val plaintextBytes = com.pubky.noise.sealedBlobDecryptWithContext(
+                        secretKeyBytes,
+                        decodedStr,
+                        ownerPeeridBytes,
+                        canonicalPath,
+                    )
+                    val plaintextJson = plaintextBytes.toString(Charsets.UTF_8)
+                    val payload = json.decodeFromString<SecureHandoffPayload>(plaintextJson)
+                    Logger.info("JSON sealed blob fallback succeeded, v${payload.version}", context = TAG)
+                    return payload
+                }
+            } catch (jsonFallbackError: Exception) {
+                Logger.debug("JSON sealed blob fallback also failed: ${jsonFallbackError.message}", context = TAG)
+            }
+
             throw PubkyRingException.DecryptionFailed(e.message ?: "Unknown error")
         }
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun decryptHandoffEnvelope(
         envelopeJson: String,
         pubkey: String,
@@ -191,9 +271,24 @@ class SecureHandoffHandler @Inject constructor(
         try {
             // Convert secret key from hex to ByteArray
             val secretKeyBytes = hexStringToByteArray(ephemeralSecretKey)
-            
+
+            // Derive ephemeral PK from SK so we can compare with what Ring received
+            val derivedPkBytes = com.pubky.noise.x25519PublicFromSecret(secretKeyBytes)
+
             // Convert pubkey (z32) to raw Ed25519 bytes (owner_peerid)
             val ownerPeeridBytes = z32Decode(pubkey)
+
+            // Log ALL parameters for diagnosis
+            Logger.debug(
+                "DECRYPT PARAMS:\n" +
+                    "  ephemeralSk(hex): ${secretKeyBytes.toHexString()}\n" +
+                    "  derivedPk(hex): ${derivedPkBytes.toHexString()}\n" +
+                    "  ownerPeerid(hex): ${ownerPeeridBytes.toHexString()}\n" +
+                    "  ownerPeerid(z32): $pubkey\n" +
+                    "  canonicalPath: $canonicalPath\n" +
+                    "  envelopeJson(full): $envelopeJson",
+                context = TAG,
+            )
 
             // Decrypt using spec-compliant sealed blob with context
             val plaintextBytes = com.pubky.noise.sealedBlobDecryptWithContext(

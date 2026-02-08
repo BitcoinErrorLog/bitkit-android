@@ -283,12 +283,22 @@ class PubkySDKService @Inject constructor(
     /**
      * Fetch a user's profile from their homeserver
      */
-    suspend fun fetchProfile(pubkey: String, app: String = "pubky.app"): SDKPubkyProfile = profileMutex.withLock {
-        // Check cache first
-        profileCache[pubkey]?.let { cached ->
-            if (!cached.isExpired(PROFILE_CACHE_TTL_MS)) {
-                Logger.debug("Profile cache hit for ${pubkey.take(12)}...", context = TAG)
-                return@withLock cached.profile
+    /**
+     * Invalidate the cached profile for a specific pubkey
+     */
+    suspend fun invalidateProfileCache(pubkey: String) = profileMutex.withLock {
+        profileCache.remove(pubkey)
+        Logger.debug("Invalidated profile cache for ${pubkey.take(12)}...", context = TAG)
+    }
+
+    suspend fun fetchProfile(pubkey: String, app: String = "pubky.app", forceRefresh: Boolean = false): SDKPubkyProfile = profileMutex.withLock {
+        // Check cache first (skip if force refresh)
+        if (!forceRefresh) {
+            profileCache[pubkey]?.let { cached ->
+                if (!cached.isExpired(PROFILE_CACHE_TTL_MS)) {
+                    Logger.debug("Profile cache hit for ${pubkey.take(12)}...", context = TAG)
+                    return@withLock cached.profile
+                }
             }
         }
 
@@ -618,6 +628,7 @@ data class SDKPubkyProfile(
     val name: String? = null,
     val bio: String? = null,
     val image: String? = null,
+    val avatar: String? = null,
     val links: List<SDKProfileLink>? = null,
 )
 

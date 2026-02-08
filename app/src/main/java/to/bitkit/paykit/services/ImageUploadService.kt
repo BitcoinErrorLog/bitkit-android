@@ -128,6 +128,57 @@ class ImageUploadService @Inject constructor(
         fileUrl
     }
 
+    /**
+     * Download a profile image from a pubky:// file URL.
+     * Resolves the file metadata to get the blob src, then downloads the blob.
+     * @param fileUrl The pubky:// URL pointing to the PubkyAppFile metadata
+     * @return The downloaded image as a Bitmap, or null if unavailable
+     */
+    suspend fun downloadProfileImage(fileUrl: String): Bitmap? {
+        if (!fileUrl.startsWith("pubky://")) return null
+
+        return try {
+            // Fetch the file metadata JSON
+            val metaContent = directoryService.fetchRawContent(fileUrl)
+            if (metaContent == null) {
+                Logger.error("Failed to fetch file metadata from $fileUrl", context = TAG)
+                return null
+            }
+
+            // Parse the PubkyAppFile to get the blob src URL
+            val srcUrl = parseBlobSrcFromFileMetadata(metaContent)
+            if (srcUrl == null) {
+                Logger.error("Failed to parse blob src from file metadata", context = TAG)
+                return null
+            }
+
+            // Fetch the raw blob data
+            val blobData = directoryService.fetchBlobData(srcUrl)
+            if (blobData == null) {
+                Logger.error("Failed to download blob from $srcUrl", context = TAG)
+                return null
+            }
+
+            val bitmap = BitmapFactory.decodeByteArray(blobData, 0, blobData.size)
+            if (bitmap == null) {
+                Logger.error("Downloaded data is not a valid image (${blobData.size} bytes)", context = TAG)
+                return null
+            }
+
+            Logger.info("Downloaded profile image: ${blobData.size} bytes", context = TAG)
+            bitmap
+        } catch (e: Exception) {
+            Logger.error("Error downloading profile image: ${e.message}", e, context = TAG)
+            null
+        }
+    }
+
+    private fun parseBlobSrcFromFileMetadata(json: String): String? {
+        // Simple JSON parsing for "src" field
+        val srcPattern = "\"src\"\\s*:\\s*\"([^\"]+)\"".toRegex()
+        return srcPattern.find(json)?.groupValues?.get(1)
+    }
+
     private fun loadAndResizeImage(uri: Uri): ByteArray {
         val inputStream = context.contentResolver.openInputStream(uri)
             ?: throw ImageUploadException("Cannot open image")

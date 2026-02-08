@@ -9,6 +9,8 @@ import to.bitkit.paykit.protocol.PaykitV0Protocol
 import to.bitkit.paykit.storage.PaykitKeychainStorage
 import to.bitkit.paykit.utils.z32Decode
 import to.bitkit.paykit.types.HomeserverDefaults
+import to.bitkit.paykit.types.HomeserverPubkey
+import to.bitkit.paykit.types.HomeserverResolver
 import to.bitkit.paykit.types.HomeserverURL
 import to.bitkit.paykit.types.OwnerPubkey
 import to.bitkit.utils.Logger
@@ -217,8 +219,20 @@ class DirectoryService @Inject constructor(
         val storedPubkey = keychainStorage.getString(KEY_PUBLIC) ?: return false
         val sessionSecret = keychainStorage.getString(KEY_SESSION_SECRET) ?: return false
 
-        // Restore homeserver URL if stored
-        val homeserver = keychainStorage.getString(KEY_HOMESERVER_URL)?.let { HomeserverURL(it) }
+        val homeserver = keychainStorage.getString(KEY_HOMESERVER_URL)?.let { raw ->
+            if (raw.isBlank()) {
+                null
+            } else {
+                val pubkey = HomeserverPubkey(raw)
+                if (pubkey.isValid) {
+                    val resolved = HomeserverResolver.resolveWithDNS(pubkey)
+                    keychainStorage.setString(KEY_HOMESERVER_URL, resolved.value)
+                    resolved
+                } else {
+                    HomeserverURL(raw)
+                }
+            }
+        }
 
         configureWithPubkySession(
             PubkySession(
@@ -1558,18 +1572,31 @@ class DirectoryService @Inject constructor(
     // MARK: - Profile Operations
 
     /**
-     * Fetch profile for a pubkey from Pubky directory
+     * Update the cached profile after a successful publish
+     */
+    suspend fun updateCachedProfile(profile: PubkyProfile) {
+        cachedProfile = profile
+        val pubkey = ownerPubkey ?: keyManager.getCurrentPublicKeyZ32()
+        if (pubkey != null) {
+            pubkySDKService.invalidateProfileCache(pubkey)
+        }
+        Logger.debug("Updated cached profile", context = TAG)
+    }
+
+    /**
+     * Fetch profile for a pubkey from Pubky directory (always from network, bypasses caches)
      * Uses PubkySDKService first, falls back to direct FFI if unavailable
      */
     suspend fun fetchProfile(pubkey: String, context: Context? = null): PubkyProfile? {
         // Try PubkySDKService first (preferred, direct homeserver access)
+        // Always force refresh to bypass SDK cache
         try {
-            val sdkProfile = pubkySDKService.fetchProfile(pubkey)
+            val sdkProfile = pubkySDKService.fetchProfile(pubkey, forceRefresh = true)
             // Convert to local PubkyProfile type
             return PubkyProfile(
                 name = sdkProfile.name,
                 bio = sdkProfile.bio,
-                image = sdkProfile.image,
+                image = sdkProfile.image ?: sdkProfile.avatar,
                 links = sdkProfile.links?.map { PubkyProfileLink(title = it.title, url = it.url) },
             )
         } catch (e: Exception) {
@@ -1617,10 +1644,12 @@ class DirectoryService @Inject constructor(
                         }
                     }
                 }
+                val image = json.optString("image").takeIf { it.isNotEmpty() }
+                    ?: json.optString("avatar").takeIf { it.isNotEmpty() }
                 PubkyProfile(
                     name = json.optString("name").takeIf { it.isNotEmpty() },
                     bio = json.optString("bio").takeIf { it.isNotEmpty() },
-                    image = json.optString("image").takeIf { it.isNotEmpty() },
+                    image = image,
                     links = links,
                 )
             } else {
@@ -1696,6 +1725,31 @@ class DirectoryService @Inject constructor(
             throw DirectoryError.PublishFailed(result.error ?: "Unknown error")
         }
         Logger.debug("Uploaded file metadata to $path", context = TAG)
+    }
+
+    /**
+     * Fetch raw string content from a pubky:// URL (for file metadata JSON).
+     */
+    suspend fun fetchRawContent(pubkyUrl: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val data = pubkySDKService.getData(pubkyUrl)
+            data?.toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            Logger.error("Failed to fetch raw content from $pubkyUrl: ${e.message}", context = TAG)
+            null
+        }
+    }
+
+    /**
+     * Fetch raw binary blob data from a pubky:// URL (for image blobs).
+     */
+    suspend fun fetchBlobData(pubkyUrl: String): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            pubkySDKService.getData(pubkyUrl)
+        } catch (e: Exception) {
+            Logger.error("Failed to fetch blob from $pubkyUrl: ${e.message}", context = TAG)
+            null
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -151,91 +152,107 @@ private fun ProfileEditContent(
                 // Avatar section
                 item {
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
                                     .size(100.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                    .clickableAlpha { onPickPhoto() },
-                                contentAlignment = Alignment.Center
+                                    .clickableAlpha { onPickPhoto() }
                             ) {
-                                when {
-                                    uiState.localImageUri != null -> {
-                                        // Display selected local image
-                                        val context = LocalContext.current
-                                        val bitmap = remember(uiState.localImageUri) {
-                                            runCatching {
-                                                context.contentResolver.openInputStream(uiState.localImageUri)?.use {
-                                                    BitmapFactory.decodeStream(it)
-                                                }
-                                            }.getOrNull()
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                ) {
+                                    when {
+                                        uiState.localImageUri != null -> {
+                                            val context = LocalContext.current
+                                            val bitmap = remember(uiState.localImageUri) {
+                                                runCatching {
+                                                    context.contentResolver.openInputStream(uiState.localImageUri)?.use {
+                                                        BitmapFactory.decodeStream(it)
+                                                    }
+                                                }.getOrNull()
+                                            }
+                                            if (bitmap != null) {
+                                                androidx.compose.foundation.Image(
+                                                    bitmap = bitmap.asImageBitmap(),
+                                                    contentDescription = "Profile photo",
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
                                         }
-                                        if (bitmap != null) {
+                                        uiState.loadedAvatarBitmap != null -> {
                                             androidx.compose.foundation.Image(
-                                                bitmap = bitmap.asImageBitmap(),
+                                                bitmap = uiState.loadedAvatarBitmap.asImageBitmap(),
                                                 contentDescription = "Profile photo",
                                                 contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize(),
+                                                modifier = Modifier.fillMaxSize()
                                             )
                                         }
-                                    }
-                                    uiState.imageUrl != null -> {
-                                        // Show indicator that there's a remote image
-                                        // (Note: Full remote image display requires image loading library)
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
+                                        uiState.name.isNotEmpty() -> {
+                                            Text(
+                                                text = uiState.name.take(1).uppercase(),
+                                                style = MaterialTheme.typography.headlineLarge,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
+                                        else -> {
                                             Icon(
                                                 imageVector = Icons.Default.Person,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(48.dp),
+                                                modifier = Modifier.size(48.dp)
                                             )
                                         }
                                     }
-                                    uiState.name.isNotEmpty() -> {
-                                        Text(
-                                            text = uiState.name.take(1).uppercase(),
-                                            style = MaterialTheme.typography.headlineLarge,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                    else -> {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(48.dp),
-                                        )
-                                    }
                                 }
-                                // Camera overlay
                                 Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .size(32.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
-                                    contentAlignment = Alignment.Center
+                                        .background(Colors.Brand)
+                                        .border(2.dp, Colors.Black, CircleShape)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CameraAlt,
-                                        contentDescription = "Change photo",
+                                        contentDescription = stringResource(R.string.paykit__tap_to_change_photo),
                                         tint = Colors.White,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
-                            VerticalSpacer(8.dp)
-                            Caption(
-                                text = stringResource(R.string.paykit__tap_to_change_photo),
-                                    color = Colors.White64,
-                            )
+                            VerticalSpacer(12.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .clickableAlpha { onPickPhoto() }
+                                    .padding(vertical = 8.dp, horizontal = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = null,
+                                    tint = Colors.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                HorizontalSpacer(8.dp)
+                                Text(
+                                    text = stringResource(R.string.paykit__tap_to_change_photo),
+                                    color = Colors.White,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
                         }
                     }
                 }
@@ -464,6 +481,8 @@ class ProfileEditViewModel @Inject constructor(
     private val directoryService: DirectoryService,
     private val keyManager: KeyManager,
     private val imageUploadService: ImageUploadService,
+    private val settingsStore: to.bitkit.data.SettingsStore,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
     companion object {
         private const val TAG = "ProfileEditViewModel"
@@ -497,12 +516,35 @@ class ProfileEditViewModel @Inject constructor(
                 }
                 if (profile != null) {
                     originalProfile = profile
+                    directoryService.updateCachedProfile(profile)
+
+                    // Update settings store so the header always reflects the latest profile
+                    val pubkyId = keyManager.getCurrentPublicKeyZ32() ?: ""
+                    settingsStore.update {
+                        it.copy(
+                            profileName = profile.name ?: "",
+                            profileBio = profile.bio ?: "",
+                            profileAvatarUrl = profile.image ?: "",
+                            profilePubkyId = pubkyId,
+                        )
+                    }
+
+                    // Download avatar image from homeserver if URL exists
+                    val avatarBitmap = if (!profile.image.isNullOrEmpty()) {
+                        imageUploadService.downloadProfileImage(profile.image!!)
+                    } else {
+                        null
+                    }
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             name = profile.name ?: "",
                             bio = profile.bio ?: "",
                             imageUrl = profile.image,
+                            // Only replace avatar if download succeeded or profile has no image
+                            loadedAvatarBitmap = avatarBitmap ?: if (profile.image.isNullOrEmpty()) null else it.loadedAvatarBitmap,
+                            localImageUri = null,
                             links = profile.links?.map { link ->
                                 EditableLinkState(title = link.title, url = link.url)
                             } ?: emptyList(),
@@ -539,19 +581,21 @@ class ProfileEditViewModel @Inject constructor(
     }
 
     fun updateName(name: String) {
+        val trimmedName = name.trim()
         _uiState.update {
             it.copy(
-                name = name,
-                hasChanges = checkHasChanges(name, it.bio, it.imageUrl, it.links)
+                name = trimmedName,
+                hasChanges = checkHasChanges(trimmedName, it.bio, it.imageUrl, it.links, it.localImageUri != null)
             )
         }
     }
 
     fun updateBio(bio: String) {
+        val trimmedBio = bio.trim()
         _uiState.update {
             it.copy(
-                bio = bio,
-                hasChanges = checkHasChanges(it.name, bio, it.imageUrl, it.links)
+                bio = trimmedBio,
+                hasChanges = checkHasChanges(it.name, trimmedBio, it.imageUrl, it.links, it.localImageUri != null)
             )
         }
     }
@@ -572,7 +616,7 @@ class ProfileEditViewModel @Inject constructor(
             val newLinks = it.links + EditableLinkState("", "")
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks, it.localImageUri != null)
             )
         }
     }
@@ -582,33 +626,35 @@ class ProfileEditViewModel @Inject constructor(
             val newLinks = it.links.toMutableList().apply { removeAt(index) }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks, it.localImageUri != null)
             )
         }
     }
 
     fun updateLinkTitle(index: Int, title: String) {
+        val trimmedTitle = title.trim()
         _uiState.update {
             val newLinks = it.links.toMutableList()
             if (index < newLinks.size) {
-                newLinks[index] = newLinks[index].copy(title = title)
+                newLinks[index] = newLinks[index].copy(title = trimmedTitle)
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks, it.localImageUri != null)
             )
         }
     }
 
     fun updateLinkUrl(index: Int, url: String) {
+        val trimmedUrl = url.trim()
         _uiState.update {
             val newLinks = it.links.toMutableList()
             if (index < newLinks.size) {
-                newLinks[index] = newLinks[index].copy(url = url)
+                newLinks[index] = newLinks[index].copy(url = trimmedUrl)
             }
             it.copy(
                 links = newLinks,
-                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks)
+                hasChanges = checkHasChanges(it.name, it.bio, it.imageUrl, newLinks, it.localImageUri != null)
             )
         }
     }
@@ -643,13 +689,36 @@ class ProfileEditViewModel @Inject constructor(
 
                 directoryService.publishProfile(profile)
                 originalProfile = profile
+                directoryService.updateCachedProfile(profile)
+
+                // Capture bitmap from local URI before clearing so avatar keeps displaying
+                val uploadedBitmap = state.localImageUri?.let { uri ->
+                    runCatching {
+                        appContext.contentResolver.openInputStream(uri)?.use {
+                            BitmapFactory.decodeStream(it)
+                        }
+                    }.getOrNull()
+                }
+
+                // Update settings store so the home screen header reflects changes immediately
+                val pubkyId = keyManager.getCurrentPublicKeyZ32() ?: ""
+                settingsStore.update {
+                    it.copy(
+                        profileName = profile.name ?: "",
+                        profileBio = profile.bio ?: "",
+                        profileAvatarUrl = profile.image ?: "",
+                        profilePubkyId = pubkyId,
+                    )
+                }
+
                 _uiState.update {
                     it.copy(
                         isSaving = false,
                         hasChanges = false,
                         imageUrl = imageUrl,
-                        localImageUri = null, // Clear local image since it's now on server
-                        successMessage = "Profile published successfully!"
+                        localImageUri = null,
+                        loadedAvatarBitmap = uploadedBitmap ?: it.loadedAvatarBitmap,
+                        successMessage = "Profile published successfully!",
                     )
                 }
             } catch (e: CancellationException) {
@@ -682,14 +751,16 @@ class ProfileEditViewModel @Inject constructor(
         bio: String,
         imageUrl: String?,
         links: List<EditableLinkState>,
+        hasLocalImage: Boolean,
     ): Boolean {
         val original = originalProfile
-            ?: return name.isNotEmpty() || bio.isNotEmpty() || imageUrl != null || links.isNotEmpty()
+            ?: return name.isNotEmpty() || bio.isNotEmpty() || imageUrl != null || links.isNotEmpty() || hasLocalImage
 
         val validLinks = links.filter { it.title.isNotEmpty() && it.url.isNotEmpty() }
         val originalLinks = original.links ?: emptyList()
 
-        return name != (original.name ?: "") ||
+        return hasLocalImage ||
+            name != (original.name ?: "") ||
             bio != (original.bio ?: "") ||
             imageUrl != original.image ||
             validLinks.size != originalLinks.size
@@ -703,6 +774,7 @@ data class ProfileEditUiState(
     val bio: String = "",
     val imageUrl: String? = null,
     val localImageUri: Uri? = null,
+    val loadedAvatarBitmap: android.graphics.Bitmap? = null,
     val links: List<EditableLinkState> = emptyList(),
     val hasChanges: Boolean = false,
     val errorMessage: String? = null,

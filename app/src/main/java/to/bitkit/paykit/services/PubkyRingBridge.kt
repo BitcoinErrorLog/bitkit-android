@@ -257,7 +257,12 @@ class PubkyRingBridge @Inject constructor(
         // Store ephemeral secret key for decryption when callback arrives
         secureHandoffHandler.storeEphemeralKey(ephemeralSkHex)
 
-        Logger.debug("Generated ephemeral keypair for handoff, pk=${ephemeralPkHex.take(16)}...", context = TAG)
+        Logger.debug(
+            "Generated ephemeral keypair for handoff: pk=${ephemeralPkHex.take(16)}..., " +
+                "sk_prefix=${ephemeralSkHex.take(16)}..., pk_size=${ephemeralKeypair.publicKey.size}, " +
+                "sk_size=${ephemeralKeypair.secretKey.size}",
+            context = TAG,
+        )
 
         val callbackUrl = "$BITKIT_SCHEME://$CALLBACK_PATH_PAYKIT_SETUP"
         val encodedCallback = URLEncoder.encode(callbackUrl, "UTF-8")
@@ -849,6 +854,11 @@ class PubkyRingBridge @Inject constructor(
             }
             is PubkyRingCallbackParser.CallbackResult.Success -> {
                 val ref = result.data
+                Logger.debug(
+                    "Secure handoff callback: pubkey=${ref.pubkey.take(16)}..., " +
+                        "requestId=${ref.requestId.take(16)}..., homeserver=${ref.homeserver?.take(16)}",
+                    context = TAG,
+                )
                 scope.launch {
                     try {
                         val setupResult = secureHandoffHandler.fetchAndProcessPayload(

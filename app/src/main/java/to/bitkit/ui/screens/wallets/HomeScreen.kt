@@ -43,11 +43,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -145,7 +150,8 @@ fun HomeScreen(
 
     // Profile data for header
     val displayName by settingsViewModel.displayName.collectAsStateWithLifecycle()
-    val profileAvatarUrl by settingsViewModel.profileAvatarUrl.collectAsStateWithLifecycle()
+    val profilePubkyId by settingsViewModel.profilePubkyId.collectAsStateWithLifecycle()
+    val profileAvatarBitmap by homeViewModel.profileAvatarBitmap.collectAsStateWithLifecycle()
 
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -171,9 +177,11 @@ fun HomeScreen(
         drawerState = drawerState,
         latestActivities = latestActivities,
         displayName = displayName,
-        profileAvatarUrl = profileAvatarUrl,
+        profileAvatarBitmap = profileAvatarBitmap,
         onClickProfile = {
-            if (hasSeenProfileIntro) {
+            if (profilePubkyId.isNotEmpty()) {
+                rootNavController.navigate(Routes.PaykitProfileEdit)
+            } else if (hasSeenProfileIntro) {
                 rootNavController.navigate(Routes.CreateProfile)
             } else {
                 rootNavController.navigate(Routes.ProfileIntro)
@@ -293,7 +301,7 @@ private fun Content(
     hazeState: HazeState = rememberHazeState(),
     latestActivities: List<Activity>?,
     displayName: String = "Your Name",
-    profileAvatarUrl: String = "",
+    profileAvatarBitmap: android.graphics.Bitmap? = null,
     onClickProfile: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onRemoveSuggestion: (Suggestion) -> Unit = {},
@@ -314,7 +322,7 @@ private fun Content(
         TopBar(
             hazeState = hazeState,
             displayName = displayName,
-            profileAvatarUrl = profileAvatarUrl,
+            profileAvatarBitmap = profileAvatarBitmap,
             onClickProfile = onClickProfile,
             rootNavController = rootNavController,
             scope = scope,
@@ -635,7 +643,7 @@ private fun Widgets(homeUiState: HomeUiState) {
 private fun TopBar(
     hazeState: HazeState,
     displayName: String = "Your Name",
-    profileAvatarUrl: String = "",
+    profileAvatarBitmap: android.graphics.Bitmap? = null,
     onClickProfile: () -> Unit,
     rootNavController: NavController,
     scope: CoroutineScope,
@@ -667,29 +675,39 @@ private fun TopBar(
                         .padding(vertical = 8.dp)
                         .testTag("Header")
                 ) {
-                    // Avatar - show initial if we have a name, otherwise default icon
+                    // Avatar - show image if available, initial if name exists, otherwise default icon
                     if (displayName != "Your Name" && displayName.isNotEmpty()) {
-                        // Show initial with brand color background
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(32.dp)
                                 .background(Colors.Brand24, CircleShape)
                         ) {
-                            Text(
-                                text = displayName.take(1).uppercase(),
-                                style = androidx.compose.ui.text.TextStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Colors.Brand
+                            if (profileAvatarBitmap != null) {
+                                androidx.compose.foundation.Image(
+                                    bitmap = profileAvatarBitmap.asImageBitmap(),
+                                    contentDescription = "Profile photo",
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
                                 )
-                            )
+                            } else {
+                                Text(
+                                    text = displayName.take(1).uppercase(),
+                                    style = androidx.compose.ui.text.TextStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Colors.Brand
+                                    ),
+                                )
+                            }
                         }
                     } else {
                         Icon(
                             imageVector = Icons.Filled.AccountCircle,
                             contentDescription = displayName,
                             tint = Colors.White64,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(32.dp),
                         )
                     }
                     HorizontalSpacer(16.dp)
