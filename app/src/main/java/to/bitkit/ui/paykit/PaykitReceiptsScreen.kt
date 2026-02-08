@@ -8,6 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +26,7 @@ import to.bitkit.paykit.viewmodels.ReceiptsViewModel
 import to.bitkit.ui.components.SearchInput
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun PaykitReceiptsScreen(
@@ -37,7 +42,7 @@ fun PaykitReceiptsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Receipts", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__receipts), // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -50,7 +55,7 @@ fun PaykitReceiptsScreen(
             SearchInput(
                 value = searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = "Search receipts..."
+                placeholder = stringResource(R.string.paykit__search_receipts)
             )
 
             // Filter chips
@@ -65,7 +70,7 @@ fun PaykitReceiptsScreen(
                             if (selectedDirection == PaymentDirection.SENT) null else PaymentDirection.SENT
                         )
                     },
-                    label = { Text("Sent") }
+                    label = { Text(stringResource(R.string.paykit__sent)) }
                 )
                 FilterChip(
                     selected = selectedDirection == PaymentDirection.RECEIVED,
@@ -74,7 +79,7 @@ fun PaykitReceiptsScreen(
                             if (selectedDirection == PaymentDirection.RECEIVED) null else PaymentDirection.RECEIVED
                         )
                     },
-                    label = { Text("Received") }
+                    label = { Text(stringResource(R.string.paykit__received)) }
                 )
                 FilterChip(
                     selected = selectedStatus == PaymentStatus.PENDING,
@@ -83,7 +88,7 @@ fun PaykitReceiptsScreen(
                             if (selectedStatus == PaymentStatus.PENDING) null else PaymentStatus.PENDING
                         )
                     },
-                    label = { Text("Pending") }
+                    label = { Text(stringResource(R.string.paykit__pending)) }
                 )
                 FilterChip(
                     selected = selectedStatus == PaymentStatus.COMPLETED,
@@ -92,7 +97,7 @@ fun PaykitReceiptsScreen(
                             if (selectedStatus == PaymentStatus.COMPLETED) null else PaymentStatus.COMPLETED
                         )
                     },
-                    label = { Text("Completed") }
+                    label = { Text(stringResource(R.string.paykit__completed)) }
                 )
             }
 
@@ -101,17 +106,16 @@ fun PaykitReceiptsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Colors.Brand)
                 }
             } else if (receipts.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No receipts",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    BodyM(
+                        text = stringResource(R.string.paykit__no_receipts),
+                            color = Colors.White64,
                     )
                 }
             } else {
@@ -160,39 +164,33 @@ fun ReceiptRow(
                     },
                     contentDescription = null,
                     tint = if (receipt.direction == PaymentDirection.SENT) {
-                        MaterialTheme.colorScheme.error
+                        Colors.Red
                     } else {
                         MaterialTheme.colorScheme.primary
                     }
                 )
                 Column {
-                    Text(
+                    BodyM(
                         text = receipt.displayName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
                     )
-                    Text(
+                    Caption(
                         text = receipt.paymentMethod,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Colors.White64,
                     )
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
+                BodyM(
                     text = "${receipt.amountSats} sats",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (receipt.direction == PaymentDirection.SENT) {
-                        MaterialTheme.colorScheme.error
+                        color = if (receipt.direction == PaymentDirection.SENT) {
+                        Colors.Red
                     } else {
                         MaterialTheme.colorScheme.primary
                     }
                 )
-                Text(
+                Caption(
                     text = receipt.status.name.lowercase().replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Colors.White64,
                 )
             }
         }

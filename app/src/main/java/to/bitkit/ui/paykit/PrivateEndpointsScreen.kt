@@ -7,6 +7,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +22,7 @@ import to.bitkit.paykit.viewmodels.PrivateEndpointsViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun PrivateEndpointsScreen(
@@ -28,7 +33,7 @@ fun PrivateEndpointsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Private Endpoints", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__private_endpoints), // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -46,11 +51,10 @@ fun PrivateEndpointsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Title(text = "Private Endpoints")
-                    Text(
-                        text = "Manage per-peer private payment addresses for enhanced privacy.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Title(text = stringResource(R.string.paykit__private_endpoints))
+                    BodyM(
+                        text = stringResource(R.string.paykit__manage_per_peer_private_payment_addresses_for_enha),
+                            color = Colors.White64,
                     )
                 }
             }
@@ -60,17 +64,16 @@ fun PrivateEndpointsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Colors.Brand)
                 }
             } else if (uiState.peers.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No private endpoints configured",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    BodyM(
+                        text = stringResource(R.string.paykit__no_private_endpoints_configured),
+                            color = Colors.White64,
                     )
                 }
             } else {
@@ -101,15 +104,12 @@ fun PeerEndpointsCard(peer: String) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
+            BodyM(
                 text = peer.take(16) + "...",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
             )
-            Text(
-                text = "Private endpoints for this peer",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Caption(
+                text = stringResource(R.string.paykit__private_endpoints_for_this_peer),
+                    color = Colors.White64,
             )
         }
     }

@@ -40,6 +40,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.shared.modifiers.clickableAlpha
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodySSB
+import to.bitkit.ui.components.BodyMSB
+import to.bitkit.ui.components.BodyMB
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +63,8 @@ import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import to.bitkit.ui.theme.Colors
+import to.bitkit.ui.components.HorizontalSpacer
+import to.bitkit.ui.components.VerticalSpacer
 
 @Composable
 fun PaykitDashboardScreen(
@@ -87,7 +97,7 @@ fun PaykitDashboardScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Paykit Dashboard", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__paykit_dashboard), // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
         )
 
@@ -161,21 +171,21 @@ private fun OverviewSection(
     onNavigateToSubscriptions: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Title(text = "Overview")
+        Title(text = stringResource(R.string.paykit__overview))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                title = "Total Sent",
+                title = stringResource(R.string.paykit__total_sent),
                 value = formatSats(totalSent),
                 icon = Icons.Default.ArrowUpward,
                 color = Colors.Red,
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                title = "Total Received",
+                title = stringResource(R.string.paykit__total_received),
                 value = formatSats(totalReceived),
                 icon = Icons.Default.ArrowDownward,
                 color = Colors.Green,
@@ -188,7 +198,7 @@ private fun OverviewSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             TappableStatCard(
-                title = "Contacts",
+                title = stringResource(R.string.paykit__contacts),
                 value = contactCount.toString(),
                 icon = Icons.Default.People,
                 color = Colors.Blue,
@@ -196,7 +206,7 @@ private fun OverviewSection(
                 modifier = Modifier.weight(1f),
             )
             TappableStatCard(
-                title = "Subscriptions",
+                title = stringResource(R.string.paykit__subscriptions),
                 value = activeSubscriptions.toString(),
                 icon = Icons.Default.CalendarToday,
                 color = Colors.Purple,
@@ -217,23 +227,23 @@ private fun ActionsSection(
     onNavigateToContactDiscovery: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Title(text = "Actions")
+        Title(text = stringResource(R.string.paykit__actions))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Auto-Pay",
-                subtitle = if (autoPayEnabled) "ON" else "OFF",
+                title = stringResource(R.string.paykit__auto_pay),
+                subtitle = if (autoPayEnabled) "ON" else stringResource(R.string.paykit__off),
                 icon = Icons.Default.Repeat,
-                color = Colors.Brand,
+                color = MaterialTheme.colorScheme.primary,
                 onClick = onNavigateToAutoPay,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Payment Requests",
-                subtitle = if (pendingRequests > 0) "$pendingRequests pending" else "View all",
+                title = stringResource(R.string.paykit__payment_requests),
+                subtitle = if (pendingRequests > 0) "$pendingRequests pending" else stringResource(R.string.paykit__view_all),
                 icon = Icons.Default.Notifications,
                 color = Colors.Yellow,
                 onClick = onNavigateToPaymentRequests,
@@ -246,16 +256,16 @@ private fun ActionsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Noise Payment",
-                subtitle = "Private transfers",
+                title = stringResource(R.string.paykit__noise_payment),
+                subtitle = stringResource(R.string.paykit__private_transfers),
                 icon = Icons.Default.Waves,
                 color = Colors.Blue,
                 onClick = onNavigateToNoisePayment,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Discover",
-                subtitle = "Find contacts",
+                title = stringResource(R.string.paykit__discover),
+                subtitle = stringResource(R.string.paykit__find_contacts),
                 icon = Icons.Default.Search,
                 color = Colors.Green,
                 onClick = onNavigateToContactDiscovery,
@@ -274,23 +284,23 @@ private fun IdentitySection(
     onNavigateToPubkyRingAuth: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Title(text = "Identity & Security")
+        Title(text = stringResource(R.string.paykit__identity_security))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Endpoints", // TODO: Localize via Transifex
-                subtitle = if (publishedMethodsCount > 0) "$publishedMethodsCount published" else "Setup",
+                title = stringResource(R.string.paykit__endpoints), // TODO: Localize via Transifex
+                subtitle = if (publishedMethodsCount > 0) "$publishedMethodsCount published" else stringResource(R.string.paykit__setup),
                 icon = Icons.Default.Link,
                 color = Colors.Blue,
                 onClick = onNavigateToPrivateEndpoints,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Key Rotation", // TODO: Localize via Transifex
-                subtitle = "Security", // TODO: Localize via Transifex
+                title = stringResource(R.string.paykit__key_rotation), // TODO: Localize via Transifex
+                subtitle = stringResource(R.string.paykit__security), // TODO: Localize via Transifex
                 icon = Icons.Default.Key,
                 color = Colors.Yellow,
                 onClick = onNavigateToRotationSettings,
@@ -314,7 +324,7 @@ private fun PubkyRingConnectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickableAlpha { onClick() },
         shape = RoundedCornerShape(12.dp),
     ) {
         Row(
@@ -330,7 +340,7 @@ private fun PubkyRingConnectionCard(
                         color = if (isPubkyRingInstalled) {
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         } else {
-                            Colors.Brand.copy(alpha = 0.2f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         },
                         shape = CircleShape,
                     ),
@@ -339,33 +349,30 @@ private fun PubkyRingConnectionCard(
                 Icon(
                     imageVector = if (isPubkyRingInstalled) Icons.Default.Shield else Icons.Default.QrCode,
                     contentDescription = null,
-                    tint = if (isPubkyRingInstalled) MaterialTheme.colorScheme.primary else Colors.Brand,
+                    tint = if (isPubkyRingInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            HorizontalSpacer(16.dp)
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (isPubkyRingInstalled) "Pubky-ring Connected" else "Connect Pubky-ring",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
+                BodyMB(
+                    text = if (isPubkyRingInstalled) stringResource(R.string.paykit__pubky_ring_connected) else stringResource(R.string.paykit__connect_pubky_ring),
                 )
-                Text(
+                Caption(
                     text = if (isPubkyRingInstalled) {
-                        "Pubky-ring is available on this device"
+                        stringResource(R.string.paykit__pubky_ring_is_available_on_this_device)
                     } else {
-                        "Use QR code to authenticate from another device"
+                        stringResource(R.string.paykit__use_qr_code_to_authenticate_from_another_device)
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                 )
             }
 
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Colors.White64,
             )
         }
     }
@@ -382,9 +389,9 @@ private fun RecentActivitySection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Title(text = "Recent Activity")
+            Title(text = stringResource(R.string.paykit__recent_activity))
             TextButton(onClick = onNavigateToReceipts) {
-                Text("See All")
+                Text(stringResource(R.string.paykit__see_all))
             }
         }
 
@@ -403,18 +410,16 @@ private fun RecentActivitySection(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = Colors.White64,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No recent activity",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    VerticalSpacer(12.dp)
+                    BodyM(
+                        text = stringResource(R.string.paykit__no_recent_activity),
+                            color = Colors.White64,
                     )
-                    Text(
-                        text = "Your Paykit transactions will appear here",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    Caption(
+                        text = stringResource(R.string.paykit__your_paykit_transactions_will_appear_here),
+                            color = Colors.White64.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -449,15 +454,12 @@ fun StatCard(
                 tint = color,
                 modifier = Modifier.size(24.dp),
             )
-            Text(
+            Title(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
             )
-            Text(
+            Caption(
                 text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Colors.White64,
             )
         }
     }
@@ -495,19 +497,16 @@ fun TappableStatCard(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = Colors.White64,
                     modifier = Modifier.size(16.dp),
                 )
             }
-            Text(
+            Title(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
             )
-            Text(
+            Caption(
                 text = title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Colors.White64,
             )
         }
     }
@@ -537,15 +536,12 @@ fun QuickAccessCard(
                 tint = color,
                 modifier = Modifier.size(24.dp),
             )
-            Text(
+            BodySSB(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
             )
-            Text(
+            Caption(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Colors.White64,
             )
         }
     }
@@ -565,32 +561,26 @@ fun ReceiptRow(receipt: to.bitkit.paykit.models.Receipt) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                BodyMSB(
                     text = receipt.displayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
                 )
-                Text(
+                Caption(
                     text = receipt.paymentMethod,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Colors.White64,
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
+                BodyMSB(
                     text = "${receipt.amountSats} sats",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = if (receipt.direction == to.bitkit.paykit.models.PaymentDirection.SENT) {
-                        MaterialTheme.colorScheme.error
+                        color = if (receipt.direction == to.bitkit.paykit.models.PaymentDirection.SENT) {
+                        Colors.Red
                     } else {
                         MaterialTheme.colorScheme.primary
                     }
                 )
-                Text(
+                Caption(
                     text = receipt.status.name.lowercase().replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Colors.White64,
                 )
             }
         }

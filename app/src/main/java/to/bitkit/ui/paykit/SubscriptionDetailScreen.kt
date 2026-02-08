@@ -19,6 +19,13 @@ import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.res.stringResource
+import to.bitkit.R
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.Subtitle
+import to.bitkit.ui.components.Title
+import to.bitkit.ui.theme.AppSwitchDefaults
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun SubscriptionDetailScreen(
@@ -35,7 +42,7 @@ fun SubscriptionDetailScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Subscription Details", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__subscription_details), // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
             actions = {
                 IconButton(onClick = { showDeleteConfirm = true }) {
@@ -46,7 +53,7 @@ fun SubscriptionDetailScreen(
 
         if (subscription == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Subscription not found")
+                Text(stringResource(R.string.paykit__subscription_not_found))
             }
         } else {
             SubscriptionDetailContent(
@@ -59,8 +66,8 @@ fun SubscriptionDetailScreen(
     if (showDeleteConfirm && subscription != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Subscription?") },
-            text = { Text("Are you sure you want to delete this subscription? This cannot be undone.") },
+            title = { Text(stringResource(R.string.paykit__delete_subscription)) },
+            text = { Text(stringResource(R.string.paykit__are_you_sure_you_want_to_delete_this_subscription)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -68,13 +75,13 @@ fun SubscriptionDetailScreen(
                         showDeleteConfirm = false
                         onNavigateBack()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.buttonColors(containerColor = Colors.Red),
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.paykit__delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.paykit__cancel)) }
             },
         )
     }
@@ -104,19 +111,20 @@ private fun SubscriptionDetailContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
+                    Title(
                         text = subscription.providerName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
                     )
-                    Switch(checked = subscription.isActive, onCheckedChange = { onToggleActive() })
+                    Switch(
+                        checked = subscription.isActive,
+                        onCheckedChange = { onToggleActive() },
+                        colors = AppSwitchDefaults.colors,
+                    )
                 }
 
                 if (subscription.description.isNotBlank()) {
-                    Text(
+                    BodyM(
                         text = subscription.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                     )
                 }
             }
@@ -127,11 +135,11 @@ private fun SubscriptionDetailContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Payment Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.paykit__payment_details), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 HorizontalDivider()
-                DetailRow("Amount", "${subscription.amountSats} ${subscription.currency}")
-                DetailRow("Frequency", subscription.frequency.replaceFirstChar { it.uppercase() })
-                DetailRow("Method", subscription.methodId)
+                DetailRow(stringResource(R.string.paykit__amount), "${subscription.amountSats} ${subscription.currency}")
+                DetailRow(stringResource(R.string.paykit__frequency), subscription.frequency.replaceFirstChar { it.uppercase() })
+                DetailRow(stringResource(R.string.paykit__method), subscription.methodId)
             }
         }
 
@@ -140,9 +148,9 @@ private fun SubscriptionDetailContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Provider", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.paykit__provider), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 HorizontalDivider()
-                DetailRow("Pubkey", subscription.providerPubkey.take(24) + "...")
+                DetailRow(stringResource(R.string.paykit__pubkey), subscription.providerPubkey.take(24) + "...")
             }
         }
 
@@ -151,15 +159,15 @@ private fun SubscriptionDetailContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("History", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.paykit__history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 HorizontalDivider()
-                DetailRow("Total Payments", subscription.paymentCount.toString())
-                DetailRow("Created", dateFormat.format(Date(subscription.createdAt)))
+                DetailRow(stringResource(R.string.paykit__total_payments), subscription.paymentCount.toString())
+                DetailRow(stringResource(R.string.paykit__created), dateFormat.format(Date(subscription.createdAt)))
                 subscription.lastPaymentAt?.let {
-                    DetailRow("Last Payment", dateFormat.format(Date(it)))
+                    DetailRow(stringResource(R.string.paykit__last_payment), dateFormat.format(Date(it)))
                 }
                 subscription.nextPaymentAt?.let {
-                    DetailRow("Next Due", dateFormat.format(Date(it)))
+                    DetailRow(stringResource(R.string.paykit__next_due), dateFormat.format(Date(it)))
                 }
             }
         }
@@ -170,20 +178,18 @@ private fun SubscriptionDetailContent(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        "Last Payment Info",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                    Subtitle(
+                        stringResource(R.string.paykit__last_payment_info),
                     )
                     HorizontalDivider()
                     subscription.lastPaymentHash?.let {
-                        DetailRow("Payment Hash", it.take(24) + "...")
+                        DetailRow(stringResource(R.string.paykit__payment_hash), it.take(24) + "...")
                     }
                     subscription.lastPreimage?.let {
-                        DetailRow("Preimage", it.take(24) + "...")
+                        DetailRow(stringResource(R.string.paykit__preimage), it.take(24) + "...")
                     }
                     subscription.lastFeeSats?.let {
-                        DetailRow("Fee", "$it sats")
+                        DetailRow(stringResource(R.string.paykit__fee), "$it sats")
                     }
                 }
             }
@@ -199,7 +205,7 @@ private fun DetailRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, color = Colors.White64)
         Text(value, fontWeight = FontWeight.Medium)
     }
 }

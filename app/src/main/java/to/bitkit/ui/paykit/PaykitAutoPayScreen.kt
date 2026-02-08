@@ -6,6 +6,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.theme.AppSwitchDefaults
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +24,7 @@ import to.bitkit.paykit.viewmodels.AutoPayViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun PaykitAutoPayScreen(
@@ -32,7 +38,7 @@ fun PaykitAutoPayScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Auto-Pay Settings", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__auto_pay_settings), // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -41,7 +47,7 @@ fun PaykitAutoPayScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Colors.Brand)
             }
         } else {
             LazyColumn(
@@ -53,7 +59,7 @@ fun PaykitAutoPayScreen(
                 // Global Settings
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Title(text = "Global Settings")
+                        Title(text = stringResource(R.string.paykit__global_settings))
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -69,22 +75,20 @@ fun PaykitAutoPayScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Enable Auto-Pay",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium
+                                        BodyM(
+                                            text = stringResource(R.string.paykit__enable_auto_pay),
                                         )
-                                        Text(
-                                            text = "Automatically approve payments based on rules",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        Caption(
+                                            text = stringResource(R.string.paykit__automatically_approve_payments_based_on_rules),
+                                            color = Colors.White64,
                                         )
                                     }
                                     Switch(
                                         checked = settings.isEnabled,
                                         onCheckedChange = {
                                             viewModel.updateSettings(settings.copy(isEnabled = it))
-                                        }
+                                        },
+                                        colors = AppSwitchDefaults.colors,
                                     )
                                 }
 
@@ -94,14 +98,13 @@ fun PaykitAutoPayScreen(
                                         val limit = it.toLongOrNull() ?: 0L
                                         viewModel.updateSettings(settings.copy(globalDailyLimitSats = limit))
                                     },
-                                    label = { Text("Daily Limit (sats)") },
+                                    label = { Text(stringResource(R.string.paykit__daily_limit_sats)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
-                                Text(
+                                Caption(
                                     text = "Used: ${settings.currentDailySpentSats} / ${settings.globalDailyLimitSats} sats",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = Colors.White64,
                                 )
                             }
                         }
@@ -111,13 +114,12 @@ fun PaykitAutoPayScreen(
                 // Peer Limits
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Title(text = "Peer Limits")
+                        Title(text = stringResource(R.string.paykit__peer_limits))
 
                         if (peerLimits.isEmpty()) {
-                            Text(
-                                text = "No peer limits configured",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            BodyM(
+                                text = stringResource(R.string.paykit__no_peer_limits_configured),
+                                    color = Colors.White64,
                             )
                         } else {
                             peerLimits.forEach { limit ->
@@ -130,13 +132,12 @@ fun PaykitAutoPayScreen(
                 // Rules
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Title(text = "Auto-Pay Rules")
+                        Title(text = stringResource(R.string.paykit__auto_pay_rules))
 
                         if (rules.isEmpty()) {
-                            Text(
-                                text = "No rules configured",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            BodyM(
+                                text = stringResource(R.string.paykit__no_rules_configured),
+                                    color = Colors.White64,
                             )
                         } else {
                             rules.forEach { rule ->
@@ -165,20 +166,16 @@ fun PeerLimitCard(limit: PeerSpendingLimit) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
+            BodyM(
                 text = limit.peerName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
             )
-            Text(
+            Caption(
                 text = "Limit: ${limit.limitSats} sats / ${limit.period}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Colors.White64,
             )
-            Text(
+            Caption(
                 text = "Used: ${limit.spentSats} / ${limit.limitSats} sats",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Colors.White64,
             )
         }
     }
@@ -202,30 +199,27 @@ fun RuleCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                BodyM(
                     text = rule.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
                 )
                 Switch(
                     checked = rule.isEnabled,
-                    onCheckedChange = onToggleEnabled
+                    onCheckedChange = onToggleEnabled,
+                    colors = AppSwitchDefaults.colors,
                 )
             }
 
             rule.maxAmountSats?.let {
-                Text(
+                Caption(
                     text = "Max amount: $it sats",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Colors.White64,
                 )
             }
 
             if (rule.allowedMethods.isNotEmpty()) {
-                Text(
+                Caption(
                     text = "Methods: ${rule.allowedMethods.joinToString()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Colors.White64,
                 )
             }
         }

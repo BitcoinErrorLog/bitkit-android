@@ -53,6 +53,13 @@ import to.bitkit.ui.theme.Colors
 import to.bitkit.utils.Logger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import androidx.compose.ui.res.stringResource
+import to.bitkit.R
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.HorizontalSpacer
+import to.bitkit.ui.components.Title
+import to.bitkit.ui.components.VerticalSpacer
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 
 @Composable
 fun ProfileEditScreen(
@@ -103,7 +110,7 @@ private fun ProfileEditContent(
 ) {
     ScreenColumn {
         AppTopBar(
-            titleText = "Edit Profile", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__edit_profile), // TODO: Localize via Transifex
             onBackClick = onBackClick,
             actions = {
                 IconButton(onClick = onRefresh, enabled = !uiState.isLoading) {
@@ -115,7 +122,7 @@ private fun ProfileEditContent(
                 }
                 if (uiState.hasChanges && !uiState.isSaving) {
                     TextButton(onClick = onSave) {
-                        Text("Save", color = Colors.Brand)
+                        Text(stringResource(R.string.paykit__save), color = MaterialTheme.colorScheme.primary)
                     }
                 }
             },
@@ -128,9 +135,9 @@ private fun ProfileEditContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Colors.Brand)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    VerticalSpacer(16.dp)
                     Text(
-                        text = "Loading profile...",
+                        text = stringResource(R.string.paykit__loading_profile),
                         color = Colors.White64
                     )
                 }
@@ -152,8 +159,8 @@ private fun ProfileEditContent(
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(CircleShape)
-                                    .background(Colors.Brand.copy(alpha = 0.2f))
-                                    .clickable { onPickPhoto() },
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    .clickableAlpha { onPickPhoto() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 when {
@@ -186,7 +193,7 @@ private fun ProfileEditContent(
                                             Icon(
                                                 imageVector = Icons.Default.Person,
                                                 contentDescription = null,
-                                                tint = Colors.Brand,
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(48.dp),
                                             )
                                         }
@@ -195,14 +202,14 @@ private fun ProfileEditContent(
                                         Text(
                                             text = uiState.name.take(1).uppercase(),
                                             style = MaterialTheme.typography.headlineLarge,
-                                            color = Colors.Brand,
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                     else -> {
                                         Icon(
                                             imageVector = Icons.Default.Person,
                                             contentDescription = null,
-                                            tint = Colors.Brand,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(48.dp),
                                         )
                                     }
@@ -213,7 +220,7 @@ private fun ProfileEditContent(
                                         .align(Alignment.BottomEnd)
                                         .size(32.dp)
                                         .clip(CircleShape)
-                                        .background(Colors.Brand),
+                                        .background(MaterialTheme.colorScheme.primary),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -224,11 +231,10 @@ private fun ProfileEditContent(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Tap to change photo",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Colors.White64
+                            VerticalSpacer(8.dp)
+                            Caption(
+                                text = stringResource(R.string.paykit__tap_to_change_photo),
+                                    color = Colors.White64,
                             )
                         }
                     }
@@ -237,22 +243,21 @@ private fun ProfileEditContent(
                 // Name field
                 item {
                     Column {
-                        Text(
-                            text = "Display Name",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Colors.White64
+                        Caption(
+                            text = stringResource(R.string.paykit__display_name),
+                                color = Colors.White64,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        VerticalSpacer(8.dp)
                         OutlinedTextField(
                             value = uiState.name,
                             onValueChange = onNameChange,
-                            placeholder = { Text("Enter your name") },
+                            placeholder = { Text(stringResource(R.string.paykit__enter_your_name)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedContainerColor = Colors.Gray6,
                                 focusedContainerColor = Colors.Gray6,
                                 unfocusedBorderColor = Colors.Gray6,
-                                focusedBorderColor = Colors.Brand,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
                             ),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
@@ -267,22 +272,20 @@ private fun ProfileEditContent(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Bio",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Colors.White64
+                            Caption(
+                                text = stringResource(R.string.paykit__bio),
+                                    color = Colors.White64,
                             )
-                            Text(
+                            Caption(
                                 text = "${uiState.bio.length}/160",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (uiState.bio.length > 160) Colors.Red else Colors.White64
+                                    color = if (uiState.bio.length > 160) Colors.Red else Colors.White64,
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        VerticalSpacer(8.dp)
                         OutlinedTextField(
                             value = uiState.bio,
                             onValueChange = onBioChange,
-                            placeholder = { Text("Tell people about yourself") },
+                            placeholder = { Text(stringResource(R.string.paykit__tell_people_about_yourself)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(100.dp),
@@ -290,7 +293,7 @@ private fun ProfileEditContent(
                                 unfocusedContainerColor = Colors.Gray6,
                                 focusedContainerColor = Colors.Gray6,
                                 unfocusedBorderColor = Colors.Gray6,
-                                focusedBorderColor = Colors.Brand,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
                             ),
                             shape = RoundedCornerShape(8.dp),
                         )
@@ -304,20 +307,19 @@ private fun ProfileEditContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Links",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Colors.White64
+                        Caption(
+                            text = stringResource(R.string.paykit__links),
+                                color = Colors.White64,
                         )
                         TextButton(onClick = onAddLink) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = Colors.Brand,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Link", color = Colors.Brand)
+                            HorizontalSpacer(4.dp)
+                            Text(stringResource(R.string.paykit__add_link), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -340,18 +342,18 @@ private fun ProfileEditContent(
                                 OutlinedTextField(
                                     value = link.title,
                                     onValueChange = { onUpdateLinkTitle(index, it) },
-                                    placeholder = { Text("Title") },
+                                    placeholder = { Text(stringResource(R.string.paykit__title)) },
                                     modifier = Modifier.weight(1f),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedContainerColor = Colors.Gray6,
                                         focusedContainerColor = Colors.Gray6,
                                         unfocusedBorderColor = Colors.Gray6,
-                                        focusedBorderColor = Colors.Brand,
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     ),
                                     shape = RoundedCornerShape(6.dp),
                                     singleLine = true,
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                HorizontalSpacer(8.dp)
                                 IconButton(onClick = { onRemoveLink(index) }) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
@@ -363,13 +365,13 @@ private fun ProfileEditContent(
                             OutlinedTextField(
                                 value = link.url,
                                 onValueChange = { onUpdateLinkUrl(index, it) },
-                                placeholder = { Text("URL") },
+                                placeholder = { Text(stringResource(R.string.paykit__url)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedContainerColor = Colors.Gray6,
                                     focusedContainerColor = Colors.Gray6,
                                     unfocusedBorderColor = Colors.Gray6,
-                                    focusedBorderColor = Colors.Brand,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 ),
                                 shape = RoundedCornerShape(6.dp),
                                 singleLine = true,
@@ -391,11 +393,10 @@ private fun ProfileEditContent(
                                 tint = Colors.Red,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                            HorizontalSpacer(8.dp)
+                            Caption(
                                 text = uiState.errorMessage,
                                 color = Colors.Red,
-                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
@@ -414,11 +415,10 @@ private fun ProfileEditContent(
                                 tint = Colors.Green,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                            HorizontalSpacer(8.dp)
+                            Caption(
                                 text = uiState.successMessage,
                                 color = Colors.Green,
-                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
@@ -433,7 +433,7 @@ private fun ProfileEditContent(
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Colors.Brand,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             disabledContainerColor = Colors.Gray6,
                         ),
                         shape = RoundedCornerShape(8.dp),
@@ -445,14 +445,14 @@ private fun ProfileEditContent(
                                 strokeWidth = 2.dp,
                             )
                         } else {
-                            Text("Publish Profile")
+                            Text(stringResource(R.string.paykit__publish_profile))
                         }
                     }
                 }
 
                 // Disconnect button
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    VerticalSpacer(16.dp)
                 }
             }
         }

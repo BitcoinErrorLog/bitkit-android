@@ -36,14 +36,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.scaffold.AppTopBar
+import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.AppSwitchDefaults
+import to.bitkit.ui.components.Title
+import to.bitkit.ui.components.Subtitle
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +82,8 @@ import to.bitkit.ui.theme.Colors
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import to.bitkit.ui.components.HorizontalSpacer
+import to.bitkit.ui.components.VerticalSpacer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,54 +102,43 @@ fun SessionManagementScreen(
     var sessionToDelete by remember { mutableStateOf<PubkySession?>(null) }
     var showMenu by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Session Management") },
-                navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+    ScreenColumn {
+        AppTopBar(
+            titleText = stringResource(R.string.paykit__session_management),
+            onBackClick = { onBack() },
+            actions = {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More")
                     }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Import Backup") },
-                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
-                                onClick = {
-                                    showMenu = false
-                                    showImportSheet = true
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Clear All Sessions") },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.clearAllSessions()
-                                },
-                            )
-                        }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.paykit__import_backup)) },
+                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                showImportSheet = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.paykit__clear_all_sessions)) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.clearAllSessions()
+                            },
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Colors.Gray4,
-                ),
-            )
-        },
-        containerColor = Colors.Gray4,
-    ) { paddingValues ->
+                }
+            },
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -201,7 +198,7 @@ fun SessionManagementScreen(
                 showDeleteConfirmation = false
                 sessionToDelete = null
             },
-            title = { Text("Remove Session") },
+            title = { Text(stringResource(R.string.paykit__remove_session)) },
             text = {
                 Text("Are you sure you want to remove this session for ${sessionToDelete?.pubkey?.take(12)}...?")
             },
@@ -213,7 +210,7 @@ fun SessionManagementScreen(
                         sessionToDelete = null
                     },
                 ) {
-                    Text("Remove", color = Color.Red)
+                    Text(stringResource(R.string.paykit__remove), color = Colors.Red)
                 }
             },
             dismissButton = {
@@ -221,7 +218,7 @@ fun SessionManagementScreen(
                     showDeleteConfirmation = false
                     sessionToDelete = null
                 }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.paykit__cancel))
                 }
             },
         )
@@ -235,10 +232,9 @@ private fun DeviceInfoSection(
     cachedKeyCount: Int,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "Device Info",
-            style = MaterialTheme.typography.titleMedium,
-            color = Colors.White64,
+        Subtitle(
+            text = stringResource(R.string.paykit__device_info),
+                color = Colors.White64,
         )
 
         Card(
@@ -249,9 +245,9 @@ private fun DeviceInfoSection(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                InfoRow(label = "Device ID", value = "${deviceId.take(8)}...")
-                InfoRow(label = "Current Epoch", value = "$currentEpoch")
-                InfoRow(label = "Cached Keys", value = "$cachedKeyCount")
+                InfoRow(label = stringResource(R.string.paykit__device_id), value = "${deviceId.take(8)}...")
+                InfoRow(label = stringResource(R.string.paykit__current_epoch), value = "$currentEpoch")
+                InfoRow(label = stringResource(R.string.paykit__cached_keys), value = "$cachedKeyCount")
             }
         }
     }
@@ -263,15 +259,13 @@ private fun InfoRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
+        BodyM(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Colors.White64,
+                color = Colors.White64,
         )
-        Text(
+        BodyM(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White,
+                color = Colors.White,
         )
     }
 }
@@ -287,15 +281,13 @@ private fun SessionsSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Active Sessions",
-                style = MaterialTheme.typography.titleMedium,
-                color = Colors.White64,
+            Subtitle(
+                text = stringResource(R.string.paykit__active_sessions),
+                    color = Colors.White64,
             )
-            Text(
+            Caption(
                 text = "${sessions.size} session(s)",
-                style = MaterialTheme.typography.bodySmall,
-                color = Colors.White64,
+                    color = Colors.White64,
             )
         }
 
@@ -317,15 +309,13 @@ private fun SessionsSection(
                         modifier = Modifier.size(32.dp),
                         tint = Colors.White64,
                     )
-                    Text(
-                        text = "No active sessions",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Colors.White64,
+                    BodyM(
+                        text = stringResource(R.string.paykit__no_active_sessions),
+                            color = Colors.White64,
                     )
-                    Text(
-                        text = "Connect to Pubky-ring to create a session",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Colors.White64,
+                    Caption(
+                        text = stringResource(R.string.paykit__connect_to_pubky_ring_to_create_a_session),
+                            color = Colors.White64,
                     )
                 }
             }
@@ -370,21 +360,20 @@ private fun SessionRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Pubkey",
+                    text = stringResource(R.string.paykit__pubkey),
                     style = MaterialTheme.typography.labelSmall,
                     color = Colors.White64,
                 )
-                Text(
+                BodyM(
                     text = "${session.pubkey.take(20)}...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+                        color = Colors.White,
                 )
             }
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Remove",
-                    tint = Color.Red.copy(alpha = 0.7f),
+                    tint = Colors.Red.copy(alpha = 0.7f),
                 )
             }
         }
@@ -395,27 +384,25 @@ private fun SessionRow(
         ) {
             Column {
                 Text(
-                    text = "Created",
+                    text = stringResource(R.string.paykit__created),
                     style = MaterialTheme.typography.labelSmall,
                     color = Colors.White64,
                 )
-                Text(
+                Caption(
                     text = dateFormat.format(session.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White,
+                        color = Colors.White,
                 )
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "Capabilities",
+                    text = stringResource(R.string.paykit__capabilities),
                     style = MaterialTheme.typography.labelSmall,
                     color = Colors.White64,
                 )
-                Text(
-                    text = if (session.capabilities.isEmpty()) "None" else session.capabilities.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White,
+                Caption(
+                    text = if (session.capabilities.isEmpty()) stringResource(R.string.paykit__none) else session.capabilities.joinToString(", "),
+                        color = Colors.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -430,10 +417,9 @@ private fun BackupSection(
     onImport: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "Backup & Restore",
-            style = MaterialTheme.typography.titleMedium,
-            color = Colors.White64,
+        Subtitle(
+            text = stringResource(R.string.paykit__backup_restore),
+                color = Colors.White64,
         )
 
         Card(
@@ -451,18 +437,16 @@ private fun BackupSection(
                 Icon(
                     imageVector = Icons.Default.Upload,
                     contentDescription = null,
-                    tint = Colors.Brand,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Export Backup",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
+                    BodyM(
+                        text = stringResource(R.string.paykit__export_backup),
+                            color = Colors.White,
                     )
-                    Text(
-                        text = "Save sessions and keys to restore later",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Colors.White64,
+                    Caption(
+                        text = stringResource(R.string.paykit__save_sessions_and_keys_to_restore_later),
+                            color = Colors.White64,
                     )
                 }
             }
@@ -486,15 +470,13 @@ private fun BackupSection(
                     tint = Color.Blue,
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Import Backup",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
+                    BodyM(
+                        text = stringResource(R.string.paykit__import_backup),
+                            color = Colors.White,
                     )
-                    Text(
-                        text = "Restore sessions and keys from backup",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Colors.White64,
+                    Caption(
+                        text = stringResource(R.string.paykit__restore_sessions_and_keys_from_backup),
+                            color = Colors.White64,
                     )
                 }
             }
@@ -526,10 +508,9 @@ private fun ExportBackupSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Export Backup",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                Title(
+                    text = stringResource(R.string.paykit__export_backup),
+                        color = Colors.White,
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = Colors.White64)
@@ -542,13 +523,13 @@ private fun ExportBackupSheet(
             ) {
                 Text(
                     text = backupJSON,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = Colors.White,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
                         .verticalScroll(rememberScrollState())
                         .padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = Color.White,
                 )
             }
 
@@ -564,17 +545,16 @@ private fun ExportBackupSheet(
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(if (copied) "Copied!" else "Copy to Clipboard")
+                HorizontalSpacer(8.dp)
+                Text(if (copied) stringResource(R.string.paykit__copied_exclaim) else stringResource(R.string.paykit__copy_to_clipboard))
             }
 
-            Text(
-                text = "Save this backup in a secure location. It contains your session secrets and keys.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Colors.White64,
+            Caption(
+                text = stringResource(R.string.paykit__save_this_backup_in_a_secure_location_it_contains),
+                    color = Colors.White64,
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            VerticalSpacer(24.dp)
         }
     }
 }
@@ -603,10 +583,9 @@ private fun ImportBackupSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Import Backup",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                Title(
+                    text = stringResource(R.string.paykit__import_backup),
+                        color = Colors.White,
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = Colors.White64)
@@ -619,7 +598,7 @@ private fun ImportBackupSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
-                placeholder = { Text("Paste backup JSON here...") },
+                placeholder = { Text(stringResource(R.string.paykit__paste_backup_json_here)) },
             )
 
             Row(
@@ -628,20 +607,19 @@ private fun ImportBackupSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Restore Device ID",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
+                    BodyM(
+                        text = stringResource(R.string.paykit__restore_device_id),
+                            color = Colors.White,
                     )
-                    Text(
-                        text = "Use the device ID from the backup",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Colors.White64,
+                    Caption(
+                        text = stringResource(R.string.paykit__use_the_device_id_from_the_backup),
+                            color = Colors.White64,
                     )
                 }
                 Switch(
                     checked = overwriteDeviceId,
                     onCheckedChange = { overwriteDeviceId = it },
+                    colors = AppSwitchDefaults.colors,
                 )
             }
 
@@ -650,16 +628,15 @@ private fun ImportBackupSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = importText.isNotEmpty(),
             ) {
-                Text("Import Backup")
+                Text(stringResource(R.string.paykit__import_backup))
             }
 
-            Text(
-                text = "Paste your backup JSON to restore sessions and keys.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Colors.White64,
+            Caption(
+                text = stringResource(R.string.paykit__paste_your_backup_json_to_restore_sessions_and_key),
+                    color = Colors.White64,
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            VerticalSpacer(24.dp)
         }
     }
 }

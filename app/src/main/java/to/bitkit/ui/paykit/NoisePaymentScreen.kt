@@ -15,6 +15,12 @@ import to.bitkit.paykit.services.NoisePaymentRequest
 import to.bitkit.paykit.viewmodels.NoisePaymentViewModel
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import androidx.compose.ui.res.stringResource
+import to.bitkit.R
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.Subtitle
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun NoisePaymentScreen(
@@ -38,7 +44,7 @@ fun NoisePaymentScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Noise Payment", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__noise_payment), // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -56,13 +62,13 @@ fun NoisePaymentScreen(
                 FilterChip(
                     selected = mode == PaymentMode.SEND,
                     onClick = { mode = PaymentMode.SEND },
-                    label = { Text("Send") },
+                    label = { Text(stringResource(R.string.paykit__send)) },
                     modifier = Modifier.weight(1f)
                 )
                 FilterChip(
                     selected = mode == PaymentMode.RECEIVE,
                     onClick = { mode = PaymentMode.RECEIVE },
-                    label = { Text("Receive") },
+                    label = { Text(stringResource(R.string.paykit__receive)) },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -80,28 +86,28 @@ fun NoisePaymentScreen(
                         OutlinedTextField(
                             value = recipientPubkey,
                             onValueChange = { recipientPubkey = it },
-                            label = { Text("Recipient Public Key") },
+                            label = { Text(stringResource(R.string.paykit__recipient_public_key)) },
                             modifier = Modifier.fillMaxWidth()
                         )
 
                         OutlinedTextField(
                             value = amount,
                             onValueChange = { amount = it },
-                            label = { Text("Amount (sats)") },
+                            label = { Text(stringResource(R.string.paykit__amount_sats)) },
                             modifier = Modifier.fillMaxWidth()
                         )
 
                         OutlinedTextField(
                             value = methodId,
                             onValueChange = { methodId = it },
-                            label = { Text("Payment Method") },
+                            label = { Text(stringResource(R.string.paykit__payment_method)) },
                             modifier = Modifier.fillMaxWidth()
                         )
 
                         OutlinedTextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text("Description (optional)") },
+                            label = { Text(stringResource(R.string.paykit__description_optional)) },
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -120,9 +126,9 @@ fun NoisePaymentScreen(
                             enabled = !isConnecting && myPubkey.isNotEmpty() && recipientPubkey.isNotEmpty() && amount.isNotEmpty()
                         ) {
                             if (isConnecting) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
                             } else {
-                                Text("Send Payment")
+                                Text(stringResource(R.string.paykit__send_payment))
                             }
                         }
                     }
@@ -141,10 +147,8 @@ fun NoisePaymentScreen(
                         // Show incoming payment request if we have one
                         if (paymentRequest != null) {
                             val request = paymentRequest!!
-                            Text(
-                                text = "Incoming Payment Request",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                            Subtitle(
+                                text = stringResource(R.string.paykit__incoming_payment_request),
                             )
                             HorizontalDivider()
                             Text("From: ${request.payerPubkey.take(16)}...")
@@ -154,10 +158,9 @@ fun NoisePaymentScreen(
                             }
 
                             if (isAuthenticating) {
-                                CircularProgressIndicator()
-                                Text(
-                                    text = "Authenticating...",
-                                    style = MaterialTheme.typography.bodySmall
+                                CircularProgressIndicator(color = Colors.Brand)
+                                Caption(
+                                    text = stringResource(R.string.paykit__authenticating),
                                 )
                             } else {
                                 Row(
@@ -168,20 +171,19 @@ fun NoisePaymentScreen(
                                         onClick = { viewModel.declineIncomingRequest() },
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text("Decline")
+                                        Text(stringResource(R.string.paykit__decline))
                                     }
                                     Button(
                                         onClick = { viewModel.acceptIncomingRequest() },
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text("Accept & Pay")
+                                        Text(stringResource(R.string.paykit__accept_pay))
                                     }
                                 }
                             }
                         } else {
-                            Text(
-                                text = "Waiting for payment request...",
-                                style = MaterialTheme.typography.bodyLarge
+                            BodyM(
+                                text = stringResource(R.string.paykit__waiting_for_payment_request),
                             )
 
                             Button(
@@ -189,9 +191,9 @@ fun NoisePaymentScreen(
                                 enabled = !isConnecting
                             ) {
                                 if (isConnecting) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
                                 } else {
-                                    Text("Start Listening")
+                                    Text(stringResource(R.string.paykit__start_listening))
                                 }
                             }
                         }
@@ -205,7 +207,7 @@ fun NoisePaymentScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+                        containerColor = Colors.Red16
                     )
                 ) {
                     Text(
@@ -224,7 +226,7 @@ fun NoisePaymentScreen(
                         containerColor = if (response.success) {
                             MaterialTheme.colorScheme.primaryContainer
                         } else {
-                            MaterialTheme.colorScheme.errorContainer
+                            Colors.Red16
                         }
                     )
                 ) {
@@ -232,15 +234,12 @@ fun NoisePaymentScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = if (response.success) "Payment successful" else "Payment failed",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                        BodyM(
+                            text = if (response.success) stringResource(R.string.paykit__payment_successful) else stringResource(R.string.paykit__payment_failed),
                         )
                         response.errorMessage?.let {
-                            Text(
+                            Caption(
                                 text = it,
-                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }

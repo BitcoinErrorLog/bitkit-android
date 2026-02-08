@@ -25,6 +25,13 @@ import to.bitkit.paykit.viewmodels.SubscriptionsViewModel
 import to.bitkit.paykit.workers.DiscoveredSubscriptionProposal
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import androidx.compose.ui.res.stringResource
+import to.bitkit.R
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.BodyMSB
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.theme.AppSwitchDefaults
+import to.bitkit.ui.theme.Colors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +59,7 @@ fun PaykitSubscriptionsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Subscriptions", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__subscriptions), // TODO: Localize via Transifex
             onBackClick = onNavigateBack,
             actions = {
                 IconButton(
@@ -68,7 +75,7 @@ fun PaykitSubscriptionsScreen(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("My Subscriptions") },
+                text = { Text(stringResource(R.string.paykit__my_subscriptions)) },
             )
             Tab(
                 selected = selectedTab == 1,
@@ -78,7 +85,7 @@ fun PaykitSubscriptionsScreen(
                 },
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Proposals")
+                        Text(stringResource(R.string.paykit__proposals))
                         if (uiState.incomingProposals.isNotEmpty()) {
                             Spacer(Modifier.width(4.dp))
                             Badge { Text("${uiState.incomingProposals.size}") }
@@ -95,7 +102,7 @@ fun PaykitSubscriptionsScreen(
                 },
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Sent")
+                        Text(stringResource(R.string.paykit__sent))
                         if (uiState.sentProposals.isNotEmpty()) {
                             Spacer(Modifier.width(4.dp))
                             Badge { Text("${uiState.sentProposals.size}") }
@@ -170,14 +177,13 @@ private fun SubscriptionsTab(
 ) {
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = Colors.Brand)
         }
     } else if (subscriptions.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "No subscriptions yet",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            BodyM(
+                text = stringResource(R.string.paykit__no_subscriptions_yet),
+                    color = Colors.White64,
             )
         }
     } else {
@@ -204,14 +210,13 @@ private fun ProposalsTab(
 ) {
     if (uiState.isLoadingProposals) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = Colors.Brand)
         }
     } else if (uiState.incomingProposals.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "No incoming proposals",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            BodyM(
+                text = stringResource(R.string.paykit__no_incoming_proposals),
+                    color = Colors.White64,
             )
         }
     } else {
@@ -256,10 +261,9 @@ private fun SentProposalsTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (uiState.cleanupResult != null) {
-                Text(
+                Caption(
                     text = uiState.cleanupResult,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(8.dp))
@@ -275,16 +279,15 @@ private fun SentProposalsTab(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text("Cleanup Orphaned")
+                Text(stringResource(R.string.paykit__cleanup_orphaned))
             }
         }
 
         if (uiState.sentProposals.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No sent proposals",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                BodyM(
+                    text = stringResource(R.string.paykit__no_sent_proposals),
+                        color = Colors.White64,
                 )
             }
         } else {
@@ -326,18 +329,15 @@ private fun SentProposalRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
+                    BodyMSB(
                         text = "To: ${proposal.recipientPubkey.take(12)}...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
                     )
-                    Text(
+                    Caption(
                         text = "${proposal.amountSats} sats / ${proposal.frequency}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Colors.White64,
                     )
                 }
-                if (proposal.status.name == "PENDING") {
+                if (proposal.status.name == stringResource(R.string.paykit__pending_upper)) {
                     if (isDeleting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
@@ -348,26 +348,25 @@ private fun SentProposalRow(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cancel proposal",
-                                tint = MaterialTheme.colorScheme.error,
+                                tint = Colors.Red,
                             )
                         }
                     }
                 }
             }
             proposal.description?.let {
-                Text(
+                Caption(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                 )
             }
             Text(
                 text = "Status: ${proposal.status.name}",
                 style = MaterialTheme.typography.labelSmall,
                 color = when (proposal.status.name) {
-                    "ACCEPTED" -> MaterialTheme.colorScheme.primary
-                    "EXPIRED" -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.paykit__accepted) -> MaterialTheme.colorScheme.primary
+                    stringResource(R.string.paykit__expired) -> Colors.Red
+                    else -> Colors.White64
                 },
             )
         }
@@ -376,8 +375,8 @@ private fun SentProposalRow(
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
-            title = { Text("Cancel Proposal?") },
-            text = { Text("This will delete the proposal from the homeserver. The recipient will no longer see it.") },
+            title = { Text(stringResource(R.string.paykit__cancel_proposal_question)) },
+            text = { Text(stringResource(R.string.paykit__this_will_delete_the_proposal_from_the_homeserver)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -385,12 +384,12 @@ private fun SentProposalRow(
                         onClickCancel()
                     },
                 ) {
-                    Text("Cancel Proposal", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.paykit__cancel_proposal), color = Colors.Red)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCancelDialog = false }) {
-                    Text("Keep")
+                    Text(stringResource(R.string.paykit__keep))
                 }
             },
         )
@@ -420,33 +419,29 @@ fun SubscriptionRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
+                    BodyM(
                         text = subscription.providerName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
                     )
-                    Text(
+                    Caption(
                         text = subscription.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Colors.White64,
                     )
-                    Text(
+                    Caption(
                         text = "${subscription.amountSats} ${subscription.currency} / ${subscription.frequency}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Colors.White64,
                     )
                 }
                 Switch(
                     checked = subscription.isActive,
                     onCheckedChange = { onToggleActive() },
+                    colors = AppSwitchDefaults.colors,
                 )
             }
 
             if (subscription.paymentCount > 0) {
-                Text(
+                Caption(
                     text = "${subscription.paymentCount} payments made",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                 )
             }
         }
@@ -473,21 +468,17 @@ private fun ProposalRow(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
+            BodyM(
                 text = "From: ${proposal.providerPubkey.take(16)}...",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
             )
             proposal.description?.let {
-                Text(
+                Caption(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Colors.White64,
                 )
             }
-            Text(
+            BodyM(
                 text = "${proposal.amountSats} sats / ${proposal.frequency}",
-                style = MaterialTheme.typography.bodyMedium,
             )
 
             Row(
@@ -502,9 +493,9 @@ private fun ProposalRow(
                         .testTag("proposal_decline_${proposal.subscriptionId}"),
                 ) {
                     if (isDeclining) {
-                        CircularProgressIndicator(Modifier.size(16.dp))
+                        CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
                     } else {
-                        Text("Decline")
+                        Text(stringResource(R.string.paykit__decline))
                     }
                 }
                 Button(
@@ -515,9 +506,9 @@ private fun ProposalRow(
                         .testTag("proposal_accept_${proposal.subscriptionId}"),
                 ) {
                     if (isAccepting) {
-                        CircularProgressIndicator(Modifier.size(16.dp))
+                        CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
                     } else {
-                        Text("Accept")
+                        Text(stringResource(R.string.paykit__accept))
                     }
                 }
             }
@@ -547,7 +538,7 @@ private fun AcceptProposalDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Accept Subscription") },
+        title = { Text(stringResource(R.string.paykit__accept_subscription)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("You are accepting a subscription of ${proposal.amountSats} sats/${proposal.frequency}.")
@@ -557,15 +548,15 @@ private fun AcceptProposalDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Enable Autopay")
-                    Switch(checked = enableAutopay, onCheckedChange = { enableAutopay = it })
+                    Text(stringResource(R.string.paykit__enable_autopay))
+                    Switch(checked = enableAutopay, onCheckedChange = { enableAutopay = it }, colors = AppSwitchDefaults.colors)
                 }
 
                 if (enableAutopay) {
                     OutlinedTextField(
                         value = autopayLimit,
                         onValueChange = { autopayLimit = it.filter { c -> c.isDigit() } },
-                        label = { Text("Spending limit (sats)") },
+                        label = { Text(stringResource(R.string.paykit__spending_limit_sats)) },
                         placeholder = { Text("${proposal.amountSats}") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
@@ -578,11 +569,11 @@ private fun AcceptProposalDialog(
                 val limit = autopayLimit.toLongOrNull() ?: if (enableAutopay) proposal.amountSats else null
                 onAccept(enableAutopay, limit)
             }) {
-                Text("Accept")
+                Text(stringResource(R.string.paykit__accept))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.paykit__cancel)) }
         },
     )
 }
@@ -622,7 +613,7 @@ private fun CreateSubscriptionDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isSending) onDismiss() },
-        title = { Text("Create Subscription") },
+        title = { Text(stringResource(R.string.paykit__create_subscription)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
@@ -630,16 +621,16 @@ private fun CreateSubscriptionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Recipient", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.paykit__recipient), style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = onShowContactPicker) {
-                        Text("Contacts")
+                        Text(stringResource(R.string.paykit__contacts))
                     }
                 }
                 OutlinedTextField(
                     value = recipientPubkey,
                     onValueChange = { recipientPubkey = it.trim() },
-                    label = { Text("Pubkey (z32)") },
-                    placeholder = { Text("Enter or paste pubkey") },
+                    label = { Text(stringResource(R.string.paykit__pubkey_z32)) },
+                    placeholder = { Text(stringResource(R.string.paykit__enter_or_paste_pubkey)) },
                     singleLine = true,
                     enabled = !isSending,
                     modifier = Modifier
@@ -650,7 +641,7 @@ private fun CreateSubscriptionDialog(
                 OutlinedTextField(
                     value = amountSats,
                     onValueChange = { amountSats = it.filter { c -> c.isDigit() } },
-                    label = { Text("Amount (sats)") },
+                    label = { Text(stringResource(R.string.paykit__amount_sats)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     enabled = !isSending,
                     modifier = Modifier
@@ -658,7 +649,7 @@ private fun CreateSubscriptionDialog(
                         .testTag("create_sub_amount"),
                 )
 
-                Text("Frequency", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.paykit__frequency), style = MaterialTheme.typography.bodySmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     frequencyOptions.forEach { option ->
                         FilterChip(
@@ -673,7 +664,7 @@ private fun CreateSubscriptionDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(stringResource(R.string.paykit__description_optional)) },
                     enabled = !isSending,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -685,15 +676,15 @@ private fun CreateSubscriptionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Request Autopay")
-                    Switch(checked = enableAutopay, onCheckedChange = { enableAutopay = it }, enabled = !isSending)
+                    Text(stringResource(R.string.paykit__request_autopay))
+                    Switch(checked = enableAutopay, onCheckedChange = { enableAutopay = it }, enabled = !isSending, colors = AppSwitchDefaults.colors)
                 }
 
                 if (enableAutopay) {
                     OutlinedTextField(
                         value = autopayLimit,
                         onValueChange = { autopayLimit = it.filter { c -> c.isDigit() } },
-                        label = { Text("Limit per period (sats)") },
+                        label = { Text(stringResource(R.string.paykit__limit_per_period_sats)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         enabled = !isSending,
                         modifier = Modifier.fillMaxWidth(),
@@ -701,7 +692,7 @@ private fun CreateSubscriptionDialog(
                 }
 
                 error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(it, color = Colors.Red, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -723,14 +714,14 @@ private fun CreateSubscriptionDialog(
                 modifier = Modifier.testTag("create_sub_send"),
             ) {
                 if (isSending) {
-                    CircularProgressIndicator(Modifier.size(16.dp))
+                    CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
                 } else {
-                    Text("Send Proposal")
+                    Text(stringResource(R.string.paykit__send_proposal))
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSending) { Text("Cancel") }
+            TextButton(onClick = onDismiss, enabled = !isSending) { Text(stringResource(R.string.paykit__cancel)) }
         },
     )
 }

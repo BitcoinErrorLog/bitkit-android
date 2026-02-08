@@ -5,6 +5,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import to.bitkit.ui.theme.AppSwitchDefaults
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.BodyM
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +21,7 @@ import to.bitkit.paykit.viewmodels.RotationSettingsViewModel
 import to.bitkit.ui.components.Title
 import to.bitkit.ui.scaffold.AppTopBar
 import to.bitkit.ui.scaffold.ScreenColumn
+import to.bitkit.ui.theme.Colors
 
 @Composable
 fun RotationSettingsScreen(
@@ -26,7 +32,7 @@ fun RotationSettingsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Rotation Settings", // TODO: Localize via Transifex
+            titleText = stringResource(R.string.paykit__rotation_settings), // TODO: Localize via Transifex
             onBackClick = onNavigateBack
         )
 
@@ -35,7 +41,7 @@ fun RotationSettingsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Colors.Brand)
             }
         } else {
             Column(
@@ -53,7 +59,7 @@ fun RotationSettingsScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Title(text = "Global Settings")
+                        Title(text = stringResource(R.string.paykit__global_settings))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -61,27 +67,25 @@ fun RotationSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Auto-Rotate Enabled",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
+                                BodyM(
+                                    text = stringResource(R.string.paykit__auto_rotate_enabled),
                                 )
-                                Text(
-                                    text = "Automatically rotate endpoints after use",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                Caption(
+                                    text = stringResource(R.string.paykit__automatically_rotate_endpoints_after_use),
+                                    color = Colors.White64,
                                 )
                             }
                             Switch(
                                 checked = uiState.settings?.autoRotateEnabled ?: false,
-                                onCheckedChange = { viewModel.updateAutoRotateEnabled(it) }
+                                onCheckedChange = { viewModel.updateAutoRotateEnabled(it) },
+                                colors = AppSwitchDefaults.colors,
                             )
                         }
 
                         OutlinedTextField(
                             value = uiState.settings?.defaultPolicy ?: "on-use",
                             onValueChange = { viewModel.updateDefaultPolicy(it) },
-                            label = { Text("Default Policy") },
+                            label = { Text(stringResource(R.string.paykit__default_policy)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -96,14 +100,13 @@ fun RotationSettingsScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Title(text = "Method Settings")
+                        Title(text = stringResource(R.string.paykit__method_settings))
 
                         val methodSettings = uiState.settings?.methodSettings
                         if (methodSettings.isNullOrEmpty()) {
-                            Text(
-                                text = "No method-specific settings",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            BodyM(
+                                text = stringResource(R.string.paykit__no_method_specific_settings),
+                                    color = Colors.White64,
                             )
                         } else {
                             methodSettings.forEach { (methodId, settings) ->
@@ -133,25 +136,20 @@ fun MethodRotationCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
+            BodyM(
                 text = methodId,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
             )
-            Text(
+            Caption(
                 text = "Policy: ${methodSettings.policy}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Colors.White64,
             )
-            Text(
+            Caption(
                 text = "Use count: ${methodSettings.useCount}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Colors.White64,
             )
-            Text(
+            Caption(
                 text = "Rotations: ${methodSettings.rotationCount}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Colors.White64,
             )
         }
     }

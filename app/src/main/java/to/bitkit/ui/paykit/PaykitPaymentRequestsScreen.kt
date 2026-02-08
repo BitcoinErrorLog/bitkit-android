@@ -36,6 +36,12 @@ import to.bitkit.ui.theme.Colors
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.res.stringResource
+import to.bitkit.R
+import to.bitkit.ui.components.BodyM
+import to.bitkit.ui.components.Caption
+import to.bitkit.ui.components.Title
+import to.bitkit.ui.shared.modifiers.clickableAlpha
 
 @Composable
 fun PaykitPaymentRequestsScreen(
@@ -53,21 +59,21 @@ fun PaykitPaymentRequestsScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Payment Requests",
+            titleText = stringResource(R.string.paykit__payment_requests),
             onBackClick = onNavigateBack,
             actions = {
                 if (uiState.isDiscovering) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp).padding(end = 8.dp),
                         strokeWidth = 2.dp,
-                        color = Colors.Brand,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 } else {
                     IconButton(onClick = { viewModel.discoverRequests() }) {
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = "Discover Requests",
-                            tint = Colors.Brand,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -75,7 +81,7 @@ fun PaykitPaymentRequestsScreen(
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Create Request",
-                        tint = Colors.Brand,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             },
@@ -164,12 +170,12 @@ private fun TabSection(
         Tab(
             selected = selectedTab == RequestTab.INCOMING,
             onClick = { onSelectTab(RequestTab.INCOMING) },
-            text = { Text("Incoming") },
+            text = { Text(stringResource(R.string.paykit__incoming)) },
         )
         Tab(
             selected = selectedTab == RequestTab.SENT,
             onClick = { onSelectTab(RequestTab.SENT) },
-            text = { Text("Sent") },
+            text = { Text(stringResource(R.string.paykit__sent)) },
         )
     }
 }
@@ -185,14 +191,14 @@ private fun IncomingRequestsList(
     when {
         isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Colors.Brand)
             }
         }
         requests.isEmpty() -> {
             EmptyState(
                 icon = Icons.Default.CallReceived,
-                title = "No incoming requests",
-                subtitle = "Requests from others will appear here",
+                title = stringResource(R.string.paykit__no_incoming_requests),
+                subtitle = stringResource(R.string.paykit__requests_from_others_will_appear_here),
             )
         }
         else -> {
@@ -228,14 +234,14 @@ private fun SentRequestsList(
     when {
         isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Colors.Brand)
             }
         }
         outgoingRequests.isEmpty() -> {
             EmptyState(
                 icon = Icons.Default.Send,
-                title = "No sent requests",
-                subtitle = "Requests you send will appear here",
+                title = stringResource(R.string.paykit__no_sent_requests),
+                subtitle = stringResource(R.string.paykit__requests_you_send_will_appear_here),
             )
         }
         else -> {
@@ -253,7 +259,7 @@ private fun SentRequestsList(
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (isCleaningUp) "Cleaning up..." else "Cleanup Orphaned Requests")
+                        Text(if (isCleaningUp) stringResource(R.string.paykit__cleaning_up) else stringResource(R.string.paykit__cleanup_orphaned_requests))
                     }
                 }
 
@@ -323,7 +329,7 @@ fun PaymentRequestRow(
     onDecline: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickableAlpha { onClick() },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Colors.Gray6),
     ) {
@@ -353,16 +359,13 @@ fun PaymentRequestRow(
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(
+                        BodyM(
                             text = request.counterpartyName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = Colors.White,
+                                color = Colors.White,
                         )
-                        Text(
+                        BodyM(
                             text = formatSats(request.amountSats),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Colors.White,
+                                color = Colors.White,
                         )
                     }
                 }
@@ -370,10 +373,9 @@ fun PaymentRequestRow(
             }
 
             if (request.description.isNotEmpty()) {
-                Text(
+                Caption(
                     text = request.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Colors.White64,
+                        color = Colors.White64,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -389,13 +391,13 @@ fun PaymentRequestRow(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Colors.Green),
                     ) {
-                        Text("Accept")
+                        Text(stringResource(R.string.paykit__accept))
                     }
                     OutlinedButton(
                         onClick = onDecline,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Decline")
+                        Text(stringResource(R.string.paykit__decline))
                     }
                 }
             }
@@ -411,7 +413,7 @@ private fun SentPaymentRequestRow(
     onCancel: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickableAlpha { onClick() },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Colors.Gray6),
     ) {
@@ -429,28 +431,25 @@ private fun SentPaymentRequestRow(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Colors.Brand.copy(alpha = 0.2f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.Default.Send,
                             contentDescription = null,
-                            tint = Colors.Brand,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(
+                        BodyM(
                             text = request.counterpartyName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = Colors.White,
+                                color = Colors.White,
                         )
-                        Text(
+                        BodyM(
                             text = formatSats(request.amountSats),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Colors.White,
+                                color = Colors.White,
                         )
                     }
                 }
@@ -458,10 +457,9 @@ private fun SentPaymentRequestRow(
             }
 
             if (request.description.isNotEmpty()) {
-                Text(
+                Caption(
                     text = request.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Colors.White64,
+                        color = Colors.White64,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -473,7 +471,7 @@ private fun SentPaymentRequestRow(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Colors.Red),
                 ) {
-                    Text("Cancel Request")
+                    Text(stringResource(R.string.paykit__cancel_request))
                 }
             }
         }
@@ -490,11 +488,11 @@ private fun StatusBadge(status: PaymentRequestStatus) {
         PaymentRequestStatus.PAID -> Colors.Green
     }
     val text = when (status) {
-        PaymentRequestStatus.PENDING -> "Pending"
-        PaymentRequestStatus.ACCEPTED -> "Accepted"
-        PaymentRequestStatus.DECLINED -> "Declined"
-        PaymentRequestStatus.EXPIRED -> "Expired"
-        PaymentRequestStatus.PAID -> "Paid"
+        PaymentRequestStatus.PENDING -> stringResource(R.string.paykit__pending)
+        PaymentRequestStatus.ACCEPTED -> stringResource(R.string.paykit__accepted)
+        PaymentRequestStatus.DECLINED -> stringResource(R.string.paykit__declined)
+        PaymentRequestStatus.EXPIRED -> stringResource(R.string.paykit__expired)
+        PaymentRequestStatus.PAID -> stringResource(R.string.paykit__paid)
     }
 
     Surface(
@@ -541,16 +539,15 @@ private fun CreatePaymentRequestSheet(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                "Create Payment Request",
-                style = MaterialTheme.typography.titleLarge,
-                color = Colors.White,
+            Title(
+                stringResource(R.string.paykit__create_payment_request),
+                    color = Colors.White,
             )
 
             OutlinedTextField(
                 value = recipientPubkey,
                 onValueChange = { recipientPubkey = it },
-                label = { Text("Recipient Pubkey") },
+                label = { Text(stringResource(R.string.paykit__recipient_pubkey)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
@@ -558,7 +555,7 @@ private fun CreatePaymentRequestSheet(
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { amountText = it.filter { c -> c.isDigit() } },
-                label = { Text("Amount (sats)") },
+                label = { Text(stringResource(R.string.paykit__amount_sats)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
@@ -568,19 +565,19 @@ private fun CreatePaymentRequestSheet(
                 FilterChip(
                     selected = methodId == "lightning",
                     onClick = { methodId = "lightning" },
-                    label = { Text("Lightning") },
+                    label = { Text(stringResource(R.string.paykit__lightning)) },
                 )
                 FilterChip(
                     selected = methodId == "onchain",
                     onClick = { methodId = "onchain" },
-                    label = { Text("On-Chain") },
+                    label = { Text(stringResource(R.string.paykit__on_chain)) },
                 )
             }
 
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description (optional)") },
+                label = { Text(stringResource(R.string.paykit__description_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 3,
             )
@@ -590,7 +587,7 @@ private fun CreatePaymentRequestSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Expires in", color = Colors.White64)
+                Text(stringResource(R.string.paykit__expires_in), color = Colors.White64)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(1, 7, 30, 90).forEach { days ->
                         FilterChip(
@@ -626,7 +623,7 @@ private fun CreatePaymentRequestSheet(
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Colors.White)
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (uiState.isSending) "Sending..." else "Send Request")
+                Text(if (uiState.isSending) stringResource(R.string.paykit__sending) else stringResource(R.string.paykit__send_request))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -656,7 +653,7 @@ private fun PaymentRequestDetailSheet(
                     .clip(CircleShape)
                     .background(
                         if (request.direction == RequestDirection.INCOMING) Colors.Green.copy(alpha = 0.2f)
-                        else Colors.Brand.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -664,35 +661,33 @@ private fun PaymentRequestDetailSheet(
                     if (request.direction == RequestDirection.INCOMING) Icons.Default.CallReceived else Icons.Default.Send,
                     contentDescription = null,
                     modifier = Modifier.size(36.dp),
-                    tint = if (request.direction == RequestDirection.INCOMING) Colors.Green else Colors.Brand,
+                    tint = if (request.direction == RequestDirection.INCOMING) Colors.Green else MaterialTheme.colorScheme.primary,
                 )
             }
 
-            Text(
+            Title(
                 text = formatSats(request.amountSats),
-                style = MaterialTheme.typography.headlineMedium,
-                color = Colors.White,
+                    color = Colors.White,
             )
 
             StatusBadge(status = request.status)
 
             if (request.description.isNotEmpty()) {
-                Text(
+                BodyM(
                     text = request.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Colors.White64,
+                        color = Colors.White64,
                 )
             }
 
             HorizontalDivider(color = Colors.White16)
 
             DetailRow(
-                label = if (request.direction == RequestDirection.INCOMING) "From" else "To",
+                label = if (request.direction == RequestDirection.INCOMING) stringResource(R.string.paykit__from) else "To",
                 value = request.counterpartyName,
             )
-            DetailRow(label = "Method", value = request.methodId.replaceFirstChar { it.uppercase() })
-            DetailRow(label = "Created", value = formatDate(request.createdAt))
-            request.expiresAt?.let { DetailRow(label = "Expires", value = formatDate(it)) }
+            DetailRow(label = stringResource(R.string.paykit__method), value = request.methodId.replaceFirstChar { it.uppercase() })
+            DetailRow(label = stringResource(R.string.paykit__created), value = formatDate(request.createdAt))
+            request.expiresAt?.let { DetailRow(label = stringResource(R.string.paykit__expires), value = formatDate(it)) }
 
             if (request.status == PaymentRequestStatus.PENDING) {
                 Spacer(Modifier.height(8.dp))
@@ -710,7 +705,7 @@ private fun PaymentRequestDetailSheet(
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = Colors.Green),
                         ) {
-                            Text("Accept")
+                            Text(stringResource(R.string.paykit__accept))
                         }
                         OutlinedButton(
                             onClick = {
@@ -719,7 +714,7 @@ private fun PaymentRequestDetailSheet(
                             },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Decline")
+                            Text(stringResource(R.string.paykit__decline))
                         }
                     }
                 } else {
@@ -731,7 +726,7 @@ private fun PaymentRequestDetailSheet(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Colors.Red),
                     ) {
-                        Text("Cancel Request")
+                        Text(stringResource(R.string.paykit__cancel_request))
                     }
                 }
             }

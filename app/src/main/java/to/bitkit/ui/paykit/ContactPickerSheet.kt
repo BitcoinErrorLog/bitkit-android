@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -75,7 +77,7 @@ fun ContactPickerSheet(
                     tint = Colors.White,
                 )
             }
-            Title(text = "Select Contact")
+            Title(text = stringResource(R.string.paykit__select_contact))
         }
 
         Column(
@@ -86,7 +88,7 @@ fun ContactPickerSheet(
             SearchInput(
                 value = searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = "Search contacts...",
+                placeholder = stringResource(R.string.paykit__search_contacts),
             )
 
             VerticalSpacer(16.dp)
@@ -113,10 +115,10 @@ fun ContactPickerSheet(
                             modifier = Modifier.size(48.dp),
                         )
                         VerticalSpacer(16.dp)
-                        BodyM(text = "No contacts yet", color = Colors.White64)
+                        BodyM(text = stringResource(R.string.paykit__no_contacts_yet), color = Colors.White64)
                         VerticalSpacer(8.dp)
                         BodyS(
-                            text = "Add people you follow on Pubky",
+                            text = stringResource(R.string.paykit__add_people_you_follow_on_pubky),
                             color = Colors.White32,
                         )
                     }
@@ -154,12 +156,12 @@ private fun ContactPickerRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Colors.Brand24, CircleShape),
+                .background(Colors.White16, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             BodyMSB(
                 text = contact.name.take(1).uppercase().ifEmpty { "?" },
-                color = Colors.Brand,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
@@ -167,7 +169,7 @@ private fun ContactPickerRow(
 
         Column(modifier = Modifier.weight(1f)) {
             BodyMSB(
-                text = contact.name.ifEmpty { "Unknown" },
+                text = contact.name.ifEmpty { stringResource(R.string.paykit__unknown) },
                 color = Colors.White,
             )
             BodyS(

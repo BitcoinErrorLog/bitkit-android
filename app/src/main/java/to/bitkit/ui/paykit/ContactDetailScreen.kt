@@ -18,7 +18,11 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import to.bitkit.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +68,7 @@ fun ContactDetailScreen(
 
     val app = appViewModel
     val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     LaunchedEffect(contactId, contacts) {
         contact = contacts.find { it.id == contactId }
@@ -76,7 +81,7 @@ fun ContactDetailScreen(
         errorMessage?.let { msg ->
             app?.toast(
                 type = to.bitkit.models.Toast.ToastType.ERROR,
-                title = "Error",
+                title = context.getString(R.string.paykit__error),
                 description = msg,
             )
             viewModel.clearError()
@@ -85,9 +90,9 @@ fun ContactDetailScreen(
 
     if (showDeleteConfirm) {
         AppAlertDialog(
-            title = "Remove Contact",
+            title = stringResource(R.string.paykit__remove_contact),
             text = "This will unfollow ${contact?.name?.ifEmpty { "this contact" } ?: "this contact"} on your homeserver. Are you sure?",
-            confirmText = "Remove",
+            confirmText = stringResource(R.string.paykit__remove),
             onConfirm = {
                 showDeleteConfirm = false
                 isDeleting = true
@@ -102,7 +107,7 @@ fun ContactDetailScreen(
 
     ScreenColumn {
         AppTopBar(
-            titleText = "Contact",
+            titleText = stringResource(R.string.paykit__contact),
             onBackClick = onNavigateBack,
         )
 
@@ -121,8 +126,8 @@ fun ContactDetailScreen(
                     clipboardManager.setText(AnnotatedString(contact!!.publicKeyZ32))
                     app?.toast(
                         type = to.bitkit.models.Toast.ToastType.SUCCESS,
-                        title = "Copied",
-                        description = "Public key copied to clipboard",
+                        title = context.getString(R.string.paykit__copied),
+                        description = context.getString(R.string.paykit__public_key_copied_to_clipboard),
                     )
                 },
                 onSendPayment = { onNavigateToNoisePayment(contact!!.publicKeyZ32) },
@@ -151,12 +156,12 @@ private fun ContactDetailContent(
         Box(
             modifier = Modifier
                 .size(120.dp)
-                .background(Colors.Brand24, CircleShape),
+                .background(Colors.White16, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Title(
                 text = contact.name.take(1).uppercase().ifEmpty { "?" },
-                color = Colors.Brand,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
@@ -164,7 +169,7 @@ private fun ContactDetailContent(
 
         // Name
         Title(
-            text = contact.name.ifEmpty { "Unknown Contact" },
+            text = contact.name.ifEmpty { stringResource(R.string.paykit__unknown_contact) },
             color = Colors.White,
         )
 
@@ -179,7 +184,7 @@ private fun ContactDetailContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Caption13Up(text = "Public Key", color = Colors.White64)
+                Caption13Up(text = stringResource(R.string.paykit__public_key), color = Colors.White64)
                 VerticalSpacer(4.dp)
                 BodyS(
                     text = contact.publicKeyZ32,
@@ -190,7 +195,7 @@ private fun ContactDetailContent(
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
                     contentDescription = "Copy",
-                    tint = Colors.Brand,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -206,14 +211,14 @@ private fun ContactDetailContent(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Caption13Up(text = "Payment History", color = Colors.White64)
+                Caption13Up(text = stringResource(R.string.paykit__payment_history), color = Colors.White64)
 
                 if (contact.paymentCount > 0) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        BodyM(text = "Total Payments", color = Colors.White64)
+                        BodyM(text = stringResource(R.string.paykit__total_payments), color = Colors.White64)
                         BodyM(text = "${contact.paymentCount}", color = Colors.Green)
                     }
                 }
@@ -223,7 +228,7 @@ private fun ContactDetailContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        BodyM(text = "Last Payment", color = Colors.White64)
+                        BodyM(text = stringResource(R.string.paykit__last_payment), color = Colors.White64)
                         BodyM(
                             text = formatTimestamp(lastPayment),
                             color = Colors.White,
@@ -244,7 +249,7 @@ private fun ContactDetailContent(
                         .background(Colors.Gray6, RoundedCornerShape(12.dp))
                         .padding(16.dp),
                 ) {
-                    Caption13Up(text = "Notes", color = Colors.White64)
+                    Caption13Up(text = stringResource(R.string.paykit__notes), color = Colors.White64)
                     VerticalSpacer(8.dp)
                     BodyM(text = notes, color = Colors.White)
                 }
@@ -258,13 +263,13 @@ private fun ContactDetailContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             PrimaryButton(
-                text = "Send Payment",
+                text = stringResource(R.string.paykit__send_payment),
                 onClick = onSendPayment,
                 modifier = Modifier.fillMaxWidth(),
             )
 
             SecondaryButton(
-                text = if (isDeleting) "Removing..." else "Remove Contact",
+                text = if (isDeleting) stringResource(R.string.paykit__removing) else stringResource(R.string.paykit__remove_contact),
                 onClick = onRemoveContact,
                 enabled = !isDeleting,
                 modifier = Modifier.fillMaxWidth(),
@@ -274,7 +279,7 @@ private fun ContactDetailContent(
         VerticalSpacer(16.dp)
 
         BodyS(
-            text = "Removing this contact will unfollow them on your Pubky homeserver",
+            text = stringResource(R.string.paykit__removing_this_contact_will_unfollow_them_on_your_p),
             color = Colors.White32,
             textAlign = TextAlign.Center,
         )

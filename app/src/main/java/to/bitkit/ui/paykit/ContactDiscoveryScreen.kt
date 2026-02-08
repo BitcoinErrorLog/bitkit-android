@@ -24,7 +24,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +80,7 @@ fun ContactDiscoveryScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         ScreenColumn {
             AppTopBar(
-                titleText = "Add Follow",
+                titleText = stringResource(R.string.paykit__add_follow),
                 onBackClick = onNavigateBack,
                 actions = {
                     IconButton(
@@ -109,21 +111,21 @@ fun ContactDiscoveryScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Title(text = "Enter Pubkey")
+                        Title(text = stringResource(R.string.paykit__enter_pubkey))
                         BodyS(
-                            text = "Paste a Pubky ID to follow someone directly",
+                            text = stringResource(R.string.paykit__paste_a_pubky_id_to_follow_someone_directly),
                             color = Colors.White64,
                         )
                         OutlinedTextField(
                             value = pubkeyToFollow,
                             onValueChange = { pubkeyToFollow = it },
-                            placeholder = { Text("Pubkey (z-base-32)") },
+                            placeholder = { Text(stringResource(R.string.paykit__pubkey_z_base_32)) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedContainerColor = Colors.Gray5,
                                 focusedContainerColor = Colors.Gray5,
                                 unfocusedBorderColor = Colors.Gray5,
-                                focusedBorderColor = Colors.Brand,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
@@ -131,7 +133,7 @@ fun ContactDiscoveryScreen(
                                 .testTag("PubkeyInput"),
                         )
                         PrimaryButton(
-                            text = "Add Follow",
+                            text = stringResource(R.string.paykit__add_follow),
                             enabled = pubkeyToFollow.isNotBlank() && !isLoading,
                             onClick = {
                                 if (pubkeyToFollow.isNotBlank()) {
@@ -145,7 +147,7 @@ fun ContactDiscoveryScreen(
                 }
 
                 if (discoveredContacts.isNotEmpty()) {
-                    Title(text = "Your Follows")
+                    Title(text = stringResource(R.string.paykit__your_follows))
                 }
 
                 if (isLoading) {
@@ -170,10 +172,10 @@ fun ContactDiscoveryScreen(
                                 modifier = Modifier.size(48.dp),
                             )
                             VerticalSpacer(16.dp)
-                            BodyM(text = "No follows yet", color = Colors.White64)
+                            BodyM(text = stringResource(R.string.paykit__no_follows_yet), color = Colors.White64)
                             VerticalSpacer(8.dp)
                             BodyS(
-                                text = "Enter a pubkey above to add your first follow",
+                                text = stringResource(R.string.paykit__enter_a_pubkey_above_to_add_your_first_follow),
                                 color = Colors.White32,
                             )
                         }
@@ -226,12 +228,12 @@ private fun DiscoveredContactRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Colors.Brand24, CircleShape),
+                .background(Colors.White16, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             BodyMSB(
                 text = (discovered.name?.take(1) ?: discovered.pubkey.take(1)).uppercase(),
-                color = Colors.Brand,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
