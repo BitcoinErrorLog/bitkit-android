@@ -1,21 +1,8 @@
 name: E2E Pubky Integration Tests
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'app/src/main/java/to/bitkit/paykit/**'
-      - 'app/src/main/java/to/bitkit/ui/paykit/**'
-      - 'e2e/**'
-      - '.github/workflows/e2e-pubky.yml'
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'app/src/main/java/to/bitkit/paykit/**'
-      - 'app/src/main/java/to/bitkit/ui/paykit/**'
-      - 'e2e/**'
-      - '.github/workflows/e2e-pubky.yml'
   workflow_dispatch:
+    # All automatic triggers disabled - manual only
 
 env:
   JAVA_VERSION: '17'

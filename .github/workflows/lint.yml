@@ -1,9 +1,8 @@
 name: Lint
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
+  workflow_dispatch:
+    # All automatic triggers disabled - manual only
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
